@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This license does not apply to src/FarseerPhysics/ and to the files derived
-from the Farseer Physics Engine samples (src/TW3D.Game/ScreenSystem/,
-src/TW3D.Game/DrawingSystem/, src/TW3D.Game/ConvertUnits.cs). Those are
-licensed under the Microsoft Public License (Ms-PL), see
-src/FarseerPhysics/LICENSE.txt.
