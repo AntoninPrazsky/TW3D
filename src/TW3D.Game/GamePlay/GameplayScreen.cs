@@ -48,7 +48,7 @@ namespace TW3D.GamePlay
         //20 metres long, gravity 12 m/s²), so at real time everything moves as in slow motion.
         //Shrinking the whole world while keeping its look would be the same as running the game faster:
         //everything moves along the same paths, only in a shorter time.
-        private const float GameSpeed = 2f;
+        private const float GameSpeed = 1.5f;
 
         private readonly string levelName;
 

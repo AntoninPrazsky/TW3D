@@ -10,7 +10,7 @@ namespace TW3D.GamePlay
     /// Runs the physics simulation with a fixed time step, independent of the frame rate,
     /// and interpolates the positions of moving bodies between the last two steps,
     /// so the movement is smooth at any frame rate. The time is game time (see GameplayScreen.GameSpeed):
-    /// 60 steps per game second, e.g. 120 steps per real second at the game speed 2.
+    /// 60 steps per game second, e.g. 90 steps per real second at the game speed 1.5.
     /// </summary>
     public sealed class PhysicsClock
     {
