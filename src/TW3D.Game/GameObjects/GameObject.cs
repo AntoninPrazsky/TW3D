@@ -2,6 +2,7 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
+using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
 using Microsoft.Xna.Framework;
@@ -18,7 +19,20 @@ namespace TW3D.GameObjects
         protected ScreenManager screenManager;
         protected Vector2 position;
         protected ChaseCamera camera;
+        protected PhysicsClock physics;
         protected const float scale = 0.25f;
+
+        /// <summary>Position of a body to draw (interpolated between the last two simulation steps).</summary>
+        protected Vector2 DrawPosition(Body body)
+        {
+            return physics != null ? physics.Position(body) : body.Position;
+        }
+
+        /// <summary>Rotation of a body to draw (interpolated between the last two simulation steps).</summary>
+        protected float DrawRotation(Body body)
+        {
+            return physics != null ? physics.Rotation(body) : body.Rotation;
+        }
 
         public List<Vertices> CreateListOfVertices(string textureName, float distanceReduction)
         {

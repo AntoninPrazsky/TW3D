@@ -2,6 +2,7 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
+using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
 using Microsoft.Xna.Framework;
@@ -16,11 +17,12 @@ namespace TW3D.GameObjects
         public Body propBody { get; set; }
         private Model model;
         
-        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
+        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
         {
             world = World;
             screenManager = ScreenManager;
             camera = Camera;
+            physics = Physics;
             position = Position;
             model = ObjModel;
 
@@ -83,7 +85,7 @@ namespace TW3D.GameObjects
 
         public override void Draw()
         {
-            DrawModel(model, new Vector3(propBody.Position.X, propBody.Position.Y, 0f), propBody.Rotation, false, true);
+            DrawModel(model, new Vector3(DrawPosition(propBody), 0f), DrawRotation(propBody), false, true);
         }
     }
 }

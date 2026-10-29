@@ -2,6 +2,7 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
+using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
 using Microsoft.Xna.Framework;
@@ -68,11 +69,12 @@ namespace TW3D.GameObjects
 
         private float CTW3D(float value) { return value * 2.5f; }
 
-        public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string fileName)
+        public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, string fileName)
         {
             world = World;
             screenManager = ScreenManager;
             camera = Camera;
+            physics = Physics;
             position = Position;
           
             this.fileName = fileName;
@@ -166,7 +168,7 @@ namespace TW3D.GameObjects
                         //These two special game objects do not need a physics bitmap (in this case modelName is the name of the object type, not of the model)
                         if (modelName == "Bar" || modelName == "Box")
                         {
-                            TrackProp obj = new TrackProp(world, screenManager, camera, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], null);
+                            TrackProp obj = new TrackProp(world, screenManager, camera, physics, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], null);
                             gObjects.Add(obj);
                         }
                         else //These objects need a physics bitmap
@@ -177,7 +179,7 @@ namespace TW3D.GameObjects
                                 //If it has not been vectorized yet, vectorize it and store the result
                                 TrackPropVertices.ObjectVertices.Add(gOName, CreateListOfVertices("Env/bit/" + gOName, 10f));
                             }
-                            TrackProp obj = new TrackProp(world, screenManager, camera, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], TrackPropVertices.ObjectVertices[gOName]);
+                            TrackProp obj = new TrackProp(world, screenManager, camera, physics, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], TrackPropVertices.ObjectVertices[gOName]);
                             gObjects.Add(obj);
                         }
                     }

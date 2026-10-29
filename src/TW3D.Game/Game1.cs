@@ -26,6 +26,11 @@ namespace TW3D
             Window.Title = "Triple Wheel 3D";
             IsMouseVisible = true;
 
+            //One update and one frame per refresh of the monitor (e.g. 75 per second on a 75 Hz monitor);
+            //the physics simulation keeps its own fixed time step (see PhysicsClock)
+            IsFixedTimeStep = false;
+            graphics.SynchronizeWithVerticalRetrace = true;
+
             if (windowSize.HasValue)
             {
                 graphics.PreferredBackBufferWidth = windowSize.Value.X;

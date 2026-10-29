@@ -1,12 +1,11 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nkast.Aether.Physics2D.Dynamics;
 
 namespace TW3D.Graphics
 {
     /// <summary>
-    /// Camera following a physics body with a delay. Provides the 3D view of the scene
+    /// Camera following an object (the car) with a delay. Provides the 3D view of the scene
     /// and the 2D view for the physics debug view.
     /// </summary>
     /// <remarks>
@@ -35,8 +34,8 @@ namespace TW3D.Graphics
         private Vector2 panOffset;
         private float zoom = 1f;
 
-        /// <summary>The followed body.</summary>
-        public Body Target { get; set; }
+        /// <summary>Position of the followed object in physics units; the camera looks at it.</summary>
+        public Vector2 Focus { get; private set; }
 
         /// <summary>Limits of the camera rotation following the target's rotation (radians).</summary>
         public float MinRotation { get; set; } = -MathHelper.Pi;
@@ -76,16 +75,16 @@ namespace TW3D.Graphics
             Zoom = 1f;
         }
 
-        public void Update(float elapsedSeconds, Viewport viewport)
+        /// <summary>Moves the camera after the followed object; call once per frame.</summary>
+        /// <param name="targetPosition">Position of the followed object in physics units.</param>
+        /// <param name="targetRotation">Rotation of the followed object in radians.</param>
+        public void Update(float elapsedSeconds, Viewport viewport, Vector2 targetPosition, float targetRotation)
         {
-            if (Target != null)
-            {
-                Vector2 targetPosition = Target.Position + panOffset;
-                float targetRotation = MathHelper.Clamp(-Target.Rotation % MathHelper.TwoPi, MinRotation, MaxRotation);
+            Focus = targetPosition;
+            float rotation = MathHelper.Clamp(-targetRotation % MathHelper.TwoPi, MinRotation, MaxRotation);
 
-                Position = Follow(Position, targetPosition, elapsedSeconds);
-                Rotation = FollowAngle(Rotation, targetRotation, elapsedSeconds);
-            }
+            Position = Follow(Position, targetPosition + panOffset, elapsedSeconds);
+            Rotation = FollowAngle(Rotation, rotation, elapsedSeconds);
 
             Update3D(viewport);
             UpdateDebugView(viewport);
@@ -118,8 +117,7 @@ namespace TW3D.Graphics
         private void Update3D(Viewport viewport)
         {
             //The camera looks at the target (with no delay) from its own delayed position, slightly above and behind
-            Vector2 focus = Target != null ? Target.Position : Position;
-            Vector3 lookAt = new Vector3(-focus.X * WorldTo3D - 0.5f, -focus.Y * WorldTo3D, 0f);
+            Vector3 lookAt = new Vector3(-Focus.X * WorldTo3D - 0.5f, -Focus.Y * WorldTo3D, 0f);
             Vector3 eye = new Vector3(-Position.X * WorldTo3D, -Position.Y * WorldTo3D + 2f, -4f);
             Vector3 up = new Vector3((float)Math.Cos(MathHelper.PiOver2 - Rotation), (float)Math.Sin(MathHelper.PiOver2 - Rotation), 0f);
 

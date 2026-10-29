@@ -22,7 +22,7 @@ namespace TW3D.GameObjects
         /// </summary>
         public override void Draw()
         {
-            DrawModel(sky, new Vector3(camera.Target.Position.X, camera.Target.Position.Y, -25f), 0f, false, false, asBackground: true);
+            DrawModel(sky, new Vector3(camera.Focus, -25f), 0f, false, false, asBackground: true);
         }
     }
 }

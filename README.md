@@ -95,10 +95,15 @@ Its preview image in the level select is loaded from
 | Folder | Contents |
 |---|---|
 | `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu and level select screens |
-| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view |
+| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `PhysicsClock`: fixed-step simulation |
 | `GameObjects/` | The car, the level loaded from a `.lev` file, the sky and dynamic objects |
 | `Graphics/` | Camera following the car (3D view and debug view), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
+
+The game draws one frame per refresh of the monitor (e.g. 75 frames per second
+on a 75 Hz monitor). The physics simulation is independent of that: it always
+runs 60 fixed steps of 1/60 s per second, and the positions of moving bodies are
+interpolated between the last two steps for drawing.
 
 ## Game content
 

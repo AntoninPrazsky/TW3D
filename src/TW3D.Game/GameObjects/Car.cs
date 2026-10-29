@@ -2,6 +2,7 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
+using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
 using Microsoft.Xna.Framework;
@@ -45,11 +46,12 @@ namespace TW3D.GameObjects
 
         public bool holderRotLockChnage;
         
-        public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string CarName, string WheelName)
+        public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, string CarName, string WheelName)
         {
             world = World;
             screenManager = ScreenManager;
             camera = Camera;
+            physics = Physics;
             position = Position;
             
             acceleration = 0f;
@@ -314,7 +316,7 @@ namespace TW3D.GameObjects
 
             float selectedDistance = float.MaxValue;
 
-            Vector3 carModPos = new Vector3(-car.Position.X/10, -car.Position.Y/10, 0f);
+            Vector3 carModPos = new Vector3(-DrawPosition(car) / 10f, 0f);
             BoundingSphere sphere = new BoundingSphere(carModPos, 1f);
             
                 Nullable<float> result = pickRay.Intersects(sphere);
@@ -330,27 +332,27 @@ namespace TW3D.GameObjects
 
         public override void Draw()
         {
-            DrawModel(carModel, new Vector3(car.Position.X, car.Position.Y, 0f), car.Rotation, false, true);
+            DrawModel(carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false, true);
 
-            DrawModel(wheelModel, new Vector3(wheel4LB.Position.X, wheel4LB.Position.Y, 0f), wheel4LB.Rotation, false, true);
-            DrawModel(wheelModel, new Vector3(wheel4RB.Position.X, wheel4RB.Position.Y, 0f), wheel4RB.Rotation, false, true);
-            DrawModel(wheelModel, new Vector3(wheel4TB.Position.X, wheel4TB.Position.Y, 0f), wheel4TB.Rotation, false, true);
-            DrawModel(holderModel, new Vector3(holderB.Position.X, holderB.Position.Y, 0f), holderB.Rotation, false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false, true);
+            DrawModel(holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false, true);
 
-            DrawModel(wheelModel, new Vector3(wheel4LF.Position.X, wheel4LF.Position.Y, 0f), wheel4LF.Rotation, false, true);
-            DrawModel(wheelModel, new Vector3(wheel4RF.Position.X, wheel4RF.Position.Y, 0f), wheel4RF.Rotation, false, true);
-            DrawModel(wheelModel, new Vector3(wheel4TF.Position.X, wheel4TF.Position.Y, 0f), wheel4TF.Rotation, false, true);
-            DrawModel(holderModel, new Vector3(holderF.Position.X, holderF.Position.Y, 0f), holderF.Rotation, false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false, true);
+            DrawModel(holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false, true);
 
-            DrawModel(wheelModel, new Vector3(wheel4LB.Position.X, wheel4LB.Position.Y, 0f), wheel4LB.Rotation, true, true);
-            DrawModel(wheelModel, new Vector3(wheel4RB.Position.X, wheel4RB.Position.Y, 0f), wheel4RB.Rotation, true, true);
-            DrawModel(wheelModel, new Vector3(wheel4TB.Position.X, wheel4TB.Position.Y, 0f), wheel4TB.Rotation, true, true);
-            DrawModel(holderModel, new Vector3(holderB.Position.X, holderB.Position.Y, 0f), holderB.Rotation, true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true, true);
+            DrawModel(holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true, true);
 
-            DrawModel(wheelModel, new Vector3(wheel4LF.Position.X, wheel4LF.Position.Y, 0f), wheel4LF.Rotation, true, true);
-            DrawModel(wheelModel, new Vector3(wheel4RF.Position.X, wheel4RF.Position.Y, 0f), wheel4RF.Rotation, true, true);
-            DrawModel(wheelModel, new Vector3(wheel4TF.Position.X, wheel4TF.Position.Y, 0f), wheel4TF.Rotation, true, true);
-            DrawModel(holderModel, new Vector3(holderF.Position.X, holderF.Position.Y, 0f), holderF.Rotation, true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true, true);
+            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true, true);
+            DrawModel(holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true, true);
         }
     }
 }

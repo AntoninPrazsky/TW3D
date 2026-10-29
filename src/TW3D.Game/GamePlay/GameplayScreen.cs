@@ -56,13 +56,11 @@ namespace TW3D.GamePlay
 
         //Physics units per second
         private const float CameraPanSpeed = 10f;
-        //Never simulate more than 1/30 s in one step
-        private const float MaxPhysicsStep = 1f / 30f;
 
         private readonly string levelName;
 
         private World world;
-        private SolverIterations solverIterations;
+        private PhysicsClock physics;
         private ChaseCamera camera;
         private DebugView debugView;
         private OnScreenControls controls;
@@ -87,22 +85,20 @@ namespace TW3D.GamePlay
             LoadModels(Manager.Content);
 
             Settings.ContinuousPhysics = false;
-            solverIterations = new SolverIterations
+            world = new World(new Vector2(0f, 12f));
+            physics = new PhysicsClock(world, new SolverIterations
             {
                 VelocityIterations = 6,
                 PositionIterations = 2,
                 TOIVelocityIterations = Settings.TOIVelocityIterations,
                 TOIPositionIterations = Settings.TOIPositionIterations,
                 AutoClearForces = true
-            };
-
-            world = new World(new Vector2(0f, 12f));
+            });
             camera = new ChaseCamera { MinRotation = -0.5f, MaxRotation = 0.5f };
 
-            level = new Level(world, Manager, camera, Vector2.Zero, levelName);
+            level = new Level(world, Manager, camera, physics, Vector2.Zero, levelName);
             sky = new Sky(Manager, camera);
-            car = new Car(world, Manager, camera, new Vector2(-1.6f, -7f), "car", "wheel");
-            camera.Target = car.car;
+            car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), "car", "wheel");
 
             debugView = new DebugView(world)
             {
@@ -240,11 +236,12 @@ namespace TW3D.GamePlay
             car.Update();
             level.Update();
 
-            //The simulation pauses while the screen does not have the focus (window inactive, screen closing)
+            //The simulation runs with a fixed time step whatever the frame rate is,
+            //and pauses while the screen does not have the focus (window inactive, screen closing)
             if (HasFocus)
-                world.Step(Math.Min(elapsed, MaxPhysicsStep), ref solverIterations);
+                physics.Advance(elapsed);
 
-            camera.Update(elapsed, Manager.Viewport);
+            camera.Update(elapsed, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
         }
 
         public override void Draw(GameTime gameTime)
