@@ -11,6 +11,9 @@ namespace TW3D
     {
         private static readonly string[] Levels = { "startblock", "lock", "tunel" };
 
+        //Samples per pixel of the multisample antialiasing
+        private const int MultiSampleCount = 8;
+
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
         private readonly string startLevel;
@@ -30,6 +33,11 @@ namespace TW3D
             //the physics simulation keeps its own fixed time step (see PhysicsClock)
             IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = true;
+
+            //Multisample antialiasing; if the graphics card does not support this many samples, MonoGame uses fewer
+            graphics.PreferMultiSampling = true;
+            graphics.PreparingDeviceSettings += (sender, e) =>
+                e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = MultiSampleCount;
 
             if (windowSize.HasValue)
             {

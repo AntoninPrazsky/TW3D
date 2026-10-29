@@ -101,7 +101,8 @@ Its preview image in the level select is loaded from
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
 
 The game draws one frame per refresh of the monitor (e.g. 75 frames per second
-on a 75 Hz monitor). The physics simulation is independent of that: it always
+on a 75 Hz monitor), with 8× multisample antialiasing (fewer samples if the
+graphics card does not support 8). The physics simulation is independent of that: it always
 runs 60 fixed steps of 1/60 s per second, and the positions of moving bodies are
 interpolated between the last two steps for drawing.
 
