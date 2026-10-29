@@ -26,8 +26,8 @@ namespace TW3D.GameObjects
         public BoundingFrustum boundingFrustum { get; set; }
         public BoundingBox boundingBox { get; set; }
 
-        //protected const float farPlane = 22f; //Blízká vzdálenost pro zadní ořezovou plochu (malá dohlednost)
-        protected const float farPlane = 50f; //Velká vzdálenost pro zadní ořezovou plochu (střední dohlednost)
+        //protected const float farPlane = 22f; //Short distance of the far clipping plane (short view distance)
+        protected const float farPlane = 50f; //Long distance of the far clipping plane (medium view distance)
 
         public List<Vertices> CreateListOfVertices(string textureName, float distanceReduction)
         {
@@ -35,25 +35,25 @@ namespace TW3D.GameObjects
 
             texture = screenManager.Content.Load<Texture2D>(textureName);
             
-            //Pole pro data z bitmapy
+            //Array for the bitmap data
             uint[] data = new uint[texture.Width * texture.Height];
             texture.GetData(data);
 
-            //Nalezení vrholů, které tvoří obrys tvaru v původní bitmapě
+            //Find the vertices that form the outline of the shape in the original bitmap
             Vertices vertices = PolygonTools.CreatePolygon(data, texture.Width);
 
-            //Střed bitmapy jako těžiště
+            //Centre of the bitmap as the centroid
             Vector2 centroid = new Vector2(-texture.Width / 2, -texture.Height / 2);
 
-            //těžiště polygonu × "těžiště" bitmapy
+            //polygon centroid vs. bitmap "centroid"
 
-            //Posunutí vrcholů tak, aby byl nalezený polygon vystředěn podle těžiště
+            //Translate the vertices so that the found polygon is centred on the centroid
             vertices.Translate(ref centroid);
 
             vertices = SimplifyTools.ReduceByDistance(vertices, distanceReduction);
             List<Vertices> list = Triangulate.ConvexPartition(vertices, TriangulationAlgorithm.Bayazit);
             
-            //Poměr mezi velikostí obrázku v bitmapě a velikostí tvaru pro fyzikální simulaci (konstanta)
+            //Ratio between the image size in the bitmap and the shape size in the physics simulation (constant)
             Vector2 vertScale = new Vector2(0.2524f) * scale;
 
             foreach (Vertices ver in list)
@@ -102,7 +102,7 @@ namespace TW3D.GameObjects
             
             projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f), screenManager.GraphicsDevice.Viewport.AspectRatio, 0.1f, farPlane);
             
-            //Projekční kužel pro určení dohledonosti
+            //View frustum for determining visibility
             boundingFrustum = new BoundingFrustum(view * projection);
             
             if (lighting)
@@ -155,7 +155,7 @@ namespace TW3D.GameObjects
 
             Vector3 farPoint = screenManager.GraphicsDevice.Viewport.Unproject(farsource, projection, view, wor);
 
-            //Vytvoření paprsku z přední ořezové plochy do zadní ořezové plochy
+            //Create a ray from the near clipping plane to the far clipping plane
             Vector3 direction = farPoint - nearPoint;
             direction.Normalize();
             Ray pickRay = new Ray(nearPoint, direction);

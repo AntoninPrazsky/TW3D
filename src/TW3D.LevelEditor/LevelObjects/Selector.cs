@@ -365,7 +365,7 @@ namespace LevelEditor.LevelObjects
             }
 
             //// back front Edit
-            //.LeftShift (substituce kvůli knihovně na CapsLock?)
+            //.LeftShift (substituted with CapsLock because of the library?)
             if (keyState.IsKeyDown(Keys.RightShift) && !shPr)
             {
                 if (bEdit) { bEdit = false; where = track; Console.BackgroundColor = ConsoleColor.Black; Console.WriteLine("Back side edit turned off."); }

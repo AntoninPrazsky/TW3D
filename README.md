@@ -1,142 +1,144 @@
 # Triple Wheel 3D (TW3D)
 
-Překážková jízda s 3D grafikou a 2D fyzikou: auto s otočnými nápravami musí projet
-trať s využitím rotace a zamykání náprav. Projekt vznikl v roce 2016 jako příloha
-bakalářské práce (ukázková hra + editor tratí) a v roce 2026 byl převeden na
-současné nástroje.
+An obstacle course driving game with 3D graphics and 2D physics: a car with
+rotating axles has to get through the track by rotating and locking its axles.
+The project was created in 2016 as an appendix to a bachelor's thesis (sample
+game + level editor) and was migrated to current tools in 2026.
 
-Hra je postavená na frameworku [MonoGame](https://monogame.net/) a fyzikálním
-enginu Farseer Physics. Fyzika běží ve 2D, 3D modely se vykreslují podle polohy
-fyzikálních těles.
+The game is built on the [MonoGame](https://monogame.net/) framework and the
+Farseer Physics engine. The physics runs in 2D, and the 3D models are drawn at
+the positions of the physics bodies.
 
-## Struktura repozitáře
+## Repository structure
 
-| Cesta | Obsah |
+| Path | Contents |
 |---|---|
-| `src/TW3D.Game/` | Hra (`TW3D.exe`) |
-| `src/TW3D.LevelEditor/` | Editor tratí (`LevelEditor.exe`), jen pro Windows |
-| `src/FarseerPhysics/` | Fyzikální engine Farseer Physics 3.5 (převzatý kód třetí strany) |
-| `content/` | Sdílený herní obsah: zkompilované modely, textury a fonty (`.xnb`) a tratě (`Levels/*.lev`). Při sestavení se kopíruje do výstupu jako `Content/`. |
-| `docs/bakalarka/` | Dokumentace z bakalářské práce (popisuje stav z roku 2016) |
-| `docs/katalog/` | Katalog bloků tratí a dynamických objektů. Otevři `katalog.html` v prohlížeči. |
+| `src/TW3D.Game/` | The game (`TW3D.exe`) |
+| `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
+| `src/FarseerPhysics/` | Farseer Physics 3.5 engine (third-party code) |
+| `content/` | Shared game content: compiled models, textures and fonts (`.xnb`) and levels (`Levels/*.lev`). Copied to the build output as `Content/`. |
+| `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
+| `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 
-## Požadavky
+## Requirements
 
-- [.NET SDK 10](https://dotnet.microsoft.com/download) nebo novější
-- Volitelně IDE: Visual Studio 2022 (17.13+) / 2026, JetBrains Rider nebo VS Code s C# Dev Kit
+- [.NET SDK 10](https://dotnet.microsoft.com/download) or newer
+- Optionally an IDE: Visual Studio 2022 (17.13+) / 2026, JetBrains Rider or VS Code with C# Dev Kit
 
-Balíčky (MonoGame 3.8 DesktopGL) se stáhnou automaticky z NuGetu. Jejich verze jsou
-centrálně v `Directory.Packages.props`.
+Packages (MonoGame 3.8 DesktopGL) are restored automatically from NuGet. Their
+versions are managed centrally in `Directory.Packages.props`.
 
-## Sestavení a spuštění
+## Building and running
 
 ```sh
 dotnet build TW3D.slnx
 
-# hra
+# game
 dotnet run --project src/TW3D.Game
 dotnet run --project src/TW3D.Game -- --windowed --level lock
 
-# editor tratí
+# level editor
 dotnet run --project src/TW3D.LevelEditor
 ```
 
-Parametry hry pro vývoj:
+Game arguments for development:
 
-| Parametr | Význam |
+| Argument | Meaning |
 |---|---|
-| `--windowed` | Okno 1280×720 místo celé obrazovky |
-| `--level <název>` | Přeskočí menu a rovnou načte trať (`lock`, `startblock`, `tunel`). Esc vrátí do menu. |
+| `--windowed` | 1280×720 window instead of full screen |
+| `--level <name>` | Skips the menu and loads the level directly (`lock`, `startblock`, `tunel`). Esc returns to the menu. |
 
-## Ovládání hry
+## Game controls
 
-| Klávesa | Funkce |
+| Key | Action |
 |---|---|
-| → / ← | Plyn / couvání |
-| ↑ / ↓ | Rotace náprav po / proti směru hodinových ručiček |
-| Mezerník | Brzda všech kol |
-| Levý Ctrl | Zamčení rotace náprav |
-| Esc | Zpět do menu |
-| F1–F8 | Ladicí zobrazení fyzikální simulace (Farseer DebugView) |
+| → / ← | Accelerate / reverse |
+| ↑ / ↓ | Rotate the axles clockwise / counterclockwise |
+| Space | Brake all wheels |
+| Left Ctrl | Lock the axle rotation |
+| Esc | Back to the menu |
+| F1–F8 | Physics simulation debug view (Farseer DebugView) |
 
-Hra ve výchozím stavu čte klávesnici. Pro ovládání virtuálním joystickem na dotykovém
-displeji je třeba v `src/TW3D.Game/ScreenSystem/InputHelper.cs` změnit
-`VirtualState = HandleKeyboard();` na `VirtualState = HandleVirtualStick();`.
+The menus can be operated with the mouse. By default the game reads the
+keyboard while driving. To control the car with the on-screen virtual joystick,
+change `VirtualState = HandleKeyboard();` to
+`VirtualState = HandleVirtualStick();` in
+`src/TW3D.Game/ScreenSystem/InputHelper.cs`.
 
-Ovládání editoru popisuje `docs/bakalarka/dokumentace-editoru-trati.pdf`. Novou trať
-ulož do `content/Levels/` a přidej ji do seznamu ve `Game1.Initialize`
-(`selLevScreen.AddLevelItem(...)`). Náhledový obrázek v menu se načítá
-z `content/Levels/levimgs/<název>.xnb`.
+The editor controls are described in
+`docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). Save a new
+level to `content/Levels/` and add it to the list in `Game1.Initialize`
+(`selLevScreen.AddLevelItem(...)`). Its preview image in the menu is loaded
+from `content/Levels/levimgs/<name>.xnb`.
 
-## Herní obsah
+## Game content
 
-Složka `content/` obsahuje pouze **zkompilované** soubory `.xnb`, sestavené
-původně v XNA 4.0. Zdrojové 3D modely a textury nejsou v repozitáři, takže
-obsah nyní nelze měnit, jen používat. Zdrojové soubory jsou jen u fontů
-(`*.spritefont`).
+The `content/` folder contains only **compiled** `.xnb` files, originally built
+with XNA 4.0. The source 3D models and textures are not in the repository, so
+the content can currently only be used, not modified. Source files exist only
+for the fonts (`*.spritefont`).
 
-Formát tratí `.lev` je textový, záznamy jsou oddělené znakem `|`:
+The `.lev` level format is plain text, with records separated by `|`:
 
 ```
-<blok> x,y,posun|...       bloky prostřední (fyzikální) vrstvy
-*<blok> x,y,posun|...      bloky zadní dekorační vrstvy
-#<blok> x,y,posun|...      bloky přední dekorační vrstvy
-<Typ> <model> x,y|...      dynamické objekty (Box, Bar, Tb, Co, …)
+<block> x,y,shift|...      blocks of the middle (physics) layer
+*<block> x,y,shift|...     blocks of the decorative back layer
+#<block> x,y,shift|...     blocks of the decorative front layer
+<Type> <model> x,y|...     dynamic objects (Box, Bar, Tb, Co, …)
 ```
 
-Fyzikální tvar každého bloku se ve hře vytváří vektorizací bitmapy
-`content/Levels/bit/<blok>.xnb`.
+In the game, the physics shape of each block is created by vectorizing the
+bitmap `content/Levels/bit/<block>.xnb`.
 
-## Historie
+## History
 
-- Tag `bachelor-thesis-2016` je původní stav přílohy bakalářské práce
-  (UWP, MonoGame 3.5, Visual Studio 2015), jen bez výstupů sestavení a binárek.
-- Kompletní původní složka včetně zkompilovaných verzí je zálohovaná mimo
-  repozitář v `D:\TW3D_bakalarka_2016_puvodni.zip`.
-- V roce 2026 byl projekt převeden na .NET 10 + MonoGame 3.8 DesktopGL. Hra se
-  od té doby spouští jako běžná desktopová aplikace místo UWP aplikace.
-  Vyzkoušená je na Windows. DesktopGL podporuje i Linux a macOS, tam ale
-  zatím testovaná nebyla.
+- The `bachelor-thesis-2016` tag marks the original state of the bachelor's
+  thesis appendix (UWP, MonoGame 3.5, Visual Studio 2015), without build
+  output and binaries.
+- In 2026 the project was migrated to .NET 10 + MonoGame 3.8 DesktopGL. Since
+  then the game runs as a regular desktop application instead of a UWP app.
+  It has been tested on Windows. DesktopGL also supports Linux and macOS, but
+  the game has not been tested there yet.
 
-## Licence
+## License
 
-- **Vlastní kód, herní obsah (`content/`) a dokumentace:** licence [MIT](LICENSE),
+- **Own code, game content (`content/`) and documentation:** [MIT](LICENSE),
   © 2016–2026 Antonín Pražský.
-- **Farseer Physics Engine** (`src/FarseerPhysics/`) a soubory odvozené z jeho
-  ukázek (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
-  `src/TW3D.Game/ConvertUnits.cs`): licence Microsoft Public License (Ms-PL),
-  viz [`src/FarseerPhysics/LICENSE.txt`](src/FarseerPhysics/LICENSE.txt).
-  Farseer vychází z Box2D (© Erin Catto).
+- **Farseer Physics Engine** (`src/FarseerPhysics/`) and the files derived from
+  its samples (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
+  `src/TW3D.Game/ConvertUnits.cs`): Microsoft Public License (Ms-PL), see
+  [`src/FarseerPhysics/LICENSE.txt`](src/FarseerPhysics/LICENSE.txt).
+  Farseer is based on Box2D (© Erin Catto).
 
-## Plán dalšího vývoje
+## Roadmap
 
-Věci nalezené při převodu, zhruba seřazené podle důležitosti:
+Issues found during the migration, roughly in order of importance:
 
-1. **Nahradit Farseer knihovnou [Aether.Physics2D](https://github.com/nkast/Aether.Physics2D)**,
-   udržovaným nástupcem Farseeru (NuGet `Aether.Physics2D.MG`). Pak bude možné
-   smazat `src/FarseerPhysics/`. API se liší hlavně ve vytváření těles
-   (`World.CreateBody` místo `BodyFactory`).
-2. **Oddělit vlastní kód od ukázkového frameworku Farseeru.** `ScreenSystem/`
-   a `DrawingSystem/` vychází z ukázek Farseer Samples a obsahují i nepoužívané
-   části (např. `MessageBoxScreen`, text „Welcome, betatesters!“ v `MainGame`).
-3. **Zdrojové modely a textury.** Bez nich nejde obsah měnit. Pokud se najdou
-   (např. `.blend`/`.fbx`), přidat je do `content/` a zavést MonoGame Content
-   Pipeline (`.mgcb`).
-4. **Jeden společný seznam bloků a objektů.** Načítání 69 modelů je ručně
-   vypsané dvakrát (`MainGame.LoadContent` a `Editor.LoadContent`) a parser
-   `.lev` je také dvakrát (hra a editor). Kandidát na sdílenou knihovnu
-   a datový soubor (např. JSON).
-5. **Robustnější formát tratí.** Parser čte soubor znak po znaku. Editor ukládá
-   souřadnice přes `float.ToString()` podle nastavení jazyka systému, takže by
-   neceločíselná souřadnice na českém Windows vytvořila desetinnou čárku
-   kolidující s oddělovačem. Používat `CultureInfo.InvariantCulture`, případně
-   přejít na JSON.
-6. **Seznam tratí v menu** je napevno ve `Game1.Initialize`, včetně testovacích
-   duplikátů. Lépe ho načítat ze složky `Levels`.
-7. **Nedokončené menu:** Garage, About a Options. Volba klávesnice / dotykového
-   ovládání jen úpravou kódu.
-8. **Editor:** výchozí složka `C:\levels`, závislost na Windows (dialogy
-   WinForms, `keybd_event` pro Caps Lock) a ovládání přes dvě okna. Možná
-   náhrada: UI přímo v okně editoru (např. ImGui.NET).
-9. **Automatické testy a CI**, např. testy parseru tratí a sestavení přes
+1. **Replace Farseer with [Aether.Physics2D](https://github.com/nkast/Aether.Physics2D)**,
+   the maintained successor of Farseer (NuGet `Aether.Physics2D.MG`). After that,
+   `src/FarseerPhysics/` can be deleted. The API differs mainly in how bodies are
+   created (`World.CreateBody` instead of `BodyFactory`).
+2. **Separate own code from the Farseer sample framework.** `ScreenSystem/` and
+   `DrawingSystem/` come from the Farseer Samples and contain unused parts too
+   (e.g. `MessageBoxScreen`, the "Welcome, betatesters!" text in `MainGame`).
+3. **Source models and textures.** Without them the content cannot be changed.
+   If they turn up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the
+   MonoGame Content Pipeline (`.mgcb`).
+4. **A single shared list of blocks and objects.** Loading of the 69 models is
+   written out by hand twice (`MainGame.LoadContent` and `Editor.LoadContent`),
+   and the `.lev` parser exists twice as well (game and editor). A candidate for
+   a shared library and a data file (e.g. JSON).
+5. **A more robust level format.** The parser reads the file character by
+   character. The editor saves coordinates using `float.ToString()` with the
+   system culture, so on Czech Windows a non-integer coordinate would get a
+   decimal comma clashing with the separator. Use `CultureInfo.InvariantCulture`,
+   or switch to JSON.
+6. **The level list in the menu** is hard-coded in `Game1.Initialize`, including
+   duplicate test entries. It would be better to load it from the `Levels` folder.
+7. **Unfinished menu:** Garage, About and Options. Switching between keyboard and
+   touch controls requires a code change.
+8. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+   dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
+   A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
+9. **Automated tests and CI**, e.g. tests of the level parser and builds via
    GitHub Actions.

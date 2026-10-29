@@ -1,5 +1,5 @@
 <Project>
-  <!-- Verze NuGet balíčků jsou spravované centrálně na jednom místě -->
+  <!-- NuGet package versions are managed centrally in one place -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>

@@ -1,4 +1,4 @@
-# Textové soubory ukládat s LF, při checkoutu podle platformy
+# Store text files with LF, check out with the platform's line endings
 * text=auto
 
 *.cs      text diff=csharp
@@ -8,7 +8,7 @@
 *.lev     text
 *.md      text
 
-# Binární data
+# Binary data
 *.xnb     binary
 *.png     binary
 *.jpg     binary

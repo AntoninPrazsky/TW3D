@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Sdílený zkompilovaný obsah (modely, textury, fonty) a tratě, kopíruje se do výstupu jako Content/ -->
+    <!-- Shared compiled content (models, textures, fonts) and levels, copied to the output as Content/ -->
     <None Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

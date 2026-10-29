@@ -31,7 +31,7 @@ namespace TW3D
             }
             else
             {
-                //Okno bez okrajů přes celou obrazovku (stejně jako desktopová verze z roku 2016)
+                //Borderless full-screen window (same as the 2016 desktop version)
                 graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
                 graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
                 graphics.HardwareModeSwitch = false;
@@ -68,7 +68,7 @@ namespace TW3D
             selLevScreen.AddLevelItem("lock", mainGame);
             selLevScreen.AddLevelItem("tunel", mainGame);
 
-            //Duplicitní úrovně pro otestování funkčnosti posuvníku
+            //Duplicate levels to test the scroll bar
             selLevScreen.AddLevelItem("lock", mainGame);
             selLevScreen.AddLevelItem("tunel", mainGame);
             selLevScreen.AddLevelItem("startblock", mainGame);
@@ -84,7 +84,7 @@ namespace TW3D
 
             menuScreen.AddMenuItem("Play", EntryType.Screen, selLevScreen);
 
-            //Není implementováno
+            //Not implemented
             menuScreen.AddMenuItem("Garage", EntryType.Screen, null);
             menuScreen.AddMenuItem("About", EntryType.Screen, null);
             menuScreen.AddMenuItem("Options", EntryType.Screen, null);
@@ -96,7 +96,7 @@ namespace TW3D
 
             if (startLevel != null)
             {
-                //Přímé spuštění tratě z příkazové řádky (bez úvodního loga), Esc vrátí do menu
+                //Level started directly from the command line (without the logo screen), Esc returns to the menu
                 mainGame.LevelName = startLevel;
                 ScreenManager.AddScreen(mainGame);
             }

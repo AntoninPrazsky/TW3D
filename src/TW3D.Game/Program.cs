@@ -5,9 +5,9 @@ namespace TW3D
     public static class Program
     {
         /// <summary>
-        /// Parametry příkazové řádky (pro vývoj):
-        ///   --windowed      spustí hru v okně 1280×720 místo celé obrazovky
-        ///   --level název   přeskočí menu a rovnou načte trať (např. --level lock)
+        /// Command line arguments (for development):
+        ///   --windowed      runs the game in a 1280×720 window instead of full screen
+        ///   --level name    skips the menu and loads the given level directly (e.g. --level lock)
         /// </summary>
         [STAThread]
         static void Main(string[] args)

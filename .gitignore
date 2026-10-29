@@ -1,11 +1,11 @@
-# Výstupy sestavení
+# Build output
 [Bb]in/
 [Oo]bj/
 *.pdb
-# ...kromě složky s obrázky dynamických objektů v katalogu bloků
-!/docs/katalog/obj/
+# ...except the folder with dynamic object images in the block catalog
+!/docs/catalog/obj/
 
-# Visual Studio / Rider / VS Code – lokální nastavení
+# Visual Studio / Rider / VS Code local settings
 .vs/
 .idea/
 .vscode/
@@ -13,13 +13,13 @@
 *.suo
 *.DotSettings.user
 
-# Podpisové klíče (původní dočasný UWP certifikát apod.)
+# Signing keys (the original temporary UWP certificate etc.)
 *.pfx
 
-# Generované soubory starého UWP projektu
+# Generated files of the old UWP project
 project.lock.json
 
-# Systémové soubory
+# OS files
 Thumbs.db
 Desktop.ini
 .DS_Store

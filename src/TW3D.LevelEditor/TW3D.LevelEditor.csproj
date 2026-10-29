@@ -1,9 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Editor je jen pro Windows: používá dialogy Otevřít/Uložit z Windows Forms
-    a P/Invoke do user32.dll (přepínání Caps Lock). Výstup je konzolová aplikace,
-    protože okno konzole slouží jako příkazový řádek editoru.
+    The editor is Windows only: it uses the Windows Forms Open/Save dialogs
+    and P/Invoke into user32.dll (toggling Caps Lock). The output is a console
+    application, because the console window serves as the editor's command line.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Sdílený zkompilovaný obsah (modely, textury, fonty) a tratě, kopíruje se do výstupu jako Content/ -->
+    <!-- Shared compiled content (models, textures, fonts) and levels, copied to the output as Content/ -->
     <None Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

@@ -14,8 +14,8 @@ namespace TW3D.ScreenSystem
         private Vector2 _position;
         private Vector2 _center;
 
-        private float pickLength = 2025f; //Vzdálenost od středu joysticku, kdy se dotyk bere jako stisk joysticku
-        private float stickLength = 30f; //Jak daleko jde joystick vytáhnout
+        private float pickLength = 2025f; //Distance (squared) from the joystick centre within which a touch grabs the joystick
+        private float stickLength = 30f; //How far the joystick can be pulled
         private float scale;
 
         private TouchCollection previousTouchCollection;

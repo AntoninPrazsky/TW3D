@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -201,7 +201,7 @@ namespace TW3D.ScreenSystem
 
             
             
-            /* //Uspoøádání pod sebe:
+            /* //Vertical layout:
             // update each menu entry's location in turn
             for (int i = 0; i < _menuEntries.Count; ++i)
             {
@@ -226,7 +226,7 @@ namespace TW3D.ScreenSystem
             }
             */
 
-            //Moje uspoøádání
+            //My layout
             float bottomPos = ScreenManager.GraphicsDevice.Viewport.Height - _menuEntries[0].GetHeight()/2;
             
             for (int i = 0; i < _menuEntries.Count; ++i)

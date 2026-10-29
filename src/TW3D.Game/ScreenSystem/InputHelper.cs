@@ -156,23 +156,23 @@ namespace TW3D.ScreenSystem
             TouchCollection = TouchPanel.GetState();
             //--ADDED
 
-            //MonoGame DesktopGL nepodporuje TouchPanel.EnableMouseTouchPoint (myš negeneruje dotyky),
-            //proto se levé tlačítko myši převádí na dotyk zde - stejně jako to dělal MonoGame pro UWP a Windows v roce 2016.
+            //MonoGame DesktopGL does not support TouchPanel.EnableMouseTouchPoint (the mouse generates no touches),
+            //so the left mouse button is converted to a touch here - the same way MonoGame did it on UWP and Windows in 2016.
             if (TouchCollection.Count == 0)
                 TouchCollection = HandleMouseAsTouch();
 
             if (_handleVirtualStick)
             {
-                //Vstup z gamepadu herní konzole
+                //Input from a game console gamepad
                 //VirtualState = GamePad.GetState(PlayerIndex.One);
 
-                //Vstup z gamepadu, pokud je připojen (jinak z klávesnice)
+                //Input from a gamepad if one is connected (keyboard otherwise)
                 //VirtualState = GamePad.GetState(PlayerIndex.One).IsConnected ? GamePad.GetState(PlayerIndex.One) : HandleKeyboard();
 
-                //Vstup pouze z klávesnice
+                //Keyboard input only
                 VirtualState = HandleKeyboard();
 
-                //Vstup pouze z virtuálních ovládacích prvků na displeji
+                //Input only from the virtual on-screen controls
                 //VirtualState = HandleVirtualStick();
             }
 
@@ -308,7 +308,7 @@ namespace TW3D.ScreenSystem
 
             if (MouseState.LeftButton == ButtonState.Pressed && PreviousMouseState.LeftButton == ButtonState.Released)
             {
-                _mouseTouchId++; //Každé stisknutí je nový dotyk s novým Id (VirtualStick podle Id sleduje "svůj" dotyk)
+                _mouseTouchId++; //Each press is a new touch with a new Id (VirtualStick tracks "its" touch by Id)
                 state = TouchLocationState.Pressed;
             }
             else if (MouseState.LeftButton == ButtonState.Pressed)

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -84,7 +84,7 @@ namespace TW3D.ScreenSystem
             _menuBorderTop = (viewport.Height - _menuBorderMargin * (NumEntries - 1)) / 2f + _slFix * 2.4f;
             _menuBorderBottom = (viewport.Height + _menuBorderMargin * (NumEntries - 1)) / 2f;
 
-            _menuOffset = _slFix; //Výchozí pozice menu (v budoucnu se nabídka posune na poslední levely)
+            _menuOffset = _slFix; //Initial menu position (in the future the menu will scroll to the latest levels)
             _maxOffset = Math.Max(0f, (_menuEntries.Count - NumEntries * 3) * _menuBorderMargin);
             
             _scrollUp = new MenuButton(_texScrollButton, false, new Vector2(scrollBarPos, _menuBorderTop - _texScrollButton.Height / 3), this);
@@ -205,7 +205,7 @@ namespace TW3D.ScreenSystem
             Vector2 position = Vector2.Zero;
             position.Y = _menuBorderTop - _menuOffset;
 
-            //Pozice obrázkù úrovní odpovídá šíøce displeje 1280px, protože pro tuto velikost jsou nativní
+            //Level image positions correspond to a display width of 1280 px, because the images are native at this size
             float sc = ScreenManager.GraphicsDevice.Viewport.Width / 1280f;
             
             // update each menu entry's location in turn

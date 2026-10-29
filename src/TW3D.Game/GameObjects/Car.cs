@@ -79,7 +79,7 @@ namespace TW3D.GameObjects
             wheel4LB = new Body(world);
             wheel4LB.BodyType = BodyType.Dynamic;
 
-            //Původně místo _holderB.Position.X jenom position.X apod. (před opravou středu rovnostranného trojúhelníku)
+            //Originally just position.X etc. instead of _holderB.Position.X (before the centre of the equilateral triangle was fixed)
             wheel4LB.Position = new Vector2(holderB.Position.X - 0.76454f * scale * 10, holderB.Position.Y + 0.644055f * scale * 10);
             wheel4LB.CreateFixture(wheelShape);
             wheel4LB.Friction = wFriction;
@@ -96,7 +96,7 @@ namespace TW3D.GameObjects
             wheel4TB.CreateFixture(wheelShape);
             wheel4TB.Friction = wFriction;
 
-            //Sestavení držáku (nápravy)
+            //Assembling the holder (axle)
             Vector2 axis = new Vector2(0, -1f);
 
             springLeftB = new RevoluteJoint(holderB, wheel4LB, wheel4LB.Position, true);
@@ -118,7 +118,7 @@ namespace TW3D.GameObjects
             springTopB.MotorEnabled = true;
             world.AddJoint(springTopB);
 
-            //Posun zadní nápravy
+            //Rear axle offset
             float bx = -2.5f * scale * 12;
             float by = 0.8f * scale * 12;
             
@@ -160,7 +160,7 @@ namespace TW3D.GameObjects
             wheel4TF.CreateFixture(wheelShape);
             wheel4TF.Friction = wFriction;
             
-            //Hmotnosti
+            //Masses
             holderF.Mass = 15;
             holderB.Mass = 15;
 
@@ -192,7 +192,7 @@ namespace TW3D.GameObjects
             springTopF.MotorEnabled = true;
             world.AddJoint(springTopF);
 
-            //Posun přední nápravy
+            //Front axle offset
             float fx = 3f * scale * 12;
             float fy = 0.8f * scale * 12;
 

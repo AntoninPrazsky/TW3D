@@ -26,22 +26,22 @@ namespace TW3D.GameObjects
        
     }
 
-    static class TrackBlockVertices //Vrcholy nalezené v bitmapách bloků
+    static class TrackBlockVertices //Vertices found in the block bitmaps
     {
         public static Dictionary<string, List<Vertices>> BlockVertices = new Dictionary<string,List<Vertices>>();
     }
 
-    static class TrackPropVertices //Vrcholy nalezené v bitmapách dynamických objektů
+    static class TrackPropVertices //Vertices found in the dynamic object bitmaps
     {
         public static Dictionary<string, List<Vertices>> ObjectVertices = new Dictionary<string, List<Vertices>>();
     }
 
-    static class TrackBlockModels //Modely bloků trati
+    static class TrackBlockModels //Track block models
     {
         public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
     }
 
-    static class TrackPropModels //Modely dynamických objektů
+    static class TrackPropModels //Dynamic object models
     {
         public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
     }
@@ -110,28 +110,28 @@ namespace TW3D.GameObjects
             for (int i = 0; i < levelData.Length; i++)
             {
 
-                //Hvězdička v načítaném souboru značí, že bude následovat zápis zadních bloků, křížek značí, že bude následovat zápis předních bloků.
-                //Zápis těchto bloků ve formátu souboru následuje vždy až po načtení bloků s fyzikální reprezentací (prostředních bloků).
-                //Hvězdička nebo křížek tedy značí, že všechny bloky s fyzikální reprezentací už byly načteny (bodiesLoaded = true) a budeme načítat
-                //zadní (backTrackBlock) nebo přední (frontTrackBlocks) bloky.
+                //An asterisk in the loaded file means that back blocks follow, a hash means that front blocks follow.
+                //In the file format, these blocks always come after the blocks with a physical representation (the middle blocks).
+                //So an asterisk or a hash means that all blocks with a physical representation have already been loaded (bodiesLoaded = true) and we will load
+                //the back (backTrackBlock) or front (frontTrackBlocks) blocks.
                 if (levelData[i].ToString() == "*") { where = backTrackBlocks; bodiesLoaded = true; if (i < levelData.Length) i++; }
                 if (levelData[i].ToString() == "#") { where = frontTrackBlocks; bodiesLoaded = true; if (i < levelData.Length) i++; }
-                if (i == levelData.Length) break; //Celý soubor byl přečten.
+                if (i == levelData.Length) break; //The whole file has been read.
 
-                if (Char.IsLetter(levelData[i])) //Písmeno znamená, že bude následovat název modelu.
+                if (Char.IsLetter(levelData[i])) //A letter means that a model name follows.
                 {
-                    while (!Char.IsSeparator(levelData[i])) //Čtení názvu modelu, dokud se nenarazí na separátor.
+                    while (!Char.IsSeparator(levelData[i])) //Read the model name until a separator is reached.
                     {
                         modelName += levelData[i];
                         i++;
                     }
 
-                    i++; //Aktuální pozice je separátor, dojde k posunutí.
+                    i++; //The current position is a separator, move on.
 
                     //--Game Objects
-                    if (gObNames.Contains(modelName)) //List gObNames obsahuje jména herních objektů, které nejsou bloky trati.
+                    if (gObNames.Contains(modelName)) //The gObNames list contains the names of game objects that are not track blocks.
                     {
-                        while (!Char.IsSeparator(levelData[i])) //Po názvu herního objektu v souboru následuje název jeho modelu.
+                        while (!Char.IsSeparator(levelData[i])) //In the file, the name of a game object is followed by the name of its model.
                         {
                             gOName += levelData[i];
                             i++;
@@ -140,25 +140,25 @@ namespace TW3D.GameObjects
                     }
                     //--End Game Objects
 
-                    while (Char.IsNumber(levelData[i]) || levelData[i].ToString() == "-") //Přečtení první souřadnice (číslo nebo znak mínus)
+                    while (Char.IsNumber(levelData[i]) || levelData[i].ToString() == "-") //Read the first coordinate (digits or a minus sign)
                     {
                         x += levelData[i];
                         i++;
                     }
 
-                    i++; //Aktuální pozice není číslo, dojde k posunutí.
+                    i++; //The current position is not a digit, move on.
 
-                    while (Char.IsNumber(levelData[i]) || levelData[i].ToString() == "-") //Přečtení druhé souřadnice
+                    while (Char.IsNumber(levelData[i]) || levelData[i].ToString() == "-") //Read the second coordinate
                     {
                         y += levelData[i];
                         i++;
                     }
 
-                    if (!gObNames.Contains(modelName)) //Název modelu není herním objektem, které nejsou bloky trati.
+                    if (!gObNames.Contains(modelName)) //The model name is not one of the game objects that are not track blocks (i.e. it is a track block).
                     {
-                        i++; //Po přečtení druhé souřadnice aktuální znak není číslo, dojde k posunutí.
+                        i++; //After reading the second coordinate the current character is not a digit, move on.
 
-                        while (levelData[i].ToString() != "|") //U bloků trati ve formátu souboru následuje po souřadnicích třetí číslo určující vertikální posunutí
+                        while (levelData[i].ToString() != "|") //For track blocks, the coordinates in the file are followed by a third number specifying the vertical shift
                         {
                             shift += levelData[i];
                             i++;
@@ -167,18 +167,18 @@ namespace TW3D.GameObjects
                     //--Game Objects
                     if (gOName != "")
                     {
-                        //Tyto dva speciální herní objekty nepotřebují bitmapovou fyzikální mapu (modelName je v tomto případě název typu objektu, ne modelu)
+                        //These two special game objects do not need a physics bitmap (in this case modelName is the name of the object type, not of the model)
                         if (modelName == "Bar" || modelName == "Box")
                         {
                             TrackProp obj = new TrackProp(world, screenManager, camera, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], null);
                             gObjects.Add(obj);
                         }
-                        else //Tyto objekty potřebují bitmapovou fyzikální mapu
+                        else //These objects need a physics bitmap
                         { 
-                            //Podíváme se, jestli fyzikální bitmapa ještě nebyla vektorizovaná
+                            //Check whether the physics bitmap has not been vectorized yet
                             if (!TrackPropVertices.ObjectVertices.ContainsKey(gOName))
                             {
-                                //Pokud nebyla vektorizovaná, vektorizujeme ji a uložíme si výsledek
+                                //If it has not been vectorized yet, vectorize it and store the result
                                 TrackPropVertices.ObjectVertices.Add(gOName, CreateListOfVertices("Env/bit/" + gOName, 10f));
                             }
                             TrackProp obj = new TrackProp(world, screenManager, camera, new Vector2(float.Parse(x), float.Parse(y)), modelName, TrackPropModels.Models[gOName], TrackPropVertices.ObjectVertices[gOName]);
@@ -218,8 +218,8 @@ namespace TW3D.GameObjects
                         float pos = 0;
                         if (where == backTrackBlocks) pos = CTW3D(9f) / 10f;
                         if (where == frontTrackBlocks) pos = CTW3D(-9f) / 10f;
-                        //float vis = 1.8f; //Malá dohlednost
-                        float vis = 5f; //Velká dohlednost
+                        //float vis = 1.8f; //Short view distance
+                        float vis = 5f; //Long view distance
                         
                         trackBlock.boundingBox = new BoundingBox(
                                 new Vector3(-trackBlock.blockAbsPosition.X / 10f - vis, -trackBlock.blockAbsPosition.Y / 10f - vis, pos), 
@@ -240,7 +240,7 @@ namespace TW3D.GameObjects
 
         private void ReadFile()
         {
-            //Verze přístupu k souborovému systému pro Windows Phone 8
+            //File system access for Windows Phone 8
             /*
             var resource = System.Windows.Application.GetResourceStream(new Uri(@"Content\Levels\" + _fileName + ".lev", UriKind.Relative));
             using (StreamReader sr = new StreamReader(resource.Stream))
@@ -249,7 +249,7 @@ namespace TW3D.GameObjects
             }
             */
 
-            //Verze přístupu k souborovému systému pro MonoGame (funguje na všech platformách)
+            //File system access for MonoGame (works on all platforms)
             using (var stream = TitleContainer.OpenStream("Content/Levels/" + fileName + ".lev"))
             {
                 using (var reader = new StreamReader(stream))
@@ -299,7 +299,7 @@ namespace TW3D.GameObjects
                     //obj.propBody.Enabled = true;
                     obj.Draw();
                 }
-                //Přerušení výpočtu fyzikální simulace objektů, které jsou mimo promítací kužel
+                //Suspend the physics simulation of objects outside the view frustum
                 //else obj.propBody.Enabled = false;
             }
 

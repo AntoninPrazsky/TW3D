@@ -31,13 +31,13 @@ namespace TW3D.ScreenSystem
             _viewport = viewport.Bounds;
             
             int _cropSize;
-            //Obrázek na pozadí je širokoúhlejší než poměr stran zobrazení (bude oříznut zleva a zprava)
+            //The background image is wider than the display aspect ratio (it will be cropped on the left and right)
             if (((float)_backgroundTexture.Width / (float)_backgroundTexture.Height) > ((float)_viewport.Width / (float)_viewport.Height))
             { 
                 _cropSize = (int)(((float)_viewport.Width / (float)_viewport.Height) * (float)_backgroundTexture.Height);
                 _crop = new Rectangle((_backgroundTexture.Width - _cropSize) / 2, 0, _cropSize, _backgroundTexture.Height);
             }
-            //Obrázek na pozadí je méně širokoúhlý než poměr stran zobrazení (bude oříznut shora a zespodu)
+            //The background image is narrower than the display aspect ratio (it will be cropped at the top and bottom)
             else
             {
                 _cropSize = (int)(((float)_viewport.Height / (float)_viewport.Width) * (float)_backgroundTexture.Width);

@@ -1,8 +1,8 @@
 <Project>
-  <!-- Společné nastavení všech projektů v src/ -->
+  <!-- Settings shared by all projects in src/ -->
   <PropertyGroup>
     <LangVersion>latest</LangVersion>
-    <!-- Původní kód vznikl bez nullable anotací a implicitních usingů -->
+    <!-- The original code was written without nullable annotations and implicit usings -->
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
 
