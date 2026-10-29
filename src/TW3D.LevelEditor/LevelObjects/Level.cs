@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.IO;
 using System.Windows.Forms;
-using System.Text;
+using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
 {
@@ -38,218 +38,153 @@ namespace LevelEditor.LevelObjects
 
     class Level : GameObject
     {
-        private string _fileName;
-        private string _levelData;
+        //Positions in the editor are in 3D units: one grid cell of a level, one step of the vertical shift,
+        //and the ratio of physics units (used by the level file for dynamic objects) to 3D units
+        private float GridSize => CTW3D(9f);
+        private float ShiftStep => CTW3D(1f);
+        private const float PhysicsTo3D = 10f;
 
         public List<TrackBlock> trackBlocks { get; set; }
         public List<TrackBlock> backTrackBlocks { get; set; }
         public List<TrackBlock> frontTrackBlocks { get; set; }
 
-        private List<TrackBlock> where;
-
         public List<EditedObject> gObjects { get; set; }
-        private List<string> gObNames;
 
-        public string getLevelData
-        {
-            get { return _levelData; }
-        }
+        /// <summary>The blocks and dynamic objects the level can use.</summary>
+        public Catalog Catalog { get; }
 
-        public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Vector2 Position, string fileName, float Scale)
+        public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale)
         {
             screenManager = ScreenManager;
             camera = Camera;
+            Catalog = catalog;
             position = Position;
             scale = Scale;
-            
-            _fileName = fileName;
 
             trackBlocks = new List<TrackBlock>();
             backTrackBlocks = new List<TrackBlock>();
             frontTrackBlocks = new List<TrackBlock>();
 
             gObjects = new List<EditedObject>();
-            gObNames = new List<string>();
-            gObNames.Add("Box");
-            gObNames.Add("Bar");
-            gObNames.Add("Tb");
-            gObNames.Add("Ramp");
-            gObNames.Add("Co");
-            gObNames.Add("Mov");
-
-            where = trackBlocks;
 
             ReadFile();
         }
 
         public void ReadFile()
         {
-            Stream stream = null;
             OpenFileDialog openFileDialog = new OpenFileDialog();
-            
+
             openFileDialog.InitialDirectory = "C:\\levels";
-            openFileDialog.Filter = "Level files (*.lev)|*.lev";
-            openFileDialog.FilterIndex = 2;
+            openFileDialog.Filter = "Levels (*.json, *.lev)|*.json;*.lev|All files (*.*)|*.*";
             openFileDialog.RestoreDirectory = true;
-            
-            if (openFileDialog.ShowDialog() == DialogResult.OK)
+
+            if (openFileDialog.ShowDialog() != DialogResult.OK)
+                return;
+
+            LevelData data;
+            try
             {
-                try
-                {
-                    if ((stream = openFileDialog.OpenFile()) != null)
-                        using (stream)
-                        {
-                            TextReader tr = new StreamReader(stream);
-                            _levelData = tr.ReadToEnd();
-                            Console.WriteLine("File " + openFileDialog.FileName + " loaded.\n");
-                        }
+                data = LevelFile.Load(openFileDialog.FileName);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error: Could not read the level file. Original error: " + ex.Message);
+                return;
+            }
 
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show("Error: Could not read file from disk. Original error: " + ex.Message);
-                }
+            //The lists are cleared and refilled, because the selector keeps references to them
+            trackBlocks.Clear();
+            backTrackBlocks.Clear();
+            frontTrackBlocks.Clear();
+            gObjects.Clear();
 
-                trackBlocks.Clear();
-                backTrackBlocks.Clear();
-                frontTrackBlocks.Clear();
-                gObjects.Clear();
+            foreach (string problem in data.Validate(Catalog))
+                Console.WriteLine("Warning: " + problem + " Skipped.");
 
-                string modelName = "";
-                string x = "";
-                string y = "";
-                string shift = "";
-                where = trackBlocks;
+            AddBlocks(data.Middle, trackBlocks, true);
+            AddBlocks(data.Back, backTrackBlocks, false);
+            AddBlocks(data.Front, frontTrackBlocks, false);
 
-                string gOName = "";
+            foreach (ObjectPlacement placement in data.Objects)
+            {
+                ObjectType type = Catalog.FindObject(placement.Type);
+                if (type == null || !type.Models.Contains(placement.Model))
+                    continue;
 
-                for (int i = 0; i < _levelData.Length; i++)
-                {
-                    if (_levelData[i].ToString() == "*") { where = backTrackBlocks; if (i < _levelData.Length) i++;}
-                    if (_levelData[i].ToString() == "#") { where = frontTrackBlocks; if (i < _levelData.Length) i++;}
-                    if (i == _levelData.Length) break;
+                EditedObject gObj = new EditedObject();
+                gObj.objName = placement.Type;
+                gObj.objModelName = placement.Model;
+                gObj.objPosition = new Vector2(placement.X, placement.Y) / PhysicsTo3D;
+                gObj.objModel = TrackPropModels.Models[placement.Model];
+                gObjects.Add(gObj);
+            }
 
-                    if (Char.IsLetter(_levelData[i])) 
-                    {
-                        while (!Char.IsSeparator(_levelData[i]))
-                        {
-                            modelName += _levelData[i];
-                            i++;
-                        }
+            Console.WriteLine("File " + openFileDialog.FileName + " loaded.\n");
+            if (Path.GetExtension(openFileDialog.FileName).Equals(LevelFile.LegacyExtension, StringComparison.OrdinalIgnoreCase))
+                Console.WriteLine("The level was converted from the old .lev format; it will be saved as " + LevelFile.Extension + ".\n");
+        }
 
-                        i++;
+        /// <param name="physicsLayer">The middle layer, where only blocks with a collision bitmap may be.</param>
+        private void AddBlocks(List<BlockPlacement> placements, List<TrackBlock> layer, bool physicsLayer)
+        {
+            foreach (BlockPlacement placement in placements)
+            {
+                BlockType block = Catalog.FindBlock(placement.Block);
+                if (block == null || (physicsLayer && !block.Collision))
+                    continue;
 
-
-                        //--Game Objects
-                        if (gObNames.Contains(modelName)) 
-                        {
-                            while (!Char.IsSeparator(_levelData[i])) 
-                            {
-                                gOName += _levelData[i];
-                                i++;
-                            }
-                            i++;
-                        }
-                        //--End Game Objects
-
-                        while (Char.IsNumber(_levelData[i]) || _levelData[i].ToString() == "-")
-                        {
-                            x += _levelData[i];
-                            i++;
-                        }
-
-                        i++;
-
-                        while (Char.IsNumber(_levelData[i]) || _levelData[i].ToString() == "-")
-                        {
-                            y += _levelData[i];
-                            i++;
-                        }
-
-                        if (!gObNames.Contains(modelName))
-                        {
-                            i++;
-
-                            while (_levelData[i].ToString() != "|")
-                            {
-                                shift += _levelData[i];
-                                i++;
-                            }
-                        }
-
-                        //--Game Objects
-                        if (gOName != "")
-                        {
-                            EditedObject gObj = new EditedObject();
-                            gObj.objName = modelName;
-                            gObj.objModelName = gOName;
-                            gObj.objPosition = new Vector2(float.Parse(x), float.Parse(y)) / 10;
-                            gObj.objModel = TrackPropModels.Models[gOName];
-                            gObjects.Add(gObj);
-                            
-                        }
-                        //--End Game Objects
-                        else { 
-                        Vector2 bodyPosition = new Vector2(float.Parse(x), float.Parse(y)) * CTW3D(9f);
-                        TrackBlock trackBlock = new TrackBlock();
-                        trackBlock.blockPosition = bodyPosition;
-                        trackBlock.blockShift = CTW3D(float.Parse(shift));
-                        trackBlock.blockModel = TrackBlockModels.Models[modelName];
-                        trackBlock.modelName = modelName;
-                        where.Add(trackBlock);
-                        }
-                        modelName = "";
-                        x = "";
-                        y = "";
-                        shift = "";
-                        gOName = "";
-                    }
-                }
-
+                TrackBlock trackBlock = new TrackBlock();
+                trackBlock.blockPosition = new Vector2(placement.X, placement.Y) * GridSize;
+                trackBlock.blockShift = placement.Shift * ShiftStep;
+                trackBlock.blockModel = TrackBlockModels.Models[placement.Block];
+                trackBlock.modelName = placement.Block;
+                layer.Add(trackBlock);
             }
         }
 
         public void WriteFile()
         {
-            StringBuilder saveData = new StringBuilder();
-            foreach(TrackBlock tb in trackBlocks)
+            LevelData data = new LevelData();
+            data.Middle.AddRange(ToPlacements(trackBlocks));
+            data.Back.AddRange(ToPlacements(backTrackBlocks));
+            data.Front.AddRange(ToPlacements(frontTrackBlocks));
+            foreach (EditedObject ob in gObjects)
             {
-                saveData.Append(tb.modelName + " " + revCTW3D(tb.blockPosition.X) + "," + revCTW3D(tb.blockPosition.Y) + "," + revCTW3D(tb.blockShift) * 9f + "|");
-            }
-            saveData.Append("*");
-            foreach(TrackBlock tb in backTrackBlocks)
-            {
-                saveData.Append(tb.modelName + " " + revCTW3D(tb.blockPosition.X) + "," + revCTW3D(tb.blockPosition.Y) + "," + revCTW3D(tb.blockShift) * 9f + "|");
-            }
-            saveData.Append("#");
-            foreach (TrackBlock tb in frontTrackBlocks)
-            {
-                saveData.Append(tb.modelName + " " + revCTW3D(tb.blockPosition.X) + "," + revCTW3D(tb.blockPosition.Y) + "," + revCTW3D(tb.blockShift) * 9f + "|");
-            }
-            foreach(EditedObject ob in gObjects)
-            {
-                saveData.Append(ob.objName + " " + ob.objModelName + " " + ob.objPosition.X * 10 + "," + ob.objPosition.Y * 10 + "|");
+                //Rounded, so that the conversion from the editor's 3D units does not produce values like 94.00001
+                data.Objects.Add(new ObjectPlacement
+                {
+                    Type = ob.objName,
+                    Model = ob.objModelName,
+                    X = (float)Math.Round(ob.objPosition.X * PhysicsTo3D, 2),
+                    Y = (float)Math.Round(ob.objPosition.Y * PhysicsTo3D, 2)
+                });
             }
 
-            Stream stream;
             SaveFileDialog saveFileDialog = new SaveFileDialog();
 
             saveFileDialog.InitialDirectory = "C:\\levels";
-            saveFileDialog.Filter = "Level files (*.lev)|*.lev";
-            saveFileDialog.FilterIndex = 2;
+            saveFileDialog.Filter = "Levels (*.json)|*.json";
+            saveFileDialog.DefaultExt = LevelFile.Extension;
             saveFileDialog.RestoreDirectory = true;
 
             if (saveFileDialog.ShowDialog() == DialogResult.OK)
             {
-                if ((stream = saveFileDialog.OpenFile()) != null)
+                LevelFile.Save(data, saveFileDialog.FileName);
+                Console.WriteLine("File " + saveFileDialog.FileName + " saved.");
+            }
+        }
+
+        private IEnumerable<BlockPlacement> ToPlacements(List<TrackBlock> layer)
+        {
+            foreach (TrackBlock tb in layer)
+            {
+                yield return new BlockPlacement
                 {
-                    StreamWriter sw = new StreamWriter(stream);
-                    sw.Write(saveData);
-                    sw.Flush();
-                    sw.Close();
-                    stream.Close();
-                    Console.WriteLine("File " + saveFileDialog.FileName + " saved.");
-                }
+                    Block = tb.modelName,
+                    X = (int)Math.Round(tb.blockPosition.X / GridSize),
+                    Y = (int)Math.Round(tb.blockPosition.Y / GridSize),
+                    Shift = (int)Math.Round(tb.blockShift / ShiftStep)
+                };
             }
         }
 

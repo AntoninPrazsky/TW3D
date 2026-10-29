@@ -19,6 +19,7 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
     <PackageReference Include="Aether.Physics2D.MG" />
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" />
+    <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
   </ItemGroup>
 
 </Project>

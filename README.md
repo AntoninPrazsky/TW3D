@@ -17,7 +17,8 @@ physics bodies.
 |---|---|
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
-| `content/` | Shared game content: compiled models, textures and fonts (`.xnb`) and levels (`Levels/*.lev`). Copied to the build output as `Content/`. |
+| `src/TW3D.Shared/` | Library shared by the game and the editor: the catalog of blocks and objects and the level file format |
+| `content/` | Shared game content: compiled models, textures and fonts (`.xnb`), the catalog (`catalog.json`) and levels (`Levels/*.json`). Copied to the build output as `Content/`. |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 
@@ -85,10 +86,12 @@ Development keys while driving:
 | F12 | Frames per second (shown by default in Debug builds) |
 
 The editor controls are described in
-`docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). Save a new
-level to `content/Levels/` and add it to the `Levels` list in `Game1.cs`.
-Its preview image in the level select is loaded from
-`content/Levels/levimgs/<name>.xnb`.
+`docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). The editor
+opens levels in the JSON format as well as old `.lev` files, and saves JSON.
+It checks the blocks and objects against the catalog (F1 lists the blocks;
+decoration blocks cannot be placed in the middle layer). Save a new level to
+`content/Levels/` and add it to the `Levels` list in `Game1.cs`. Its preview
+image in the level select is loaded from `content/Levels/levimgs/<name>.xnb`.
 
 ## Code structure (game)
 
@@ -96,7 +99,7 @@ Its preview image in the level select is loaded from
 |---|---|
 | `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu and level select screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `PhysicsClock`: fixed-step simulation |
-| `GameObjects/` | The car, the level loaded from a `.lev` file, the sky and dynamic objects |
+| `GameObjects/` | The car, the level (built from a level file and the catalog), the sky and dynamic objects |
 | `Graphics/` | Camera following the car (3D view and debug view), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
 
@@ -109,21 +112,55 @@ interpolated between the last two steps for drawing.
 ## Game content
 
 The `content/` folder contains only **compiled** `.xnb` files, originally built
-with XNA 4.0. The source 3D models and textures are not in the repository, so
+with XNA 4.0. The source files (3D models, images) are not in the repository, so
 the content can currently only be used, not modified. Source files exist only
-for the fonts (`*.spritefont`).
+for the fonts (`*.spritefont`). The 3D models have no textures, they are made of
+coloured polygons only.
 
-The `.lev` level format is plain text, with records separated by `|`:
+### Catalog
 
+`content/catalog.json` lists everything the levels are built from, for both the
+game and the editor:
+
+- **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
+  collision bitmap (`Levels/bit/<name>`). Only blocks with a collision bitmap can
+  be in the middle (physics) layer; the others are decoration for the back and
+  front layers.
+- **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
+  `bitmap` from `Env/bit/<model>`), size, friction, mass, restitution and the
+  models they can use (`Env/<model>`).
+
+A new block or object only needs its compiled model (and collision bitmap) in
+`content/` and an entry in the catalog.
+
+### Level format
+
+Levels are JSON files with one block or object per line:
+
+```json
+{
+  "format": 1,
+  "middle": [
+    {"block":"a1","x":0,"y":0,"shift":0},
+    ...
+  ],
+  "back": [ ... ],
+  "front": [ ... ],
+  "objects": [
+    {"type":"Bar","model":"bar1","x":238,"y":-4},
+    ...
+  ]
+}
 ```
-<block> x,y,shift|...      blocks of the middle (physics) layer
-*<block> x,y,shift|...     blocks of the decorative back layer
-#<block> x,y,shift|...     blocks of the decorative front layer
-<Type> <model> x,y|...     dynamic objects (Box, Bar, Tb, Co, …)
-```
 
-In the game, the physics shape of each block is created by vectorizing the
-bitmap `content/Levels/bit/<block>.xnb`.
+- `middle`: blocks of the physics layer, `back` and `front`: decoration layers.
+- Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
+  moves the block vertically in steps of 2.5 physics units.
+- Objects: `x`, `y` in physics units.
+
+In the game, the physics shape of each block is created by vectorizing its
+collision bitmap. The levels were converted from the original `.lev` format of
+the 2016 version, which the editor can still open.
 
 ## History
 
@@ -156,23 +193,14 @@ under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
 
 Issues found during the migration, roughly in order of importance:
 
-1. **Source models and textures.** Without them the content cannot be changed.
-   If they turn up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the
-   MonoGame Content Pipeline (`.mgcb`).
-2. **A single shared list of blocks and objects.** The 69 models are listed
-   twice (`GameplayScreen` and `Editor.LoadContent`), and the `.lev` parser
-   exists twice as well (game and editor). A candidate for a shared library and
-   a data file (e.g. JSON).
-3. **A more robust level format.** The parser reads the file character by
-   character. The editor saves coordinates using `float.ToString()` with the
-   system culture, so on Czech Windows a non-integer coordinate would get a
-   decimal comma clashing with the separator. Use `CultureInfo.InvariantCulture`,
-   or switch to JSON.
-4. **The level list in the menu** is hard-coded in `Game1.cs`. It would be
+1. **Source models.** Without them the content cannot be changed. If they turn
+   up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the MonoGame
+   Content Pipeline (`.mgcb`).
+2. **The level list in the menu** is hard-coded in `Game1.cs`. It would be
    better to load it from the `Levels` folder.
-5. **Unfinished menu:** Garage, About and Options.
-6. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+3. **Unfinished menu:** Garage, About and Options.
+4. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-7. **Automated tests and CI**, e.g. tests of the level parser and builds via
+5. **Automated tests and CI**, e.g. tests of the level format and builds via
    GitHub Actions.

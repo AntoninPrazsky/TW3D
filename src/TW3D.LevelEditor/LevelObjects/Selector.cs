@@ -6,6 +6,7 @@ using System.IO;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Input;
 using System.Runtime.InteropServices;
+using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
 {
@@ -161,10 +162,10 @@ namespace LevelEditor.LevelObjects
             //f1
             if (keyState.IsKeyDown(Keys.F1) && !f1Pr)
             {
-                Console.WriteLine("\n\nAll blocks in the Dicionary:\n");
-                foreach (var entry in TrackBlockModels.Models)
+                Console.WriteLine("\n\nAll blocks in the catalog:\n");
+                foreach (BlockType block in level.Catalog.Blocks)
                 {
-                    Console.WriteLine(entry.Key);
+                    Console.WriteLine(block.Collision ? block.Name : block.Name + " (decoration, back or front layer only)");
                 }
                 Console.WriteLine("\n");
                 f1Pr = true;
@@ -254,7 +255,8 @@ namespace LevelEditor.LevelObjects
                     string inputType = Console.ReadLine();
                     Console.Write("Type object model name: ");
                     string inputModel = Console.ReadLine();
-                    if (TrackPropModels.Models.ContainsKey(inputModel))
+                    ObjectType type = level.Catalog.FindObject(inputType);
+                    if (type != null && type.Models.Contains(inputModel))
                     {
                         objModel = inputModel;
                         objType = inputType;
@@ -262,7 +264,10 @@ namespace LevelEditor.LevelObjects
                     }
                     else
                     {
-                        Console.WriteLine("Object model " + objModel + " does not exist.\nObject type is: " + objType + "; Object model is: " + objModel);
+                        Console.WriteLine("Object type " + inputType + " with model " + inputModel + " does not exist. Available types and models:");
+                        foreach (ObjectType available in level.Catalog.Objects)
+                            Console.WriteLine("  " + available.Type + ": " + string.Join(", ", available.Models));
+                        Console.WriteLine("Object type is: " + objType + "; Object model is: " + objModel);
                     }
                     CapsLock();
                 }
@@ -308,6 +313,11 @@ namespace LevelEditor.LevelObjects
                         //obj.isSelected = true;
                         Console.WriteLine("New object was placet at " + obj.objPosition + "; Type: " + obj.objName + "; Model: " + obj.objModelName);
                     }
+                }
+                else if (where == track && !level.Catalog.FindBlock(defaultBlock).Collision)
+                {
+                    //The game needs a collision bitmap for every block of the middle (physics) layer
+                    Console.WriteLine("Block " + defaultBlock + " is decoration without a collision bitmap; it can only be placed in the back or front layer.");
                 }
                 else
                 {

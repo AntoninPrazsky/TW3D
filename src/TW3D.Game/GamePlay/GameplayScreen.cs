@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -11,6 +12,7 @@ using TW3D.GameObjects;
 using TW3D.Graphics;
 using TW3D.Input;
 using TW3D.Screens;
+using TW3D.Shared;
 
 namespace TW3D.GamePlay
 {
@@ -20,23 +22,8 @@ namespace TW3D.GamePlay
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
-        private static readonly string[] TrackBlockModelNames =
-        {
-            "a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3",
-            "b1f", "b2f", "b3f", "b4f", "c1f", "c2f", "c3f",
-            "s1", "s1f", "xa1",
-            "d1", "d1f", "d2", "d2f", "d3", "d3f",
-            "kea1a", "kea1b", "kea1c", "kea1d", "kea1e", "kea1f",
-            "xa2", "xa3", "xa4", "xa5", "xa6", "xa7",
-            "ba1", "ba2",
-            "tu1s", "tu2s", "tu3s", "tu1v", "tu2v", "tu3v",
-            "sb", "sg", "st", "st2", "g",
-            "u1", "u2", "t1", "t2",
-            "bl1", "bl1s", "bl2", "bl2s", "bl2f", "bl2sf",
-            "lo", "za"
-        };
-
-        private static readonly string[] TrackPropModelNames = { "box", "bar1", "bar2", "tb1", "rm", "co", "co2", "mov1" };
+        //Blocks and dynamic objects the levels are built from (content/catalog.json), loaded once
+        private static Catalog catalog;
 
         //Debug view flags toggled by the F1–F8 keys
         private static readonly (Keys Key, DebugViewFlags Flags)[] DebugKeys =
@@ -82,7 +69,7 @@ namespace TW3D.GamePlay
 
         public override void LoadContent()
         {
-            LoadModels(Manager.Content);
+            LoadCatalog(Manager.Content);
 
             Settings.ContinuousPhysics = false;
             world = new World(new Vector2(0f, 12f));
@@ -96,7 +83,7 @@ namespace TW3D.GamePlay
             });
             camera = new ChaseCamera { MinRotation = -0.5f, MaxRotation = 0.5f };
 
-            level = new Level(world, Manager, camera, physics, Vector2.Zero, levelName);
+            level = new Level(world, Manager, camera, physics, catalog, Vector2.Zero, levelName);
             sky = new Sky(Manager, camera);
             car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), "car", "wheel");
 
@@ -120,16 +107,19 @@ namespace TW3D.GamePlay
             debugView?.Dispose();
         }
 
-        private static void LoadModels(ContentManager content)
+        /// <summary>Loads the catalog and the models of all its blocks and objects (shared by all levels, loaded only once).</summary>
+        private static void LoadCatalog(ContentManager content)
         {
-            //The models are shared by all levels and loaded only once
-            if (TrackBlockModels.Models.Count > 0)
+            if (catalog != null)
                 return;
 
-            foreach (string name in TrackBlockModelNames)
-                TrackBlockModels.Models.Add(name, content.Load<Model>("Levels/mod/" + name));
-            foreach (string name in TrackPropModelNames)
-                TrackPropModels.Models.Add(name, content.Load<Model>("Env/" + name));
+            using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
+                catalog = Catalog.Load(stream);
+
+            foreach (BlockType block in catalog.Blocks)
+                TrackBlockModels.Models.Add(block.Name, content.Load<Model>(block.ModelAsset));
+            foreach (string model in catalog.ObjectModels)
+                TrackPropModels.Models.Add(model, content.Load<Model>(ObjectType.ModelAsset(model)));
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)

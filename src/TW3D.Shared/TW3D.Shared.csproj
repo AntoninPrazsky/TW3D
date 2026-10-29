@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Data shared by the game and the level editor: the catalog of track blocks and
+    dynamic objects (content/catalog.json) and the level file format.
+    Deliberately independent of MonoGame.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TW3D.Shared</RootNamespace>
+    <AssemblyName>TW3D.Shared</AssemblyName>
+  </PropertyGroup>
+
+</Project>

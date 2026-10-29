@@ -5,19 +5,20 @@ using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
+using TW3D.Shared;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nkast.Aether.Physics2D.Dynamics.Joints;
-using System;
 
 namespace TW3D.GameObjects
 {
+    /// <summary>A dynamic object of the level; its shape and physical properties come from the catalog.</summary>
     class TrackProp : GameObject
     {
         public Body propBody { get; set; }
         private Model model;
-        
-        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
+
+        /// <param name="ListOfVertices">Shape from the collision bitmap; only for objects with the bitmap shape.</param>
+        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, ObjectType type, Model ObjModel, List<Vertices> ListOfVertices)
         {
             world = World;
             screenManager = ScreenManager;
@@ -26,61 +27,26 @@ namespace TW3D.GameObjects
             position = Position;
             model = ObjModel;
 
-            if(ListOfVertices != null)
+            switch (type.Shape)
             {
-                propBody = CreatePolyBody(ListOfVertices, BodyType.Dynamic);
-                propBody.Position = position;
+                case ObjectShape.Bitmap:
+                    propBody = CreatePolyBody(ListOfVertices, BodyType.Dynamic);
+                    propBody.Position = position;
+                    break;
+                case ObjectShape.Rectangle:
+                    propBody = world.CreateBody(Position);
+                    propBody.CreateFixture(new PolygonShape(PolygonTools.CreateRectangle(type.Size, type.Size, Vector2.Zero, 0), 1f));
+                    break;
+                case ObjectShape.Circle:
+                    propBody = world.CreateBody(Position);
+                    propBody.CreateFixture(new CircleShape(type.Size, 1f));
+                    break;
             }
-            else
-            {
-                propBody = world.CreateBody(Position);
-                if (ObjName == "Box")
-                {
-                    PolygonShape rect;
-                    rect = new PolygonShape(PolygonTools.CreateRectangle(3.2f, 3.2f, Vector2.Zero, 0), 1f);
-                    Fixture fixture = propBody.CreateFixture(rect);
-                }
-                if (ObjName == "Bar")
-                {
-                    CircleShape circ;
-                    circ = new CircleShape(3f, 1f);
-                    Fixture fixture = propBody.CreateFixture(circ);
-                }
-            }
+
             propBody.BodyType = BodyType.Dynamic;
-            switch (ObjName)
-            {
-                case "Box":
-                        propBody.SetFriction(0.5f);
-                        propBody.Mass = 50f;
-                        propBody.SetRestitution(0.1f);
-                    break;
-                case "Bar":
-                        propBody.SetFriction(0.7f);
-                        propBody.Mass = 10f;
-                        propBody.SetRestitution(0.3f);
-                    break;
-                case "Ramp":
-                        propBody.SetFriction(1f);
-                        propBody.Mass = 100f;
-                        propBody.SetRestitution(0f);
-                    break;
-                case "Tb":
-                        propBody.SetFriction(0.9f);
-                        propBody.Mass = 70f;
-                        propBody.SetRestitution(0f);
-                    break;
-                case "Co":
-                        propBody.SetFriction(0.9f);
-                        propBody.Mass = 500f;
-                        propBody.SetRestitution(0f);
-                    break;
-                case "Mov":
-                        propBody.SetFriction(0.45f);
-                        propBody.Mass = 200f;
-                        propBody.SetRestitution(0f);
-                    break;
-            }
+            propBody.SetFriction(type.Friction);
+            propBody.Mass = type.Mass;
+            propBody.SetRestitution(type.Restitution);
         }
 
         public override void Draw()
