@@ -192,7 +192,7 @@ road continuous and adds the decorations; see its
 
 ## License
 
-[MIT](LICENSE), © 2016–2026 Antonín Pražský: the code, the game content
+[MIT](LICENSE), © 2014–2026 Antonín Pražský: the code, the game content
 (`content/`) and the documentation.
 
 The physics engine **Aether.Physics2D** is used as a NuGet package and is licensed
