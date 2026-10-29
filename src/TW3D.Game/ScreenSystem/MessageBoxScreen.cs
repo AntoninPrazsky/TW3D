@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     /// <summary>
     /// A popup message box screen, used to display "are you sure?"

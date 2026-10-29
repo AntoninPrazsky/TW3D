@@ -1,4 +1,4 @@
-﻿namespace FarseerPhysics.Graphics.ScreenSystem
+﻿namespace TW3D.ScreenSystem
 {
     public interface IGameScreen
     {

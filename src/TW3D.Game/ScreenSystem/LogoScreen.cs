@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     public class LogoScreen : GameScreen
     {

@@ -1,0 +1,9 @@
+<Project>
+  <!-- Verze NuGet balíčků jsou spravované centrálně na jednom místě -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.6" />
+  </ItemGroup>
+</Project>

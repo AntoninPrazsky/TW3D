@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <RootNamespace>TW3D</RootNamespace>
+    <AssemblyName>TW3D</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Sdílený zkompilovaný obsah (modely, textury, fonty) a tratě, kopíruje se do výstupu jako Content/ -->
+    <None Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+    <ProjectReference Include="..\FarseerPhysics\FarseerPhysics.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,8 +1,8 @@
 ﻿using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using FarseerPhysics.Graphics.GamePlay;
-using FarseerPhysics.Graphics.ScreenSystem;
+using TW3D.GamePlay;
+using TW3D.ScreenSystem;
 
 namespace TW3D
 {
@@ -13,16 +13,31 @@ namespace TW3D
         
         public ScreenManager ScreenManager { get; set; }
 
-        public Game1()
+        private string startLevel;
+
+        public Game1(bool windowed = false, string startLevel = null)
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
 
-            //graphics.PreferredBackBufferWidth = 1920;
-            //graphics.PreferredBackBufferHeight = 1080;
+            this.startLevel = startLevel;
 
-            graphics.IsFullScreen = true;
-            
+            Window.Title = "Triple Wheel 3D";
+
+            if (windowed)
+            {
+                graphics.PreferredBackBufferWidth = 1280;
+                graphics.PreferredBackBufferHeight = 720;
+            }
+            else
+            {
+                //Okno bez okrajů přes celou obrazovku (stejně jako desktopová verze z roku 2016)
+                graphics.PreferredBackBufferWidth = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width;
+                graphics.PreferredBackBufferHeight = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height;
+                graphics.HardwareModeSwitch = false;
+                graphics.IsFullScreen = true;
+            }
+
             this.IsMouseVisible = true;
             
             ScreenManager = new ScreenManager(this);
@@ -38,7 +53,7 @@ namespace TW3D
         {
             base.Initialize();
 
-            FarseerPhysics.ConvertUnits.SetDisplayUnitToSimUnitRatio(this.GraphicsDevice.Viewport.Height * (1f / 30f));
+            ConvertUnits.SetDisplayUnitToSimUnitRatio(this.GraphicsDevice.Viewport.Height * (1f / 30f));
 
             MainGame mainGame = new MainGame();
             mainGame.LevelName = "lock";
@@ -78,7 +93,17 @@ namespace TW3D
 
             ScreenManager.AddScreen(bgScreen);
             ScreenManager.AddScreen(menuScreen);
-            ScreenManager.AddScreen(new LogoScreen(TimeSpan.FromSeconds(1.5)));
+
+            if (startLevel != null)
+            {
+                //Přímé spuštění tratě z příkazové řádky (bez úvodního loga), Esc vrátí do menu
+                mainGame.LevelName = startLevel;
+                ScreenManager.AddScreen(mainGame);
+            }
+            else
+            {
+                ScreenManager.AddScreen(new LogoScreen(TimeSpan.FromSeconds(1.5)));
+            }
         }
 
         

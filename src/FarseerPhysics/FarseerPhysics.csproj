@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Farseer Physics Engine 3.5 (Ian Qvist, založeno na Box2D od Erina Catta).
+    Převzatý kód třetí strany, původně vložený přímo v projektu hry.
+    Kandidát na náhradu udržovaným nástupcem Aether.Physics2D (viz README.md).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>FarseerPhysics</RootNamespace>
+    <AssemblyName>FarseerPhysics</AssemblyName>
+    <!-- Varování v převzatém kódu (nedosažitelný kód kvůli konstantám v Settings, nepoužité proměnné) -->
+    <NoWarn>$(NoWarn);CS0162;CS0219;CS0414;CS8073</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+  </ItemGroup>
+
+</Project>

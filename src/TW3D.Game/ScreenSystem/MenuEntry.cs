@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     public enum EntryType
     {

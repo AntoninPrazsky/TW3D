@@ -2,7 +2,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     /// <summary>
     /// Helper class represents a single entry in a MenuScreen. By default this

@@ -1,22 +1,23 @@
 ﻿using System.Collections.Generic;
 using System.Text;
+using FarseerPhysics;
 using FarseerPhysics.Common;
 using FarseerPhysics.Common.Decomposition;
 using FarseerPhysics.Common.PolygonManipulation;
 using FarseerPhysics.Dynamics;
 using FarseerPhysics.Dynamics.Joints;
 using FarseerPhysics.Factories;
-using FarseerPhysics.Graphics.ScreenSystem;
+using TW3D.ScreenSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Graphics;
 using FarseerPhysics.DebugView;
 using FarseerPhysics.Collision.Shapes;
 using System;
-using FarseerPhysics.Graphics.DrawingSystem;
+using TW3D.DrawingSystem;
 using TW3D.GameObjects;
 
-namespace FarseerPhysics.Graphics.GamePlay
+namespace TW3D.GamePlay
 {
     internal class MainGame : PhysicsGameScreen, IGameScreen
     {

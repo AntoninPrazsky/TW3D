@@ -13,7 +13,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input.Touch;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     /// <summary>
     /// Enum describes the screen transition state.

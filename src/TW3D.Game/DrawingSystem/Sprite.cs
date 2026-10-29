@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace FarseerPhysics.Graphics.DrawingSystem
+namespace TW3D.DrawingSystem
 {
     public struct Sprite
     {

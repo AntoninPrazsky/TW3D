@@ -5,7 +5,7 @@
 
 using Microsoft.Xna.Framework;
 
-namespace FarseerPhysics
+namespace TW3D
 {
     /// <summary>
     /// Convert units between display and simulation units.

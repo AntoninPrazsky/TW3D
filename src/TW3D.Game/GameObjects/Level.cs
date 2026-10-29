@@ -3,8 +3,8 @@ using FarseerPhysics.Collision.Shapes;
 using FarseerPhysics.Common;
 using FarseerPhysics.Dynamics;
 using FarseerPhysics.Factories;
-using FarseerPhysics.Graphics.DrawingSystem;
-using FarseerPhysics.Graphics.ScreenSystem;
+using TW3D.DrawingSystem;
+using TW3D.ScreenSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using FarseerPhysics.Dynamics.Joints;
@@ -249,8 +249,8 @@ namespace TW3D.GameObjects
             }
             */
 
-            //Verze přístupu k souborovému systému pro univerzální Windows 10
-            using (var stream = TitleContainer.OpenStream(@"Content\Levels\" + fileName + ".lev"))
+            //Verze přístupu k souborovému systému pro MonoGame (funguje na všech platformách)
+            using (var stream = TitleContainer.OpenStream("Content/Levels/" + fileName + ".lev"))
             {
                 using (var reader = new StreamReader(stream))
                 {

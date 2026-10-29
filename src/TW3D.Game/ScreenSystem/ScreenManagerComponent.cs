@@ -1,11 +1,11 @@
 using System.Collections.Generic;
-using FarseerPhysics.Graphics.DrawingSystem;
+using TW3D.DrawingSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input.Touch;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     /// <summary>
     /// The screen manager is a component which manages one or more GameScreen

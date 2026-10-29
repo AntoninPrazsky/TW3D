@@ -4,7 +4,7 @@ using System.Globalization;
 using Microsoft.Xna.Framework;
 using System.Collections.Generic;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     /// <summary>
     /// Displays the FPS

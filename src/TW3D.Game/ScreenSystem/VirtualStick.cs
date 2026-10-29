@@ -1,10 +1,10 @@
 ﻿using System;
-using FarseerPhysics.Graphics.DrawingSystem;
+using TW3D.DrawingSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input.Touch;
 
-namespace FarseerPhysics.Graphics.ScreenSystem
+namespace TW3D.ScreenSystem
 {
     public sealed class VirtualStick
     {

@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FarseerPhysics/FarseerPhysics.csproj" />
+    <Project Path="src/TW3D.Game/TW3D.Game.csproj" />
+    <Project Path="src/TW3D.LevelEditor/TW3D.LevelEditor.csproj" />
+  </Folder>
+</Solution>
