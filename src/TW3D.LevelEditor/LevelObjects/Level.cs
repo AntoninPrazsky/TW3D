@@ -53,6 +53,9 @@ namespace LevelEditor.LevelObjects
         /// <summary>The blocks and dynamic objects the level can use.</summary>
         public Catalog Catalog { get; }
 
+        //Position of the level in the game's level select, kept from the loaded file
+        private int? order;
+
         public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale)
         {
             screenManager = ScreenManager;
@@ -97,6 +100,7 @@ namespace LevelEditor.LevelObjects
             backTrackBlocks.Clear();
             frontTrackBlocks.Clear();
             gObjects.Clear();
+            order = data.Order;
 
             foreach (string problem in data.Validate(Catalog))
                 Console.WriteLine("Warning: " + problem + " Skipped.");
@@ -144,7 +148,7 @@ namespace LevelEditor.LevelObjects
 
         public void WriteFile()
         {
-            LevelData data = new LevelData();
+            LevelData data = new LevelData { Order = order };
             data.Middle.AddRange(ToPlacements(trackBlocks));
             data.Back.AddRange(ToPlacements(backTrackBlocks));
             data.Front.AddRange(ToPlacements(frontTrackBlocks));

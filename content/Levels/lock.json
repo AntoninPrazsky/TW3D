@@ -1,5 +1,6 @@
 {
   "format": 1,
+  "order": 2,
   "middle": [
     {"block":"xa1","x":-1,"y":0,"shift":0},
     {"block":"xa1","x":0,"y":0,"shift":0},

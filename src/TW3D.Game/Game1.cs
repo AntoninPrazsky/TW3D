@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
+using TW3D.Shared;
 
 namespace TW3D
 {
     public class Game1 : Game
     {
-        private static readonly string[] Levels = { "startblock", "lock", "tunel" };
-
         //Samples per pixel of the multisample antialiasing
         private const int MultiSampleCount = 8;
 
@@ -78,7 +79,7 @@ namespace TW3D
             base.Initialize();
 
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
-            menu.AddItem("Play", () => screens.Add(new LevelSelectScreen("Level Select", Levels, StartLevel)));
+            menu.AddItem("Play", () => screens.Add(new LevelSelectScreen("Level Select", FindLevels(), StartLevel)));
             //Not implemented
             menu.AddItem("Garage", null);
             menu.AddItem("About", null);
@@ -93,6 +94,15 @@ namespace TW3D
                 StartLevel(startLevel);
             else
                 screens.Add(new LogoScreen(TimeSpan.FromSeconds(1.5)));
+        }
+
+        /// <summary>
+        /// Every level file in Content/Levels (next to the game) appears in the level select.
+        /// The folder is read each time the level select opens.
+        /// </summary>
+        private List<string> FindLevels()
+        {
+            return LevelFile.FindLevels(Path.Combine(AppContext.BaseDirectory, Content.RootDirectory, "Levels"));
         }
 
         private void StartLevel(string level)

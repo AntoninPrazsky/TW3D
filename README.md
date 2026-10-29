@@ -50,7 +50,7 @@ Game arguments for development:
 |---|---|
 | `--windowed` | 1280×720 window instead of full screen |
 | `--size WxH` | Window of the given size, e.g. `--size 2560x1080` for testing other aspect ratios (the window can also be resized) |
-| `--level <name>` | Skips the menu and loads the level directly (`lock`, `startblock`, `tunel`). Esc returns to the menu. |
+| `--level <name>` | Skips the menu and loads the level directly (the file name in `content/Levels` without `.json`, e.g. `lock`). Esc returns to the menu. |
 
 ## Controls
 
@@ -89,9 +89,11 @@ The editor controls are described in
 `docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). The editor
 opens levels in the JSON format as well as old `.lev` files, and saves JSON.
 It checks the blocks and objects against the catalog (F1 lists the blocks;
-decoration blocks cannot be placed in the middle layer). Save a new level to
-`content/Levels/` and add it to the `Levels` list in `Game1.cs`. Its preview
-image in the level select is loaded from `content/Levels/levimgs/<name>.xnb`.
+decoration blocks cannot be placed in the middle layer). A new level saved to
+`content/Levels/` appears in the level select automatically (after a rebuild,
+which copies it to the build output). Its preview image is loaded from
+`content/Levels/levimgs/<name>.xnb`; a level without one is shown as a dark
+rectangle with its name.
 
 ## Code structure (game)
 
@@ -140,6 +142,7 @@ Levels are JSON files with one block or object per line:
 ```json
 {
   "format": 1,
+  "order": 1,
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
     ...
@@ -153,6 +156,8 @@ Levels are JSON files with one block or object per line:
 }
 ```
 
+- `order` (optional): position in the level select. Levels without it come after
+  the others, sorted by name.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
   moves the block vertically in steps of 2.5 physics units.
@@ -196,11 +201,9 @@ Issues found during the migration, roughly in order of importance:
 1. **Source models.** Without them the content cannot be changed. If they turn
    up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the MonoGame
    Content Pipeline (`.mgcb`).
-2. **The level list in the menu** is hard-coded in `Game1.cs`. It would be
-   better to load it from the `Levels` folder.
-3. **Unfinished menu:** Garage, About and Options.
-4. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+2. **Unfinished menu:** Garage, About and Options.
+3. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-5. **Automated tests and CI**, e.g. tests of the level format and builds via
+4. **Automated tests and CI**, e.g. tests of the level format and builds via
    GitHub Actions.

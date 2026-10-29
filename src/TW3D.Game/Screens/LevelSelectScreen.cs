@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using TW3D.Input;
@@ -14,7 +15,8 @@ namespace TW3D.Screens
     public sealed class LevelSelectScreen : Screen
     {
         //Sizes in reference (1920×1080) pixels
-        private const float ImageScale = 1f;
+        private const float ImageWidth = 350f;
+        private const float ImageHeight = 197f;
         private const float Gap = 24f;
         private const float TitleSpacing = 32f;
         private const float ScrollBarScale = 0.6f;
@@ -78,7 +80,18 @@ namespace TW3D.Screens
             sliderTexture = Manager.Content.Load<Texture2D>("Common/slider");
             images.Clear();
             foreach (string level in levels)
-                images.Add(Manager.Content.Load<Texture2D>("Levels/levimgs/" + level));
+            {
+                //A new level may not have a preview image yet; a placeholder with its name is drawn instead
+                Texture2D image = null;
+                try
+                {
+                    image = Manager.Content.Load<Texture2D>("Levels/levimgs/" + level);
+                }
+                catch (ContentLoadException)
+                {
+                }
+                images.Add(image);
+            }
         }
 
         private void UpdateLayout()
@@ -86,7 +99,7 @@ namespace TW3D.Screens
             Rectangle safe = Manager.SafeArea;
             uiScale = Manager.UiScale;
 
-            imageSize = (images.Count > 0 ? new Vector2(images[0].Width, images[0].Height) : new Vector2(350f, 197f)) * ImageScale * uiScale;
+            imageSize = new Vector2(ImageWidth, ImageHeight) * uiScale;
             gap = Gap * uiScale;
             listTop = safe.Top + MainMenuScreen.TitleHeight(Manager) + TitleSpacing * uiScale;
             listBottom = safe.Bottom;
@@ -232,7 +245,7 @@ namespace TW3D.Screens
             if (input.RightPressed) move = 1;
             if (input.UpPressed) move = -columns;
             if (input.DownPressed) move = columns;
-            if (move == 0)
+            if (move == 0 || levels.Count == 0)
                 return;
 
             focusedLevel = focusedLevel < 0 ? 0 : MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1);
@@ -265,7 +278,10 @@ namespace TW3D.Screens
                     continue;
 
                 bounds.Offset(slide, 0);
-                batch.Draw(images[i], bounds, Color.White * alpha);
+                if (images[i] != null)
+                    batch.Draw(images[i], bounds, Color.White * alpha);
+                else
+                    DrawPlaceholder(batch, bounds, levels[i], alpha);
 
                 if (i == focusedLevel && HasFocus)
                     DrawFrame(batch, bounds, Math.Max(2, (int)(4f * uiScale)), MainMenuScreen.Yellow * alpha);
@@ -282,6 +298,8 @@ namespace TW3D.Screens
                 DrawScrollBarButton(batch, sliderTexture, SliderY, false, drag == Drag.Slider || ScrollBarButtonBounds(sliderTexture, SliderY).Contains(pointer), slide, alpha);
             }
             MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
+            if (levels.Count == 0)
+                DrawCenteredText(batch, "No levels found", new Rectangle(0, (int)listTop, viewport.Width, (int)(listBottom - listTop) / 2), 0.6f * uiScale, alpha);
             batch.End();
         }
 
@@ -292,6 +310,26 @@ namespace TW3D.Screens
             Color color = (highlighted && HasFocus ? MainMenuScreen.Yellow : Color.White) * alpha;
             Vector2 origin = new Vector2(texture.Width, texture.Height) / 2f;
             batch.Draw(texture, new Vector2(scrollBarX + slide, centerY), null, color, 0f, origin, scale, flip ? SpriteEffects.FlipVertically : SpriteEffects.None, 0f);
+        }
+
+        /// <summary>A dark rectangle with the level name, for a level without a preview image.</summary>
+        private void DrawPlaceholder(SpriteBatch batch, Rectangle bounds, string level, float alpha)
+        {
+            batch.Draw(Manager.Pixel, bounds, new Color(30, 30, 30) * (0.85f * alpha));
+            DrawFrame(batch, bounds, Math.Max(1, (int)(2f * uiScale)), Color.Gray * alpha);
+
+            //The level name in the menu font, as big as fits into the rectangle
+            SpriteFont font = Manager.Fonts.Menu;
+            Vector2 size = font.MeasureString(level);
+            float scale = Math.Min(bounds.Width * 0.8f / size.X, bounds.Height * 0.35f / size.Y);
+            DrawCenteredText(batch, level, bounds, scale, alpha);
+        }
+
+        private void DrawCenteredText(SpriteBatch batch, string text, Rectangle bounds, float scale, float alpha)
+        {
+            Vector2 size = Manager.Fonts.Menu.MeasureString(text) * scale;
+            Vector2 position = new Vector2(bounds.Center.X - size.X / 2f, bounds.Center.Y - size.Y / 2f);
+            Manager.DrawShadowedText(Manager.Fonts.Menu, text, position, Color.White * alpha, Color.Black * alpha, scale);
         }
 
         private void DrawFrame(SpriteBatch batch, Rectangle bounds, int thickness, Color color)

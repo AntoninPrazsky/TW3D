@@ -41,6 +41,12 @@ namespace TW3D.Shared
         /// <summary>Version of the file format.</summary>
         public int Format { get; set; } = CurrentFormat;
 
+        /// <summary>
+        /// Position of the level in the level select (optional). Levels are sorted by it;
+        /// levels without it come after the others, sorted by name.
+        /// </summary>
+        public int? Order { get; set; }
+
         public List<BlockPlacement> Middle { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Back { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Front { get; set; } = new List<BlockPlacement>();

@@ -1,5 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -10,6 +13,7 @@ namespace TW3D.Shared
     /// <code>
     /// {
     ///   "format": 1,
+    ///   "order": 1,
     ///   "middle": [
     ///     {"block":"a1","x":0,"y":0,"shift":0},
     ///     ...
@@ -54,6 +58,37 @@ namespace TW3D.Shared
             return level;
         }
 
+        /// <summary>
+        /// Names of the levels (*.json files) in the directory, in the order for the level select:
+        /// by <see cref="LevelData.Order"/>, then the levels without it by name. Files that are not
+        /// valid levels are left out. A missing directory gives an empty list.
+        /// </summary>
+        public static List<string> FindLevels(string directory)
+        {
+            List<(string Name, int? Order)> levels = new List<(string, int?)>();
+            if (!Directory.Exists(directory))
+                return new List<string>();
+
+            foreach (string path in Directory.GetFiles(directory, "*" + Extension))
+            {
+                try
+                {
+                    levels.Add((Path.GetFileNameWithoutExtension(path), Load(path).Order));
+                }
+                catch (Exception e) when (e is IOException || e is InvalidDataException || e is JsonException)
+                {
+                    Debug.WriteLine("Level " + path + " left out: " + e.Message);
+                }
+            }
+
+            return levels
+                .OrderBy(level => level.Order.HasValue ? 0 : 1)
+                .ThenBy(level => level.Order ?? 0)
+                .ThenBy(level => level.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(level => level.Name)
+                .ToList();
+        }
+
         public static void Save(LevelData level, string path)
         {
             File.WriteAllText(path, ToJson(level), new UTF8Encoding(false));
@@ -65,6 +100,8 @@ namespace TW3D.Shared
             StringBuilder json = new StringBuilder();
             json.Append("{\n");
             json.Append("  \"format\": ").Append(level.Format).Append(",\n");
+            if (level.Order.HasValue)
+                json.Append("  \"order\": ").Append(level.Order.Value).Append(",\n");
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);
             AppendList(json, "front", level.Front, false);
