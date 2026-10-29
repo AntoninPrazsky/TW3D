@@ -89,7 +89,7 @@ Fyzikální tvar každého bloku se ve hře vytváří vektorizací bitmapy
 
 ## Historie
 
-- Tag `bakalarka-2016` je původní stav přílohy bakalářské práce
+- Tag `bachelor-thesis-2016` je původní stav přílohy bakalářské práce
   (UWP, MonoGame 3.5, Visual Studio 2015), jen bez výstupů sestavení a binárek.
 - Kompletní původní složka včetně zkompilovaných verzí je zálohovaná mimo
   repozitář v `D:\TW3D_bakalarka_2016_puvodni.zip`.
