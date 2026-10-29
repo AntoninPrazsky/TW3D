@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Renders images of track blocks for the block catalog (docs/catalog), see README.md -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <RootNamespace>TW3D.CatalogRender</RootNamespace>
+    <AssemblyName>CatalogRender</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Block models and the selector of the level editor -->
+    <None Include="..\..\content\Levels\**\*.xnb" LinkBase="Content\Levels" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.DesktopGL" />
+    <ProjectReference Include="..\..\src\TW3D.Shared\TW3D.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
