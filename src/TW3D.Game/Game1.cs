@@ -9,13 +9,7 @@ namespace TW3D
 {
     public class Game1 : Game
     {
-        private static readonly string[] Levels =
-        {
-            "startblock", "lock", "tunel",
-            //Duplicate levels to test the scroll bar
-            "lock", "tunel", "startblock", "tunel", "startblock", "lock",
-            "tunel", "startblock", "lock", "lock", "startblock", "tunel"
-        };
+        private static readonly string[] Levels = { "startblock", "lock", "tunel" };
 
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;

@@ -162,8 +162,8 @@ Issues found during the migration, roughly in order of importance:
    system culture, so on Czech Windows a non-integer coordinate would get a
    decimal comma clashing with the separator. Use `CultureInfo.InvariantCulture`,
    or switch to JSON.
-4. **The level list in the menu** is hard-coded in `Game1.cs`, including
-   duplicate test entries. It would be better to load it from the `Levels` folder.
+4. **The level list in the menu** is hard-coded in `Game1.cs`. It would be
+   better to load it from the `Levels` folder.
 5. **Unfinished menu:** Garage, About and Options.
 6. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
