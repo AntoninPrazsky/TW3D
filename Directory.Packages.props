@@ -5,5 +5,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.6" />
+    <PackageVersion Include="Aether.Physics2D.MG" Version="2.2.0" />
+    <PackageVersion Include="Aether.Physics2D.Diagnostics.MG" Version="2.2.0" />
   </ItemGroup>
 </Project>

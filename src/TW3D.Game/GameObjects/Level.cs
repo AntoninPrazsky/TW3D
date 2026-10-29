@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
-using FarseerPhysics.Collision.Shapes;
-using FarseerPhysics.Common;
-using FarseerPhysics.Dynamics;
-using FarseerPhysics.Factories;
+using nkast.Aether.Physics2D.Collision.Shapes;
+using nkast.Aether.Physics2D.Common;
+using nkast.Aether.Physics2D.Dynamics;
 using TW3D.DrawingSystem;
 using TW3D.ScreenSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using FarseerPhysics.Dynamics.Joints;
+using nkast.Aether.Physics2D.Dynamics.Joints;
 using System;
 using System.IO;
 
@@ -209,8 +208,8 @@ namespace TW3D.GameObjects
                             }
 
                             trackBlockBody.Position = trackBlock.blockAbsPosition;
-                            trackBlockBody.Restitution = 1f;
-                            trackBlockBody.Friction = 1f;
+                            trackBlockBody.SetRestitution(1f);
+                            trackBlockBody.SetFriction(1f);
                             trackBlock.blockBody = trackBlockBody;
                         }
                         else trackBlock.blockBody = null;

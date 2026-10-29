@@ -1,9 +1,8 @@
 ﻿using System;
-using FarseerPhysics;
-using FarseerPhysics.DebugView;
-using FarseerPhysics.Dynamics;
-using FarseerPhysics.Dynamics.Joints;
-using FarseerPhysics.Factories;
+using nkast.Aether.Physics2D;
+using nkast.Aether.Physics2D.Diagnostics;
+using nkast.Aether.Physics2D.Dynamics;
+using nkast.Aether.Physics2D.Dynamics.Joints;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
@@ -12,7 +11,7 @@ namespace TW3D.ScreenSystem
     public class PhysicsGameScreen : GameScreen
     {
         public Camera2D Camera;
-        protected DebugViewXNA DebugView;
+        protected DebugView DebugView;
         protected World World;
         protected Body HiddenBody;
 
@@ -53,7 +52,7 @@ namespace TW3D.ScreenSystem
 
             if (DebugView == null)
             {
-                DebugView = new DebugViewXNA(World);
+                DebugView = new DebugView(World);
                 DebugView.RemoveFlags(DebugViewFlags.Shape);
                 DebugView.RemoveFlags(DebugViewFlags.Joint);
                 DebugView.DefaultShapeColor = Color.White;
@@ -66,7 +65,7 @@ namespace TW3D.ScreenSystem
             else
                 Camera.ResetCamera();
 
-            HiddenBody = BodyFactory.CreateBody(World, Vector2.Zero);
+            HiddenBody = World.CreateBody(Vector2.Zero);
 
             // Loading may take a while... so prevent the game from "catching up" once we finished loading
             ScreenManager.Game.ResetElapsedTime();
@@ -145,13 +144,13 @@ namespace TW3D.ScreenSystem
             {
                _fixedMouseJoint = new FixedMouseJoint(body, body.Position);
                _fixedMouseJoint.MaxForce = 400.0f * body.Mass;
-               World.AddJoint(_fixedMouseJoint);
+               World.Add(_fixedMouseJoint);
                body.Awake = true;
             }
             /*
             if ((input.IsNewButtonRelease(Buttons.A) || input.IsNewMouseButtonRelease(MouseButtons.LeftButton)) && _fixedMouseJoint != null)
             {
-                World.RemoveJoint(_fixedMouseJoint);
+                World.Remove(_fixedMouseJoint);
                 _fixedMouseJoint = null;
             }
 
@@ -172,14 +171,14 @@ namespace TW3D.ScreenSystem
                     Body body = savedFixture.Body;
                     _fixedMouseJoint = new FixedMouseJoint(body, position);
                     _fixedMouseJoint.MaxForce = 1000.0f * body.Mass;
-                    World.AddJoint(_fixedMouseJoint);
+                    World.Add(_fixedMouseJoint);
                     body.Awake = true;
                 }
             }
             */
             if ((input.IsNewButtonRelease(Buttons.A) || input.IsNewMouseButtonRelease(MouseButtons.LeftButton)) && _fixedMouseJoint != null)
             {
-                World.RemoveJoint(_fixedMouseJoint);
+                World.Remove(_fixedMouseJoint);
                 _fixedMouseJoint = null;
             }
 

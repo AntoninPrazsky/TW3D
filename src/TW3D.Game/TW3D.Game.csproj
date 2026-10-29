@@ -11,11 +11,14 @@
   <ItemGroup>
     <!-- Shared compiled content (models, textures, fonts) and levels, copied to the output as Content/ -->
     <None Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
+    <None Include="..\..\content\Font.xnb" Link="Content\DiagnosticsFont.xnb" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
-    <ProjectReference Include="..\FarseerPhysics\FarseerPhysics.csproj" />
+    <PackageReference Include="Aether.Physics2D.MG" />
+    <PackageReference Include="Aether.Physics2D.Diagnostics.MG" />
   </ItemGroup>
 
 </Project>

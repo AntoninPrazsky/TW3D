@@ -1,10 +1,9 @@
-Farseer Physics Engine 3.5
+Farseer Physics Engine 3.5 samples
 Copyright (c) 2012 Ian Qvist
 Based on Box2D, Copyright (c) 2006-2011 Erin Catto http://www.box2d.org
 
-The Farseer Physics Engine source code in this directory, and the files in
-src/TW3D.Game derived from the Farseer Physics Engine samples
-(ScreenSystem/, DrawingSystem/, ConvertUnits.cs), are licensed under the
+The files in this project derived from the Farseer Physics Engine samples
+(ScreenSystem/, DrawingSystem/, ConvertUnits.cs) are licensed under the
 Microsoft Public License (Ms-PL) reproduced below. Original copyright notices
 in the individual source files are retained.
 

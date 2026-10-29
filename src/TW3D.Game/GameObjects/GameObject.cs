@@ -1,14 +1,13 @@
 ﻿using System.Collections.Generic;
-using FarseerPhysics.Collision.Shapes;
-using FarseerPhysics.Common;
-using FarseerPhysics.Dynamics;
-using FarseerPhysics.Factories;
+using nkast.Aether.Physics2D.Collision.Shapes;
+using nkast.Aether.Physics2D.Common;
+using nkast.Aether.Physics2D.Dynamics;
 using TW3D.DrawingSystem;
 using TW3D.ScreenSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using FarseerPhysics.Common.PolygonManipulation;
-using FarseerPhysics.Common.Decomposition;
+using nkast.Aether.Physics2D.Common.PolygonManipulation;
+using nkast.Aether.Physics2D.Common.Decomposition;
 using System;
 
 namespace TW3D.GameObjects
@@ -67,12 +66,12 @@ namespace TW3D.GameObjects
         public Body CreatePolyBody(string textureName, float distanceReduction, BodyType bodyType)
         {
             List<Vertices> list = CreateListOfVertices(textureName, distanceReduction);
-            return BodyFactory.CreateCompoundPolygon(world, list, 1f, bodyType);
+            return world.CreateCompoundPolygon(list, 1f, Vector2.Zero, 0f, bodyType);
         }
 
         public Body CreatePolyBody(List<Vertices> listOfVertices, BodyType bodyType)
         {
-            return BodyFactory.CreateCompoundPolygon(world, listOfVertices, 1f, bodyType);
+            return world.CreateCompoundPolygon(listOfVertices, 1f, Vector2.Zero, 0f, bodyType);
         }
 
         public void DrawModel(Model model, Vector3 modelPosition, float modelRotation, bool flip, bool lighting)

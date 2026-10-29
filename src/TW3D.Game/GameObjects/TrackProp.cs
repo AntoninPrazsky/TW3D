@@ -1,13 +1,12 @@
 ﻿using System.Collections.Generic;
-using FarseerPhysics.Collision.Shapes;
-using FarseerPhysics.Common;
-using FarseerPhysics.Dynamics;
-using FarseerPhysics.Factories;
+using nkast.Aether.Physics2D.Collision.Shapes;
+using nkast.Aether.Physics2D.Common;
+using nkast.Aether.Physics2D.Dynamics;
 using TW3D.DrawingSystem;
 using TW3D.ScreenSystem;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using FarseerPhysics.Dynamics.Joints;
+using nkast.Aether.Physics2D.Dynamics.Joints;
 using System;
 
 namespace TW3D.GameObjects
@@ -33,7 +32,7 @@ namespace TW3D.GameObjects
             }
             else
             {
-                propBody = BodyFactory.CreateBody(world, Position);
+                propBody = world.CreateBody(Position);
                 if (ObjName == "Box")
                 {
                     PolygonShape rect;
@@ -51,44 +50,44 @@ namespace TW3D.GameObjects
             switch (ObjName)
             {
                 case "Box":
-                        propBody.Friction = 0.5f;
+                        propBody.SetFriction(0.5f);
                         propBody.Mass = 50f;
-                        propBody.Restitution = 0.1f;
+                        propBody.SetRestitution(0.1f);
                         //vis = 0.6f;
                         vis = 1.2f;
                     break;
                 case "Bar":
-                        propBody.Friction = 0.7f;
+                        propBody.SetFriction(0.7f);
                         propBody.Mass = 10f;
-                        propBody.Restitution = 0.3f;
+                        propBody.SetRestitution(0.3f);
                         //vis = 0.4f;
                         vis = 0.8f;
                     break;
                 case "Ramp":
-                        propBody.Friction = 1f;
+                        propBody.SetFriction(1f);
                         propBody.Mass = 100f;
-                        propBody.Restitution = 0f;
+                        propBody.SetRestitution(0f);
                         //vis = 1.2f;
                         vis = 2.4f;
                     break;
                 case "Tb":
-                        propBody.Friction = 0.9f;
+                        propBody.SetFriction(0.9f);
                         propBody.Mass = 70f;
-                        propBody.Restitution = 0f;
+                        propBody.SetRestitution(0f);
                         //vis = 0.3f;
                         vis = 0.6f;
                     break;
                 case "Co":
-                        propBody.Friction = 0.9f;
+                        propBody.SetFriction(0.9f);
                         propBody.Mass = 500f;
-                        propBody.Restitution = 0f;
+                        propBody.SetRestitution(0f);
                         //vis = 1.8f;
                         vis = 3.6f;
                     break;
                 case "Mov":
-                        propBody.Friction = 0.45f;
+                        propBody.SetFriction(0.45f);
                         propBody.Mass = 200f;
-                        propBody.Restitution = 0f;
+                        propBody.SetRestitution(0f);
                         //vis = 2.2f;
                         vis = 4.4f;
                     break;

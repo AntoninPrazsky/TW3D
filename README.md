@@ -6,8 +6,10 @@ The project was created in 2016 as an appendix to a bachelor's thesis (sample
 game + level editor) and was migrated to current tools in 2026.
 
 The game is built on the [MonoGame](https://monogame.net/) framework and the
-Farseer Physics engine. The physics runs in 2D, and the 3D models are drawn at
-the positions of the physics bodies.
+[Aether.Physics2D](https://github.com/nkast/Aether.Physics2D) physics engine
+(the maintained successor of Farseer Physics, which the game originally used).
+The physics runs in 2D, and the 3D models are drawn at the positions of the
+physics bodies.
 
 ## Repository structure
 
@@ -15,7 +17,6 @@ the positions of the physics bodies.
 |---|---|
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
-| `src/FarseerPhysics/` | Farseer Physics 3.5 engine (third-party code) |
 | `content/` | Shared game content: compiled models, textures and fonts (`.xnb`) and levels (`Levels/*.lev`). Copied to the build output as `Content/`. |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
@@ -25,8 +26,9 @@ the positions of the physics bodies.
 - [.NET SDK 10](https://dotnet.microsoft.com/download) or newer
 - Optionally an IDE: Visual Studio 2022 (17.13+) / 2026, JetBrains Rider or VS Code with C# Dev Kit
 
-Packages (MonoGame 3.8 DesktopGL) are restored automatically from NuGet. Their
-versions are managed centrally in `Directory.Packages.props`.
+Packages (MonoGame 3.8 DesktopGL, Aether.Physics2D 2.2) are restored
+automatically from NuGet. Their versions are managed centrally in
+`Directory.Packages.props`.
 
 ## Building and running
 
@@ -57,7 +59,7 @@ Game arguments for development:
 | Space | Brake all wheels |
 | Left Ctrl | Lock the axle rotation |
 | Esc | Back to the menu |
-| F1–F8 | Physics simulation debug view (Farseer DebugView) |
+| F1–F8 | Physics simulation debug view (Aether.Physics2D DebugView) |
 
 The menus can be operated with the mouse. By default the game reads the
 keyboard while driving. To control the car with the on-screen virtual joystick,
@@ -99,46 +101,49 @@ bitmap `content/Levels/bit/<block>.xnb`.
   then the game runs as a regular desktop application instead of a UWP app.
   It has been tested on Windows. DesktopGL also supports Linux and macOS, but
   the game has not been tested there yet.
+- The embedded Farseer Physics 3.5 source code was then replaced by the
+  Aether.Physics2D NuGet package. The car handles the same in the first
+  seconds of a scripted test drive; later the runs diverge slightly, as is
+  normal for physics simulations with a different implementation.
 
 ## License
 
 - **Own code, game content (`content/`) and documentation:** [MIT](LICENSE),
   © 2016–2026 Antonín Pražský.
-- **Farseer Physics Engine** (`src/FarseerPhysics/`) and the files derived from
-  its samples (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
+- **Files derived from the Farseer Physics Engine samples**
+  (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
   `src/TW3D.Game/ConvertUnits.cs`): Microsoft Public License (Ms-PL), see
-  [`src/FarseerPhysics/LICENSE.txt`](src/FarseerPhysics/LICENSE.txt).
-  Farseer is based on Box2D (© Erin Catto).
+  [`src/TW3D.Game/LICENSE-Ms-PL.txt`](src/TW3D.Game/LICENSE-Ms-PL.txt).
+- **Aether.Physics2D** is used as a NuGet package and is licensed under the
+  Ms-PL as well. It is based on Farseer Physics (© Ian Qvist) and Box2D
+  (© Erin Catto).
 
 ## Roadmap
 
 Issues found during the migration, roughly in order of importance:
 
-1. **Replace Farseer with [Aether.Physics2D](https://github.com/nkast/Aether.Physics2D)**,
-   the maintained successor of Farseer (NuGet `Aether.Physics2D.MG`). After that,
-   `src/FarseerPhysics/` can be deleted. The API differs mainly in how bodies are
-   created (`World.CreateBody` instead of `BodyFactory`).
-2. **Separate own code from the Farseer sample framework.** `ScreenSystem/` and
+1. **Separate own code from the Farseer sample framework.** `ScreenSystem/` and
    `DrawingSystem/` come from the Farseer Samples and contain unused parts too
    (e.g. `MessageBoxScreen`, the "Welcome, betatesters!" text in `MainGame`).
-3. **Source models and textures.** Without them the content cannot be changed.
+   Rewriting them would also remove the last Ms-PL licensed code.
+2. **Source models and textures.** Without them the content cannot be changed.
    If they turn up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the
    MonoGame Content Pipeline (`.mgcb`).
-4. **A single shared list of blocks and objects.** Loading of the 69 models is
+3. **A single shared list of blocks and objects.** Loading of the 69 models is
    written out by hand twice (`MainGame.LoadContent` and `Editor.LoadContent`),
    and the `.lev` parser exists twice as well (game and editor). A candidate for
    a shared library and a data file (e.g. JSON).
-5. **A more robust level format.** The parser reads the file character by
+4. **A more robust level format.** The parser reads the file character by
    character. The editor saves coordinates using `float.ToString()` with the
    system culture, so on Czech Windows a non-integer coordinate would get a
    decimal comma clashing with the separator. Use `CultureInfo.InvariantCulture`,
    or switch to JSON.
-6. **The level list in the menu** is hard-coded in `Game1.Initialize`, including
+5. **The level list in the menu** is hard-coded in `Game1.Initialize`, including
    duplicate test entries. It would be better to load it from the `Levels` folder.
-7. **Unfinished menu:** Garage, About and Options. Switching between keyboard and
+6. **Unfinished menu:** Garage, About and Options. Switching between keyboard and
    touch controls requires a code change.
-8. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+7. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-9. **Automated tests and CI**, e.g. tests of the level parser and builds via
+8. **Automated tests and CI**, e.g. tests of the level parser and builds via
    GitHub Actions.
