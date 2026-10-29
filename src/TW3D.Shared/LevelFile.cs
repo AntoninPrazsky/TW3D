@@ -65,19 +65,32 @@ namespace TW3D.Shared
         /// </summary>
         public static List<string> FindLevels(string directory)
         {
-            List<(string Name, int? Order)> levels = new List<(string, int?)>();
             if (!Directory.Exists(directory))
                 return new List<string>();
 
-            foreach (string path in Directory.GetFiles(directory, "*" + Extension))
+            return SortLevels(Directory.GetFiles(directory, "*" + Extension).Select(Path.GetFileName),
+                fileName => File.OpenRead(Path.Combine(directory, fileName)));
+        }
+
+        /// <summary>
+        /// Names of the levels in the order for the level select, like <see cref="FindLevels"/>, for level files
+        /// that are not in a directory (e.g. packed in an Android app).
+        /// </summary>
+        /// <param name="fileNames">File names of the levels, with the extension; other files are ignored.</param>
+        /// <param name="open">Opens a level file by its name.</param>
+        public static List<string> SortLevels(IEnumerable<string> fileNames, Func<string, Stream> open)
+        {
+            List<(string Name, int? Order)> levels = new List<(string, int?)>();
+            foreach (string fileName in fileNames.Where(name => name.EndsWith(Extension, StringComparison.OrdinalIgnoreCase)))
             {
                 try
                 {
-                    levels.Add((Path.GetFileNameWithoutExtension(path), Load(path).Order));
+                    using (Stream stream = open(fileName))
+                        levels.Add((Path.GetFileNameWithoutExtension(fileName), Load(stream).Order));
                 }
                 catch (Exception e) when (e is IOException || e is InvalidDataException || e is JsonException)
                 {
-                    Debug.WriteLine("Level " + path + " left out: " + e.Message);
+                    Debug.WriteLine("Level " + fileName + " left out: " + e.Message);
                 }
             }
 

@@ -47,7 +47,13 @@ namespace TW3D.Screens
         /// Scale of the user interface: sizes designed for 1920×1080 scaled so that they fit the screen.
         /// On screens wider than 16:9 (e.g. 21:9) the height decides, so nothing gets out of the screen.
         /// </summary>
-        public float UiScale => Math.Min(Viewport.Width / ReferenceWidth, Viewport.Height / ReferenceHeight);
+        public float UiScale => Math.Min(Viewport.Width / ReferenceWidth, Viewport.Height / ReferenceHeight) * UiSize;
+
+        /// <summary>
+        /// Size of the user interface relative to the screen; 1 is designed for monitors.
+        /// Small screens (phones) need it bigger, both to be readable and to be hit by a finger.
+        /// </summary>
+        public float UiSize { get; set; } = 1f;
 
         /// <summary>The screen without the margin along its edges; the user interface stays inside it.</summary>
         public Rectangle SafeArea

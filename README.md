@@ -54,6 +54,33 @@ Game arguments for development:
 | `--size WxH` | Window of the given size, e.g. `--size 2560x1080` for testing other aspect ratios (the window can also be resized) |
 | `--level <name>` | Skips the menu and loads the level directly (the file name in `content/Levels` without `.json`, e.g. `lock`). Esc returns to the menu. |
 
+### Android
+
+`src/TW3D.Android` builds the game for Android phones (Android 7.0 and newer). It
+compiles the code of `src/TW3D.Game` (linked, not copied); what differs between the
+platforms is marked `#if ANDROID`: full screen in landscape, a twice as big user
+interface, 4× multisampling, the level list read from the app and the highest
+refresh rate of the display. The project is not in `TW3D.slnx`, so the desktop build
+needs no Android tools.
+
+Once, the Android workload, the Android SDK and JDK 17 (the SDK in
+`%LOCALAPPDATA%\Android\Sdk` is found automatically, the JDK has to be given):
+
+```sh
+dotnet workload install android
+dotnet build src/TW3D.Android -t:InstallAndroidDependencies -f net10.0-android -p:AndroidSdkDirectory=<SDK folder> -p:JavaSdkDirectory=<JDK folder> -p:AcceptAndroidSDKLicenses=True
+```
+
+Installing on a phone connected by USB with USB debugging enabled:
+
+```sh
+dotnet build src/TW3D.Android -t:Install -p:JavaSdkDirectory=<JDK folder>
+```
+
+The debug build installs the code next to the app (fast deployment), so its APK
+file alone does not run; an APK for other phones needs a release build, which is
+not set up yet.
+
 ## Controls
 
 The user interface is designed for desktop monitors at 1920×1080 and scaled

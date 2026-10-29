@@ -12,8 +12,15 @@ namespace TW3D
 {
     public class Game1 : Game
     {
+#if ANDROID
+        //Samples per pixel of the multisample antialiasing; fewer on phones, where it costs more
+        private const int MultiSampleCount = 4;
+        //A phone screen is small, so the user interface is bigger than on a monitor (see ScreenManager.UiSize)
+        private const float PhoneUiSize = 2f;
+#else
         //Samples per pixel of the multisample antialiasing
         private const int MultiSampleCount = 8;
+#endif
 
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
@@ -27,9 +34,6 @@ namespace TW3D
             Content.RootDirectory = "Content";
             this.startLevel = startLevel;
 
-            Window.Title = "Triple Wheel 3D";
-            IsMouseVisible = true;
-
             //One update and one frame per refresh of the monitor (e.g. 75 per second on a 75 Hz monitor);
             //the physics simulation keeps its own fixed time step (see PhysicsClock)
             IsFixedTimeStep = false;
@@ -39,6 +43,14 @@ namespace TW3D
             graphics.PreferMultiSampling = true;
             graphics.PreparingDeviceSettings += (sender, e) =>
                 e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = MultiSampleCount;
+
+#if ANDROID
+            //Full screen, landscape either way round
+            graphics.IsFullScreen = true;
+            graphics.SupportedOrientations = DisplayOrientation.LandscapeLeft | DisplayOrientation.LandscapeRight;
+#else
+            Window.Title = "Triple Wheel 3D";
+            IsMouseVisible = true;
 
             if (windowSize.HasValue)
             {
@@ -56,8 +68,12 @@ namespace TW3D
                 graphics.HardwareModeSwitch = false;
                 graphics.IsFullScreen = true;
             }
+#endif
 
             screens = new ScreenManager(this);
+#if ANDROID
+            screens.UiSize = PhoneUiSize;
+#endif
             Components.Add(screens);
             Components.Add(new FrameRateCounter(this, screens) { DrawOrder = 100 });
         }
@@ -102,7 +118,14 @@ namespace TW3D
         /// </summary>
         private List<string> FindLevels()
         {
+#if ANDROID
+            //On Android the content is packed in the app, Android lists its files
+            string folder = Content.RootDirectory + "/Levels";
+            string[] files = Android.App.Application.Context.Assets.List(folder) ?? Array.Empty<string>();
+            return LevelFile.SortLevels(files, fileName => TitleContainer.OpenStream(folder + "/" + fileName));
+#else
             return LevelFile.FindLevels(Path.Combine(AppContext.BaseDirectory, Content.RootDirectory, "Levels"));
+#endif
         }
 
         private void StartLevel(string level)

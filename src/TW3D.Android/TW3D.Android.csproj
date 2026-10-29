@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The game for Android phones: the same code as src/TW3D.Game (linked here), built for Android.
+    Code that differs between the platforms is marked #if ANDROID.
+    Needs the Android workload: dotnet workload install android
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TW3D</RootNamespace>
+    <AssemblyName>TW3D</AssemblyName>
+    <ApplicationId>io.github.antoninprazsky.tw3d</ApplicationId>
+    <ApplicationTitle>Triple Wheel 3D</ApplicationTitle>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>1.1.0</ApplicationDisplayVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\TW3D.Game\**\*.cs" Exclude="..\TW3D.Game\Program.cs;..\TW3D.Game\bin\**;..\TW3D.Game\obj\**" LinkBase="Game" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Shared game content, packed in the app as Content/ -->
+    <AndroidAsset Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" Link="Assets\Content\%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
+    <AndroidAsset Include="..\..\content\Font.xnb" Link="Assets\Content\DiagnosticsFont.xnb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.Android" />
+    <PackageReference Include="Aether.Physics2D.MG" />
+    <!-- Its own copy of the debug view font is not used, the game content has it -->
+    <PackageReference Include="Aether.Physics2D.Diagnostics.MG" ExcludeAssets="contentFiles" />
+    <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
