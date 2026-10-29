@@ -20,8 +20,6 @@ namespace TW3D.GameObjects
         protected ChaseCamera camera;
         protected const float scale = 0.25f;
 
-        public BoundingBox boundingBox { get; set; }
-
         public List<Vertices> CreateListOfVertices(string textureName, float distanceReduction)
         {
             Texture2D texture;
@@ -68,20 +66,26 @@ namespace TW3D.GameObjects
             return world.CreateCompoundPolygon(listOfVertices, 1f, Vector2.Zero, 0f, bodyType);
         }
 
-        public void DrawModel(Model model, Vector3 modelPosition, float modelRotation, bool flip, bool lighting)
+        /// <param name="asBackground">
+        /// Draw without the depth buffer, so the model never hides anything drawn after it (used for the sky).
+        /// </param>
+        public void DrawModel(Model model, Vector3 modelPosition, float modelRotation, bool flip, bool lighting, bool asBackground = false)
         {
-
-            screenManager.GraphicsDevice.BlendState = BlendState.Opaque;
-            screenManager.GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            screenManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            screenManager.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
-
             float convCon = 10f;
 
             Matrix world = new Matrix();
 
             world = (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
                * Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition / convCon);
+
+            //Models whose bounding sphere is completely outside the camera view are not drawn
+            if (camera.Frustum.Contains(ModelBounds(model).Transform(world)) == ContainmentType.Disjoint)
+                return;
+
+            screenManager.GraphicsDevice.BlendState = BlendState.Opaque;
+            screenManager.GraphicsDevice.DepthStencilState = asBackground ? DepthStencilState.None : DepthStencilState.Default;
+            screenManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+            screenManager.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
 
             Matrix view = camera.View;
             Matrix projection = camera.Projection;
@@ -123,6 +127,28 @@ namespace TW3D.GameObjects
                 }
             }
             else { model.Draw(world, view, projection); }
+        }
+
+        private static readonly Dictionary<Model, BoundingSphere> modelBounds = new Dictionary<Model, BoundingSphere>();
+
+        /// <summary>Bounding sphere of the whole model in model coordinates (computed once per model).</summary>
+        private static BoundingSphere ModelBounds(Model model)
+        {
+            if (modelBounds.TryGetValue(model, out BoundingSphere bounds))
+                return bounds;
+
+            Matrix[] transforms = new Matrix[model.Bones.Count];
+            model.CopyAbsoluteBoneTransformsTo(transforms);
+            bool first = true;
+            foreach (ModelMesh mesh in model.Meshes)
+            {
+                BoundingSphere meshBounds = mesh.BoundingSphere.Transform(transforms[mesh.ParentBone.Index]);
+                bounds = first ? meshBounds : BoundingSphere.CreateMerged(bounds, meshBounds);
+                first = false;
+            }
+
+            modelBounds[model] = bounds;
+            return bounds;
         }
 
         public Ray GetPickRay(float x, float y)

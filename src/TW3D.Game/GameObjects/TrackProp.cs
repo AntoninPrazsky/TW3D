@@ -15,7 +15,6 @@ namespace TW3D.GameObjects
     {
         public Body propBody { get; set; }
         private Model model;
-        private float vis;
         
         public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
         {
@@ -53,51 +52,33 @@ namespace TW3D.GameObjects
                         propBody.SetFriction(0.5f);
                         propBody.Mass = 50f;
                         propBody.SetRestitution(0.1f);
-                        //vis = 0.6f;
-                        vis = 1.2f;
                     break;
                 case "Bar":
                         propBody.SetFriction(0.7f);
                         propBody.Mass = 10f;
                         propBody.SetRestitution(0.3f);
-                        //vis = 0.4f;
-                        vis = 0.8f;
                     break;
                 case "Ramp":
                         propBody.SetFriction(1f);
                         propBody.Mass = 100f;
                         propBody.SetRestitution(0f);
-                        //vis = 1.2f;
-                        vis = 2.4f;
                     break;
                 case "Tb":
                         propBody.SetFriction(0.9f);
                         propBody.Mass = 70f;
                         propBody.SetRestitution(0f);
-                        //vis = 0.3f;
-                        vis = 0.6f;
                     break;
                 case "Co":
                         propBody.SetFriction(0.9f);
                         propBody.Mass = 500f;
                         propBody.SetRestitution(0f);
-                        //vis = 1.8f;
-                        vis = 3.6f;
                     break;
                 case "Mov":
                         propBody.SetFriction(0.45f);
                         propBody.Mass = 200f;
                         propBody.SetRestitution(0f);
-                        //vis = 2.2f;
-                        vis = 4.4f;
                     break;
             }
-        }
-
-        public override void Update()
-        {
-            boundingBox = new BoundingBox(new Vector3(-propBody.Position.X / 10f - vis, -propBody.Position.Y / 10f - vis, 0f),
-                                            new Vector3(-propBody.Position.X / 10f + vis, -propBody.Position.Y / 10f + vis, 0f));
         }
 
         public override void Draw()

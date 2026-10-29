@@ -21,7 +21,6 @@ namespace TW3D.GameObjects
         public Model blockModel { get; set; }
         public string modelName { get; set; }
         public List<Vertices> blockVertices { get; set; }
-        public BoundingBox boundingBox { get; set; }
        
     }
 
@@ -212,16 +211,6 @@ namespace TW3D.GameObjects
                         }
                         else trackBlock.blockBody = null;
 
-                        float pos = 0;
-                        if (where == backTrackBlocks) pos = CTW3D(9f) / 10f;
-                        if (where == frontTrackBlocks) pos = CTW3D(-9f) / 10f;
-                        //float vis = 1.8f; //Short view distance
-                        float vis = 5f; //Long view distance
-                        
-                        trackBlock.boundingBox = new BoundingBox(
-                                new Vector3(-trackBlock.blockAbsPosition.X / 10f - vis, -trackBlock.blockAbsPosition.Y / 10f - vis, pos), 
-                                new Vector3(-trackBlock.blockAbsPosition.X / 10f + vis, -trackBlock.blockAbsPosition.Y / 10f + vis, pos));
-                        
                         trackBlock.blockModel = TrackBlockModels.Models[modelName];
                         trackBlock.modelName = modelName;
                         where.Add(trackBlock);
@@ -266,40 +255,18 @@ namespace TW3D.GameObjects
 
         public override void Draw()
         {
-            
+            //Models outside the camera view are skipped by DrawModel
             foreach (TrackBlock tb in backTrackBlocks)
-            {
-                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
-                    DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f)), 0f, false, true);
-            }
-            
+                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f)), 0f, false, true);
+
             foreach (TrackBlock tb in trackBlocks)
-            {
-                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
-                {
-                    //tb.blockBody.Enabled = true;
-                    DrawModel(tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false, true);
-                }
-                //else tb.blockBody.Enabled = false;
-            }
-            
+                DrawModel(tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false, true);
+
             foreach (TrackBlock tb in frontTrackBlocks)
-            {
-                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
-                    DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f)), 0f, false, true);
-            }
+                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f)), 0f, false, true);
 
             foreach (TrackProp obj in gObjects)
-            {
-                if (camera.Frustum.Contains(obj.boundingBox) != ContainmentType.Disjoint)
-                {
-                    //obj.propBody.Enabled = true;
-                    obj.Draw();
-                }
-                //Suspend the physics simulation of objects outside the view frustum
-                //else obj.propBody.Enabled = false;
-            }
-
+                obj.Draw();
         }
     }
 }

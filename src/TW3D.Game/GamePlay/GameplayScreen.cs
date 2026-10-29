@@ -249,8 +249,9 @@ namespace TW3D.GamePlay
 
         public override void Draw(GameTime gameTime)
         {
-            car.Draw();
+            //The sky is a background and has to be drawn first
             sky.Draw();
+            car.Draw();
             level.Draw();
 
             Matrix debugProjection = camera.DebugProjection;

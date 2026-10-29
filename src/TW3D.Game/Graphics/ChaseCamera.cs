@@ -23,8 +23,9 @@ namespace TW3D.Graphics
         private const float MaxTurnSpeed = 80f;
 
         private const float WorldTo3D = 0.1f;
-        //Far clipping plane distance (22 = short, 50 = medium view distance)
-        private const float FarPlane = 50f;
+        //Far clipping plane distance. The 2016 version used 22 or 50 to save the performance of phones,
+        //which cut off the scene too close; now it is far beyond the sky and any level.
+        private const float FarPlane = 1000f;
         //Physics units visible vertically in the debug view at zoom 1
         private const float DebugViewHeight = 30f;
 
