@@ -109,8 +109,14 @@ rectangle with its name.
 The game draws one frame per refresh of the monitor (e.g. 75 frames per second
 on a 75 Hz monitor), with 8× multisample antialiasing (fewer samples if the
 graphics card does not support 8). The physics simulation is independent of that: it always
-runs 60 fixed steps of 1/60 s per second, and the positions of moving bodies are
+runs 60 fixed steps of 1/60 s per game second, and the positions of moving bodies are
 interpolated between the last two steps for drawing.
+
+The game runs twice as fast as real time (`GameSpeed` in `GameplayScreen`). For the
+physics engine the world is huge (the car is about 20 metres long), so at real time
+everything moved as in slow motion; running faster is the same as shrinking the whole
+world while keeping its look. Everything keeps its paths, so the levels play the same,
+only faster.
 
 ## Game content
 

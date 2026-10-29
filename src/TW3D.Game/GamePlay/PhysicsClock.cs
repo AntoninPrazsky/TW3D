@@ -9,15 +9,16 @@ namespace TW3D.GamePlay
     /// <summary>
     /// Runs the physics simulation with a fixed time step, independent of the frame rate,
     /// and interpolates the positions of moving bodies between the last two steps,
-    /// so the movement is smooth at any frame rate (e.g. 75 frames, 60 physics steps per second).
+    /// so the movement is smooth at any frame rate. The time is game time (see GameplayScreen.GameSpeed):
+    /// 60 steps per game second, e.g. 120 steps per real second at the game speed 2.
     /// </summary>
     public sealed class PhysicsClock
     {
-        /// <summary>Length of one simulation step in seconds (the same as the 60 updates per second of the 2016 version).</summary>
+        /// <summary>Length of one simulation step in game seconds (the same as the 60 updates per second of the 2016 version).</summary>
         public const float StepTime = 1f / 60f;
 
         //After a long frame the simulation does not try to catch up more than this; it slows down instead
-        private const int MaxStepsPerFrame = 5;
+        private const int MaxStepsPerFrame = 8;
 
         private readonly struct BodyState
         {
@@ -45,7 +46,7 @@ namespace TW3D.GamePlay
         /// <summary>Position between the previous (0) and the last (1) simulation step to draw.</summary>
         public float Alpha { get; private set; } = 1f;
 
-        /// <summary>Runs as many simulation steps as fit into the elapsed time.</summary>
+        /// <summary>Runs as many simulation steps as fit into the elapsed game time.</summary>
         public void Advance(float elapsedSeconds)
         {
             accumulatedTime += elapsedSeconds;

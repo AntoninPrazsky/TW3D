@@ -44,6 +44,12 @@ namespace TW3D.GamePlay
         //Physics units per second
         private const float CameraPanSpeed = 10f;
 
+        //Game seconds per real second. For the physics engine the world is huge (the car is about
+        //20 metres long, gravity 12 m/s²), so at real time everything moves as in slow motion.
+        //Shrinking the whole world while keeping its look would be the same as running the game faster:
+        //everything moves along the same paths, only in a shorter time.
+        private const float GameSpeed = 2f;
+
         private readonly string levelName;
 
         private World world;
@@ -136,10 +142,11 @@ namespace TW3D.GamePlay
             HandleCameraKeys(input, elapsed);
 
             controls.Update(input, Manager.Viewport, Manager.UiScale);
-            Drive(DriveInput.Read(input, controls), elapsed);
+            Drive(DriveInput.Read(input, controls), elapsed * GameSpeed);
             HandleCarDragging(input);
         }
 
+        /// <param name="elapsed">Elapsed game time (see <see cref="GameSpeed"/>).</param>
         private void Drive(DriveInput drive, float elapsed)
         {
             //Throttle, slowly fading out when released
@@ -221,7 +228,7 @@ namespace TW3D.GamePlay
 
         public override void Update(GameTime gameTime)
         {
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds * GameSpeed;
 
             car.Update();
             level.Update();
@@ -231,6 +238,7 @@ namespace TW3D.GamePlay
             if (HasFocus)
                 physics.Advance(elapsed);
 
+            //The camera follows the car in game time too, so it keeps up with it
             camera.Update(elapsed, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
         }
 
