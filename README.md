@@ -78,8 +78,19 @@ dotnet build src/TW3D.Android -t:Install -p:JavaSdkDirectory=<JDK folder>
 ```
 
 The debug build installs the code next to the app (fast deployment), so its APK
-file alone does not run; an APK for other phones needs a release build, which is
-not set up yet.
+file alone does not run. A standalone APK comes from the release build, with the
+code compiled ahead of time for arm64 (phones) and x86_64:
+
+```sh
+dotnet publish src/TW3D.Android -c Release -p:JavaSdkDirectory=<JDK folder>
+```
+
+It writes `src/TW3D.Android/bin/Release/net10.0-android/publish/io.github.antoninprazsky.tw3d-Signed.apk`
+(and an `.aab` bundle for Google Play). Copy the APK to a phone and open it there
+(the phone asks to allow installing apps from that source), or install it with
+`adb install`. It is signed with the Android debug key of the computer that built
+it; an app signed with another key (another computer, or a release key for Google
+Play) cannot update it, the old one has to be uninstalled first.
 
 ## Controls
 
