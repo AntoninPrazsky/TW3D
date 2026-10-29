@@ -98,6 +98,16 @@ Fyzikální tvar každého bloku se ve hře vytváří vektorizací bitmapy
   Vyzkoušená je na Windows. DesktopGL podporuje i Linux a macOS, tam ale
   zatím testovaná nebyla.
 
+## Licence
+
+- **Vlastní kód, herní obsah (`content/`) a dokumentace:** licence [MIT](LICENSE),
+  © 2016–2026 Antonín Pražský.
+- **Farseer Physics Engine** (`src/FarseerPhysics/`) a soubory odvozené z jeho
+  ukázek (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
+  `src/TW3D.Game/ConvertUnits.cs`): licence Microsoft Public License (Ms-PL),
+  viz [`src/FarseerPhysics/LICENSE.txt`](src/FarseerPhysics/LICENSE.txt).
+  Farseer vychází z Box2D (© Erin Catto).
+
 ## Plán dalšího vývoje
 
 Věci nalezené při převodu, zhruba seřazené podle důležitosti:
