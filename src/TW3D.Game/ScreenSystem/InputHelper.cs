@@ -36,6 +36,8 @@ namespace TW3D.ScreenSystem
         private ScreenManager _manager;
         private Viewport _viewport;
 
+        private int _mouseTouchId;
+
         /// <summary>
         ///   Constructs a new input state.
         /// </summary>
@@ -153,6 +155,11 @@ namespace TW3D.ScreenSystem
             //ADDED
             TouchCollection = TouchPanel.GetState();
             //--ADDED
+
+            //MonoGame DesktopGL nepodporuje TouchPanel.EnableMouseTouchPoint (myš negeneruje dotyky),
+            //proto se levé tlačítko myši převádí na dotyk zde - stejně jako to dělal MonoGame pro UWP a Windows v roce 2016.
+            if (TouchCollection.Count == 0)
+                TouchCollection = HandleMouseAsTouch();
 
             if (_handleVirtualStick)
             {
@@ -293,6 +300,25 @@ namespace TW3D.ScreenSystem
             stick = _phoneStick.StickPosition;
 
             return new GamePadState(stick, Vector2.Zero, 0f, 0f, buttons.ToArray());
+        }
+
+        private TouchCollection HandleMouseAsTouch()
+        {
+            TouchLocationState state;
+
+            if (MouseState.LeftButton == ButtonState.Pressed && PreviousMouseState.LeftButton == ButtonState.Released)
+            {
+                _mouseTouchId++; //Každé stisknutí je nový dotyk s novým Id (VirtualStick podle Id sleduje "svůj" dotyk)
+                state = TouchLocationState.Pressed;
+            }
+            else if (MouseState.LeftButton == ButtonState.Pressed)
+                state = TouchLocationState.Moved;
+            else if (PreviousMouseState.LeftButton == ButtonState.Pressed)
+                state = TouchLocationState.Released;
+            else
+                return new TouchCollection();
+
+            return new TouchCollection(new[] { new TouchLocation(_mouseTouchId, state, new Vector2(MouseState.X, MouseState.Y)) });
         }
 
         /// <summary>
