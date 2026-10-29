@@ -51,7 +51,7 @@ namespace TW3D.Graphics
             //The font contains only digits, space and the letters of "fps"
             string text = framesPerSecond + " fps";
             float scale = screens.UiScale;
-            Vector2 position = new Vector2(30f, 25f) * scale;
+            Vector2 position = new Vector2(24f, 16f) * scale;
 
             SpriteBatch batch = screens.SpriteBatch;
             batch.Begin();

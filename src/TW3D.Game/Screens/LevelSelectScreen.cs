@@ -8,30 +8,27 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// A scrollable grid of level preview images. The layout is designed in 1280×720 reference
-    /// pixels and scaled uniformly to the screen, centred if the aspect ratio differs.
+    /// A grid of level preview images below the title. As many columns as fit the screen are used;
+    /// when the levels do not fit vertically, the list scrolls and a scroll bar appears on its left.
     /// </summary>
     public sealed class LevelSelectScreen : Screen
     {
-        //Layout in reference pixels
-        private const int Columns = 3;
-        private const float ImageWidth = 350f;
-        private const float ImageHeight = 197f;
-        private const float Gap = 16f;
-        private const float GridLeft = 168f;
-        private const float ListTop = 92f;
-        private const float ListBottom = 715f;
-        private const float ScrollBarX = 84f;
-        private const float ScrollUpY = 110f;
-        private const float ScrollDownY = 680f;
-        private const float SliderTop = 175f;
-        private const float SliderBottom = 615f;
+        //Sizes in reference (1920×1080) pixels
+        private const float ImageScale = 1f;
+        private const float Gap = 24f;
+        private const float TitleSpacing = 32f;
+        private const float ScrollBarScale = 0.6f;
+        private const float ScrollBarSpacing = 32f;
+        private const int MaxColumns = 6;
 
-        private const float ArrowScrollSpeed = 400f;
-        private const float WheelScrollStep = 80f;
+        private const float ArrowScrollSpeed = 900f;
+        private const float WheelScrollStep = 120f;
+        private const float ItemSlide = 320f;
+        private const float TitleSlide = 140f;
+        //Screen pixels the pressed pointer has to move to start scrolling instead of clicking
         private const float DragThreshold = 10f;
-        private const float ItemSlide = 256f;
-        private const float TitleSlide = 100f;
+
+        private static readonly RasterizerState ScissorRasterizer = new RasterizerState { CullMode = CullMode.None, ScissorTestEnable = true };
 
         private readonly string title;
         private readonly List<string> levels;
@@ -41,10 +38,22 @@ namespace TW3D.Screens
         private Texture2D arrowTexture;
         private Texture2D sliderTexture;
 
-        //Reference layout → screen: screen = origin + reference * scale
-        private Vector2 origin;
-        private float scale;
+        //Layout in screen pixels, recalculated every frame
+        private float uiScale;
+        private int columns;
+        private Vector2 imageSize;
+        private float gap;
+        private float gridLeft;
+        private float listTop;
+        private float listBottom;
+        private bool showScrollBar;
+        private float scrollBarX;
+        private float arrowUpY;
+        private float arrowDownY;
+        private float sliderTop;
+        private float sliderBottom;
 
+        //Scroll position in reference pixels, so it does not depend on the screen size
         private float scroll;
         private int focusedLevel = -1;
 
@@ -74,71 +83,88 @@ namespace TW3D.Screens
 
         private void UpdateLayout()
         {
-            Viewport viewport = Manager.Viewport;
-            scale = Manager.UiScale;
-            origin = new Vector2(viewport.Width - ScreenManager.ReferenceWidth * scale, viewport.Height - ScreenManager.ReferenceHeight * scale) / 2f;
+            Rectangle safe = Manager.SafeArea;
+            uiScale = Manager.UiScale;
+
+            imageSize = (images.Count > 0 ? new Vector2(images[0].Width, images[0].Height) : new Vector2(350f, 197f)) * ImageScale * uiScale;
+            gap = Gap * uiScale;
+            listTop = safe.Top + MainMenuScreen.TitleHeight(Manager) + TitleSpacing * uiScale;
+            listBottom = safe.Bottom;
+
+            float arrowWidth = arrowTexture.Width * ScrollBarScale * uiScale;
+            float scrollBarColumn = arrowWidth + ScrollBarSpacing * uiScale;
+
+            //Columns that fit next to a scroll bar; the scroll bar is left out if all rows fit anyway
+            columns = (int)((safe.Width - scrollBarColumn + gap) / (imageSize.X + gap));
+            columns = MathHelper.Clamp(Math.Min(columns, levels.Count), 1, MaxColumns);
+            showScrollBar = ContentHeight > listBottom - listTop;
+
+            float gridWidth = columns * imageSize.X + (columns - 1) * gap;
+            float blockWidth = gridWidth + (showScrollBar ? scrollBarColumn : 0f);
+            float blockLeft = safe.Left + (safe.Width - blockWidth) / 2f;
+            gridLeft = blockLeft + (showScrollBar ? scrollBarColumn : 0f);
+            scrollBarX = blockLeft + arrowWidth / 2f;
+
+            float arrowHeight = arrowTexture.Height * ScrollBarScale * uiScale;
+            float sliderHeight = sliderTexture.Height * ScrollBarScale * uiScale;
+            arrowUpY = listTop + arrowHeight / 2f;
+            arrowDownY = listBottom - arrowHeight / 2f;
+            sliderTop = arrowUpY + arrowHeight / 2f + gap + sliderHeight / 2f;
+            sliderBottom = arrowDownY - arrowHeight / 2f - gap - sliderHeight / 2f;
+
+            //The screen may have been resized
+            ScrollTo(scroll);
         }
 
-        private Vector2 ToReference(Vector2 screenPoint)
-        {
-            return (screenPoint - origin) / scale;
-        }
-
-        private Vector2 ToScreen(Vector2 referencePoint)
-        {
-            return origin + referencePoint * scale;
-        }
-
-        private float MaxScroll
+        private float ContentHeight
         {
             get
             {
-                int rows = (levels.Count + Columns - 1) / Columns;
-                float contentHeight = rows * ImageHeight + Math.Max(0, rows - 1) * Gap;
-                return Math.Max(0f, contentHeight - (ListBottom - ListTop));
+                int rows = (levels.Count + columns - 1) / columns;
+                return rows * imageSize.Y + Math.Max(0, rows - 1) * gap;
             }
         }
+
+        /// <summary>Maximum scroll position in reference pixels.</summary>
+        private float MaxScroll => Math.Max(0f, ContentHeight - (listBottom - listTop)) / uiScale;
 
         private void ScrollTo(float value)
         {
             scroll = MathHelper.Clamp(value, 0f, MaxScroll);
         }
 
-        /// <summary>Bounds of a level image in reference pixels (without the slide animation).</summary>
-        private RectangleF LevelBounds(int index)
+        private Rectangle LevelBounds(int index)
         {
-            int column = index % Columns;
-            int row = index / Columns;
-            return new RectangleF(
-                GridLeft + column * (ImageWidth + Gap),
-                ListTop + row * (ImageHeight + Gap) - scroll,
-                ImageWidth,
-                ImageHeight);
+            int column = index % columns;
+            int row = index / columns;
+            float x = gridLeft + column * (imageSize.X + gap);
+            float y = listTop + row * (imageSize.Y + gap) - scroll * uiScale;
+            return new Rectangle((int)x, (int)y, (int)imageSize.X, (int)imageSize.Y);
         }
 
-        private int LevelAt(Vector2 reference)
+        private int LevelAt(Vector2 position)
         {
-            if (reference.Y < ListTop || reference.Y > ListBottom)
+            if (position.Y < listTop || position.Y > listBottom)
                 return -1;
             for (int i = 0; i < levels.Count; i++)
-                if (LevelBounds(i).Contains(reference))
+                if (LevelBounds(i).Contains(position))
                     return i;
             return -1;
         }
 
-        private static RectangleF CenteredBounds(Texture2D texture, float x, float y)
+        private Rectangle ScrollBarButtonBounds(Texture2D texture, float centerY)
         {
-            return new RectangleF(x - texture.Width / 2f, y - texture.Height / 2f, texture.Width, texture.Height);
+            Vector2 size = new Vector2(texture.Width, texture.Height) * ScrollBarScale * uiScale;
+            return new Rectangle((int)(scrollBarX - size.X / 2f), (int)(centerY - size.Y / 2f), (int)size.X, (int)size.Y);
         }
 
-        private float SliderY => MaxScroll > 0f ? MathHelper.Lerp(SliderTop, SliderBottom, scroll / MaxScroll) : SliderTop;
+        private float SliderY => MaxScroll > 0f ? MathHelper.Lerp(sliderTop, sliderBottom, scroll / MaxScroll) : sliderTop;
 
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             UpdateLayout();
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            Vector2 pointer = ToReference(input.PointerPosition);
-            bool canScroll = MaxScroll > 0f;
+            Vector2 pointer = input.PointerPosition;
 
             int hovered = LevelAt(pointer);
             if (hovered >= 0 || input.Mouse.Position != input.PreviousMouse.Position)
@@ -148,11 +174,11 @@ namespace TW3D.Screens
             {
                 pressPosition = pointer;
                 pressScroll = scroll;
-                if (canScroll && CenteredBounds(arrowTexture, ScrollBarX, ScrollUpY).Contains(pointer))
+                if (showScrollBar && ScrollBarButtonBounds(arrowTexture, arrowUpY).Contains(pointer))
                     drag = Drag.ArrowUp;
-                else if (canScroll && CenteredBounds(arrowTexture, ScrollBarX, ScrollDownY).Contains(pointer))
+                else if (showScrollBar && ScrollBarButtonBounds(arrowTexture, arrowDownY).Contains(pointer))
                     drag = Drag.ArrowDown;
-                else if (canScroll && CenteredBounds(sliderTexture, ScrollBarX, SliderY).Contains(pointer))
+                else if (showScrollBar && ScrollBarButtonBounds(sliderTexture, SliderY).Contains(pointer))
                     drag = Drag.Slider;
                 else if (hovered >= 0)
                 {
@@ -165,13 +191,13 @@ namespace TW3D.Screens
             {
                 case Drag.ArrowUp: ScrollTo(scroll - ArrowScrollSpeed * elapsed); break;
                 case Drag.ArrowDown: ScrollTo(scroll + ArrowScrollSpeed * elapsed); break;
-                case Drag.Slider: ScrollTo((pointer.Y - SliderTop) / (SliderBottom - SliderTop) * MaxScroll); break;
+                case Drag.Slider: ScrollTo((pointer.Y - sliderTop) / (sliderBottom - sliderTop) * MaxScroll); break;
                 case Drag.PressedOnLevel:
                     //Moving the pressed pointer turns the press into scrolling of the list
-                    if (canScroll && Math.Abs(pointer.Y - pressPosition.Y) > DragThreshold)
+                    if (showScrollBar && Math.Abs(pointer.Y - pressPosition.Y) > DragThreshold)
                         drag = Drag.List;
                     break;
-                case Drag.List: ScrollTo(pressScroll - (pointer.Y - pressPosition.Y)); break;
+                case Drag.List: ScrollTo(pressScroll - (pointer.Y - pressPosition.Y) / uiScale); break;
             }
 
             if (input.PointerReleased)
@@ -183,12 +209,13 @@ namespace TW3D.Screens
             else if (input.Pointers.Count == 0)
                 drag = Drag.None;
 
+            float page = (listBottom - listTop) / uiScale;
             if (input.WheelDelta != 0)
                 ScrollTo(scroll - input.WheelDelta / 120f * WheelScrollStep);
             if (input.KeyPressed(Keys.PageUp))
-                ScrollTo(scroll - (ListBottom - ListTop));
+                ScrollTo(scroll - page);
             if (input.KeyPressed(Keys.PageDown))
-                ScrollTo(scroll + (ListBottom - ListTop));
+                ScrollTo(scroll + page);
 
             HandleKeyboardFocus(input);
 
@@ -203,73 +230,68 @@ namespace TW3D.Screens
             int move = 0;
             if (input.LeftPressed) move = -1;
             if (input.RightPressed) move = 1;
-            if (input.UpPressed) move = -Columns;
-            if (input.DownPressed) move = Columns;
+            if (input.UpPressed) move = -columns;
+            if (input.DownPressed) move = columns;
             if (move == 0)
                 return;
 
             focusedLevel = focusedLevel < 0 ? 0 : MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1);
 
             //Scroll so that the focused level is fully visible
-            RectangleF bounds = LevelBounds(focusedLevel);
-            if (bounds.Y < ListTop)
-                ScrollTo(scroll - (ListTop - bounds.Y));
-            else if (bounds.Bottom > ListBottom)
-                ScrollTo(scroll + (bounds.Bottom - ListBottom));
+            Rectangle bounds = LevelBounds(focusedLevel);
+            if (bounds.Top < listTop)
+                ScrollTo(scroll - (listTop - bounds.Top) / uiScale);
+            else if (bounds.Bottom > listBottom)
+                ScrollTo(scroll + (bounds.Bottom - listBottom) / uiScale);
         }
 
         public override void Draw(GameTime gameTime)
         {
             UpdateLayout();
             SpriteBatch batch = Manager.SpriteBatch;
+            Viewport viewport = Manager.Viewport;
             float alpha = Visibility;
-            float slide = SlideAmount * ItemSlide * (IsDisappearing ? 1f : -1f);
+            int slide = (int)(SlideAmount * ItemSlide * uiScale * (IsDisappearing ? 1f : -1f));
 
             //Level images are clipped to the list area (vertically only, so they can slide in from the side)
-            Viewport viewport = Manager.Viewport;
-            int clipTop = (int)ToScreen(new Vector2(0f, ListTop)).Y;
-            int clipBottom = (int)Math.Ceiling(ToScreen(new Vector2(0f, ListBottom)).Y);
             Rectangle previousScissor = Manager.GraphicsDevice.ScissorRectangle;
-            Manager.GraphicsDevice.ScissorRectangle = new Rectangle(0, clipTop, viewport.Width, clipBottom - clipTop);
+            Manager.GraphicsDevice.ScissorRectangle = new Rectangle(0, (int)listTop, viewport.Width, (int)Math.Ceiling(listBottom - listTop));
 
             batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, ScissorRasterizer);
             for (int i = 0; i < levels.Count; i++)
             {
-                RectangleF bounds = LevelBounds(i);
-                if (bounds.Bottom < ListTop || bounds.Y > ListBottom)
+                Rectangle bounds = LevelBounds(i);
+                if (bounds.Bottom < listTop || bounds.Top > listBottom)
                     continue;
 
-                Rectangle screenBounds = ToScreenRectangle(new RectangleF(bounds.X + slide, bounds.Y, bounds.Width, bounds.Height));
-                batch.Draw(images[i], screenBounds, Color.White * alpha);
+                bounds.Offset(slide, 0);
+                batch.Draw(images[i], bounds, Color.White * alpha);
 
                 if (i == focusedLevel && HasFocus)
-                    DrawFrame(batch, screenBounds, Math.Max(2, (int)(4 * scale)), MainMenuScreen.Yellow * alpha);
+                    DrawFrame(batch, bounds, Math.Max(2, (int)(4f * uiScale)), MainMenuScreen.Yellow * alpha);
             }
             batch.End();
             Manager.GraphicsDevice.ScissorRectangle = previousScissor;
 
             batch.Begin();
-            if (MaxScroll > 0f)
+            if (showScrollBar)
             {
-                Vector2 pointer = ToReference(Manager.Input.PointerPosition);
-                DrawScrollButton(batch, arrowTexture, ScrollUpY, false, drag == Drag.ArrowUp || CenteredBounds(arrowTexture, ScrollBarX, ScrollUpY).Contains(pointer), slide, alpha);
-                DrawScrollButton(batch, arrowTexture, ScrollDownY, true, drag == Drag.ArrowDown || CenteredBounds(arrowTexture, ScrollBarX, ScrollDownY).Contains(pointer), slide, alpha);
-                DrawScrollButton(batch, sliderTexture, SliderY, false, drag == Drag.Slider || CenteredBounds(sliderTexture, ScrollBarX, SliderY).Contains(pointer), slide, alpha);
+                Vector2 pointer = Manager.Input.PointerPosition;
+                DrawScrollBarButton(batch, arrowTexture, arrowUpY, false, drag == Drag.ArrowUp || ScrollBarButtonBounds(arrowTexture, arrowUpY).Contains(pointer), slide, alpha);
+                DrawScrollBarButton(batch, arrowTexture, arrowDownY, true, drag == Drag.ArrowDown || ScrollBarButtonBounds(arrowTexture, arrowDownY).Contains(pointer), slide, alpha);
+                DrawScrollBarButton(batch, sliderTexture, SliderY, false, drag == Drag.Slider || ScrollBarButtonBounds(sliderTexture, SliderY).Contains(pointer), slide, alpha);
             }
-            MainMenuScreen.DrawTitle(Manager, title, origin.Y - SlideAmount * TitleSlide * scale, alpha);
+            MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
             batch.End();
         }
 
-        private static readonly RasterizerState ScissorRasterizer = new RasterizerState { CullMode = CullMode.None, ScissorTestEnable = true };
-
-        private void DrawScrollButton(SpriteBatch batch, Texture2D texture, float y, bool flip, bool highlighted, float slide, float alpha)
+        private void DrawScrollBarButton(SpriteBatch batch, Texture2D texture, float centerY, bool flip, bool highlighted, int slide, float alpha)
         {
             //Highlighted buttons are yellow and slightly bigger
-            float buttonScale = scale * (highlighted ? 1.1f : 1f);
+            float scale = ScrollBarScale * uiScale * (highlighted ? 1.1f : 1f);
             Color color = (highlighted && HasFocus ? MainMenuScreen.Yellow : Color.White) * alpha;
-            Vector2 center = ToScreen(new Vector2(ScrollBarX + slide, y));
-            Vector2 textureCenter = new Vector2(texture.Width, texture.Height) / 2f;
-            batch.Draw(texture, center, null, color, 0f, textureCenter, buttonScale, flip ? SpriteEffects.FlipVertically : SpriteEffects.None, 0f);
+            Vector2 origin = new Vector2(texture.Width, texture.Height) / 2f;
+            batch.Draw(texture, new Vector2(scrollBarX + slide, centerY), null, color, 0f, origin, scale, flip ? SpriteEffects.FlipVertically : SpriteEffects.None, 0f);
         }
 
         private void DrawFrame(SpriteBatch batch, Rectangle bounds, int thickness, Color color)
@@ -279,37 +301,6 @@ namespace TW3D.Screens
             batch.Draw(pixel, new Rectangle(bounds.X, bounds.Bottom - thickness, bounds.Width, thickness), color);
             batch.Draw(pixel, new Rectangle(bounds.X, bounds.Y, thickness, bounds.Height), color);
             batch.Draw(pixel, new Rectangle(bounds.Right - thickness, bounds.Y, thickness, bounds.Height), color);
-        }
-
-        private Rectangle ToScreenRectangle(RectangleF reference)
-        {
-            Vector2 topLeft = ToScreen(new Vector2(reference.X, reference.Y));
-            Vector2 bottomRight = ToScreen(new Vector2(reference.Right, reference.Bottom));
-            return new Rectangle((int)topLeft.X, (int)topLeft.Y, (int)(bottomRight.X - topLeft.X), (int)(bottomRight.Y - topLeft.Y));
-        }
-
-        /// <summary>A rectangle with float coordinates (reference pixels).</summary>
-        private readonly struct RectangleF
-        {
-            public RectangleF(float x, float y, float width, float height)
-            {
-                X = x;
-                Y = y;
-                Width = width;
-                Height = height;
-            }
-
-            public float X { get; }
-            public float Y { get; }
-            public float Width { get; }
-            public float Height { get; }
-            public float Right => X + Width;
-            public float Bottom => Y + Height;
-
-            public bool Contains(Vector2 point)
-            {
-                return point.X >= X && point.X < Right && point.Y >= Y && point.Y < Bottom;
-            }
         }
     }
 }

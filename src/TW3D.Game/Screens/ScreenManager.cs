@@ -14,8 +14,11 @@ namespace TW3D.Screens
     public sealed class ScreenManager : DrawableGameComponent
     {
         /// <summary>The user interface is designed for this resolution and scaled to the actual one.</summary>
-        public const float ReferenceWidth = 1280f;
-        public const float ReferenceHeight = 720f;
+        public const float ReferenceWidth = 1920f;
+        public const float ReferenceHeight = 1080f;
+
+        /// <summary>Distance of the user interface from the screen edges, in reference pixels.</summary>
+        public const float EdgeMargin = 48f;
 
         private readonly List<Screen> screens = new List<Screen>();
         private readonly List<Screen> screensToUpdate = new List<Screen>();
@@ -41,10 +44,22 @@ namespace TW3D.Screens
         public Viewport Viewport => GraphicsDevice.Viewport;
 
         /// <summary>
-        /// Scale of the user interface: the reference 1280×720 layout scaled so that it fits the screen.
+        /// Scale of the user interface: sizes designed for 1920×1080 scaled so that they fit the screen.
         /// On screens wider than 16:9 (e.g. 21:9) the height decides, so nothing gets out of the screen.
         /// </summary>
         public float UiScale => Math.Min(Viewport.Width / ReferenceWidth, Viewport.Height / ReferenceHeight);
+
+        /// <summary>The screen without the margin along its edges; the user interface stays inside it.</summary>
+        public Rectangle SafeArea
+        {
+            get
+            {
+                Rectangle area = Viewport.Bounds;
+                int margin = (int)(EdgeMargin * UiScale);
+                area.Inflate(-margin, -margin);
+                return area;
+            }
+        }
 
         public IReadOnlyList<Screen> Screens => screens;
 
@@ -159,7 +174,7 @@ namespace TW3D.Screens
         /// <summary>Draws text with a dark shadow; must be called between SpriteBatch.Begin and End.</summary>
         public void DrawShadowedText(SpriteFont font, string text, Vector2 position, Color color, Color shadow, float scale)
         {
-            Vector2 shadowOffset = new Vector2(Math.Max(1f, scale));
+            Vector2 shadowOffset = new Vector2(Math.Max(1f, 2f * UiScale));
             SpriteBatch.DrawString(font, text, position + shadowOffset, shadow, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
             SpriteBatch.DrawString(font, text, position, color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
         }

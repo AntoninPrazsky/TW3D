@@ -53,8 +53,10 @@ Game arguments for development:
 
 ## Controls
 
-The user interface is designed for 1280×720 and scaled uniformly to the screen,
-so it fits any aspect ratio (16:9, 21:9, 4:3, …).
+The user interface is designed for desktop monitors at 1920×1080 and scaled
+uniformly to the screen, so it fits any aspect ratio (16:9, 21:9, 4:3, …).
+It keeps a margin of 48 px (at 1080p) from the screen edges; the level select
+uses as many columns as fit the screen.
 
 **Menus:** mouse (click, wheel and dragging in the level select), arrow keys and
 Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.

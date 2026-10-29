@@ -27,19 +27,21 @@ namespace TW3D.Screens
             public string Text;
             public Placement Placement;
             public Action Activate;
+            //Where the text is drawn, and the slightly bigger area that reacts to the mouse
+            public Rectangle TextBounds;
             public Rectangle Bounds;
 
             public bool IsEnabled => Activate != null;
         }
 
         //Font scale of the items and the title at the reference resolution
-        private const float ItemScale = 1.44f;
-        private const float TitleScale = 1.6f;
-        //Distance of the bottom corner items from the side edges, as a fraction of the screen width
-        private const float SideMargin = 1f / 50f;
+        private const float ItemScale = 0.8f;
+        private const float TitleScale = 1.3f;
+        //Extra area around the item text that reacts to the mouse, in reference pixels
+        private const float ItemPadding = 20f;
         //How far the items slide in and out, in reference pixels
-        private const float ItemSlide = 256f;
-        private const float TitleSlide = 100f;
+        private const float ItemSlide = 320f;
+        private const float TitleSlide = 140f;
 
         public static readonly Color Yellow = new Color(255, 210, 0);
 
@@ -111,9 +113,12 @@ namespace TW3D.Screens
         private void UpdateLayout()
         {
             Viewport viewport = Manager.Viewport;
+            Rectangle safe = Manager.SafeArea;
             SpriteFont font = Manager.Fonts.Menu;
             float scale = ItemScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
+            float bottomRowY = safe.Bottom - lineHeight / 2f;
+            int padding = (int)(ItemPadding * Manager.UiScale);
 
             foreach (MenuItem item in items)
             {
@@ -123,12 +128,14 @@ namespace TW3D.Screens
                 {
                     case Placement.MiddleLeft: center = new Vector2(viewport.Width / 5f, viewport.Height / 2f); break;
                     case Placement.MiddleRight: center = new Vector2(viewport.Width * 0.8f, viewport.Height / 2f); break;
-                    case Placement.BottomLeft: center = new Vector2(viewport.Width * SideMargin + size.X / 2f, viewport.Height - lineHeight / 2f); break;
-                    case Placement.BottomCenter: center = new Vector2(viewport.Width / 2f, viewport.Height - lineHeight / 2f); break;
-                    default: center = new Vector2(viewport.Width * (1f - SideMargin) - size.X / 2f, viewport.Height - lineHeight / 2f); break;
+                    case Placement.BottomLeft: center = new Vector2(safe.Left + size.X / 2f, bottomRowY); break;
+                    case Placement.BottomCenter: center = new Vector2(viewport.Width / 2f, bottomRowY); break;
+                    default: center = new Vector2(safe.Right - size.X / 2f, bottomRowY); break;
                 }
 
-                item.Bounds = new Rectangle((int)(center.X - size.X / 2f), (int)(center.Y - lineHeight / 2f), (int)size.X, (int)lineHeight);
+                item.TextBounds = new Rectangle((int)(center.X - size.X / 2f), (int)(center.Y - lineHeight / 2f), (int)size.X, (int)lineHeight);
+                item.Bounds = item.TextBounds;
+                item.Bounds.Inflate(padding, padding);
             }
         }
 
@@ -150,11 +157,11 @@ namespace TW3D.Screens
             {
                 MenuItem item = items[i];
                 Color color = !item.IsEnabled ? Color.White * 0.45f : (i == focusedItem && HasFocus ? Yellow : Color.White);
-                Vector2 position = new Vector2(item.Bounds.X + slide, item.Bounds.Y);
+                Vector2 position = new Vector2(item.TextBounds.X + slide, item.TextBounds.Y);
                 Manager.DrawShadowedText(font, item.Text, position, color * alpha, Color.DarkSlateGray * (alpha * alpha), ItemScale * uiScale);
             }
 
-            DrawTitle(Manager, title, -titleSlide, alpha);
+            DrawTitle(Manager, title, Manager.SafeArea.Top - titleSlide, alpha);
 
             Manager.SpriteBatch.End();
         }
@@ -167,6 +174,12 @@ namespace TW3D.Screens
             Vector2 size = font.MeasureString(title) * scale;
             Vector2 position = new Vector2((manager.Viewport.Width - size.X) / 2f, top);
             manager.DrawShadowedText(font, title, position, Yellow * alpha, Color.Black * alpha, scale);
+        }
+
+        /// <summary>Height of a screen title in screen pixels.</summary>
+        public static float TitleHeight(ScreenManager manager)
+        {
+            return manager.Fonts.Menu.MeasureString("M").Y * TitleScale * manager.UiScale;
         }
     }
 }

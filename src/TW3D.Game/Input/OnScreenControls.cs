@@ -10,8 +10,11 @@ namespace TW3D.Input
     /// </summary>
     public sealed class OnScreenControls
     {
-        //Size of the controls at the 1280×720 reference resolution
-        private const float ReferenceScale = 1.6f;
+        //Size of the controls at the 1920×1080 reference resolution (the joystick is then 180 px wide)
+        private const float ReferenceScale = 1.125f;
+        //Distance from the screen edges and between the buttons, in reference pixels
+        private const float EdgeMargin = 48f;
+        private const float ButtonSpacing = 32f;
         //How far the stick can be pulled from the centre, in texture pixels
         private const float StickTravel = 30f;
 
@@ -85,13 +88,18 @@ namespace TW3D.Input
         public void Layout(Viewport viewport, float uiScale)
         {
             scale = ReferenceScale * uiScale;
+            float margin = EdgeMargin * uiScale;
+            float bottom = viewport.Height - margin;
 
-            //The controls keep a distance of a fifth of the screen height from the bottom and side edges
-            float margin = viewport.Height / 5f;
-            float y = viewport.Height - margin;
-            joystickCenter = new Vector2(margin, y);
-            brakeCenter = new Vector2(viewport.Width - margin, y);
-            lockCenter = new Vector2(viewport.Width - 3f * margin, y);
+            //Joystick in the bottom left corner, brake in the bottom right corner and the lock button next to it
+            float joystickRadius = socketTexture.Width / 2f * scale;
+            joystickCenter = new Vector2(margin + joystickRadius, bottom - joystickRadius);
+
+            Vector2 brakeSize = new Vector2(BrakeReleased.Width, BrakeReleased.Height) * scale;
+            brakeCenter = new Vector2(viewport.Width - margin - brakeSize.X / 2f, bottom - brakeSize.Y / 2f);
+
+            Vector2 lockSize = new Vector2(LockReleased.Width, LockReleased.Height) * scale;
+            lockCenter = new Vector2(brakeCenter.X - brakeSize.X / 2f - ButtonSpacing * uiScale - lockSize.X / 2f, bottom - lockSize.Y / 2f);
         }
 
         private void UpdateJoystick(InputState input)
