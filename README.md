@@ -48,30 +48,55 @@ Game arguments for development:
 | Argument | Meaning |
 |---|---|
 | `--windowed` | 1280×720 window instead of full screen |
+| `--size WxH` | Window of the given size, e.g. `--size 2560x1080` for testing other aspect ratios (the window can also be resized) |
 | `--level <name>` | Skips the menu and loads the level directly (`lock`, `startblock`, `tunel`). Esc returns to the menu. |
 
-## Game controls
+## Controls
+
+The user interface is designed for 1280×720 and scaled uniformly to the screen,
+so it fits any aspect ratio (16:9, 21:9, 4:3, …).
+
+**Menus:** mouse (click, wheel and dragging in the level select), arrow keys and
+Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.
+
+**Driving:** the keyboard, the on-screen controls (operated by the mouse or by
+touch) and a gamepad all work at the same time.
+
+| Key | On screen / gamepad | Action |
+|---|---|---|
+| → / ← | joystick right / left, left stick | Accelerate / reverse |
+| ↑ / ↓ | joystick up / down, left stick | Rotate the axles clockwise / counterclockwise |
+| Space | brake button, A | Brake all wheels |
+| Left Ctrl | axle lock button, B | Lock the axle rotation |
+| Esc | Back | Back to the level select |
+
+The car can also be grabbed with the mouse and dragged around.
+
+Development keys while driving:
 
 | Key | Action |
 |---|---|
-| → / ← | Accelerate / reverse |
-| ↑ / ↓ | Rotate the axles clockwise / counterclockwise |
-| Space | Brake all wheels |
-| Left Ctrl | Lock the axle rotation |
-| Esc | Back to the menu |
-| F1–F8 | Physics simulation debug view (Aether.Physics2D DebugView) |
-
-The menus can be operated with the mouse. By default the game reads the
-keyboard while driving. To control the car with the on-screen virtual joystick,
-change `VirtualState = HandleKeyboard();` to
-`VirtualState = HandleVirtualStick();` in
-`src/TW3D.Game/ScreenSystem/InputHelper.cs`.
+| F1–F8 | Physics simulation debug view (Aether.Physics2D DebugView), gamepad Start toggles most of it |
+| Num 8 / 2 / 4 / 6 | Move the camera away from the car |
+| Page Up / Page Down | Zoom of the debug view |
+| Home | Reset the camera |
+| F12 | Frames per second (shown by default in Debug builds) |
 
 The editor controls are described in
 `docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). Save a new
-level to `content/Levels/` and add it to the list in `Game1.Initialize`
-(`selLevScreen.AddLevelItem(...)`). Its preview image in the menu is loaded
-from `content/Levels/levimgs/<name>.xnb`.
+level to `content/Levels/` and add it to the `Levels` list in `Game1.cs`.
+Its preview image in the level select is loaded from
+`content/Levels/levimgs/<name>.xnb`.
+
+## Code structure (game)
+
+| Folder | Contents |
+|---|---|
+| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu and level select screens |
+| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view |
+| `GameObjects/` | The car, the level loaded from a `.lev` file, the sky and dynamic objects |
+| `Graphics/` | Camera following the car (3D view and debug view), frame rate counter |
+| `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
 
 ## Game content
 
@@ -105,45 +130,41 @@ bitmap `content/Levels/bit/<block>.xnb`.
   Aether.Physics2D NuGet package. The car handles the same in the first
   seconds of a scripted test drive; later the runs diverge slightly, as is
   normal for physics simulations with a different implementation.
+- Finally the user interface framework taken over from the Farseer Physics
+  samples (screens, menus, input, camera) was replaced by new code, and the user
+  interface was made to scale to any aspect ratio (it used to be too big and
+  partly off the screen on 21:9 monitors).
 
 ## License
 
-- **Own code, game content (`content/`) and documentation:** [MIT](LICENSE),
-  © 2016–2026 Antonín Pražský.
-- **Files derived from the Farseer Physics Engine samples**
-  (`src/TW3D.Game/ScreenSystem/`, `src/TW3D.Game/DrawingSystem/`,
-  `src/TW3D.Game/ConvertUnits.cs`): Microsoft Public License (Ms-PL), see
-  [`src/TW3D.Game/LICENSE-Ms-PL.txt`](src/TW3D.Game/LICENSE-Ms-PL.txt).
-- **Aether.Physics2D** is used as a NuGet package and is licensed under the
-  Ms-PL as well. It is based on Farseer Physics (© Ian Qvist) and Box2D
-  (© Erin Catto).
+[MIT](LICENSE), © 2016–2026 Antonín Pražský: the code, the game content
+(`content/`) and the documentation.
+
+The physics engine **Aether.Physics2D** is used as a NuGet package and is licensed
+under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
+(© Ian Qvist) and Box2D (© Erin Catto).
 
 ## Roadmap
 
 Issues found during the migration, roughly in order of importance:
 
-1. **Separate own code from the Farseer sample framework.** `ScreenSystem/` and
-   `DrawingSystem/` come from the Farseer Samples and contain unused parts too
-   (e.g. `MessageBoxScreen`, the "Welcome, betatesters!" text in `MainGame`).
-   Rewriting them would also remove the last Ms-PL licensed code.
-2. **Source models and textures.** Without them the content cannot be changed.
+1. **Source models and textures.** Without them the content cannot be changed.
    If they turn up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the
    MonoGame Content Pipeline (`.mgcb`).
-3. **A single shared list of blocks and objects.** Loading of the 69 models is
-   written out by hand twice (`MainGame.LoadContent` and `Editor.LoadContent`),
-   and the `.lev` parser exists twice as well (game and editor). A candidate for
-   a shared library and a data file (e.g. JSON).
-4. **A more robust level format.** The parser reads the file character by
+2. **A single shared list of blocks and objects.** The 69 models are listed
+   twice (`GameplayScreen` and `Editor.LoadContent`), and the `.lev` parser
+   exists twice as well (game and editor). A candidate for a shared library and
+   a data file (e.g. JSON).
+3. **A more robust level format.** The parser reads the file character by
    character. The editor saves coordinates using `float.ToString()` with the
    system culture, so on Czech Windows a non-integer coordinate would get a
    decimal comma clashing with the separator. Use `CultureInfo.InvariantCulture`,
    or switch to JSON.
-5. **The level list in the menu** is hard-coded in `Game1.Initialize`, including
+4. **The level list in the menu** is hard-coded in `Game1.cs`, including
    duplicate test entries. It would be better to load it from the `Levels` folder.
-6. **Unfinished menu:** Garage, About and Options. Switching between keyboard and
-   touch controls requires a code change.
-7. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+5. **Unfinished menu:** Garage, About and Options.
+6. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-8. **Automated tests and CI**, e.g. tests of the level parser and builds via
+7. **Automated tests and CI**, e.g. tests of the level parser and builds via
    GitHub Actions.

@@ -2,8 +2,8 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using TW3D.DrawingSystem;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Dynamics.Joints;
@@ -45,7 +45,7 @@ namespace TW3D.GameObjects
 
         public bool holderRotLockChnage;
         
-        public Car(World World, ScreenManager ScreenManager, Camera2D Camera, Vector2 Position, string CarName, string WheelName)
+        public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string CarName, string WheelName)
         {
             world = World;
             screenManager = ScreenManager;
@@ -231,10 +231,6 @@ namespace TW3D.GameObjects
             car.SetCollidesWith(Category.All & ~Category.Cat2 & ~Category.Cat3);
             holderB.SetCollidesWith(Category.None);
             holderF.SetCollidesWith(Category.None);
-
-            camera.TrackingBody = car;
-            camera.EnableTracking = true;
-            camera.EnableRotationTracking = true;
         }
 
         public override void Update()

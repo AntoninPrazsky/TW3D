@@ -1,4 +1,5 @@
 using System;
+using Microsoft.Xna.Framework;
 
 namespace TW3D
 {
@@ -7,18 +8,32 @@ namespace TW3D
         /// <summary>
         /// Command line arguments (for development):
         ///   --windowed      runs the game in a 1280×720 window instead of full screen
+        ///   --size WxH      runs the game in a window of the given size (e.g. --size 2560x1080)
         ///   --level name    skips the menu and loads the given level directly (e.g. --level lock)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
         {
-            bool windowed = Array.IndexOf(args, "--windowed") >= 0;
+            Point? windowSize = null;
+            if (Array.IndexOf(args, "--windowed") >= 0)
+                windowSize = new Point(1280, 720);
 
-            int levelArg = Array.IndexOf(args, "--level");
-            string startLevel = (levelArg >= 0 && levelArg + 1 < args.Length) ? args[levelArg + 1] : null;
+            string size = ArgumentValue(args, "--size");
+            if (size != null)
+            {
+                string[] parts = size.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height))
+                    windowSize = new Point(width, height);
+            }
 
-            using (var game = new Game1(windowed, startLevel))
+            using (var game = new Game1(windowSize, ArgumentValue(args, "--level")))
                 game.Run();
+        }
+
+        private static string ArgumentValue(string[] args, string name)
+        {
+            int index = Array.IndexOf(args, name);
+            return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
         }
     }
 }

@@ -2,8 +2,8 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using TW3D.DrawingSystem;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Dynamics.Joints;
@@ -69,7 +69,7 @@ namespace TW3D.GameObjects
 
         private float CTW3D(float value) { return value * 2.5f; }
 
-        public Level(World World, ScreenManager ScreenManager, Camera2D Camera, Vector2 Position, string fileName)
+        public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string fileName)
         {
             world = World;
             screenManager = ScreenManager;
@@ -90,8 +90,6 @@ namespace TW3D.GameObjects
             gObNames.Add("Ramp");
             gObNames.Add("Co");
             gObNames.Add("Mov");
-
-            boundingFrustum = new BoundingFrustum(new Matrix());
 
             where = trackBlocks;
 
@@ -271,13 +269,13 @@ namespace TW3D.GameObjects
             
             foreach (TrackBlock tb in backTrackBlocks)
             {
-                if (boundingFrustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
+                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
                     DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f)), 0f, false, true);
             }
             
             foreach (TrackBlock tb in trackBlocks)
             {
-                if (boundingFrustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
+                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
                 {
                     //tb.blockBody.Enabled = true;
                     DrawModel(tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false, true);
@@ -287,13 +285,13 @@ namespace TW3D.GameObjects
             
             foreach (TrackBlock tb in frontTrackBlocks)
             {
-                if (boundingFrustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
+                if (camera.Frustum.Contains(tb.boundingBox) != ContainmentType.Disjoint)
                     DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f)), 0f, false, true);
             }
 
             foreach (TrackProp obj in gObjects)
             {
-                if (boundingFrustum.Contains(obj.boundingBox) != ContainmentType.Disjoint)
+                if (camera.Frustum.Contains(obj.boundingBox) != ContainmentType.Disjoint)
                 {
                     //obj.propBody.Enabled = true;
                     obj.Draw();

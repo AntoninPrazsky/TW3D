@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 
 namespace TW3D.GameObjects
 {
@@ -8,7 +9,7 @@ namespace TW3D.GameObjects
     {
         Model sky;
 
-        public Sky(ScreenManager ScreenManager, Camera2D Camera)
+        public Sky(ScreenManager ScreenManager, ChaseCamera Camera)
         {
             screenManager = ScreenManager;
             camera = Camera;
@@ -17,7 +18,7 @@ namespace TW3D.GameObjects
 
         public override void Draw()
         {
-            DrawModel(sky, new Vector3(camera.TrackingBody.Position.X, camera.TrackingBody.Position.Y, -25f), 0f, false, false);
+            DrawModel(sky, new Vector3(camera.Target.Position.X, camera.Target.Position.Y, -25f), 0f, false, false);
         }
     }
 }

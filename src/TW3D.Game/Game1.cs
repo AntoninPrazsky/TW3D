@@ -2,32 +2,43 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.GamePlay;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 
 namespace TW3D
 {
-
     public class Game1 : Game
     {
-        GraphicsDeviceManager graphics;
-        
-        public ScreenManager ScreenManager { get; set; }
+        private static readonly string[] Levels =
+        {
+            "startblock", "lock", "tunel",
+            //Duplicate levels to test the scroll bar
+            "lock", "tunel", "startblock", "tunel", "startblock", "lock",
+            "tunel", "startblock", "lock", "lock", "startblock", "tunel"
+        };
 
-        private string startLevel;
+        private readonly GraphicsDeviceManager graphics;
+        private readonly ScreenManager screens;
+        private readonly string startLevel;
 
-        public Game1(bool windowed = false, string startLevel = null)
+        /// <param name="windowSize">Size of the window; null = borderless full screen.</param>
+        /// <param name="startLevel">Level to start directly, skipping the menu; null = start with the menu.</param>
+        public Game1(Point? windowSize = null, string startLevel = null)
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
-
             this.startLevel = startLevel;
 
             Window.Title = "Triple Wheel 3D";
+            IsMouseVisible = true;
 
-            if (windowed)
+            if (windowSize.HasValue)
             {
-                graphics.PreferredBackBufferWidth = 1280;
-                graphics.PreferredBackBufferHeight = 720;
+                graphics.PreferredBackBufferWidth = windowSize.Value.X;
+                graphics.PreferredBackBufferHeight = windowSize.Value.Y;
+                //The user interface adapts to any window size
+                Window.AllowUserResizing = true;
+                Window.ClientSizeChanged += OnClientSizeChanged;
             }
             else
             {
@@ -38,74 +49,48 @@ namespace TW3D
                 graphics.IsFullScreen = true;
             }
 
-            this.IsMouseVisible = true;
-            
-            ScreenManager = new ScreenManager(this);
-            Components.Add(ScreenManager);
-            
-            FrameRateCounter frameRateCounter = new FrameRateCounter(ScreenManager);
-            frameRateCounter.DrawOrder = 101;
-            Components.Add(frameRateCounter);
+            screens = new ScreenManager(this);
+            Components.Add(screens);
+            Components.Add(new FrameRateCounter(this, screens) { DrawOrder = 100 });
         }
 
+        private void OnClientSizeChanged(object sender, EventArgs e)
+        {
+            Rectangle client = Window.ClientBounds;
+            if (client.Width > 0 && client.Height > 0
+                && (client.Width != graphics.PreferredBackBufferWidth || client.Height != graphics.PreferredBackBufferHeight))
+            {
+                graphics.PreferredBackBufferWidth = client.Width;
+                graphics.PreferredBackBufferHeight = client.Height;
+                graphics.ApplyChanges();
+            }
+        }
 
         protected override void Initialize()
         {
             base.Initialize();
 
-            ConvertUnits.SetDisplayUnitToSimUnitRatio(this.GraphicsDevice.Viewport.Height * (1f / 30f));
-
-            MainGame mainGame = new MainGame();
-            mainGame.LevelName = "lock";
-
-            BackgroundScreen bgScreen;
-            bgScreen = new BackgroundScreen();
-
-            MenuScreen menuScreen = new MenuScreen("Triple Wheel 3D", this.GraphicsDevice.Viewport.Width);
-            SelectLevelScreen selLevScreen = new SelectLevelScreen("Level Select", this.GraphicsDevice.Viewport.Width);
-            
-            selLevScreen.AddLevelItem("startblock", mainGame);
-            selLevScreen.AddLevelItem("lock", mainGame);
-            selLevScreen.AddLevelItem("tunel", mainGame);
-
-            //Duplicate levels to test the scroll bar
-            selLevScreen.AddLevelItem("lock", mainGame);
-            selLevScreen.AddLevelItem("tunel", mainGame);
-            selLevScreen.AddLevelItem("startblock", mainGame);
-            selLevScreen.AddLevelItem("tunel", mainGame);
-            selLevScreen.AddLevelItem("startblock", mainGame);
-            selLevScreen.AddLevelItem("lock", mainGame);
-            selLevScreen.AddLevelItem("tunel", mainGame);
-            selLevScreen.AddLevelItem("startblock", mainGame);
-            selLevScreen.AddLevelItem("lock", mainGame);
-            selLevScreen.AddLevelItem("lock", mainGame);
-            selLevScreen.AddLevelItem("startblock", mainGame);
-            selLevScreen.AddLevelItem("tunel", mainGame);
-
-            menuScreen.AddMenuItem("Play", EntryType.Screen, selLevScreen);
-
+            MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
+            menu.AddItem("Play", () => screens.Add(new LevelSelectScreen("Level Select", Levels, StartLevel)));
             //Not implemented
-            menuScreen.AddMenuItem("Garage", EntryType.Screen, null);
-            menuScreen.AddMenuItem("About", EntryType.Screen, null);
-            menuScreen.AddMenuItem("Options", EntryType.Screen, null);
+            menu.AddItem("Garage", null);
+            menu.AddItem("About", null);
+            menu.AddItem("Options", null);
+            menu.AddItem("Exit", Exit);
 
-            menuScreen.AddMenuItem("Exit", EntryType.ExitItem, null);
-
-            ScreenManager.AddScreen(bgScreen);
-            ScreenManager.AddScreen(menuScreen);
+            screens.Add(new BackgroundScreen());
+            screens.Add(menu);
 
             if (startLevel != null)
-            {
                 //Level started directly from the command line (without the logo screen), Esc returns to the menu
-                mainGame.LevelName = startLevel;
-                ScreenManager.AddScreen(mainGame);
-            }
+                StartLevel(startLevel);
             else
-            {
-                ScreenManager.AddScreen(new LogoScreen(TimeSpan.FromSeconds(1.5)));
-            }
+                screens.Add(new LogoScreen(TimeSpan.FromSeconds(1.5)));
         }
 
-        
+        private void StartLevel(string level)
+        {
+            screens.Add(new GameplayScreen(level));
+        }
     }
 }

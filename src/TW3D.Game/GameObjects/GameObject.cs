@@ -2,8 +2,8 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using TW3D.DrawingSystem;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Common.PolygonManipulation;
@@ -17,16 +17,10 @@ namespace TW3D.GameObjects
         protected World world;
         protected ScreenManager screenManager;
         protected Vector2 position;
-        protected Camera2D camera;
+        protected ChaseCamera camera;
         protected const float scale = 0.25f;
 
-        protected Matrix view;
-        protected Matrix projection;
-        public BoundingFrustum boundingFrustum { get; set; }
         public BoundingBox boundingBox { get; set; }
-
-        //protected const float farPlane = 22f; //Short distance of the far clipping plane (short view distance)
-        protected const float farPlane = 50f; //Long distance of the far clipping plane (medium view distance)
 
         public List<Vertices> CreateListOfVertices(string textureName, float distanceReduction)
         {
@@ -88,22 +82,10 @@ namespace TW3D.GameObjects
 
             world = (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
                * Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition / convCon);
-            
-            // -5 +5
-            Vector3 cameraTarget = new Vector3(((-camera.TrackingBody.Position.X) / convCon) - 0.5f, ((-camera.TrackingBody.Position.Y) / convCon), 0f);
 
-            float convCamPos = screenManager.GraphicsDevice.Viewport.Height / 3f;
-          
-            // 0 +1
-            Vector3 cameraPosition = new Vector3(-camera.Position.X / convCamPos, (-camera.Position.Y) / convCamPos + 2f, -4f);
-            
-            view = Matrix.CreateLookAt(cameraPosition, cameraTarget, new Vector3((float)Math.Cos(-camera.Rotation + Math.PI / 2), (float)Math.Sin(-camera.Rotation + Math.PI / 2), 0));
-            
-            projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f), screenManager.GraphicsDevice.Viewport.AspectRatio, 0.1f, farPlane);
-            
-            //View frustum for determining visibility
-            boundingFrustum = new BoundingFrustum(view * projection);
-            
+            Matrix view = camera.View;
+            Matrix projection = camera.Projection;
+
             if (lighting)
             {
                 Matrix[] transforms = new Matrix[model.Bones.Count];
@@ -145,21 +127,7 @@ namespace TW3D.GameObjects
 
         public Ray GetPickRay(float x, float y)
         {
-            Vector3 nearsource = new Vector3(x, y, 0f);
-            Vector3 farsource = new Vector3(x, y, 1f);
-
-            Matrix wor = Matrix.CreateTranslation(0, 0, 0);
-
-            Vector3 nearPoint = screenManager.GraphicsDevice.Viewport.Unproject(nearsource, projection, view, wor);
-
-            Vector3 farPoint = screenManager.GraphicsDevice.Viewport.Unproject(farsource, projection, view, wor);
-
-            //Create a ray from the near clipping plane to the far clipping plane
-            Vector3 direction = farPoint - nearPoint;
-            direction.Normalize();
-            Ray pickRay = new Ray(nearPoint, direction);
-
-            return pickRay;
+            return camera.GetPickRay(new Vector2(x, y), screenManager.GraphicsDevice.Viewport);
         }
 
         public virtual void Update() { }

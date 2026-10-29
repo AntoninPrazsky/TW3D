@@ -2,8 +2,8 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
-using TW3D.DrawingSystem;
-using TW3D.ScreenSystem;
+using TW3D.Graphics;
+using TW3D.Screens;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Dynamics.Joints;
@@ -17,7 +17,7 @@ namespace TW3D.GameObjects
         private Model model;
         private float vis;
         
-        public TrackProp(World World, ScreenManager ScreenManager, Camera2D Camera, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
+        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, Vector2 Position, string ObjName, Model ObjModel, List<Vertices> ListOfVertices)
         {
             world = World;
             screenManager = ScreenManager;
