@@ -1,0 +1,25 @@
+# Výstupy sestavení
+[Bb]in/
+[Oo]bj/
+*.pdb
+# ...kromě složky s obrázky dynamických objektů v katalogu bloků
+!/docs/katalog/obj/
+
+# Visual Studio / Rider / VS Code – lokální nastavení
+.vs/
+.idea/
+.vscode/
+*.user
+*.suo
+*.DotSettings.user
+
+# Podpisové klíče (původní dočasný UWP certifikát apod.)
+*.pfx
+
+# Generované soubory starého UWP projektu
+project.lock.json
+
+# Systémové soubory
+Thumbs.db
+Desktop.ini
+.DS_Store

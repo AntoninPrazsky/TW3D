@@ -1,0 +1,19 @@
+# Textové soubory ukládat s LF, při checkoutu podle platformy
+* text=auto
+
+*.cs      text diff=csharp
+*.csproj  text
+*.sln     text eol=crlf
+*.slnx    text
+*.lev     text
+*.md      text
+
+# Binární data
+*.xnb     binary
+*.png     binary
+*.jpg     binary
+*.ico     binary
+*.bmp     binary
+*.pdf     binary
+*.rar     binary
+*.zip     binary
