@@ -63,7 +63,7 @@ t.put("middle", "g", finish + 1, t.h - 4).put("middle", "st", finish + 1, t.h - 
 t.road("a1", "a1", "a1");
 const wall = t.x;
 t.road("u1");
-for (let i = 1; i <= 3; i++) t.put("middle", "t1", wall, t.h - 4 - 9 * i);
+for (let i = 1; i <= 4; i++) t.put("middle", "t1", wall, t.h - 4 - 9 * i);
 const crate = 6.5;
 [4, 3, 2].forEach((count, row) => {
   for (let i = 0; i < count; i++)
@@ -72,45 +72,40 @@ const crate = 6.5;
 
 // ---- Decorations (back and front layers, no physics) ----
 
-// Kerbs along all flat parts of the road
+// Kerbs along all flat parts of the road; the back one at the start has no end piece at the wall
 for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
+t.remove("back", "kea1d", -4);
 
-// Start: the wall is wider than the road, checkered area on both sides of the start
-t.put("back", "u2", -4, -4).put("back", "t2", -4, -13).put("back", "t2", -4, -22);
+// Barriers and railings stand on the back edge of the road, where the crates (as deep as the road)
+// would go through them. So they are only where no crate gets: not from the summit edge on.
+
+// Start: checkered area on both sides of the start, barriers beside it
 t.checkered("back", -1, 1, 0).checkered("front", -1, 1, 0);
+t.barrier(-3, -2, 0).barrier(3, 4, 0);
 
-// Rollers and the first, gentle climb: a wider road
-t.copyRoad("back", 5, 12).copyRoad("back", climb1, climb1 + 3);
+// Rollers and the first, gentle climb: a wider road, except the columns with the kerb end pieces
+t.bothSides("copyRoad", 6, 11).bothSides("copyRoad", climb1 + 1, climb1 + 3);
 
 // Terraces: a barrier on the first one, a railing on the second
 t.barrier(terrace1, terrace1 + 2, t.surface(terrace1));
 t.railing(terrace2, terrace2 + 3, t.surface(terrace2));
 
 // Footpaths with stairs beside the steeper climbs
-t.stairs(climb2, climb2 + 3).stairs(climb3, climb3 + 3).stairs(climbOut, climbOut + 8);
+t.bothSides("stairs", climb2, climb2 + 3).bothSides("stairs", climb3, climb3 + 3).bothSides("stairs", climbOut, climbOut + 8);
 
-// Summit: a wider plateau with a railing, a checkered flag and a striped barrier before the descent
-t.copyRoad("back", summit, summit + 4);
-t.railing(summit, summit + 1, summitH);
-t.put("back", "st", summit + 2, summitH - 5);
-t.barrier(summit + 3, summit + 4, summitH, true);
+// Summit: a wider plateau with a railing
+t.bothSides("copyRoad", summit, summit + 4);
+t.railing(summit, summit + 2, summitH);
 
 // Descent: a wide slope
-t.copyRoad("back", descent, descent + 5);
+t.bothSides("copyRoad", descent, descent + 5);
 
-// Valley: a short tunnel behind the road
-const valleyH = t.surface(valley);
-t.put("back", "tu1s", valley, valleyH - 4).put("back", "tu1v", valley, valleyH - 4)
-  .put("back", "tu3s", valley + 1, valleyH - 4).put("back", "tu3v", valley + 1, valleyH - 4);
-
-// Finish: checkered area on both sides, barrier behind the crates, wider end wall
+// Finish: checkered area on both sides, the end wall continues on both sides
 t.checkered("back", finish, finish + 2, plateauH).checkered("front", finish, finish + 2, plateauH);
-t.barrier(finish + 4, finish + 5, plateauH);
-t.put("back", "u1", wall, plateauH - 4);
-for (let i = 1; i <= 3; i++) t.put("back", "t1", wall, plateauH - 4 - 9 * i);
-
-// Pillars under the road
-for (let x = 1; x < wall; x += 4) t.pillar(x, 2);
+for (const layer of ["back", "front"]) {
+  t.put(layer, "u1", wall, plateauH - 4);
+  for (let i = 1; i <= 3; i++) t.put(layer, "t1", wall, plateauH - 4 - 9 * i);
+}
 
 const output = process.argv[2] || path.join(__dirname, "..", "..", "content", "Levels", "summit.json");
 t.save(output);

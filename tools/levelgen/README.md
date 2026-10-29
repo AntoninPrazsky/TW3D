@@ -47,7 +47,9 @@ The car starts at x = -1.6, so the road has to be flat at height 0 around column
 
 Decoration helpers (back and front layers, no physics): `kerbs` (kerbs with end pieces along
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),
-`stairs` (a footpath beside `b2f` climbs) and `pillar` (supports under the road).
+and `stairs` (a footpath beside `b2f` climbs); `bothSides` uses `copyRoad` or `stairs` in both
+layers. Barriers and railings stand on the back edge of the road, so dynamic objects go through
+them; keep them away from places the objects can get to.
 
 The camera looks from the front and from above, so the front layer is close to it: blocks there
 should stay at the road surface or below it, or they hide the car. The back layer is seen mostly

@@ -76,6 +76,12 @@ class Track {
     return this;
   }
 
+  /** Removes the blocks of the given type in column x of a layer. */
+  remove(layer, block, x) {
+    this[layer] = this[layer].filter(b => b.block !== block || b.x !== x);
+    return this;
+  }
+
   obj(type, model, x, y) {
     this.objects.push({ type, model, x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
     return this;
@@ -156,25 +162,21 @@ class Track {
   }
 
   /**
-   * Stairs in the back layer beside a climb of b2f blocks (they rise the same 4 steps per column),
+   * Stairs beside a climb of b2f blocks (they rise the same 4 steps per column),
    * like a footpath next to the road.
    */
-  stairs(from, to) {
+  stairs(layer, from, to) {
     for (let x = from; x <= to; x++) {
       const cell = this.cells.get(x);
-      if (cell.block === "b2f") this.put("back", "s1f", x, cell.left);
-      else if (cell.block === "b2") this.put("back", "s1", x, cell.right);
+      if (cell.block === "b2f") this.put(layer, "s1f", x, cell.left);
+      else if (cell.block === "b2") this.put(layer, "s1", x, cell.right);
     }
     return this;
   }
 
-  /** A pillar under the road in the front layer: thin wall plates reaching `cells` grid cells down. */
-  pillar(x, cells = 3) {
-    // The plate of t1 is right of the column centre; its top goes just under the road surface
-    const surface = this.surface(x, 0.63) * Step - 1.26;
-    const base = Math.round((surface + 13.2) / Step);
-    for (let i = 0; i < cells; i++) this.put("front", "t1", x, base + 9 * i);
-    return this;
+  /** Copies of the road (or stairs beside it) on both sides: in the back and in the front layer. */
+  bothSides(method, ...args) {
+    return this[method]("back", ...args)[method]("front", ...args);
   }
 
   /** The level as JSON in the format of LevelFile.ToJson (one block or object per line). */
