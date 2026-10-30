@@ -165,8 +165,7 @@ namespace TW3D
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
             menu.AddItem("Play", OpenLevelSelect);
             menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings)));
-            //Not implemented
-            menu.AddItem("About", null);
+            menu.AddItem("About", () => screens.Add(new AboutScreen()));
 #if ANDROID
             menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, null)));
 #else

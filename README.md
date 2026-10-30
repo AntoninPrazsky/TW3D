@@ -117,6 +117,9 @@ differ in their top speed and weight (the Sand Rail is faster and lighter than t
 the wheels in their grip and weight (the off-road wheels grip better, the racing ones are
 lighter). The choices are saved with the options, the wheels for each car.
 
+**About:** what the game is, who made it and the link to its source code on GitHub, which
+opens in the web browser (clicked, or chosen by the keys and Enter).
+
 **Options:** full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion and the frame rate (frames per second in the top left
@@ -179,7 +182,7 @@ rectangle with its name.
 
 | Folder | Contents |
 |---|---|
-| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, garage, options, pause and results screens |
+| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera, debug view and the run (countdown, time, finish); `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
 | `GameObjects/` | The car, the level (built from a level file and the catalog), the sky and dynamic objects |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
@@ -380,9 +383,8 @@ Issues found during the migration, roughly in order of importance:
 
 1. **Sources of the other content:** the images and fonts are still only
    precompiled `.xnb` files.
-2. **Unfinished menu:** About.
-3. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+2. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-4. **Automated tests and CI**, e.g. tests of the level format and builds via
+3. **Automated tests and CI**, e.g. tests of the level format and builds via
    GitHub Actions.
