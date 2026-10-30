@@ -128,6 +128,7 @@ Development keys while driving:
 | Home | Reset the camera |
 | F9 | The lighting of the 2016 version, for comparison |
 | F10 | Shadows on / off |
+| F11 | Ambient occlusion on / off |
 | F12 | Frames per second (shown by default in Debug builds) |
 
 The editor asks for the level to open, or opens the one given by `--level <file>`.
@@ -159,7 +160,9 @@ interpolated between the last two steps for drawing.
 
 The models are lit by the game's own shader (`content/Effects/Scene.fx`): the sun with
 its shadows (a shadow map fitted to the part of the scene the camera sees), the light of
-the sky from above and of the ground from below, highlights by the specular colour of
+the sky from above and of the ground from below, darkened in corners and crevices by
+ambient occlusion (`content/Effects/Occlusion.fx`, computed at half the resolution of the
+screen from the normals and depths the camera sees), highlights by the specular colour of
 the materials and a rim of sky light. The light is computed in linear colour space and
 mapped to the screen by a filmic curve, and the distance fades into the colour of the
 sky. The 2016 version lit the models by three coloured directional lights of

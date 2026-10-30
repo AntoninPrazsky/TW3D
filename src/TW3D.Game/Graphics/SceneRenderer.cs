@@ -33,6 +33,13 @@ namespace TW3D.Graphics
         private const float NormalOffsetTexels = 1.5f;
         private const float ShadowBiasWorld = 0.02f;
 
+        //Ambient occlusion: computed at half the resolution of the screen, up to this distance from
+        //the camera, from points within the radius (world units) around each point
+        private const float OcclusionDepthRange = 60f;
+        private const float OcclusionRadius = 0.6f;
+        private const float OcclusionIntensity = 1.6f;
+        private const float OcclusionBias = 0.05f;
+
         /// <summary>A part of a model with one material, ready to draw.</summary>
         private sealed class ModelPart
         {
@@ -64,10 +71,19 @@ namespace TW3D.Graphics
         }
 
         private readonly GraphicsDevice device;
-        private readonly Effect effect;
-        private readonly EffectTechnique litTechnique, depthTechnique;
+        private readonly Effect effect, occlusionEffect;
+        private readonly EffectTechnique litTechnique, depthTechnique, normalDepthTechnique;
         private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter;
         private readonly RenderTarget2D shadowMap;
+        private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
+        //The corners of the screen, for the passes over the whole screen
+        private readonly VertexPositionTexture[] screenQuad =
+        {
+            new VertexPositionTexture(new Vector3(-1f, 1f, 0f), new Vector2(0f, 0f)),
+            new VertexPositionTexture(new Vector3(1f, 1f, 0f), new Vector2(1f, 0f)),
+            new VertexPositionTexture(new Vector3(-1f, -1f, 0f), new Vector2(0f, 1f)),
+            new VertexPositionTexture(new Vector3(1f, -1f, 0f), new Vector2(1f, 1f))
+        };
         private readonly BoundingFrustum frustum = new BoundingFrustum(Matrix.Identity);
         private readonly BoundingFrustum lightFrustum = new BoundingFrustum(Matrix.Identity);
         private readonly Vector3[] frustumCorners = new Vector3[8];
@@ -87,6 +103,8 @@ namespace TW3D.Graphics
             effect = content.Load<Effect>("Effects/Scene");
             litTechnique = effect.Techniques["Lit"];
             depthTechnique = effect.Techniques["Depth"];
+            normalDepthTechnique = effect.Techniques["NormalDepth"];
+            occlusionEffect = content.Load<Effect>("Effects/Occlusion");
             worldParameter = effect.Parameters["World"];
             diffuseParameter = effect.Parameters["DiffuseColor"];
             emissiveParameter = effect.Parameters["EmissiveColor"];
@@ -94,6 +112,12 @@ namespace TW3D.Graphics
 
             shadowMap = new RenderTarget2D(device, ShadowMapSize, ShadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
             effect.Parameters["ShadowTexel"].SetValue(1f / ShadowMapSize);
+            effect.Parameters["OcclusionDepthRange"].SetValue(OcclusionDepthRange);
+
+            occlusionEffect.Parameters["DepthRange"].SetValue(OcclusionDepthRange);
+            occlusionEffect.Parameters["Radius"].SetValue(OcclusionRadius);
+            occlusionEffect.Parameters["Intensity"].SetValue(OcclusionIntensity);
+            occlusionEffect.Parameters["Bias"].SetValue(OcclusionBias);
         }
 
         /// <summary>Draw with the lighting of the 2016 version.</summary>
@@ -101,6 +125,9 @@ namespace TW3D.Graphics
 
         /// <summary>The sun casts shadows.</summary>
         public bool Shadows { get; set; } = true;
+
+        /// <summary>Corners and crevices are darker (ambient occlusion).</summary>
+        public bool AmbientOcclusion { get; set; } = true;
 
         /// <summary>The light of the scene.</summary>
         public Lighting Lighting { get; set; } = Lighting.Day;
@@ -138,11 +165,15 @@ namespace TW3D.Graphics
         /// <summary>Draws the frame.</summary>
         public void End()
         {
-            if (!Classic && Shadows)
+            if (!Classic)
             {
-                DrawShadowMap();
+                if (Shadows)
+                    DrawShadowMap();
+                if (AmbientOcclusion)
+                    DrawOcclusionMap();
                 //Switching render targets may discard the screen
-                device.Clear(ClearColor);
+                if (Shadows || AmbientOcclusion)
+                    device.Clear(ClearColor);
             }
 
             device.BlendState = BlendState.Opaque;
@@ -189,6 +220,74 @@ namespace TW3D.Graphics
             }
 
             device.SetRenderTarget(null);
+        }
+
+        /// <summary>
+        /// Draws the ambient occlusion: the normals and depths seen by the camera, the occlusion
+        /// computed from them, and the occlusion blurred.
+        /// </summary>
+        private void DrawOcclusionMap()
+        {
+            UpdateOcclusionTargets();
+
+            device.SetRenderTarget(normalDepthMap);
+            //Normal towards the camera, the greatest depth: nothing there
+            device.Clear(new Color(128, 128, 255, 255));
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
+
+            effect.Parameters["View"].SetValue(view);
+            effect.Parameters["ViewProjection"].SetValue(view * projection);
+            effect.CurrentTechnique = normalDepthTechnique;
+            EffectPass pass = normalDepthTechnique.Passes[0];
+            foreach (DrawItem item in items)
+            {
+                if (!IsVisible(item))
+                    continue;
+
+                foreach (ModelPart part in item.Model.Parts)
+                {
+                    worldParameter.SetValue(part.Transform * item.World);
+                    pass.Apply();
+                    DrawPart(part.MeshPart);
+                }
+            }
+
+            device.DepthStencilState = DepthStencilState.None;
+            device.RasterizerState = RasterizerState.CullNone;
+            occlusionEffect.Parameters["TargetSize"].SetValue(new Vector2(normalDepthMap.Width, normalDepthMap.Height));
+            occlusionEffect.Parameters["TanHalfFov"].SetValue(new Vector2(1f / projection.M11, 1f / projection.M22));
+            occlusionEffect.Parameters["NormalDepthMap"].SetValue(normalDepthMap);
+
+            device.SetRenderTarget(occlusionMap);
+            occlusionEffect.CurrentTechnique = occlusionEffect.Techniques["Occlusion"];
+            occlusionEffect.CurrentTechnique.Passes[0].Apply();
+            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, screenQuad, 0, 2);
+
+            device.SetRenderTarget(blurredOcclusionMap);
+            occlusionEffect.Parameters["OcclusionMap"].SetValue(occlusionMap);
+            occlusionEffect.CurrentTechnique = occlusionEffect.Techniques["Blur"];
+            occlusionEffect.CurrentTechnique.Passes[0].Apply();
+            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, screenQuad, 0, 2);
+
+            device.SetRenderTarget(null);
+        }
+
+        /// <summary>(Re)creates the textures of the ambient occlusion, at half the size of the screen.</summary>
+        private void UpdateOcclusionTargets()
+        {
+            int width = Math.Max(1, device.PresentationParameters.BackBufferWidth / 2);
+            int height = Math.Max(1, device.PresentationParameters.BackBufferHeight / 2);
+            if (normalDepthMap != null && normalDepthMap.Width == width && normalDepthMap.Height == height)
+                return;
+
+            normalDepthMap?.Dispose();
+            occlusionMap?.Dispose();
+            blurredOcclusionMap?.Dispose();
+            normalDepthMap = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.Depth24);
+            occlusionMap = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None);
+            blurredOcclusionMap = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.None);
         }
 
         /// <summary>
@@ -260,6 +359,9 @@ namespace TW3D.Graphics
             effect.Parameters["CameraPosition"].SetValue(eye);
             effect.Parameters["ShadowStrength"].SetValue(Shadows ? 1f : 0f);
             effect.Parameters["ShadowMap"].SetValue(shadowMap);
+            UpdateOcclusionTargets();
+            effect.Parameters["OcclusionStrength"].SetValue(AmbientOcclusion ? 1f : 0f);
+            effect.Parameters["OcclusionMap"].SetValue(blurredOcclusionMap);
             effect.CurrentTechnique = litTechnique;
             EffectPass pass = litTechnique.Passes[0];
 

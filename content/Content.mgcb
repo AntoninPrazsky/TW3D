@@ -16,6 +16,7 @@
 /importer:EffectImporter
 /processor:EffectProcessor
 /build:Effects/Scene.fx
+/build:Effects/Occlusion.fx
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
 # it creates XNA compatible materials (BasicEffect), which the game draws with.

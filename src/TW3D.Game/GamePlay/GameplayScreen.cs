@@ -209,11 +209,13 @@ namespace TW3D.GamePlay
             if (input.ButtonPressed(Buttons.Start))
                 debugView.Flags ^= GamePadDebugFlags;
 
-            //The lighting of the 2016 version and the scene without shadows, for comparison
+            //The lighting of the 2016 version, and the scene without shadows or ambient occlusion, for comparison
             if (input.KeyPressed(Keys.F9))
                 renderer.Classic = !renderer.Classic;
             if (input.KeyPressed(Keys.F10))
                 renderer.Shadows = !renderer.Shadows;
+            if (input.KeyPressed(Keys.F11))
+                renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
         }
 
         private void HandleCameraKeys(InputState input, float elapsed)
