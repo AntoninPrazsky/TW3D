@@ -53,7 +53,8 @@ namespace TW3D.Graphics
             //whatever the screen (small on phones)
             string text = framesPerSecond + " fps";
             const float scale = 1f;
-            Vector2 position = new Vector2(24f, 16f) * scale;
+            //In the corner of the safe area, away from the rounded corners of phone screens
+            Vector2 position = new Vector2(screens.SafeArea.Left, screens.SafeArea.Top);
 
             SpriteBatch batch = screens.SpriteBatch;
             batch.Begin();
