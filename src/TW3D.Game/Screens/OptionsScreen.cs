@@ -36,11 +36,23 @@ namespace TW3D.Screens
         private readonly List<MenuItem> items = new List<MenuItem>();
         private int focusedItem = -1;
 
-        public OptionsScreen(GraphicsSettings settings)
+        /// <param name="displayChanged">Applies a switch between full screen and a window; null = no such option (phones).</param>
+        public OptionsScreen(GraphicsSettings settings, Action displayChanged)
         {
             this.settings = settings;
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
+
+            if (displayChanged != null)
+                items.Add(new MenuItem
+                {
+                    Text = () => "Display: " + (settings.FullScreen ? "Full screen" : "Window"),
+                    Activate = () =>
+                    {
+                        Change(() => settings.FullScreen = !settings.FullScreen);
+                        displayChanged();
+                    }
+                });
 
             items.Add(new MenuItem
             {

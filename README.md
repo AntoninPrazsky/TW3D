@@ -105,9 +105,11 @@ uses as many columns as fit the screen.
 **Menus:** mouse (click, wheel and dragging in the level select), arrow keys and
 Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.
 
-**Options:** the look of the game (new, or classic: as the 2016 version looked),
+**Options:** full screen or a window (on a desktop; the window opens maximized and
+can be resized), the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion and the frame rate (frames per second in the top left
-corner). They are saved in `TW3D/settings.json` in the
+corner). With some graphics drivers the game stutters in full screen (measured on an
+AMD Radeon with OpenGL), but not in a window. They are saved in `TW3D/settings.json` in the
 user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
 
 **Driving:** the keyboard, the on-screen controls (operated by the mouse or by

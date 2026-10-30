@@ -23,6 +23,9 @@ namespace TW3D.Graphics
 
         public bool AmbientOcclusion { get; set; } = true;
 
+        /// <summary>Full screen; otherwise a window (on a desktop).</summary>
+        public bool FullScreen { get; set; } = true;
+
         /// <summary>Frames per second in the top left corner.</summary>
         public bool ShowFrameRate { get; set; } = true;
 
