@@ -23,7 +23,7 @@ physics bodies.
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](tools/CollisionGen/README.md) |
-| `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials (built and loaded by the content build) |
+| `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars (built and loaded by the content build) |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 
@@ -184,7 +184,11 @@ mapped to the screen by a filmic curve, and the distance fades into the colour o
 sky. Glass (a material with an opacity `d` below 1 in its `.mtl` file: the windows of the
 cars) lets the scene through, except where it reflects the light. Metal (the rims of the
 wheels, the engines, the tubes) has no diffuse light, it mirrors the sky, the ground and
-the sun in its own colour, sharply if it is smooth (chrome), blurred if it is rough. The 2016 version lit the models by three coloured directional lights of
+the sun in its own colour, sharply if it is smooth (chrome), blurred if it is rough. The
+lamps of the cars shine in their emissive colour (`Ke`) only when they are on: the
+headlights at night, the rear lights dimly with them and fully when the car brakes (in
+any weather), each with a glow around it that the wheels of the car do not hide; the
+light of the headlights comes from their middle. The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
 game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
 level, which is saved with it), CatalogRender with the 2016
@@ -209,7 +213,10 @@ also have the metallic `Pm` (0–1) and the roughness `Pr` (0–1, 0 = a mirror)
 extension of MTL. The importer of MonoGame leaves them out (it reads only what XNA's
 `BasicEffect` has), so the models are processed by `MtlModelProcessor` of
 `tools/ContentPipeline`, which reads them from the `.mtl` file and keeps them with the
-model.
+model. It also marks the lamps of the cars, by the names of their materials: the lenses
+of the headlights are named `headlight…`, of the rear lights `taillight…`. Each lamp is
+an object of its own in the `.obj` file (`HeadlightLeft` …), the game finds its middle
+as the middle of the object.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were

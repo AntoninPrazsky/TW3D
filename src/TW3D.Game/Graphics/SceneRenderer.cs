@@ -6,6 +6,14 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace TW3D.Graphics
 {
+    /// <summary>The lamps of a car among the materials of its model (see <see cref="SceneRenderer.LampOf"/>).</summary>
+    public enum Lamp
+    {
+        None,
+        Headlight,
+        RearLight
+    }
+
     /// <summary>
     /// Draws the 3D scene of one frame: the models added between <see cref="Begin"/> and <see cref="End"/>,
     /// lit by the scene shader (Effects/Scene.fx), and the sky behind them. Used by the game and the level editor.
@@ -15,7 +23,9 @@ namespace TW3D.Graphics
     /// directional lights). Transparent materials (glass) are drawn after the others, from the back to the front;
     /// they cast no shadows and do not count for the ambient occlusion. Metal and smooth materials (the metallic
     /// and the roughness of a material, "Pm" and "Pr" in its MTL file, kept by the content pipeline in the Tag of
-    /// its mesh parts) mirror the sky, the ground and the sun.
+    /// its mesh parts) mirror the sky, the ground and the sun. The lamps of a car (materials named "headlight…" and
+    /// "taillight…") shine in their emissive colour ("Ke") only when they are on (<see cref="SetCarLights"/>), with
+    /// a glow around them; each lamp is a mesh of its own, the glow is at its middle.
     /// </remarks>
     public sealed class SceneRenderer
     {
@@ -26,6 +36,19 @@ namespace TW3D.Graphics
         private const float MirroredSkyLight = 2f;
         private const float MirroredHorizon = 1.5f;
         private const float MirroredGroundLight = 1.5f;
+        //The lamps of the car shine in their emissive colour this many times brighter (the new look); the rear lights
+        //shine this much with the headlights, fully when the car brakes
+        private const float LampBrightness = 4f;
+        private const float RearLightDim = 0.3f;
+        //The glow around a shining lamp: its radius (world units) for a headlight and a rear light, its strength in
+        //the dark and in daylight. It is moved this far towards the camera, so that the wheels of the car do not
+        //hide it (the wheels at its sides are about 0.55 from the middle of the car)
+        private const float HeadlightGlowRadius = 0.3f;
+        private const float RearLightGlowRadius = 0.18f;
+        private const float GlowStrength = 0.8f;
+        private const float DaylightGlowStrength = 0.45f;
+        private const float GlowPull = 0.8f;
+        private const int GlowTextureSize = 64;
 
         //The shadow map covers the part of the scene the camera sees: the 3D models lie between
         //these planes (the back and front decoration layers are 2.25 units from the physics plane
@@ -70,6 +93,10 @@ namespace TW3D.Graphics
             public float Metallic;
             /// <summary>0 for a perfect mirror, 1 for a material mirroring nothing ("Pr" of the MTL file, 1 without it).</summary>
             public float Roughness;
+            /// <summary>A lamp of the car, shining in its emissive colour only when it is on.</summary>
+            public Lamp Lamp;
+            /// <summary>The emissive colour of the material as it is (for the classic look, which changes it for lamps).</summary>
+            public Vector3 ClassicEmissive;
 
             public bool IsTransparent => Alpha < 1f;
         }
@@ -79,6 +106,22 @@ namespace TW3D.Graphics
         {
             public ModelPart[] Parts;
             public BoundingSphere Bounds;
+            public LampData[] Lamps;
+        }
+
+        /// <summary>A lamp of a car model: the middle and radius of its mesh, the colour it shines in.</summary>
+        private readonly struct LampData
+        {
+            public LampData(Lamp lamp, BoundingSphere bounds, Vector3 colour)
+            {
+                Lamp = lamp;
+                Bounds = bounds;
+                Colour = colour;
+            }
+
+            public Lamp Lamp { get; }
+            public BoundingSphere Bounds { get; }
+            public Vector3 Colour { get; }
         }
 
         private readonly struct DrawItem
@@ -114,6 +157,10 @@ namespace TW3D.Graphics
         private readonly Vector3[] sceneCorners = new Vector3[8];
         private readonly Dictionary<Model, ModelData> models = new Dictionary<Model, ModelData>();
         private readonly List<DrawItem> items = new List<DrawItem>();
+        //The glows of the shining lamps: a soft round texture added to the screen
+        private readonly BasicEffect glowEffect;
+        private readonly Texture2D glowTexture;
+        private readonly List<VertexPositionColorTexture> glowVertices = new List<VertexPositionColorTexture>();
         //The transparent parts of the visible models, drawn after the others
         private readonly List<(ModelPart Part, Matrix World, float Distance)> transparentParts = new List<(ModelPart, Matrix, float)>();
 
@@ -122,7 +169,7 @@ namespace TW3D.Graphics
         private Vector3 eye;
         private Model background;
         private Matrix backgroundWorld;
-        private bool headlights;
+        private bool headlights, braking;
         private Vector3 headlightPosition, headlightDirection;
 
         public SceneRenderer(GraphicsDevice device, ContentManager content)
@@ -140,6 +187,9 @@ namespace TW3D.Graphics
             alphaParameter = effect.Parameters["Alpha"];
             metallicParameter = effect.Parameters["Metallic"];
             roughnessParameter = effect.Parameters["Roughness"];
+
+            glowTexture = CreateGlowTexture(device);
+            glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
 
             shadowMap = new RenderTarget2D(device, ShadowMapSize, ShadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
             effect.Parameters["ShadowTexel"].SetValue(1f / ShadowMapSize);
@@ -187,6 +237,7 @@ namespace TW3D.Graphics
             items.Clear();
             background = null;
             headlights = false;
+            braking = false;
         }
 
         /// <summary>Adds a model to the scene.</summary>
@@ -195,12 +246,28 @@ namespace TW3D.Graphics
             items.Add(new DrawItem(GetModelData(model), world));
         }
 
-        /// <summary>The headlights of the car, shining if the lighting has them on.</summary>
-        public void SetHeadlights(Vector3 position, Vector3 direction)
+        /// <summary>
+        /// The lights of the car: the headlights, shining (with their lamps) if the lighting has them on, and the brake
+        /// lights, shining when the car brakes. The rear lights shine dimly with the headlights.
+        /// </summary>
+        public void SetCarLights(Vector3 headlightPosition, Vector3 headlightDirection, bool braking)
         {
             headlights = true;
-            headlightPosition = position;
-            headlightDirection = Vector3.Normalize(direction);
+            this.headlightPosition = headlightPosition;
+            this.headlightDirection = Vector3.Normalize(headlightDirection);
+            this.braking = braking;
+        }
+
+        /// <summary>How much a lamp of the car shines now: 0 = off, 1 = fully.</summary>
+        private float LampGlow(Lamp lamp)
+        {
+            bool lightsOn = headlights && Lighting.Headlights;
+            switch (lamp)
+            {
+                case Lamp.Headlight: return lightsOn ? 1f : 0f;
+                case Lamp.RearLight: return braking ? 1f : lightsOn ? RearLightDim : 0f;
+                default: return 1f;
+            }
         }
 
         /// <summary>
@@ -245,6 +312,76 @@ namespace TW3D.Graphics
                 DrawClassic();
             else
                 DrawLit();
+            DrawLampGlows();
+        }
+
+        /// <summary>A white circle fading out to its edge; its alpha is the strength of the glow.</summary>
+        private static Texture2D CreateGlowTexture(GraphicsDevice device)
+        {
+            Color[] pixels = new Color[GlowTextureSize * GlowTextureSize];
+            float centre = (GlowTextureSize - 1) / 2f;
+            for (int y = 0; y < GlowTextureSize; y++)
+            {
+                for (int x = 0; x < GlowTextureSize; x++)
+                {
+                    float distance = MathF.Sqrt((x - centre) * (x - centre) + (y - centre) * (y - centre)) / centre;
+                    float glow = MathHelper.Clamp(1f - distance, 0f, 1f);
+                    pixels[y * GlowTextureSize + x] = new Color(1f, 1f, 1f, glow * glow * glow);
+                }
+            }
+            Texture2D texture = new Texture2D(device, GlowTextureSize, GlowTextureSize);
+            texture.SetData(pixels);
+            return texture;
+        }
+
+        /// <summary>
+        /// Adds the glows of the shining lamps to the screen, facing the camera. They are hidden by what is in front of
+        /// them, but not by the car itself.
+        /// </summary>
+        private void DrawLampGlows()
+        {
+            glowVertices.Clear();
+            Matrix camera = Matrix.Invert(view);
+            Vector3 right = camera.Right, up = camera.Up;
+            float strength = Lighting.Headlights ? GlowStrength : DaylightGlowStrength;
+            foreach (DrawItem item in items)
+            {
+                if (item.Model.Lamps.Length == 0 || !IsVisible(item))
+                    continue;
+
+                foreach (LampData lamp in item.Model.Lamps)
+                {
+                    float glow = LampGlow(lamp.Lamp);
+                    if (glow <= 0f)
+                        continue;
+                    Vector3 centre = Vector3.Transform(lamp.Bounds.Center, item.World);
+                    centre += Vector3.Normalize(eye - centre) * GlowPull;
+                    float radius = (lamp.Lamp == Lamp.Headlight ? HeadlightGlowRadius : RearLightGlowRadius) * MathF.Sqrt(glow);
+                    Color colour = new Color(lamp.Colour * (glow * strength));
+                    Vector3 x = right * radius, y = up * radius;
+                    glowVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
+                    glowVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                    glowVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+                    glowVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                    glowVertices.Add(new VertexPositionColorTexture(centre + x - y, colour, new Vector2(1f, 1f)));
+                    glowVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+                }
+            }
+            if (glowVertices.Count == 0)
+                return;
+
+            glowEffect.View = view;
+            glowEffect.Projection = projection;
+            device.BlendState = BlendState.Additive;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            device.RasterizerState = RasterizerState.CullNone;
+            device.SamplerStates[0] = SamplerState.LinearClamp;
+            glowEffect.CurrentTechnique.Passes[0].Apply();
+            VertexPositionColorTexture[] vertices = glowVertices.ToArray();
+            device.DrawUserPrimitives(PrimitiveType.TriangleList, vertices, 0, vertices.Length / 3);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         /// <summary>Draws the depth of the scene seen from the sun into the shadow map.</summary>
@@ -476,7 +613,7 @@ namespace TW3D.Graphics
         {
             worldParameter.SetValue(world);
             diffuseParameter.SetValue(part.Diffuse);
-            emissiveParameter.SetValue(part.Emissive);
+            emissiveParameter.SetValue(part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp) * LampBrightness));
             specularParameter.SetValue(part.Specular);
             alphaParameter.SetValue(part.Alpha);
             metallicParameter.SetValue(part.Metallic);
@@ -532,6 +669,8 @@ namespace TW3D.Graphics
         {
             BasicEffect basic = part.Effect;
             ApplyClassicLighting(basic);
+            if (part.Lamp != Lamp.None)
+                basic.EmissiveColor = part.ClassicEmissive * LampGlow(part.Lamp);
             basic.View = view;
             basic.Projection = projection;
             basic.World = world;
@@ -586,6 +725,7 @@ namespace TW3D.Graphics
             model.CopyAbsoluteBoneTransformsTo(transforms);
 
             List<ModelPart> parts = new List<ModelPart>();
+            List<LampData> lamps = new List<LampData>();
             BoundingSphere bounds = new BoundingSphere();
             bool first = true;
             foreach (ModelMesh mesh in model.Meshes)
@@ -599,7 +739,7 @@ namespace TW3D.Graphics
                 {
                     BasicEffect material = (BasicEffect)meshPart.Effect;
                     Vector3 specular = material.SpecularColor;
-                    Vector2 finish = meshPart.Tag is Vector2 metallicRoughness ? metallicRoughness : new Vector2(0f, 1f);
+                    Vector3 finish = Finish(meshPart);
                     parts.Add(new ModelPart
                     {
                         Transform = transform,
@@ -609,17 +749,36 @@ namespace TW3D.Graphics
                         //The colours of the models were picked on the screen, the light works with linear ones
                         Diffuse = ToLinear(material.DiffuseColor),
                         Emissive = ToLinear(material.EmissiveColor),
+                        ClassicEmissive = material.EmissiveColor,
                         Specular = (specular.X + specular.Y + specular.Z) / 3f * SpecularStrength,
                         Alpha = material.Alpha,
                         Metallic = finish.X,
-                        Roughness = finish.Y
+                        Roughness = finish.Y,
+                        Lamp = (Lamp)(int)finish.Z
                     });
+                    if (parts[parts.Count - 1].Lamp != Lamp.None)
+                        lamps.Add(new LampData(parts[parts.Count - 1].Lamp, meshBounds, material.EmissiveColor));
                 }
             }
 
-            data = new ModelData { Parts = parts.ToArray(), Bounds = bounds };
+            data = new ModelData { Parts = parts.ToArray(), Bounds = bounds, Lamps = lamps.ToArray() };
             models.Add(model, data);
             return data;
+        }
+
+        /// <summary>
+        /// What the content pipeline keeps of the material of a mesh part beyond BasicEffect (tools/ContentPipeline):
+        /// metallic, roughness and the lamp (0 = none, 1 = headlight, 2 = rear light).
+        /// </summary>
+        private static Vector3 Finish(ModelMeshPart part)
+        {
+            return part.Tag is Vector3 finish ? finish : new Vector3(0f, 1f, 0f);
+        }
+
+        /// <summary>Which lamp of a car the material of a mesh part is.</summary>
+        public static Lamp LampOf(ModelMeshPart part)
+        {
+            return (Lamp)(int)Finish(part).Z;
         }
 
         private static Vector3 ToLinear(Vector3 color)

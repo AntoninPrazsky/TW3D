@@ -52,3 +52,21 @@ Ks 0.91342 0.91342 0.91342
 Ke 0.0 0.0 0.0
 Ns 0.8
 illum 2
+
+newmtl headlight
+Kd 0.12 0.12 0.14
+d 1.0
+Ks 1.0 1.0 1.0
+Ke 0.85 0.92 1.0
+Ns 0.9
+Pr 0.08
+illum 2
+
+newmtl taillight
+Kd 0.35 0.02 0.03
+d 1.0
+Ks 1.0 1.0 1.0
+Ke 1.0 0.03 0.04
+Ns 0.9
+Pr 0.08
+illum 2

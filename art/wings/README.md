@@ -33,6 +33,8 @@ from the model in the game.
 
 `content/wheel2.obj` was changed in 2026: its rim is smaller, with a thicker tyre, and it
 has the hub of `wheel.obj`, joining it to the holder. `wheel2.wings` is the wheel as it was.
+`content/car.obj` and `car2.obj` got their lamps in 2026 (the objects `Headlight…` and
+`Taillight…`), which `car.wings` and `car2.wings` do not have.
 
 `Levels/mod/tu1.wings`, `tu2.wings` and `tu3.wings` are the whole tunnels; the game uses
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in
