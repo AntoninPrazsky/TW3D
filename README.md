@@ -106,7 +106,8 @@ uses as many columns as fit the screen.
 Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.
 
 **Options:** the look of the game (new, or classic: as the 2016 version looked),
-shadows and ambient occlusion. They are saved in `TW3D/settings.json` in the
+shadows, ambient occlusion and the frame rate (frames per second in the top left
+corner). They are saved in `TW3D/settings.json` in the
 user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
 
 **Driving:** the keyboard, the on-screen controls (operated by the mouse or by
@@ -134,7 +135,7 @@ Development keys while driving:
 | F10 | Shadows on / off |
 | F11 | Ambient occlusion on / off |
 | M | Switches the mood of the level (day, sunset, night) to try it; the level file stays as it is |
-| F12 | Frames per second (shown by default in Debug builds) |
+| F12 | Frames per second on / off (also in Options) |
 
 The editor asks for the level to open, or opens the one given by `--level <file>`.
 Its controls are described in

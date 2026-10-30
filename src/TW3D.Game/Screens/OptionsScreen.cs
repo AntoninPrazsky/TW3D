@@ -8,7 +8,7 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The Options menu: the graphics settings, one per line in the middle of the screen. Selecting an item
+    /// The Options menu: the graphics and display settings, one per line in the middle of the screen. Selecting an item
     /// (or pressing left or right on it) switches its value; the settings are saved at once.
     /// </summary>
     public sealed class OptionsScreen : Screen
@@ -59,6 +59,11 @@ namespace TW3D.Screens
                 Text = () => "Ambient occlusion: " + (settings.AmbientOcclusion ? "On" : "Off"),
                 Activate = () => Change(() => settings.AmbientOcclusion = !settings.AmbientOcclusion),
                 IsEnabled = () => !settings.Classic
+            });
+            items.Add(new MenuItem
+            {
+                Text = () => "Frame rate: " + (settings.ShowFrameRate ? "On" : "Off"),
+                Activate = () => Change(() => settings.ShowFrameRate = !settings.ShowFrameRate)
             });
             items.Add(new MenuItem { Text = () => "Back", Activate = Close });
         }

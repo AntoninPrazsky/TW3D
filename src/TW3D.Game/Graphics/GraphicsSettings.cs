@@ -6,7 +6,7 @@ using System.Text.Json;
 namespace TW3D.Graphics
 {
     /// <summary>
-    /// The graphics options of the game (the Options menu), saved in the user's application data.
+    /// The graphics and display options of the game (the Options menu), saved in the user's application data.
     /// </summary>
     public sealed class GraphicsSettings
     {
@@ -22,6 +22,9 @@ namespace TW3D.Graphics
         public bool Shadows { get; set; } = true;
 
         public bool AmbientOcclusion { get; set; } = true;
+
+        /// <summary>Frames per second in the top left corner.</summary>
+        public bool ShowFrameRate { get; set; } = true;
 
         private static string FilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TW3D", "settings.json");

@@ -6,34 +6,35 @@ using TW3D.Screens;
 namespace TW3D.Graphics
 {
     /// <summary>
-    /// Shows frames per second in the top left corner. F12 toggles it;
-    /// it is visible by default in Debug builds only.
+    /// Shows frames per second in the top left corner, if the settings say so (the Options menu);
+    /// F12 switches it too.
     /// </summary>
     public sealed class FrameRateCounter : DrawableGameComponent
     {
         private readonly ScreenManager screens;
+        private readonly GraphicsSettings settings;
         private double secondTimer;
         private int framesThisSecond;
         private int framesPerSecond;
         private bool f12WasDown;
 
-        public FrameRateCounter(Game game, ScreenManager screens)
+        public FrameRateCounter(Game game, ScreenManager screens, GraphicsSettings settings)
             : base(game)
         {
             this.screens = screens;
-#if DEBUG
-            Visible = true;
-#else
-            Visible = false;
-#endif
+            this.settings = settings;
         }
 
         public override void Update(GameTime gameTime)
         {
             bool f12Down = Keyboard.GetState().IsKeyDown(Keys.F12);
             if (f12Down && !f12WasDown)
-                Visible = !Visible;
+            {
+                settings.ShowFrameRate = !settings.ShowFrameRate;
+                settings.Save();
+            }
             f12WasDown = f12Down;
+            Visible = settings.ShowFrameRate;
 
             secondTimer += gameTime.ElapsedGameTime.TotalSeconds;
             if (secondTimer >= 1.0)

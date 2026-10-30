@@ -76,7 +76,7 @@ namespace TW3D
             screens.UiSize = PhoneUiSize;
 #endif
             Components.Add(screens);
-            Components.Add(new FrameRateCounter(this, screens) { DrawOrder = 100 });
+            Components.Add(new FrameRateCounter(this, screens, settings) { DrawOrder = 100 });
         }
 
         private void OnClientSizeChanged(object sender, EventArgs e)
