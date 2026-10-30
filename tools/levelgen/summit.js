@@ -10,6 +10,8 @@ const { Track, Cell } = require("./lib.js");
 
 const top = Track.top;
 const t = new Track(-3, 0);
+// A summit at sunset: a low sun and long shadows
+t.mood = "sunset";
 
 // ---- Road (middle layer, takes part in the physics) ----
 

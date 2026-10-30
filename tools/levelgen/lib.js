@@ -35,6 +35,8 @@ class Track {
     this.back = [];
     this.front = [];
     this.objects = [];
+    // The light of the level: "day" (default), "sunset" or "night"
+    this.mood = "day";
     // Road blocks by column: { block, base, left, right } (left/right = surface height at the edges)
     this.cells = new Map();
   }
@@ -185,6 +187,7 @@ class Track {
       + (items.length ? "\n" + items.map(i => "    " + JSON.stringify(i)).join(",\n") + "\n  ]" : "]")
       + (last ? "\n" : ",\n");
     return "{\n  \"format\": 1,\n" + (order != null ? `  "order": ${order},\n` : "")
+      + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + list("middle", this.middle) + list("back", this.back) + list("front", this.front) + list("objects", this.objects, true) + "}\n";
   }
 

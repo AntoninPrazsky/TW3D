@@ -1,6 +1,7 @@
 {
   "format": 1,
   "order": 3,
+  "mood": "night",
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
     {"block":"a1","x":-1,"y":0,"shift":0},
