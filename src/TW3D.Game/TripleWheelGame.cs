@@ -156,7 +156,7 @@ namespace TW3D
 #endif
 
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
-            menu.AddItem("Play", () => screens.Add(new LevelSelectScreen("Level Select", FindLevels(), StartLevel)));
+            menu.AddItem("Play", OpenLevelSelect);
             //Not implemented
             menu.AddItem("Garage", null);
             menu.AddItem("About", null);
@@ -171,8 +171,12 @@ namespace TW3D
             screens.Add(menu);
 
             if (startLevel != null)
-                //Level started directly from the command line (without the logo screen), Esc returns to the menu
+            {
+                //Level started directly from the command line (without the logo screen),
+                //over the level select as if it was chosen there
+                OpenLevelSelect();
                 StartLevel(startLevel);
+            }
             else
                 screens.Add(new LogoScreen(TimeSpan.FromSeconds(1.5)));
         }
@@ -191,6 +195,11 @@ namespace TW3D
 #else
             return LevelFile.FindLevels(Path.Combine(AppContext.BaseDirectory, Content.RootDirectory, "Levels"));
 #endif
+        }
+
+        private void OpenLevelSelect()
+        {
+            screens.Add(new LevelSelectScreen("Level Select", FindLevels(), StartLevel));
         }
 
         private void StartLevel(string level)

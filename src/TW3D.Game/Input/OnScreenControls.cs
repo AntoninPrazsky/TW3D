@@ -5,8 +5,8 @@ using Microsoft.Xna.Framework.Graphics;
 namespace TW3D.Input
 {
     /// <summary>
-    /// Virtual joystick (bottom left) and the brake and axle lock buttons (bottom right)
-    /// operated by touch or by the mouse.
+    /// Virtual joystick (bottom left), the brake and axle lock buttons (bottom right) and the pause button
+    /// (top right) operated by touch or by the mouse.
     /// </summary>
     public sealed class OnScreenControls
     {
@@ -17,6 +17,8 @@ namespace TW3D.Input
         private const float ButtonSpacing = 32f;
         //How far the stick can be pulled from the centre, in texture pixels
         private const float StickTravel = 30f;
+        //Size of the pause button, in reference pixels
+        private const float PauseButtonSize = 96f;
 
         //Sprite sheet regions: released and pressed state
         private static readonly Rectangle BrakeReleased = new Rectangle(1, 1, 145, 160);
@@ -28,11 +30,13 @@ namespace TW3D.Input
         private Texture2D stickTexture;
         private Texture2D brakeTexture;
         private Texture2D lockTexture;
+        private Texture2D pixel;
 
         private float scale;
         private Vector2 joystickCenter;
         private Vector2 brakeCenter;
         private Vector2 lockCenter;
+        private Rectangle pauseBounds;
 
         private int? joystickPointerId;
         private Vector2 stickOffset;
@@ -44,12 +48,17 @@ namespace TW3D.Input
 
         public bool LockPressed { get; private set; }
 
-        public void LoadContent(ContentManager content)
+        /// <summary>The pause button was pressed in this frame.</summary>
+        public bool PausePressed { get; private set; }
+
+        /// <param name="pixel">1×1 white texture (the pause button is drawn by rectangles).</param>
+        public void LoadContent(ContentManager content, Texture2D pixel)
         {
             socketTexture = content.Load<Texture2D>("Common/socket");
             stickTexture = content.Load<Texture2D>("Common/stick");
             brakeTexture = content.Load<Texture2D>("Common/brakepedal");
             lockTexture = content.Load<Texture2D>("Common/lock");
+            this.pixel = pixel;
         }
 
         public void Update(InputState input, Viewport viewport, float uiScale)
@@ -60,6 +69,7 @@ namespace TW3D.Input
 
             BrakePressed = false;
             LockPressed = false;
+            PausePressed = false;
             foreach (Pointer pointer in input.Pointers)
             {
                 if (!pointer.IsDown || pointer.Id == joystickPointerId)
@@ -68,6 +78,8 @@ namespace TW3D.Input
                     BrakePressed = true;
                 if (ButtonBounds(lockCenter, LockReleased).Contains(pointer.Position))
                     LockPressed = true;
+                if (pointer.Phase == PointerPhase.Pressed && pauseBounds.Contains(pointer.Position))
+                    PausePressed = true;
             }
         }
 
@@ -79,7 +91,8 @@ namespace TW3D.Input
             return pointer.Id == joystickPointerId
                 || Vector2.Distance(pointer.Position, joystickCenter) <= JoystickRadius
                 || ButtonBounds(brakeCenter, BrakeReleased).Contains(pointer.Position)
-                || ButtonBounds(lockCenter, LockReleased).Contains(pointer.Position);
+                || ButtonBounds(lockCenter, LockReleased).Contains(pointer.Position)
+                || pauseBounds.Contains(pointer.Position);
         }
 
         private float JoystickRadius => socketTexture.Width / 2f * scale;
@@ -100,6 +113,10 @@ namespace TW3D.Input
 
             Vector2 lockSize = new Vector2(LockReleased.Width, LockReleased.Height) * scale;
             lockCenter = new Vector2(brakeCenter.X - brakeSize.X / 2f - ButtonSpacing * uiScale - lockSize.X / 2f, bottom - lockSize.Y / 2f);
+
+            //Pause in the top right corner
+            int pauseSize = (int)(PauseButtonSize * uiScale);
+            pauseBounds = new Rectangle((int)(viewport.Width - margin) - pauseSize, (int)margin, pauseSize, pauseSize);
         }
 
         private void UpdateJoystick(InputState input)
@@ -161,6 +178,19 @@ namespace TW3D.Input
 
             DrawButton(batch, brakeTexture, brakeCenter, BrakePressed ? BrakePressedRegion : BrakeReleased, alpha);
             DrawButton(batch, lockTexture, lockCenter, LockPressed ? LockPressedRegion : LockReleased, alpha);
+            DrawPauseButton(batch, alpha);
+        }
+
+        /// <summary>Two upright bars, like the buttons half transparent.</summary>
+        private void DrawPauseButton(SpriteBatch batch, float alpha)
+        {
+            int barWidth = (int)(pauseBounds.Width * 0.22f);
+            int barHeight = (int)(pauseBounds.Height * 0.7f);
+            int gap = (int)(pauseBounds.Width * 0.2f);
+            int left = pauseBounds.Center.X - gap / 2 - barWidth;
+            int top = pauseBounds.Center.Y - barHeight / 2;
+            batch.Draw(pixel, new Rectangle(left, top, barWidth, barHeight), Color.White * (0.5f * alpha));
+            batch.Draw(pixel, new Rectangle(left + barWidth + gap, top, barWidth, barHeight), Color.White * (0.5f * alpha));
         }
 
         private void DrawButton(SpriteBatch batch, Texture2D texture, Vector2 center, Rectangle region, float alpha)

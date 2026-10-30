@@ -5,6 +5,7 @@ using Android.Content.PM;
 using Android.OS;
 using Android.Views;
 using Microsoft.Xna.Framework;
+using TW3D.Input;
 
 namespace TW3D
 {
@@ -47,7 +48,21 @@ namespace TW3D
             game = new TripleWheelGame();
             SetContentView((View)game.Services.GetService(typeof(View)));
             HideSystemBars();
+
+            //Since Android 13 the back gesture or button comes by a callback (since Android 16 only so, apps targeting it
+            //no longer get it as a key); the game decides what it does (pauses, goes back in the menus, quits)
+            if (OperatingSystem.IsAndroidVersionAtLeast(33))
+                OnBackInvokedDispatcher.RegisterOnBackInvokedCallback(Android.Window.IOnBackInvokedDispatcher.PriorityDefault, new BackCallback());
+
             game.Run();
+        }
+
+        private sealed class BackCallback : Java.Lang.Object, Android.Window.IOnBackInvokedCallback
+        {
+            public void OnBackInvoked()
+            {
+                InputState.RequestSystemBack();
+            }
         }
 
         public override void OnWindowFocusChanged(bool hasFocus)

@@ -18,7 +18,7 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// The game itself: one level with the car, its physics simulation, the 3D view,
-    /// the on-screen controls and the physics debug view (F1–F8).
+    /// the on-screen controls, the pause menu and the physics debug view (F1–F8).
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
@@ -110,7 +110,7 @@ namespace TW3D.GamePlay
             debugView.LoadContent(Manager.GraphicsDevice, Manager.Content);
 
             controls = new OnScreenControls();
-            controls.LoadContent(Manager.Content);
+            controls.LoadContent(Manager.Content, Manager.Pixel);
 
             //Loading takes a while; the game should not try to catch up with the lost time afterwards
             Manager.Game.ResetElapsedTime();
@@ -142,20 +142,44 @@ namespace TW3D.GamePlay
 
         public override void HandleInput(InputState input, GameTime gameTime)
         {
-            if (input.BackPressed)
+            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
+
+            controls.Update(input, Manager.Viewport, Manager.UiScale);
+            if (input.BackPressed || input.KeyPressed(Keys.P) || controls.PausePressed)
             {
-                Close();
+                Pause();
                 return;
             }
-
-            float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             HandleDebugKeys(input);
             HandleCameraKeys(input, elapsed);
 
-            controls.Update(input, Manager.Viewport, Manager.UiScale);
             Drive(DriveInput.Read(input, controls), elapsed * GameSpeed);
             HandleCarDragging(input);
+        }
+
+        /// <summary>
+        /// Opens the pause menu. The level stands still while the menu is on top of it
+        /// (the simulation runs only while this screen has the focus).
+        /// </summary>
+        private void Pause()
+        {
+            Manager.Add(new PauseScreen(Restart, Close, ExitToMainMenu));
+        }
+
+        /// <summary>The level from the start: a new game screen in place of this one.</summary>
+        private void Restart()
+        {
+            Manager.Add(new GameplayScreen(levelName, settings));
+            Close();
+        }
+
+        private void ExitToMainMenu()
+        {
+            foreach (Screen screen in Manager.Screens)
+                if (screen is LevelSelectScreen)
+                    screen.Close();
+            Close();
         }
 
         /// <param name="elapsed">Elapsed game time (see <see cref="GameSpeed"/>).</param>
@@ -261,13 +285,17 @@ namespace TW3D.GamePlay
             car.Update();
             level.Update();
 
+            //Leaving the game (for another window, or another app on a phone) pauses it
+            if (!Manager.Game.IsActive && !IsClosing && Manager.Screens[Manager.Screens.Count - 1] == this)
+                Pause();
+
             //The simulation runs with a fixed time step whatever the frame rate is,
             //and pauses while the screen does not have the focus (window inactive, screen closing)
             if (HasFocus)
                 physics.Advance(elapsed);
 
-            //The camera follows the car in game time too, so it keeps up with it
-            camera.Update(elapsed, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
+            //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
+            camera.Update(HasFocus ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
         }
 
         public override void Draw(GameTime gameTime)

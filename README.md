@@ -104,7 +104,8 @@ It keeps a margin of 48 px (at 1080p) from the screen edges; the level select
 uses as many columns as fit the screen.
 
 **Menus:** mouse (click, wheel and dragging in the level select), arrow keys and
-Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.
+Enter, a gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back
+gesture or button of a phone) goes back; in the main menu it quits the game.
 
 **Options:** full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
@@ -122,9 +123,10 @@ touch) and a gamepad all work at the same time.
 | ↑ / ↓ | joystick up / down, left stick | Rotate the axles clockwise / counterclockwise |
 | Space | brake button, A | Brake all wheels |
 | Left Ctrl | axle lock button, B | Lock the axle rotation |
-| Esc | Back | Back to the level select |
+| Esc, P | pause button (top right), Back, the back gesture of a phone | Pause: resume, restart, the level select or the main menu |
 
-The car can also be grabbed with the mouse and dragged around.
+The car can also be grabbed with the mouse and dragged around. The game also pauses
+when its window loses the focus, or when a phone switches to another app.
 
 Development keys while driving:
 
@@ -155,7 +157,7 @@ rectangle with its name.
 
 | Folder | Contents |
 |---|---|
-| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu and level select screens |
+| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, options and pause screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `PhysicsClock`: fixed-step simulation |
 | `GameObjects/` | The car, the level (built from a level file and the catalog), the sky and dynamic objects |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |

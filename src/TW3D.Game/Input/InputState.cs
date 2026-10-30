@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Input.Touch;
@@ -49,6 +50,9 @@ namespace TW3D.Input
         private readonly List<Pointer> pointers = new List<Pointer>();
         private int mousePointerId = FirstMousePointerId;
 
+        //The back gesture or button of the phone, reported by the Android activity (from another thread)
+        private static int systemBackRequested;
+
         public KeyboardState Keyboard { get; private set; }
         public KeyboardState PreviousKeyboard { get; private set; }
         public MouseState Mouse { get; private set; }
@@ -71,6 +75,18 @@ namespace TW3D.Input
         /// <summary>Mouse wheel movement since the last frame (120 per notch, positive = away from the user).</summary>
         public int WheelDelta { get; private set; }
 
+        /// <summary>The back gesture or button of the phone was used in this frame (see <see cref="RequestSystemBack"/>).</summary>
+        public bool SystemBackPressed { get; private set; }
+
+        /// <summary>
+        /// Reports the back gesture or button of the system. Since Android 16 the system no longer sends it as a key,
+        /// the activity receives it by a callback and passes it on here.
+        /// </summary>
+        public static void RequestSystemBack()
+        {
+            Interlocked.Exchange(ref systemBackRequested, 1);
+        }
+
         public void Update()
         {
             PreviousKeyboard = Keyboard;
@@ -82,6 +98,7 @@ namespace TW3D.Input
             GamePad = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex.One);
 
             WheelDelta = Mouse.ScrollWheelValue - PreviousMouse.ScrollWheelValue;
+            SystemBackPressed = Interlocked.Exchange(ref systemBackRequested, 0) != 0;
 
             pointers.Clear();
             foreach (TouchLocation touch in TouchPanel.GetState())
@@ -144,8 +161,8 @@ namespace TW3D.Input
             return GamePad.IsButtonDown(button) && PreviousGamePad.IsButtonUp(button);
         }
 
-        /// <summary>Esc or the gamepad Back button.</summary>
-        public bool BackPressed => KeyPressed(Keys.Escape) || ButtonPressed(Buttons.Back);
+        /// <summary>Esc, the gamepad Back button, or the back gesture or button of the phone.</summary>
+        public bool BackPressed => KeyPressed(Keys.Escape) || ButtonPressed(Buttons.Back) || SystemBackPressed;
 
         /// <summary>Enter, Space or the gamepad A / Start button.</summary>
         public bool ConfirmPressed => KeyPressed(Keys.Enter) || KeyPressed(Keys.Space) || ButtonPressed(Buttons.A) || ButtonPressed(Buttons.Start);
@@ -163,7 +180,8 @@ namespace TW3D.Input
                 foreach (Keys key in Keyboard.GetPressedKeys())
                     if (PreviousKeyboard.IsKeyUp(key))
                         return true;
-                return PointerPressed || ButtonPressed(Buttons.A) || ButtonPressed(Buttons.B) || ButtonPressed(Buttons.Start) || ButtonPressed(Buttons.Back);
+                return PointerPressed || ButtonPressed(Buttons.A) || ButtonPressed(Buttons.B) || ButtonPressed(Buttons.Start) || ButtonPressed(Buttons.Back)
+                    || SystemBackPressed;
             }
         }
     }
