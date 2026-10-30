@@ -1,92 +1,76 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
 namespace LevelEditor.LevelObjects
 {
+    /// <summary>
+    /// The free camera of the editor: moved by W, S, A, D (forwards, backwards, sideways) and Q, E (up, down),
+    /// turned by the numeric keypad (4, 6 around, 8, 2 up and down).
+    /// </summary>
     class Camera3D
     {
-        public Vector3 cameraPosition = new Vector3(0, 8, -20);
-        
-        public Vector3 Target { get; set; }
-        public Matrix viewMatrix { get; set; }
-        public bool IsOrtographic { get; set; }
-        private float leftrightRot = -MathHelper.Pi;
-        private float updownRot = -MathHelper.Pi / 10f;
-        private const float rotationSpeed = 1f;
-        private const float moveSpeed = 3f;
-        
-        private void UpdateViewMatrix()
+        private const float RotationSpeed = 1f;
+        private const float MoveSpeed = 3f;
+
+        private float leftRightRotation = -MathHelper.Pi;
+        private float upDownRotation = -MathHelper.Pi / 10f;
+
+        public Vector3 Position { get; set; } = new Vector3(0, 8, -20);
+
+        public Matrix View { get; private set; }
+
+        public bool IsOrthographic { get; set; }
+
+        private Matrix Rotation => Matrix.CreateRotationX(upDownRotation) * Matrix.CreateRotationY(leftRightRotation);
+
+        private void UpdateView()
         {
-            Matrix cameraRotation = Matrix.CreateRotationX(updownRot) * Matrix.CreateRotationY(leftrightRot);
-
-            Vector3 cameraOriginalTarget = new Vector3(0, 0, -1);
-            Vector3 cameraRotatedTarget = Vector3.Transform(cameraOriginalTarget, cameraRotation);
-            Vector3 cameraFinalTarget = cameraPosition + cameraRotatedTarget;
-
-            Vector3 cameraOriginalUpVector = new Vector3(0, 1, 0);
-            Vector3 cameraRotatedUpVector = Vector3.Transform(cameraOriginalUpVector, cameraRotation);
-
-            viewMatrix = Matrix.CreateLookAt(cameraPosition, cameraFinalTarget, cameraRotatedUpVector);
+            Vector3 target = Position + Vector3.Transform(Vector3.Forward, Rotation);
+            Vector3 up = Vector3.Transform(Vector3.Up, Rotation);
+            View = Matrix.CreateLookAt(Position, target, up);
         }
 
-        public void ProcessInput(float amount)
+        /// <param name="elapsed">Elapsed seconds.</param>
+        public void ProcessInput(float elapsed)
         {
-            KeyboardState keyState = Keyboard.GetState();
+            KeyboardState keys = Keyboard.GetState();
 
-            if (keyState.IsKeyDown(Keys.NumPad6))
-                leftrightRot -= rotationSpeed * amount;
-            if (keyState.IsKeyDown(Keys.NumPad4))
-                leftrightRot += rotationSpeed * amount;
-            if (keyState.IsKeyDown(Keys.NumPad2))
-                updownRot -= rotationSpeed * amount;
-            if (keyState.IsKeyDown(Keys.NumPad8))
-                updownRot += rotationSpeed * amount;
-            UpdateViewMatrix();
+            if (keys.IsKeyDown(Keys.NumPad6))
+                leftRightRotation -= RotationSpeed * elapsed;
+            if (keys.IsKeyDown(Keys.NumPad4))
+                leftRightRotation += RotationSpeed * elapsed;
+            if (keys.IsKeyDown(Keys.NumPad2))
+                upDownRotation -= RotationSpeed * elapsed;
+            if (keys.IsKeyDown(Keys.NumPad8))
+                upDownRotation += RotationSpeed * elapsed;
 
-            Vector3 moveVector = new Vector3(0, 0, 0);
+            Vector3 move = Vector3.Zero;
+            if (keys.IsKeyDown(Keys.W))
+                move += Vector3.Forward;
+            if (keys.IsKeyDown(Keys.S))
+                move += Vector3.Backward;
+            if (keys.IsKeyDown(Keys.D))
+                move += Vector3.Right;
+            if (keys.IsKeyDown(Keys.A))
+                move += Vector3.Left;
+            if (keys.IsKeyDown(Keys.Q))
+                move += Vector3.Up;
+            if (keys.IsKeyDown(Keys.E))
+                move += Vector3.Down;
 
-            if (keyState.IsKeyDown(Keys.W))
-                moveVector += new Vector3(0, 0, -1);
-            if (keyState.IsKeyDown(Keys.S))
-                moveVector += new Vector3(0, 0, 1);
-            if (keyState.IsKeyDown(Keys.D))
-                moveVector += new Vector3(1, 0, 0);
-            if (keyState.IsKeyDown(Keys.A))
-                moveVector += new Vector3(-1, 0, 0);
-            if (keyState.IsKeyDown(Keys.Q))
-                moveVector += new Vector3(0, 1, 0);
-            if (keyState.IsKeyDown(Keys.E))
-                moveVector += new Vector3(0, -1, 0);
-            AddToCameraPosition(moveVector * amount);
+            //The camera moves in the directions it looks
+            Position += Vector3.Transform(move * elapsed, Rotation) * MoveSpeed;
+            UpdateView();
         }
 
-        private void AddToCameraPosition(Vector3 vectorToAdd)
+        /// <summary>Ray going from the camera through the mouse cursor.</summary>
+        public Ray PickRay(Matrix projection, Viewport viewport)
         {
-            Matrix cameraRotation = Matrix.CreateRotationX(updownRot) * Matrix.CreateRotationY(leftrightRot);
-            Vector3 rotatedVector = Vector3.Transform(vectorToAdd, cameraRotation);
-            cameraPosition += moveSpeed * rotatedVector;
-            UpdateViewMatrix();
+            MouseState mouse = Mouse.GetState();
+            Vector3 near = viewport.Unproject(new Vector3(mouse.X, mouse.Y, 0f), projection, View, Matrix.Identity);
+            Vector3 far = viewport.Unproject(new Vector3(mouse.X, mouse.Y, 1f), projection, View, Matrix.Identity);
+            return new Ray(near, Vector3.Normalize(far - near));
         }
-
-        public Ray getPickRay(Matrix projection, GraphicsDeviceManager man)
-        {
-            MouseState mouseState = Mouse.GetState();
-            int mouseX = mouseState.X;
-            int mouseY = mouseState.Y;
-            Vector3 nearsource = new Vector3((float)mouseX, (float)mouseY, 0f);
-            Vector3 farsource = new Vector3((float)mouseX, (float)mouseY, 1f);
-
-            Vector3 nearPoint = man.GraphicsDevice.Viewport.Unproject(nearsource, projection, viewMatrix, Matrix.Identity);
-            Vector3 farPoint = man.GraphicsDevice.Viewport.Unproject(farsource, projection, viewMatrix, Matrix.Identity);
-            Vector3 direction = farPoint - nearPoint;
-            direction.Normalize();
-            Ray pickRay = new Ray(nearPoint, direction);
-            return pickRay;
-        }
-
     }
 }

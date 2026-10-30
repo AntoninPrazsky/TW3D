@@ -1,23 +1,29 @@
-﻿using System.Collections.Generic;
-using Microsoft.Xna.Framework;
+﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Content;
-using System;
 using TW3D.Graphics;
+using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
 {
+    /// <summary>
+    /// Something drawn in the editor: the level or the selector. Positions in the editor are in scene units with the
+    /// sign of the physics world (a position p is drawn at -p): a tenth of the physics units of the level file,
+    /// see <see cref="Units"/>.
+    /// </summary>
     class GameObject
     {
-        public GraphicsDeviceManager screenManager { get; set; }
-        protected Vector2 position;
-        protected float scale;
-        protected Camera3D camera;
-        public Matrix projection { get; set; }
-        protected ContentManager contentManager;
+        /// <summary>Physics units (of the level file) in one unit of the editor (1 / <see cref="Units.PhysicsToScene"/>).</summary>
+        protected const float PhysicsPerUnit = 10f;
 
-        public float CTW3D(float value) { return value * 2.5f / 10f; }
-        public float revCTW3D(float value) { return value / 2.5f * 10f / 9f; }
+        /// <summary>One cell of the level grid (the size of a block) in the units of the editor.</summary>
+        public const float GridCell = Units.GridCell / PhysicsPerUnit;
+
+        /// <summary>One step of the vertical shift of a block in the units of the editor.</summary>
+        public const float ShiftStep = Units.ShiftStep / PhysicsPerUnit;
+
+        protected GraphicsDeviceManager graphics;
+        protected Camera3D camera;
+        protected Vector2 position;
 
         /// <summary>Projection of the editor's camera.</summary>
         public static Matrix CreateProjection(Viewport viewport, bool orthographic)
@@ -28,9 +34,9 @@ namespace LevelEditor.LevelObjects
         }
 
         /// <summary>World matrix of a model at a position of the editor.</summary>
-        protected Matrix ModelWorld(Vector3 modelPosition)
+        protected static Matrix ModelWorld(Vector3 modelPosition)
         {
-            return Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition);
+            return Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(-modelPosition);
         }
 
         /// <summary>
@@ -39,15 +45,14 @@ namespace LevelEditor.LevelObjects
         /// </summary>
         public void DrawModel(Model model, Vector3 modelPosition)
         {
-            // set GraphicsDevice parameters to default after spritebatch work
-            screenManager.GraphicsDevice.BlendState = BlendState.Opaque;
-            screenManager.GraphicsDevice.DepthStencilState = DepthStencilState.Default;
-            screenManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            screenManager.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+            GraphicsDevice device = graphics.GraphicsDevice;
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
+            device.SamplerStates[0] = SamplerState.LinearWrap;
 
             Matrix world = ModelWorld(modelPosition);
-            projection = CreateProjection(screenManager.GraphicsDevice.Viewport, camera.IsOrtographic);
-
+            Matrix projection = CreateProjection(device.Viewport, camera.IsOrthographic);
             Matrix[] transforms = new Matrix[model.Bones.Count];
             model.CopyAbsoluteBoneTransformsTo(transforms);
 
@@ -56,7 +61,7 @@ namespace LevelEditor.LevelObjects
                 foreach (BasicEffect effect in mesh.Effects)
                 {
                     Lighting.ApplyClassic(effect);
-                    effect.View = camera.viewMatrix;
+                    effect.View = camera.View;
                     effect.Projection = projection;
                     effect.World = transforms[mesh.ParentBone.Index] * world;
                 }
@@ -64,28 +69,16 @@ namespace LevelEditor.LevelObjects
             }
         }
 
-        public bool CheckRayIntersection(Ray ray, Vector3 modelPosition)
+        /// <summary>The ray (from the camera through a point of the screen) hits a thing at a position of the editor.</summary>
+        public static bool RayHits(Ray ray, Vector3 position)
         {
-            Vector3 modPos = new Vector3(-modelPosition.X, -modelPosition.Y, 0f);
-            float selectedDistance = float.MaxValue;
-            BoundingSphere sphere = new BoundingSphere(modPos, 0.25f);
-
-            Nullable<float> result = ray.Intersects(sphere);
-            if (result.HasValue == true)
-            {
-                if (result.Value < selectedDistance)
-                {
-                    return true;
-                }
-            }
-            return false;
+            return ray.Intersects(new BoundingSphere(-position, 0.25f)).HasValue;
         }
-        
+
         public virtual void Update() { }
 
         public virtual void Draw() { }
 
         public virtual void Draw(SceneRenderer renderer) { }
-
     }
 }

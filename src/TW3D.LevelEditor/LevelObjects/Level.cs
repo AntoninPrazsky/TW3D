@@ -1,82 +1,87 @@
-﻿using System.Collections.Generic;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
 using TW3D.Graphics;
 using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
 {
+    /// <summary>A track block of the level being edited.</summary>
     class TrackBlock
     {
-        public Vector2 blockPosition { get; set; }
-        public Vector2 blockAbsPosition { get { return new Vector2(blockPosition.X, blockPosition.Y + blockShift); } }
-        public float blockShift { get; set; }
-        public Model blockModel { get; set; }
-        public string modelName { get; set; }
+        /// <summary>Name of the block in the catalog.</summary>
+        public string Name { get; set; }
+
+        public Model Model { get; set; }
+
+        /// <summary>Position on the level grid in the units of the editor, without the vertical shift.</summary>
+        public Vector2 Position { get; set; }
+
+        /// <summary>Vertical shift in the units of the editor (steps of <see cref="GameObject.ShiftStep"/>).</summary>
+        public float Shift { get; set; }
+
         /// <summary>The finish of the level (a block of the middle layer).</summary>
-        public bool finish { get; set; }
+        public bool Finish { get; set; }
+
+        /// <summary>Where the block is drawn: its position with the shift.</summary>
+        public Vector2 DrawPosition => new Vector2(Position.X, Position.Y + Shift);
     }
 
+    /// <summary>A dynamic object of the level being edited.</summary>
     class EditedObject
     {
-        public Vector2 objPosition { get; set; }
-        public Model objModel { get; set; }
-        public string objName { get; set; }
-        public string objModelName { get; set; }
-        public bool isSelected { get; set; }
+        /// <summary>Name of the object type in the catalog.</summary>
+        public string Type { get; set; }
+
+        /// <summary>One of the models of the object type.</summary>
+        public string ModelName { get; set; }
+
+        public Model Model { get; set; }
+
+        /// <summary>Position in the units of the editor.</summary>
+        public Vector2 Position { get; set; }
+
+        public bool IsSelected { get; set; }
     }
 
-    static class TrackBlockModels
-    {
-        public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
-    }
-
-    static class TrackPropModels
-    {
-        public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
-    }
-
+    /// <summary>
+    /// The level being edited: the blocks of its three layers and its dynamic objects, read from and written to a
+    /// level file (see <see cref="LevelFile"/>). The selector changes the lists in place.
+    /// </summary>
     class Level : GameObject
     {
-        //Positions in the editor are in 3D units: one grid cell of a level, one step of the vertical shift,
-        //and the ratio of physics units (used by the level file for dynamic objects) to 3D units
-        private float GridSize => CTW3D(9f);
-        private float ShiftStep => CTW3D(1f);
-        private const float PhysicsTo3D = 10f;
+        //The default folder of the file dialogs
+        private const string LevelsFolder = "C:\\levels";
 
-        public List<TrackBlock> trackBlocks { get; set; }
-        public List<TrackBlock> backTrackBlocks { get; set; }
-        public List<TrackBlock> frontTrackBlocks { get; set; }
-
-        public List<EditedObject> gObjects { get; set; }
-
-        /// <summary>The blocks and dynamic objects the level can use.</summary>
-        public Catalog Catalog { get; }
-
+        private readonly Dictionary<string, Model> blockModels = new Dictionary<string, Model>();
+        private readonly Dictionary<string, Model> objectModels = new Dictionary<string, Model>();
         //Position of the level in the game's level select and its par time, kept from the loaded file
         private int? order;
         private float? par;
+
+        public List<TrackBlock> Middle { get; } = new List<TrackBlock>();
+        public List<TrackBlock> Back { get; } = new List<TrackBlock>();
+        public List<TrackBlock> Front { get; } = new List<TrackBlock>();
+        public List<EditedObject> Objects { get; } = new List<EditedObject>();
+
+        /// <summary>The blocks and dynamic objects the level can use.</summary>
+        public Catalog Catalog { get; }
 
         /// <summary>The light of the level.</summary>
         public LevelMood Mood { get; set; }
 
         /// <param name="fileName">Level file to open; null = ask for it.</param>
-        public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale, string fileName = null)
+        public Level(Catalog catalog, ContentManager content, string fileName = null)
         {
-            screenManager = ScreenManager;
-            camera = Camera;
             Catalog = catalog;
-            position = Position;
-            scale = Scale;
-
-            trackBlocks = new List<TrackBlock>();
-            backTrackBlocks = new List<TrackBlock>();
-            frontTrackBlocks = new List<TrackBlock>();
-
-            gObjects = new List<EditedObject>();
+            foreach (BlockType block in catalog.Blocks)
+                blockModels.Add(block.Name, content.Load<Model>(block.ModelAsset));
+            foreach (string model in catalog.ObjectModels)
+                objectModels.Add(model, content.Load<Model>(ObjectType.ModelAsset(model)));
 
             if (fileName != null)
                 Load(fileName);
@@ -84,19 +89,23 @@ namespace LevelEditor.LevelObjects
                 ReadFile();
         }
 
+        /// <summary>The model of a block of the catalog.</summary>
+        public Model BlockModel(string name) => blockModels[name];
+
+        /// <summary>The model of a dynamic object (one of the models of its type).</summary>
+        public Model ObjectModel(string name) => objectModels[name];
+
         /// <summary>Asks for a level file and opens it.</summary>
         public void ReadFile()
         {
-            OpenFileDialog openFileDialog = new OpenFileDialog();
-
-            openFileDialog.InitialDirectory = "C:\\levels";
-            openFileDialog.Filter = "Levels (*.json, *.lev)|*.json;*.lev|All files (*.*)|*.*";
-            openFileDialog.RestoreDirectory = true;
-
-            if (openFileDialog.ShowDialog() != DialogResult.OK)
-                return;
-
-            Load(openFileDialog.FileName);
+            OpenFileDialog dialog = new OpenFileDialog
+            {
+                InitialDirectory = LevelsFolder,
+                Filter = "Levels (*.json, *.lev)|*.json;*.lev|All files (*.*)|*.*",
+                RestoreDirectory = true
+            };
+            if (dialog.ShowDialog() == DialogResult.OK)
+                Load(dialog.FileName);
         }
 
         private void Load(string fileName)
@@ -113,10 +122,10 @@ namespace LevelEditor.LevelObjects
             }
 
             //The lists are cleared and refilled, because the selector keeps references to them
-            trackBlocks.Clear();
-            backTrackBlocks.Clear();
-            frontTrackBlocks.Clear();
-            gObjects.Clear();
+            Middle.Clear();
+            Back.Clear();
+            Front.Clear();
+            Objects.Clear();
             order = data.Order;
             par = data.Par;
             Mood = data.Mood;
@@ -124,9 +133,9 @@ namespace LevelEditor.LevelObjects
             foreach (string problem in data.Validate(Catalog))
                 Console.WriteLine("Warning: " + problem + " Skipped.");
 
-            AddBlocks(data.Middle, trackBlocks, true);
-            AddBlocks(data.Back, backTrackBlocks, false);
-            AddBlocks(data.Front, frontTrackBlocks, false);
+            AddBlocks(data.Middle, Middle, true);
+            AddBlocks(data.Back, Back, false);
+            AddBlocks(data.Front, Front, false);
 
             foreach (ObjectPlacement placement in data.Objects)
             {
@@ -134,12 +143,13 @@ namespace LevelEditor.LevelObjects
                 if (type == null || !type.Models.Contains(placement.Model))
                     continue;
 
-                EditedObject gObj = new EditedObject();
-                gObj.objName = placement.Type;
-                gObj.objModelName = placement.Model;
-                gObj.objPosition = new Vector2(placement.X, placement.Y) / PhysicsTo3D;
-                gObj.objModel = TrackPropModels.Models[placement.Model];
-                gObjects.Add(gObj);
+                Objects.Add(new EditedObject
+                {
+                    Type = placement.Type,
+                    ModelName = placement.Model,
+                    Model = ObjectModel(placement.Model),
+                    Position = new Vector2(placement.X, placement.Y) / PhysicsPerUnit
+                });
             }
 
             Console.WriteLine("File " + fileName + " loaded.");
@@ -151,7 +161,7 @@ namespace LevelEditor.LevelObjects
                 Console.WriteLine("The level was converted from the old .lev format; it will be saved as " + LevelFile.Extension + ".\n");
         }
 
-        /// <param name="physicsLayer">The middle layer, where only blocks with a collision bitmap may be.</param>
+        /// <param name="physicsLayer">The middle layer, where only blocks with a collision shape may be.</param>
         private void AddBlocks(List<BlockPlacement> placements, List<TrackBlock> layer, bool physicsLayer)
         {
             foreach (BlockPlacement placement in placements)
@@ -160,73 +170,78 @@ namespace LevelEditor.LevelObjects
                 if (block == null || (physicsLayer && !block.Collision))
                     continue;
 
-                TrackBlock trackBlock = new TrackBlock();
-                trackBlock.blockPosition = new Vector2(placement.X, placement.Y) * GridSize;
-                trackBlock.blockShift = placement.Shift * ShiftStep;
-                trackBlock.blockModel = TrackBlockModels.Models[placement.Block];
-                trackBlock.modelName = placement.Block;
-                trackBlock.finish = physicsLayer && placement.Finish;
-                layer.Add(trackBlock);
+                layer.Add(new TrackBlock
+                {
+                    Name = placement.Block,
+                    Model = BlockModel(placement.Block),
+                    Position = new Vector2(placement.X, placement.Y) * GridCell,
+                    Shift = placement.Shift * ShiftStep,
+                    Finish = physicsLayer && placement.Finish
+                });
             }
         }
 
+        /// <summary>Asks for a file and writes the level into it.</summary>
         public void WriteFile()
         {
             LevelData data = new LevelData { Order = order, Par = par, Mood = Mood };
-            data.Middle.AddRange(ToPlacements(trackBlocks));
-            data.Back.AddRange(ToPlacements(backTrackBlocks));
-            data.Front.AddRange(ToPlacements(frontTrackBlocks));
-            foreach (EditedObject ob in gObjects)
+            data.Middle.AddRange(ToPlacements(Middle));
+            data.Back.AddRange(ToPlacements(Back));
+            data.Front.AddRange(ToPlacements(Front));
+            foreach (EditedObject obj in Objects)
             {
-                //Rounded, so that the conversion from the editor's 3D units does not produce values like 94.00001
+                //Rounded, so that the conversion from the editor's units does not produce values like 94.00001
                 data.Objects.Add(new ObjectPlacement
                 {
-                    Type = ob.objName,
-                    Model = ob.objModelName,
-                    X = (float)Math.Round(ob.objPosition.X * PhysicsTo3D, 2),
-                    Y = (float)Math.Round(ob.objPosition.Y * PhysicsTo3D, 2)
+                    Type = obj.Type,
+                    Model = obj.ModelName,
+                    X = (float)Math.Round(obj.Position.X * PhysicsPerUnit, 2),
+                    Y = (float)Math.Round(obj.Position.Y * PhysicsPerUnit, 2)
                 });
             }
 
-            SaveFileDialog saveFileDialog = new SaveFileDialog();
-
-            saveFileDialog.InitialDirectory = "C:\\levels";
-            saveFileDialog.Filter = "Levels (*.json)|*.json";
-            saveFileDialog.DefaultExt = LevelFile.Extension;
-            saveFileDialog.RestoreDirectory = true;
-
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            SaveFileDialog dialog = new SaveFileDialog
             {
-                LevelFile.Save(data, saveFileDialog.FileName);
-                Console.WriteLine("File " + saveFileDialog.FileName + " saved.");
+                InitialDirectory = LevelsFolder,
+                Filter = "Levels (*.json)|*.json",
+                DefaultExt = LevelFile.Extension,
+                RestoreDirectory = true
+            };
+            if (dialog.ShowDialog() == DialogResult.OK)
+            {
+                LevelFile.Save(data, dialog.FileName);
+                Console.WriteLine("File " + dialog.FileName + " saved.");
             }
         }
 
-        private IEnumerable<BlockPlacement> ToPlacements(List<TrackBlock> layer)
+        private static IEnumerable<BlockPlacement> ToPlacements(List<TrackBlock> layer)
         {
-            foreach (TrackBlock tb in layer)
+            foreach (TrackBlock block in layer)
             {
                 yield return new BlockPlacement
                 {
-                    Block = tb.modelName,
-                    X = (int)Math.Round(tb.blockPosition.X / GridSize),
-                    Y = (int)Math.Round(tb.blockPosition.Y / GridSize),
-                    Shift = (int)Math.Round(tb.blockShift / ShiftStep),
-                    Finish = tb.finish
+                    Block = block.Name,
+                    X = (int)Math.Round(block.Position.X / GridCell),
+                    Y = (int)Math.Round(block.Position.Y / GridCell),
+                    Shift = (int)Math.Round(block.Shift / ShiftStep),
+                    Finish = block.Finish
                 };
             }
         }
 
         public override void Draw(SceneRenderer renderer)
         {
-            foreach (TrackBlock tb in trackBlocks)
-                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, 0f)));
-            foreach (TrackBlock tb in backTrackBlocks)
-                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f))));
-            foreach (TrackBlock tb in frontTrackBlocks)
-                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f))));
-            foreach (EditedObject obj in gObjects)
-                renderer.Add(obj.objModel, ModelWorld(new Vector3(obj.objPosition.X, obj.objPosition.Y, 0f)));
+            DrawLayer(renderer, Middle, 0f);
+            DrawLayer(renderer, Back, -GridCell);
+            DrawLayer(renderer, Front, GridCell);
+            foreach (EditedObject obj in Objects)
+                renderer.Add(obj.Model, ModelWorld(new Vector3(obj.Position, 0f)));
+        }
+
+        private static void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer, float depth)
+        {
+            foreach (TrackBlock block in layer)
+                renderer.Add(block.Model, ModelWorld(new Vector3(block.DrawPosition, depth)));
         }
     }
 }

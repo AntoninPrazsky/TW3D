@@ -1,460 +1,366 @@
-﻿using System.Collections.Generic;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using System;
-using System.IO;
-using Microsoft.Xna.Framework.Content;
-using Microsoft.Xna.Framework.Input;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Content;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
 {
+    /// <summary>
+    /// The selector: a frame on the level grid, moved by the arrow keys, where blocks are placed (Space), changed
+    /// and deleted, in the layer being edited (Right Shift: the back layer, Right Ctrl: the front layer). With Caps Lock
+    /// on, the keys work with the dynamic objects instead: Space places one at the selector, the mouse selects (left)
+    /// or deletes (right) one, the arrows move the selected ones. The console of the editor shows what happens and
+    /// asks for names (Insert). The keys are described in the documentation of the editor (docs/bachelor-thesis).
+    /// </summary>
     class Selector : GameObject
     {
-        public Model selectorModel;
+        //The layer being edited, and the console colour showing it
+        private enum Layer
+        {
+            Middle,
+            Back,
+            Front
+        }
 
-        private bool riPr, lePr, upPr, doPr, pgUp, pgDo, inPr, spPr, pPr, shPr, ctPr, f1Pr, f11Pr, f12Pr, mlePr, finPr;
-        private List<TrackBlock> track;
-        private List<TrackBlock> bSide;
-        private List<TrackBlock> fSide;
-        private List<EditedObject> gObjects;
-        private bool bEdit, fEdit;
-        private string defaultBlock = "a1";
-        private float defaultShift = 0f;
-        private Level level;
-        private float posZ = 0f;
-        private List<TrackBlock> where;
+        //How far the arrows move a selected dynamic object (units of the editor), and the decimal places of its position
+        private const float ObjectStep = 0.1f;
+        private const int ObjectPositionDecimals = 1;
 
-        private string objType = "Bar", objModel = "bar1";
+        private readonly Level level;
+        private readonly Model model;
+        private KeyboardState keys, previousKeys;
+        private bool mouseWasDown;
+
+        private Layer layer = Layer.Middle;
+        //The block placed by Space and the shift it gets; the dynamic object placed by Space with Caps Lock on
+        private string block = "a1";
+        private float shift;
+        private string objectType = "Bar", objectModel = "bar1";
 
         [DllImport("user32.dll")]
-        static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
 
-        private void CapsLock()
+        /// <summary>Presses Caps Lock: the names typed into the console with it on would be in capitals.</summary>
+        private static void ToggleCapsLock()
         {
-            const int KEYEVENTF_EXTENDEDKEY = 0x1;
-            const int KEYEVENTF_KEYUP = 0x2;
-            keybd_event(0x14, 0x45, KEYEVENTF_EXTENDEDKEY, (UIntPtr)0);
-            keybd_event(0x14, 0x45, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
-            (UIntPtr)0);
+            const byte capsLock = 0x14, scanCode = 0x45;
+            const uint extendedKey = 0x1, keyUp = 0x2;
+            keybd_event(capsLock, scanCode, extendedKey, UIntPtr.Zero);
+            keybd_event(capsLock, scanCode, extendedKey | keyUp, UIntPtr.Zero);
         }
 
-        private Vector2 RoundPos(Vector2 pos)
+        public Selector(GraphicsDeviceManager graphics, Camera3D camera, ContentManager content, Level level)
         {
-            decimal x = (decimal)pos.X;
-            decimal y = (decimal)pos.Y;
-            x = Math.Round(x, 1);
-            y = Math.Round(y, 1);
-            return new Vector2((float)x, (float)y);
-        }
-
-        public Selector(GraphicsDeviceManager ScreenManager, Camera3D Camera, Vector2 Position, float Scale, ContentManager ContentManager, Level Level)
-        {
-            screenManager = ScreenManager;
-            camera = Camera;
-            position = Position;
-            scale = Scale;
-            contentManager = ContentManager;
-            level = Level;
-            track = level.trackBlocks;
-            bSide = level.backTrackBlocks;
-            fSide = level.frontTrackBlocks;
-            gObjects = level.gObjects;
-            selectorModel = contentManager.Load<Model>("Levels/selector");
-            where = track;
+            this.graphics = graphics;
+            this.camera = camera;
+            this.level = level;
+            model = content.Load<Model>("Levels/selector");
             Console.Title = "Level Editor Console";
             Console.WriteLine("Level Editor initialized\n\n");
         }
 
+        /// <summary>The blocks of the layer being edited.</summary>
+        private List<TrackBlock> Blocks => layer == Layer.Back ? level.Back : layer == Layer.Front ? level.Front : level.Middle;
+
+        /// <summary>The block of the layer being edited under the selector; null if there is none.</summary>
+        private TrackBlock BlockHere => Blocks.Find(candidate => candidate.Position == position);
+
+        private bool Pressed(Keys key) => keys.IsKeyDown(key) && previousKeys.IsKeyUp(key);
+
+        private static Vector2 Round(Vector2 objectPosition)
+        {
+            return new Vector2((float)Math.Round(objectPosition.X, ObjectPositionDecimals), (float)Math.Round(objectPosition.Y, ObjectPositionDecimals));
+        }
+
         public override void Update()
         {
-            KeyboardState keyState = Keyboard.GetState();
-            //Right
-            if (keyState.IsKeyDown(Keys.Right) && !riPr)
-            {
-                if (Console.CapsLock)
-                {
-                    foreach (EditedObject ob in gObjects)
-                    {
-                        if (ob.isSelected) ob.objPosition = RoundPos(new Vector2(ob.objPosition.X + 1 / 10f, ob.objPosition.Y));
-                    }
-                }
-                else
-                {
-                    position = new Vector2(position.X + CTW3D(9f), position.Y);
-                }
-                riPr = true;
-            }
-            if (keyState.IsKeyUp(Keys.Right)) riPr = false;
+            previousKeys = keys;
+            keys = Keyboard.GetState();
+            //With Caps Lock on, the keys work with the dynamic objects instead of the blocks
+            bool objects = Console.CapsLock;
 
-            //Left
-            if (keyState.IsKeyDown(Keys.Left) && !lePr)
-            {
-                if (Console.CapsLock)
-                {
-                    foreach (EditedObject ob in gObjects)
-                    {
-                        if (ob.isSelected) ob.objPosition = RoundPos(new Vector2(ob.objPosition.X - 1 / 10f, ob.objPosition.Y));
-                    }
-                }
-                else
-                {
-                    position = new Vector2(position.X - CTW3D(9f), position.Y);
-                }
-                lePr = true;
-            }
-            if (keyState.IsKeyUp(Keys.Left)) lePr = false;
+            Move(objects);
 
-            //Up
-            if (keyState.IsKeyDown(Keys.Up) && !upPr)
+            if (Pressed(Keys.Delete))
+                DeleteBlock();
+            if (Pressed(Keys.F1))
+                ListBlocks();
+            if (Pressed(Keys.F11))
+                ChooseBlock(-1);
+            if (Pressed(Keys.F12))
+                ChooseBlock(1);
+            if (Pressed(Keys.PageUp))
+                ShiftBlock(-1);
+            if (Pressed(Keys.PageDown))
+                ShiftBlock(1);
+            if (Pressed(Keys.Insert))
             {
-                if (Console.CapsLock)
-                {
-                    foreach (EditedObject ob in gObjects)
-                    {
-                        if (ob.isSelected) ob.objPosition = RoundPos(new Vector2(ob.objPosition.X, ob.objPosition.Y - 1 / 10f));
-                    }
-                }
+                if (objects)
+                    AskForObject();
                 else
-                {
-                    position = new Vector2(position.X, position.Y - CTW3D(9f));
-                }
-                upPr = true;
+                    AskForBlock();
             }
-            if (keyState.IsKeyUp(Keys.Up)) upPr = false;
-
-            //Down
-            if (keyState.IsKeyDown(Keys.Down) && !doPr)
+            if (Pressed(Keys.Space))
             {
-                if (Console.CapsLock)
-                {
-                    foreach (EditedObject ob in gObjects)
-                    {
-                        if (ob.isSelected) ob.objPosition = RoundPos(new Vector2(ob.objPosition.X, ob.objPosition.Y + 1 / 10f));
-                    }
-                }
+                if (objects)
+                    PlaceObject();
                 else
-                {
-                    position = new Vector2(position.X, position.Y + CTW3D(9f));
-                }
-                doPr = true;
+                    PlaceBlock();
             }
-            if (keyState.IsKeyUp(Keys.Down)) doPr = false;
+            if (Pressed(Keys.P))
+                Describe();
+            if (Pressed(Keys.F))
+                ToggleFinish();
+            if (Pressed(Keys.O))
+                level.ReadFile();
+            if (Pressed(Keys.End))
+                level.WriteFile();
+            if (Pressed(Keys.RightShift))
+                Edit(layer == Layer.Back ? Layer.Middle : Layer.Back);
+            if (Pressed(Keys.RightControl))
+                Edit(layer == Layer.Front ? Layer.Middle : Layer.Front);
 
+            if (objects)
+                PickObject();
+        }
+
+        /// <summary>The arrows move the selector by cells, with Caps Lock on the selected dynamic objects by a tenth.</summary>
+        private void Move(bool objects)
+        {
+            Vector2 step = Vector2.Zero;
+            if (Pressed(Keys.Right)) step.X += 1f;
+            if (Pressed(Keys.Left)) step.X -= 1f;
+            if (Pressed(Keys.Up)) step.Y -= 1f;
+            if (Pressed(Keys.Down)) step.Y += 1f;
+            if (step == Vector2.Zero)
+                return;
+
+            if (objects)
+            {
+                foreach (EditedObject obj in level.Objects)
+                    if (obj.IsSelected)
+                        obj.Position = Round(obj.Position + step * ObjectStep);
+                return;
+            }
+
+            position += step * GridCell;
+            //The camera follows the selector, unless Num Lock is on
             if (!Console.NumberLock)
             {
-                if (riPr || lePr) camera.cameraPosition = new Vector3(-position.X, camera.cameraPosition.Y, camera.cameraPosition.Z);
-                if (upPr || doPr) camera.cameraPosition = new Vector3(camera.cameraPosition.X, -position.Y + 5f, camera.cameraPosition.Z);
+                Vector3 camera = this.camera.Position;
+                if (step.X != 0f)
+                    camera.X = -position.X;
+                if (step.Y != 0f)
+                    camera.Y = -position.Y + 5f;
+                this.camera.Position = camera;
             }
+        }
 
-            //Delete
-            if (keyState.IsKeyDown(Keys.Delete))
+        private void DeleteBlock()
+        {
+            if (Blocks.Remove(BlockHere))
+                Console.WriteLine("Block at " + position + " was deleted.");
+        }
+
+        private void ListBlocks()
+        {
+            Console.WriteLine("\n\nAll blocks in the catalog:\n");
+            foreach (BlockType type in level.Catalog.Blocks)
+                Console.WriteLine(type.Collision ? type.Name : type.Name + " (decoration, back or front layer only)");
+            Console.WriteLine("\n");
+        }
+
+        /// <summary>The next (1) or the previous (-1) block of the catalog becomes the block to place.</summary>
+        private void ChooseBlock(int direction)
+        {
+            List<BlockType> blocks = level.Catalog.Blocks;
+            int index = blocks.FindIndex(type => type.Name == block) + direction;
+            if (index < 0 || index >= blocks.Count)
             {
-                for (int i = 0; i < where.Count; i++) if (where[i].blockPosition == position)
-                    {
-                        where.RemoveAt(i);
-                        Console.WriteLine("Block at " + position + " was deleted.");
-                        break;
-                    }
+                Console.WriteLine("Current block " + block + " is the " + (direction < 0 ? "first" : "last") + " block in the catalog.");
+                return;
             }
+            Console.WriteLine("Default block was changed from " + block + " to " + blocks[index].Name);
+            block = blocks[index].Name;
+        }
 
-            //f1
-            if (keyState.IsKeyDown(Keys.F1) && !f1Pr)
+        /// <summary>Shifts the block under the selector down (1) or up (-1) by a step; new blocks get the same shift.</summary>
+        private void ShiftBlock(int direction)
+        {
+            TrackBlock here = BlockHere;
+            if (here == null)
+                return;
+            here.Shift += direction * ShiftStep;
+            shift = here.Shift;
+            Console.WriteLine("Shift was " + (direction < 0 ? "decreased" : "increased") + " to: " + shift);
+        }
+
+        private void AskForBlock()
+        {
+            Console.Write("Type block name: ");
+            string input = Console.ReadLine();
+            if (level.Catalog.FindBlock(input) != null)
             {
-                Console.WriteLine("\n\nAll blocks in the catalog:\n");
-                foreach (BlockType block in level.Catalog.Blocks)
-                {
-                    Console.WriteLine(block.Collision ? block.Name : block.Name + " (decoration, back or front layer only)");
-                }
-                Console.WriteLine("\n");
-                f1Pr = true;
+                block = input;
+                Console.WriteLine("Default block was set to: " + block);
             }
-            if (keyState.IsKeyUp(Keys.F1)) f1Pr = false;
+            else
+                Console.WriteLine("This block name does not exist: " + input + "\nDefault block is: " + block);
+        }
 
-            //f11
-            if (keyState.IsKeyDown(Keys.F11) && !f11Pr)
+        private void AskForObject()
+        {
+            //Typed with Caps Lock off, which is switched on again afterwards
+            ToggleCapsLock();
+            Console.Write("Type object type: ");
+            string inputType = Console.ReadLine();
+            Console.Write("Type object model name: ");
+            string inputModel = Console.ReadLine();
+            ObjectType type = level.Catalog.FindObject(inputType);
+            if (type != null && type.Models.Contains(inputModel))
             {
-                string prev = "a1";
-                if (defaultBlock == prev) Console.WriteLine("Current block " + defaultBlock + " is the first block in Dictionary.");
-                else
-                {
-                    foreach (KeyValuePair<string, Model> entry in TrackBlockModels.Models)
-                    {
-                        if (defaultBlock == entry.Key)
-                        {
-                            Console.WriteLine("Default block was changed from " + defaultBlock + " to " + prev);
-                            defaultBlock = prev;
-                            break;
-                        }
-                        prev = entry.Key;
-                    }
-                }
-                f11Pr = true;
+                objectType = inputType;
+                objectModel = inputModel;
+                Console.WriteLine("Object type set to: " + objectType + ", object model set to: " + objectModel);
             }
-            if (keyState.IsKeyUp(Keys.F11)) f11Pr = false;
-
-            //f12
-            if (keyState.IsKeyDown(Keys.F12) && !f12Pr)
+            else
             {
-                bool found = false;
-                foreach (KeyValuePair<string, Model> entry in TrackBlockModels.Models)
-                {
-                    if (found)
-                    {
-                        Console.WriteLine("Default block was changed from " + defaultBlock + " to " + entry.Key);
-                        defaultBlock = entry.Key;
-                        found = false;
-                        break;
-                    }
-                    if (defaultBlock == entry.Key)
-                    {
-                        found = true;
-                    }
-                }
-                if (found) Console.WriteLine("Current block " + defaultBlock + " is the last block in dictionary.");
-                f12Pr = true;
+                Console.WriteLine("Object type " + inputType + " with model " + inputModel + " does not exist. Available types and models:");
+                foreach (ObjectType available in level.Catalog.Objects)
+                    Console.WriteLine("  " + available.Type + ": " + string.Join(", ", available.Models));
+                Console.WriteLine("Object type is: " + objectType + "; Object model is: " + objectModel);
             }
-            if (keyState.IsKeyUp(Keys.F12)) f12Pr = false;
+            ToggleCapsLock();
+        }
 
-
-            //PgUp PgDo
-            if (keyState.IsKeyDown(Keys.PageUp) && !pgUp)
+        /// <summary>Places the block to place under the selector, or changes the block there into it.</summary>
+        private void PlaceBlock()
+        {
+            if (layer == Layer.Middle && !level.Catalog.FindBlock(block).Collision)
             {
-                for (int i = 0; i < where.Count; i++) if (where[i].blockPosition == position)
-                    {
-                        where[i].blockShift -= CTW3D(1f);
-                        defaultShift = where[i].blockShift;
-                        Console.WriteLine("Shift was decreased to: " + defaultShift);
-                        break;
-                    }
-                pgUp = true;
+                //The game needs a collision shape for every block of the middle (physics) layer
+                Console.WriteLine("Block " + block + " is decoration without a collision shape; it can only be placed in the back or front layer.");
+                return;
             }
-            if (keyState.IsKeyUp(Keys.PageUp)) pgUp = false;
 
-            if (keyState.IsKeyDown(Keys.PageDown) && !pgDo)
+            TrackBlock here = BlockHere;
+            if (here != null)
             {
-                for (int i = 0; i < where.Count; i++) if (where[i].blockPosition == position)
-                    {
-                        where[i].blockShift += CTW3D(1f);
-                        defaultShift = where[i].blockShift;
-                        Console.WriteLine("Shift was increased to: " + defaultShift);
-                        break;
-                    }
-                pgDo = true;
+                here.Model = level.BlockModel(block);
+                here.Name = block;
+                Console.WriteLine("Block model at " + position + " was changed to model: " + block);
+                return;
             }
-            if (keyState.IsKeyUp(Keys.PageDown)) pgDo = false;
 
-            // + - Change block
-            if (keyState.IsKeyDown(Keys.Insert) && !inPr)
+            Blocks.Add(new TrackBlock { Name = block, Model = level.BlockModel(block), Position = position, Shift = shift });
+            Console.WriteLine("New block was placed at " + position + "; Model: " + block + "; Shift: " + shift);
+        }
+
+        /// <summary>Places the dynamic object to place at the selector, unless another one is there.</summary>
+        private void PlaceObject()
+        {
+            Vector2 objectPosition = Round(position);
+            EditedObject there = level.Objects.Find(obj => obj.Position == objectPosition);
+            if (there != null)
             {
-                if (Console.CapsLock)
-                {
-                    CapsLock();
-                    Console.Write("Type object type: ");
-                    string inputType = Console.ReadLine();
-                    Console.Write("Type object model name: ");
-                    string inputModel = Console.ReadLine();
-                    ObjectType type = level.Catalog.FindObject(inputType);
-                    if (type != null && type.Models.Contains(inputModel))
-                    {
-                        objModel = inputModel;
-                        objType = inputType;
-                        Console.WriteLine("Object type set to: " + objType + ", object model set to: " + objModel);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Object type " + inputType + " with model " + inputModel + " does not exist. Available types and models:");
-                        foreach (ObjectType available in level.Catalog.Objects)
-                            Console.WriteLine("  " + available.Type + ": " + string.Join(", ", available.Models));
-                        Console.WriteLine("Object type is: " + objType + "; Object model is: " + objModel);
-                    }
-                    CapsLock();
-                }
-                else {
-                    Console.Write("Type block name: ");
-                    string input = Console.ReadLine();
-                    if (TrackBlockModels.Models.ContainsKey(input))
-                    {
-                        defaultBlock = input;
-                        Console.WriteLine("Default block was set to: " + defaultBlock);
-                    }
-                    else
-                    {
-                        Console.WriteLine("This block name does not exist: " + input + "\nDefault block is: " + defaultBlock);
-                    }
-                }
-                inPr = true;
+                Console.WriteLine("Cannot place new object on this position: " + objectPosition
+                    + "\nThis position is already occupied by another object (Type: " + there.Type + "; Model: " + there.ModelName + ").");
+                return;
             }
-            if (keyState.IsKeyUp(Keys.Add)) inPr = false;
 
-            // Place Block
-            if (keyState.IsKeyDown(Keys.Space) && !spPr)
+            level.Objects.Add(new EditedObject { Type = objectType, ModelName = objectModel, Model = level.ObjectModel(objectModel), Position = objectPosition });
+            Console.WriteLine("New object was placed at " + objectPosition + "; Type: " + objectType + "; Model: " + objectModel);
+        }
+
+        /// <summary>Tells what is under the selector.</summary>
+        private void Describe()
+        {
+            Console.WriteLine(position);
+            TrackBlock here = BlockHere;
+            Console.WriteLine(here != null
+                ? "There is a block on this position. Model: " + here.Name + "; Shift: " + here.Shift + (here.Finish ? "; the finish" : "")
+                : "This position is empty.");
+        }
+
+        /// <summary>
+        /// The block of the middle layer under the selector becomes the finish of the level (the only one),
+        /// or stops being it.
+        /// </summary>
+        private void ToggleFinish()
+        {
+            TrackBlock here = layer == Layer.Middle ? BlockHere : null;
+            if (here == null)
+                Console.WriteLine("The finish can only be a block of the middle layer.");
+            else if (here.Finish)
             {
-                if (Console.CapsLock)
-                {
-                    for (int i = 0; i < gObjects.Count; i++)
-                    {
-                        if (gObjects[i].objPosition == RoundPos(position))
-                        {
-                            Console.WriteLine("Cannot place new object on this position: " + RoundPos(position) + "\nThis position is already occupied by another object (Type: " + gObjects[i].objName + "; Model: " + gObjects[i].objModelName + ").");
-                            spPr = true;
-                            break;
-                        }
-                    }
-                    if (!spPr)
-                    {
-                        EditedObject obj = new EditedObject();
-                        obj.objModel = TrackPropModels.Models[objModel];
-                        obj.objName = objType;
-                        obj.objModelName = objModel;
-                        obj.objPosition = RoundPos(position);
-                        gObjects.Add(obj);
-                        //obj.isSelected = true;
-                        Console.WriteLine("New object was placet at " + obj.objPosition + "; Type: " + obj.objName + "; Model: " + obj.objModelName);
-                    }
-                }
-                else if (where == track && !level.Catalog.FindBlock(defaultBlock).Collision)
-                {
-                    //The game needs a collision bitmap for every block of the middle (physics) layer
-                    Console.WriteLine("Block " + defaultBlock + " is decoration without a collision bitmap; it can only be placed in the back or front layer.");
-                }
-                else
-                {
-                    for (int i = 0; i < where.Count; i++)
-                    {
-                        if (where[i].blockPosition == position)
-                        {
-                            where[i].blockModel = TrackBlockModels.Models[defaultBlock];
-                            where[i].modelName = defaultBlock;
-                            Console.WriteLine("Block model at " + position + " was changed to model: " + defaultBlock);
-                            spPr = true;
-                            break;
-                        }
-                    }
-                    if (!spPr)
-                    {
-                        TrackBlock newTrackBlock = new TrackBlock();
-                        newTrackBlock.blockModel = TrackBlockModels.Models[defaultBlock];
-                        newTrackBlock.modelName = defaultBlock;
-                        newTrackBlock.blockPosition = position;
-                        newTrackBlock.blockShift = defaultShift;
-                        where.Add(newTrackBlock);
-                        Console.WriteLine("New block was placed at " + position + "; Model: " + defaultBlock + "; Shift: " + defaultShift);
-                    }
-                }
-                spPr = true;
+                here.Finish = false;
+                Console.WriteLine("Block " + here.Name + " at " + position + " is no longer the finish; the level has none.");
             }
-            if (keyState.IsKeyUp(Keys.Space)) spPr = false;
-
-            // info
-            if (keyState.IsKeyDown(Keys.P) && !pPr)
+            else
             {
-                Console.WriteLine(position);
-                foreach (TrackBlock tb in where)
-                {
-                    if (tb.blockPosition == position)
-                    {
-                        Console.WriteLine("There is a block on this position. Model: " + tb.modelName + "; Shift: " + tb.blockShift + (tb.finish ? "; the finish" : ""));
-                        pPr = true;
-                    }
-                }
-                if (!pPr) { Console.WriteLine("This position is empty."); pPr = true; }
-
+                foreach (TrackBlock other in level.Middle)
+                    other.Finish = false;
+                here.Finish = true;
+                Console.WriteLine("Block " + here.Name + " at " + position + " is the finish of the level.");
             }
-            if (keyState.IsKeyUp(Keys.P)) pPr = false;
+        }
 
-            //Finish: the block of the middle layer under the selector becomes the finish of the level (the only one),
-            //or stops being it
-            if (keyState.IsKeyDown(Keys.F) && !finPr)
+        /// <summary>Switches the layer being edited; the console shows the back layer green, the front layer blue.</summary>
+        private void Edit(Layer newLayer)
+        {
+            layer = newLayer;
+            switch (layer)
             {
-                TrackBlock block = track.Find(tb => tb.blockPosition == position);
-                if (where != track || block == null)
-                    Console.WriteLine("The finish can only be a block of the middle layer.");
-                else if (block.finish)
-                {
-                    block.finish = false;
-                    Console.WriteLine("Block " + block.modelName + " at " + position + " is no longer the finish; the level has none.");
-                }
-                else
-                {
-                    foreach (TrackBlock tb in track)
-                        tb.finish = false;
-                    block.finish = true;
-                    Console.WriteLine("Block " + block.modelName + " at " + position + " is the finish of the level.");
-                }
-                finPr = true;
+                case Layer.Back:
+                    Console.BackgroundColor = ConsoleColor.DarkGreen;
+                    Console.WriteLine("Back side edit turned on.");
+                    break;
+                case Layer.Front:
+                    Console.BackgroundColor = ConsoleColor.Blue;
+                    Console.WriteLine("Front side edit turned on.");
+                    break;
+                default:
+                    Console.BackgroundColor = ConsoleColor.Black;
+                    Console.WriteLine("Back and front side edit turned off.");
+                    break;
             }
-            if (keyState.IsKeyUp(Keys.F)) finPr = false;
+        }
 
-            if (keyState.IsKeyDown(Keys.O))
+        /// <summary>The mouse selects (the left button) or deletes (the right button) the dynamic object under it.</summary>
+        private void PickObject()
+        {
+            MouseState mouse = Mouse.GetState();
+            bool left = mouse.LeftButton == ButtonState.Pressed;
+            bool down = left || mouse.RightButton == ButtonState.Pressed;
+            bool pressed = down && !mouseWasDown;
+            mouseWasDown = down;
+            if (!pressed)
+                return;
+
+            Ray ray = camera.PickRay(CreateProjection(graphics.GraphicsDevice.Viewport, camera.IsOrthographic), graphics.GraphicsDevice.Viewport);
+            EditedObject hit = level.Objects.Find(obj => RayHits(ray, new Vector3(obj.Position, 0f)));
+            if (left)
             {
-                level.ReadFile();
+                foreach (EditedObject obj in level.Objects)
+                    obj.IsSelected = obj == hit;
+                if (hit != null)
+                    Console.WriteLine("Game object selected.\n Type: " + hit.Type + "\n Model: " + hit.ModelName + "\n Position: " + hit.Position);
             }
-
-            if (keyState.IsKeyDown(Keys.End))
+            else if (hit != null)
             {
-                level.WriteFile();
+                level.Objects.Remove(hit);
+                Console.WriteLine("Game object deleted.\n Type: " + hit.Type + "\n Model: " + hit.ModelName + "\n Position: " + hit.Position);
             }
-
-            //// back front Edit
-            //.LeftShift (substituted with CapsLock because of the library?)
-            if (keyState.IsKeyDown(Keys.RightShift) && !shPr)
-            {
-                if (bEdit) { bEdit = false; where = track; Console.BackgroundColor = ConsoleColor.Black; Console.WriteLine("Back side edit turned off."); }
-                else { bEdit = true; fEdit = false; where = bSide; Console.BackgroundColor = ConsoleColor.DarkGreen; Console.WriteLine("Back side edit turned on."); }
-                shPr = true;
-            }
-            //.LeftShift
-            if (keyState.IsKeyUp(Keys.RightShift)) shPr = false;
-
-            if (keyState.IsKeyDown(Keys.RightControl) && !ctPr)
-            {
-                if (fEdit) { fEdit = false; where = track; Console.BackgroundColor = ConsoleColor.Black; Console.WriteLine("Front side edit turned off."); }
-                else { fEdit = true; bEdit = false; where = fSide; Console.BackgroundColor = ConsoleColor.Blue; Console.WriteLine("Front side edit turned on."); }
-                ctPr = true;
-            }
-            if (keyState.IsKeyUp(Keys.RightControl)) ctPr = false;
-
-            //// mouse
-            if (Console.CapsLock)
-            {
-                MouseState mouseState = Mouse.GetState();
-                if (mouseState.LeftButton == ButtonState.Pressed && !mlePr || mouseState.RightButton == ButtonState.Pressed && !mlePr)
-                {
-                    mlePr = true;
-                    Ray pickRay = camera.getPickRay(projection, screenManager);
-                    foreach (EditedObject ob in gObjects)
-                    {
-                        if (CheckRayIntersection(pickRay, new Vector3(ob.objPosition.X, ob.objPosition.Y, 0f)))
-                        {
-                            if (mouseState.LeftButton == ButtonState.Pressed)
-                            {
-                                ob.isSelected = true;
-                                Console.WriteLine("Game object selected.\n Type: " + ob.objName + "\n Model: " + ob.objModelName + "\n Position: " + ob.objPosition);
-                                break;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Game object deleted.\n Type: " + ob.objName + "\n Model: " + ob.objModelName + "\n Position: " + ob.objPosition);
-                                gObjects.Remove(ob);
-                                break;
-                            }
-                        }
-                        else ob.isSelected = false;
-                    }
-                }
-                if (mouseState.LeftButton == ButtonState.Released) mlePr = false;
-            }
-
         }
 
         public override void Draw()
         {
-            if (bEdit) posZ = CTW3D(-9f);
-            if (fEdit) posZ = CTW3D(9f);
-            if (!bEdit && !fEdit) posZ = 0f;
-            DrawModel(selectorModel, new Vector3(position.X, position.Y, posZ));
+            float depth = layer == Layer.Back ? -GridCell : layer == Layer.Front ? GridCell : 0f;
+            DrawModel(model, new Vector3(position, depth));
         }
     }
 }

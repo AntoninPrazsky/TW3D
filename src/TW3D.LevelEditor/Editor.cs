@@ -1,55 +1,50 @@
-﻿using Microsoft.Xna.Framework;
+﻿using System;
+using System.IO;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using LevelEditor.LevelObjects;
-using System;
-using System.IO;
 using TW3D.Graphics;
 using TW3D.Shared;
 
 namespace LevelEditor
 {
+    /// <summary>
+    /// The level editor: the level drawn as in the game, a free camera and the selector, which edits the level by the
+    /// keys (see <see cref="Selector"/>). The console window is its command line.
+    /// </summary>
     public class Editor : Game
     {
-        GraphicsDeviceManager graphics;
-        SpriteBatch spriteBatch;
-        Level level;
-        Camera3D camera;
-        Selector selector;
-        SceneRenderer renderer;
-        Model sky;
-        KeyboardState previousKeys;
-        readonly string startLevel;
-
         //The editor's background; the 2016 version had no sky
-        static readonly Color BackgroundColor = Color.Gray;
+        private static readonly Color BackgroundColor = Color.Gray;
         //Where the sky is drawn relative to the camera: as in the game, which draws it around the car
-        static readonly Vector3 SkyOffset = new Vector3(0f, -2f, 6.5f);
+        private static readonly Vector3 SkyOffset = new Vector3(0f, -2f, 6.5f);
         //The editor's camera is about 15 units further from the level than the game's, the haze starts so much later
-        const float HazeOffset = 15f;
+        private const float HazeOffset = 15f;
+
+        private readonly GraphicsDeviceManager graphics;
+        private readonly string startLevel;
+        private Level level;
+        private Camera3D camera;
+        private Selector selector;
+        private SceneRenderer renderer;
+        private Model sky;
+        private KeyboardState previousKeys;
 
         /// <param name="startLevel">Level file to open; null = ask for it.</param>
         public Editor(string startLevel = null)
-            : base()
         {
             this.startLevel = startLevel;
             graphics = new GraphicsDeviceManager(this);
             graphics.PreferMultiSampling = true;
             graphics.PreparingDeviceSettings += (sender, e) => e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = 4;
-            Content.RootDirectory = "Content";
             graphics.PreferredBackBufferWidth = 1900;
             graphics.PreferredBackBufferHeight = 1000;
             graphics.SynchronizeWithVerticalRetrace = true;
+            Content.RootDirectory = "Content";
             Window.Title = "Level Editor";
             Window.AllowUserResizing = true;
-            //Window.IsBorderless = true;
-            //Window.AllowAltF4 = false;
             IsMouseVisible = true;
-        }
-
-        protected override void Initialize()
-        {
-            base.Initialize();
         }
 
         protected override void LoadContent()
@@ -59,36 +54,28 @@ namespace LevelEditor
             using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
                 catalog = Catalog.Load(stream);
 
-            foreach (BlockType block in catalog.Blocks)
-                TrackBlockModels.Models.Add(block.Name, Content.Load<Model>(block.ModelAsset));
-            foreach (string model in catalog.ObjectModels)
-                TrackPropModels.Models.Add(model, Content.Load<Model>(ObjectType.ModelAsset(model)));
-
             camera = new Camera3D();
-            camera.IsOrtographic = false;
-            level = new Level(graphics, camera, catalog, Vector2.Zero, 0.25f, startLevel);
-            selector = new Selector(graphics, camera, Vector2.Zero, 0.25f, Content, level);
+            level = new Level(catalog, Content, startLevel);
+            selector = new Selector(graphics, camera, Content, level);
 
             renderer = new SceneRenderer(GraphicsDevice, Content) { ClearColor = BackgroundColor, HazeOffset = HazeOffset };
             sky = Content.Load<Model>("Env/sky");
-
-            spriteBatch = new SpriteBatch(GraphicsDevice);
         }
-
-        protected override void UnloadContent() { }
 
         protected override void Update(GameTime gameTime)
         {
-            if (Keyboard.GetState().IsKeyDown(Keys.Escape))
+            KeyboardState keys = Keyboard.GetState();
+            if (keys.IsKeyDown(Keys.Escape))
             {
                 Console.WriteLine("Are you sure you want to quit? Y/N");
-                ConsoleKeyInfo ans = Console.ReadKey();
-                if (ans.KeyChar == 'Y' || ans.KeyChar == 'y') Exit();
-                else Console.WriteLine("\nNot quitting.");
+                ConsoleKeyInfo answer = Console.ReadKey();
+                if (answer.KeyChar == 'Y' || answer.KeyChar == 'y')
+                    Exit();
+                else
+                    Console.WriteLine("\nNot quitting.");
             }
 
             //The lighting as in the game (F9: of the 2016 version, F10: shadows)
-            KeyboardState keys = Keyboard.GetState();
             if (keys.IsKeyDown(Keys.F9) && previousKeys.IsKeyUp(Keys.F9))
             {
                 renderer.Classic = !renderer.Classic;
@@ -107,8 +94,7 @@ namespace LevelEditor
             }
             previousKeys = keys;
 
-            float timeDifference = (float)gameTime.ElapsedGameTime.TotalMilliseconds / 1000f;
-            camera.ProcessInput(timeDifference);
+            camera.ProcessInput((float)gameTime.ElapsedGameTime.TotalSeconds);
             selector.Update();
             base.Update(gameTime);
         }
@@ -118,9 +104,9 @@ namespace LevelEditor
             GraphicsDevice.Clear(BackgroundColor);
 
             renderer.Lighting = Lighting.For(level.Mood);
-            renderer.Begin(camera.viewMatrix, GameObject.CreateProjection(GraphicsDevice.Viewport, camera.IsOrtographic));
+            renderer.Begin(camera.View, GameObject.CreateProjection(GraphicsDevice.Viewport, camera.IsOrthographic));
             if (!renderer.Classic)
-                renderer.SetBackground(sky, Matrix.CreateScale(0.25f) * Matrix.CreateTranslation(camera.cameraPosition + SkyOffset));
+                renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
             level.Draw(renderer);
             renderer.End();
 

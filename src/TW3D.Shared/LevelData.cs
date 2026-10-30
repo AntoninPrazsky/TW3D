@@ -92,7 +92,7 @@ namespace TW3D.Shared
                     if (block == null)
                         problems.Add($"Unknown block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer.");
                     else if (needsCollision && !block.Collision)
-                        problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has no collision bitmap, so it cannot be in the {layerName} layer.");
+                        problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has no collision shape, so it cannot be in the {layerName} layer.");
                 }
             }
 
