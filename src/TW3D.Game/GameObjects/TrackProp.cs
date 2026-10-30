@@ -1,4 +1,5 @@
-﻿using nkast.Aether.Physics2D.Collision.Shapes;
+﻿using System;
+using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
@@ -46,6 +47,16 @@ namespace TW3D.GameObjects
             propBody.SetFriction(type.Friction);
             propBody.Mass = type.Mass;
             propBody.SetRestitution(type.Restitution);
+
+            //A contact bounces as much as the more bouncy of its two bodies. The track bounces fully (the car
+            //bounces on it), so an object resting on it would hop for ever and never fall asleep: the contacts
+            //of an object bounce at most as much as the object itself.
+            float restitution = type.Restitution;
+            propBody.OnCollision += (sender, other, contact) =>
+            {
+                contact.Restitution = Math.Min(contact.Restitution, restitution);
+                return true;
+            };
         }
 
         public override void Draw(SceneRenderer renderer)
