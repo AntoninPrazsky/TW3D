@@ -31,12 +31,8 @@ namespace TW3D.GameObjects
         private RevoluteJoint springLeftB, springRightB, springTopB, springLeftF, springRightF, springTopF;
         List<RevoluteJoint> wJoints = new List<RevoluteJoint>();
 
-        //The headlights at the front of the car (model coordinates; the car drives towards -x of its model): they shine
-        //from the middle of the lamps of the model, a little in front of them (or from here, if it has none)
-        private static readonly Vector3 DefaultHeadlightPosition = new Vector3(-4.2f, 0.4f, 0f);
-        private static readonly Vector3 HeadlightDirection = new Vector3(-1f, -0.3f, 0f);
-        private const float HeadlightAhead = 0.2f;
-        private readonly Vector3 headlightPosition;
+        //The car drives towards -x of its model (its headlights point there)
+        private static readonly Vector3 Forward = -Vector3.UnitX;
 
         private Model carModel;
         private Model wheelModel;
@@ -65,7 +61,6 @@ namespace TW3D.GameObjects
 
             carModel = screenManager.Content.Load<Model>(CarName);
             wheelModel = screenManager.Content.Load<Model>(WheelName);
-            headlightPosition = FindHeadlights(carModel) ?? DefaultHeadlightPosition;
             holderModel = screenManager.Content.Load<Model>("holder");
 
             car = CreateModelBody(CarName, BodyType.Dynamic);
@@ -319,28 +314,6 @@ namespace TW3D.GameObjects
             holderF.FixedRotation = holderRotLockChnage;
         }
         
-        /// <summary>The middle of the headlights of a car model (each a mesh with a headlight lens), a little in front of them.</summary>
-        private static Vector3? FindHeadlights(Model model)
-        {
-            Matrix[] transforms = new Matrix[model.Bones.Count];
-            model.CopyAbsoluteBoneTransformsTo(transforms);
-            Vector3 sum = Vector3.Zero;
-            int count = 0;
-            foreach (ModelMesh mesh in model.Meshes)
-            {
-                foreach (ModelMeshPart part in mesh.MeshParts)
-                {
-                    if (SceneRenderer.LampOf(part) == Lamp.Headlight)
-                    {
-                        sum += Vector3.Transform(mesh.BoundingSphere.Center, transforms[mesh.ParentBone.Index]);
-                        count++;
-                        break;
-                    }
-                }
-            }
-            return count > 0 ? sum / count + Vector3.Normalize(HeadlightDirection) * HeadlightAhead : null;
-        }
-
         public bool IsIntersected(float x, float y)
         {
             Ray pickRay = GetPickRay(x, y);
@@ -365,7 +338,7 @@ namespace TW3D.GameObjects
         {
             DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
-            renderer.SetCarLights(Vector3.Transform(headlightPosition, body), Vector3.TransformNormal(HeadlightDirection, body), brake);
+            renderer.SetCar(carModel, body, Forward, brake);
 
             DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
             DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);

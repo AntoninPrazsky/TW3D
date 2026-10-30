@@ -6,7 +6,7 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace TW3D.Graphics
 {
-    /// <summary>The lamps of a car among the materials of its model (see <see cref="SceneRenderer.LampOf"/>).</summary>
+    /// <summary>The lamps of a car among the materials of its model.</summary>
     public enum Lamp
     {
         None,
@@ -24,8 +24,9 @@ namespace TW3D.Graphics
     /// they cast no shadows and do not count for the ambient occlusion. Metal and smooth materials (the metallic
     /// and the roughness of a material, "Pm" and "Pr" in its MTL file, kept by the content pipeline in the Tag of
     /// its mesh parts) mirror the sky, the ground and the sun. The lamps of a car (materials named "headlight…" and
-    /// "taillight…") shine in their emissive colour ("Ke") only when they are on (<see cref="SetCarLights"/>), with
-    /// a glow around them; each lamp is a mesh of its own, the glow is at its middle.
+    /// "taillight…") shine in their emissive colour ("Ke") only when they are on (<see cref="SetCar"/>), with a glow
+    /// around them, and light the scene as spot lights in that colour; each lamp is a mesh of its own, its light
+    /// and its glow are at its middle.
     /// </remarks>
     public sealed class SceneRenderer
     {
@@ -71,11 +72,24 @@ namespace TW3D.Graphics
         private const float OcclusionIntensity = 1.6f;
         private const float OcclusionBias = 0.05f;
 
-        //The headlights of the car: a warm spot light reaching this far (world units)
-        private static readonly Vector3 HeadlightColor = new Vector3(1f, 0.88f, 0.68f) * 5f;
-        private const float HeadlightInnerAngle = 16f;
-        private const float HeadlightOuterAngle = 30f;
+        //The lamps of the car light the scene as spot lights (two headlights and two rear lights, as Scene.fx has them),
+        //in their emissive colours this many times brighter, within the inner and outer angle (degrees) of their
+        //cones, reaching this far (world units), pointing ahead or behind and this much down; the headlights turned
+        //this much (degrees) to their sides, so that their beams part. The rear lights are weaker in daylight
+        private const int HeadlightCount = 2;
+        private const int CarLightCount = 4;
+        private const float HeadlightIntensity = 4f;
+        private const float HeadlightInnerAngle = 8f;
+        private const float HeadlightOuterAngle = 20f;
         private const float HeadlightRange = 14f;
+        private const float HeadlightDip = 0.3f;
+        private const float HeadlightSpread = 8f;
+        private const float RearLightIntensity = 2.5f;
+        private const float RearLightInnerAngle = 30f;
+        private const float RearLightOuterAngle = 75f;
+        private const float RearLightRange = 5f;
+        private const float RearLightDip = 0.5f;
+        private const float RearLightDaylight = 0.3f;
 
         /// <summary>A part of a model with one material, ready to draw.</summary>
         private sealed class ModelPart
@@ -169,8 +183,17 @@ namespace TW3D.Graphics
         private Vector3 eye;
         private Model background;
         private Matrix backgroundWorld;
-        private bool headlights, braking;
-        private Vector3 headlightPosition, headlightDirection;
+        //The car: its lamps shining as spot lights, which lamp each is, where it is (relative to the car) and where it
+        //points, the colour of its light when fully on
+        private bool car, braking;
+        private Vector3 carPosition;
+        private readonly Lamp[] lights = new Lamp[CarLightCount];
+        private readonly Vector3[] lightOffsets = new Vector3[CarLightCount];
+        private readonly Vector3[] lightDirections = new Vector3[CarLightCount];
+        private readonly Vector3[] lightColours = new Vector3[CarLightCount];
+        private readonly Vector3[] lightLevels = new Vector3[CarLightCount];
+        private readonly Vector2[] lightCones = new Vector2[CarLightCount];
+        private readonly float[] lightRanges = new float[CarLightCount];
 
         public SceneRenderer(GraphicsDevice device, ContentManager content)
         {
@@ -200,10 +223,22 @@ namespace TW3D.Graphics
             occlusionEffect.Parameters["Intensity"].SetValue(OcclusionIntensity);
             occlusionEffect.Parameters["Bias"].SetValue(OcclusionBias);
 
-            float inner = MathF.Cos(MathHelper.ToRadians(HeadlightInnerAngle));
-            float outer = MathF.Cos(MathHelper.ToRadians(HeadlightOuterAngle));
-            effect.Parameters["SpotCone"].SetValue(new Vector2(outer, 1f / (inner - outer)));
-            effect.Parameters["SpotRange"].SetValue(HeadlightRange);
+            for (int i = 0; i < CarLightCount; i++)
+            {
+                bool headlight = i < HeadlightCount;
+                lightCones[i] = Cone(headlight ? HeadlightInnerAngle : RearLightInnerAngle, headlight ? HeadlightOuterAngle : RearLightOuterAngle);
+                lightRanges[i] = headlight ? HeadlightRange : RearLightRange;
+            }
+            effect.Parameters["LightCone"].SetValue(lightCones);
+            effect.Parameters["LightRange"].SetValue(lightRanges);
+        }
+
+        /// <summary>The cone of a spot light as the shader has it.</summary>
+        private static Vector2 Cone(float innerAngle, float outerAngle)
+        {
+            float inner = MathF.Cos(MathHelper.ToRadians(innerAngle));
+            float outer = MathF.Cos(MathHelper.ToRadians(outerAngle));
+            return new Vector2(outer, 1f / (inner - outer));
         }
 
         /// <summary>Draw with the lighting of the 2016 version.</summary>
@@ -236,8 +271,9 @@ namespace TW3D.Graphics
             frustum.Matrix = view * projection;
             items.Clear();
             background = null;
-            headlights = false;
+            car = false;
             braking = false;
+            Array.Clear(lights);
         }
 
         /// <summary>Adds a model to the scene.</summary>
@@ -247,21 +283,41 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
-        /// The lights of the car: the headlights, shining (with their lamps) if the lighting has them on, and the brake
-        /// lights, shining when the car brakes. The rear lights shine dimly with the headlights.
+        /// The car, whose lamps (the lamps of its model) shine and light the scene: the headlights if the lighting has
+        /// them on, the rear lights dimly with them and fully when the car brakes.
         /// </summary>
-        public void SetCarLights(Vector3 headlightPosition, Vector3 headlightDirection, bool braking)
+        /// <param name="forward">The direction the car faces in its model.</param>
+        public void SetCar(Model model, Matrix world, Vector3 forward, bool braking)
         {
-            headlights = true;
-            this.headlightPosition = headlightPosition;
-            this.headlightDirection = Vector3.Normalize(headlightDirection);
+            car = true;
             this.braking = braking;
+            carPosition = world.Translation;
+            Vector3 ahead = Vector3.Normalize(Vector3.TransformNormal(forward, world));
+            Vector3 up = Vector3.Normalize(Vector3.TransformNormal(Vector3.Up, world));
+            Vector3 side = Vector3.Normalize(Vector3.Cross(ahead, up));
+            float scale = Vector3.TransformNormal(Vector3.UnitX, world).Length();
+
+            //The light comes from the front of a lamp: from its middle, as far ahead (or behind) as it is large
+            int headlights = 0, rearLights = 0;
+            foreach (LampData lamp in GetModelData(model).Lamps)
+            {
+                bool headlight = lamp.Lamp == Lamp.Headlight;
+                int slot = headlight ? headlights++ : HeadlightCount + rearLights++;
+                if (slot >= (headlight ? HeadlightCount : CarLightCount))
+                    continue;
+                Vector3 direction = headlight ? ahead : -ahead;
+                lights[slot] = lamp.Lamp;
+                lightOffsets[slot] = Vector3.Transform(lamp.Bounds.Center, world) + direction * (lamp.Bounds.Radius * scale) - carPosition;
+                Vector3 turn = headlight ? side * (MathF.Sign(Vector3.Dot(lightOffsets[slot], side)) * MathF.Tan(MathHelper.ToRadians(HeadlightSpread))) : Vector3.Zero;
+                lightDirections[slot] = Vector3.Normalize(direction + turn - up * (headlight ? HeadlightDip : RearLightDip));
+                lightColours[slot] = ToLinear(lamp.Colour) * (headlight ? HeadlightIntensity : RearLightIntensity);
+            }
         }
 
         /// <summary>How much a lamp of the car shines now: 0 = off, 1 = fully.</summary>
         private float LampGlow(Lamp lamp)
         {
-            bool lightsOn = headlights && Lighting.Headlights;
+            bool lightsOn = car && Lighting.Headlights;
             switch (lamp)
             {
                 case Lamp.Headlight: return lightsOn ? 1f : 0f;
@@ -575,9 +631,17 @@ namespace TW3D.Graphics
             effect.Parameters["MirroredSky"].SetValue(lighting.SkyLight * MirroredSkyLight);
             effect.Parameters["MirroredHorizon"].SetValue(ToLinear(lighting.HazeColor) * MirroredHorizon);
             effect.Parameters["MirroredGround"].SetValue(lighting.GroundLight * MirroredGroundLight);
-            effect.Parameters["SpotPosition"].SetValue(headlightPosition);
-            effect.Parameters["SpotDirection"].SetValue(headlights ? headlightDirection : Vector3.UnitX);
-            effect.Parameters["SpotColor"].SetValue(headlights && lighting.Headlights ? HeadlightColor : Vector3.Zero);
+            for (int i = 0; i < CarLightCount; i++)
+            {
+                float level = lights[i] == Lamp.None ? 0f : LampGlow(lights[i]);
+                if (lights[i] == Lamp.RearLight && !lighting.Headlights)
+                    level *= RearLightDaylight;
+                lightLevels[i] = lightColours[i] * level;
+            }
+            effect.Parameters["LightOrigin"].SetValue(carPosition);
+            effect.Parameters["LightOffset"].SetValue(lightOffsets);
+            effect.Parameters["LightDirection"].SetValue(lightDirections);
+            effect.Parameters["LightColor"].SetValue(lightLevels);
 
             effect.Parameters["ViewProjection"].SetValue(view * projection);
             effect.Parameters["CameraPosition"].SetValue(eye);
@@ -773,12 +837,6 @@ namespace TW3D.Graphics
         private static Vector3 Finish(ModelMeshPart part)
         {
             return part.Tag is Vector3 finish ? finish : new Vector3(0f, 1f, 0f);
-        }
-
-        /// <summary>Which lamp of a car the material of a mesh part is.</summary>
-        public static Lamp LampOf(ModelMeshPart part)
-        {
-            return (Lamp)(int)Finish(part).Z;
         }
 
         private static Vector3 ToLinear(Vector3 color)

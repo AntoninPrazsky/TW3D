@@ -2,7 +2,7 @@
 // so the light makes the whole look: the sun with its shadows, the light of the sky from above
 // and the light reflected by the ground from below (both dimmed in corners and crevices by
 // ambient occlusion), a highlight of the sun, a rim of sky light at grazing angles and the
-// headlights of the car (a spot light, at night). It is computed in linear colour space and
+// lamps of the car (spot lights: the headlights at night, the rear lights). It is computed in linear colour space and
 // mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
 // Glass (Alpha less than 1) is blended over the scene, less transparent where it shines.
 // Smooth materials (Roughness less than 1) mirror the sky, the ground and the sun; metal
@@ -43,12 +43,15 @@ float3 MirroredSky;
 float3 MirroredHorizon;
 float3 MirroredGround;
 
-// The headlights of the car: a spot light
-float3 SpotPosition;
-float3 SpotDirection;       // unit vector
-float3 SpotColor;           // linear; black = off
-float2 SpotCone;            // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
-float SpotRange;
+// The lamps of the car, spot lights: two headlights, two rear lights. Their positions are given
+// relative to the car (LightOrigin), the vector from a point to the car is computed in the vertex shader
+#define CAR_LIGHTS 4
+float3 LightOrigin;
+float3 LightOffset[CAR_LIGHTS];     // position of the lamp - LightOrigin
+float3 LightDirection[CAR_LIGHTS];  // unit vector
+float3 LightColor[CAR_LIGHTS];      // linear; black = off
+float2 LightCone[CAR_LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
+float LightRange[CAR_LIGHTS];
 
 // The sky: the brightness of its picture in these colours (on the screen) at the horizon and above,
 // mixed with the picture as it is by SkyRecolor (0 = the picture as it is)
@@ -114,7 +117,7 @@ struct VertexInput
 };
 
 // Phones run pixel shaders in half precision, too coarse for positions in a long level:
-// the vectors to the camera and to the headlights and the position in the shadow map are
+// the vectors to the camera and to the car and the position in the shadow map are
 // computed here, in the vertex shader, where they are still precise
 struct VertexOutput
 {
@@ -123,7 +126,7 @@ struct VertexOutput
 	float3 Normal : TEXCOORD1;
 	float3 Shadow : TEXCOORD2;     // texture coordinates and depth in the shadow map
 	float4 Screen : TEXCOORD3;     // position on the screen (clip space)
-	float3 ToSpot : TEXCOORD4;
+	float3 ToCar : TEXCOORD4;
 };
 
 VertexOutput MainVS(VertexInput input)
@@ -140,7 +143,7 @@ VertexOutput MainVS(VertexInput input)
 	shadow.xyz /= shadow.w;
 	output.Shadow = float3(shadow.x * 0.5 + 0.5, -shadow.y * 0.5 + 0.5, shadow.z);
 	output.Screen = output.Position;
-	output.ToSpot = SpotPosition - world.xyz;
+	output.ToCar = LightOrigin - world.xyz;
 	return output;
 }
 
@@ -216,11 +219,16 @@ float4 MainPS(VertexOutput input) : COLOR0
 	highlight *= diffuse;
 	rim *= diffuse;
 
-	float spotDistance = length(input.ToSpot);
-	float3 toSpot = input.ToSpot / max(spotDistance, 0.001);
-	float cone = saturate((dot(-toSpot, SpotDirection) - SpotCone.x) * SpotCone.y);
-	float spotFade = saturate(1.0 - spotDistance / SpotRange);
-	float3 spot = SpotColor * (saturate(dot(normal, toSpot)) * cone * spotFade * spotFade);
+	float3 spot = 0.0;
+	for (int i = 0; i < CAR_LIGHTS; i++)
+	{
+		float3 toLight = input.ToCar + LightOffset[i];
+		float lightDistance = length(toLight);
+		toLight /= max(lightDistance, 0.001);
+		float cone = saturate((dot(-toLight, LightDirection[i]) - LightCone[i].x) * LightCone[i].y);
+		float fade = saturate(1.0 - lightDistance / LightRange[i]);
+		spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
+	}
 
 	float3 light = DiffuseColor * diffuse * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
