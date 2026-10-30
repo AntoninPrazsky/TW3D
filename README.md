@@ -107,9 +107,9 @@ uses as many columns as fit the screen.
 Enter, a gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back
 gesture or button of a phone) goes back; in the main menu it quits the game.
 
-**Garage:** the cars to choose from, one at a time; the arrows next to the name (or
-left and right) show the others. The car shown is the one to drive, saved with the
-options.
+**Garage:** the cars to choose from, one at a time; dragging the car sideways (with a
+finger or the mouse) or the arrows next to the name (or left and right) show the others.
+The car shown is the one to drive, saved with the options.
 
 **Options:** full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
