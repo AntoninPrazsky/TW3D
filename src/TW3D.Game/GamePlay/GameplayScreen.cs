@@ -344,13 +344,15 @@ namespace TW3D.GamePlay
             if (!Manager.Game.IsActive && !IsClosing && Manager.Screens[Manager.Screens.Count - 1] == this)
                 Pause();
 
-            //The simulation runs with a fixed time step whatever the frame rate is,
-            //and pauses while the screen does not have the focus (window inactive, screen closing)
-            if (HasFocus)
+            //The simulation runs with a fixed time step whatever the frame rate is, and pauses while the screen does
+            //not have the focus (window inactive, the pause menu, screen closing); under the results it goes on, the car
+            //out of the player's hands (the results get the input)
+            bool running = HasFocus || (resultsShown && Manager.Game.IsActive && !IsClosing && Manager.Screens[Manager.Screens.Count - 1] is ResultsScreen);
+            if (running)
                 physics.Advance(elapsed);
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
-            camera.Update(HasFocus ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
+            camera.Update(running ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
 
             if (HasFocus)
                 UpdateRace((float)gameTime.ElapsedGameTime.TotalSeconds);
@@ -436,8 +438,7 @@ namespace TW3D.GamePlay
 
             string time = RaceScore.FormatTime(race == RaceState.Countdown ? 0f : raceTime);
             Color timeColour = race == RaceState.Finished ? MainMenuScreen.Yellow : Color.White;
-            Vector2 timeSize = font.MeasureString(time) * TimeScale * uiScale;
-            Manager.DrawShadowedText(font, time, new Vector2(centreX - timeSize.X / 2f, safe.Top), timeColour, Color.Black, TimeScale * uiScale);
+            Vector2 timeSize = DrawTime(font, time, new Vector2(centreX, safe.Top), timeColour, TimeScale * uiScale);
             if (level.FinishArea.HasValue)
             {
                 string par = "Par " + RaceScore.FormatTime(level.Par);
@@ -456,6 +457,32 @@ namespace TW3D.GamePlay
                 DrawBig(batch, "Start", MainMenuScreen.Yellow, 1f, 1f - raceTime / StartShown);
             else if (race == RaceState.Finished && !resultsShown)
                 DrawBig(batch, "Finish", MainMenuScreen.Yellow, 1f, 1f);
+        }
+
+        /// <summary>
+        /// Draws a time centred under a point, its digits in cells of the same width, so that it stands still as the
+        /// digits change (the digits of the font are not equally wide). Returns its size.
+        /// </summary>
+        private Vector2 DrawTime(SpriteFont font, string text, Vector2 topCentre, Color colour, float scale)
+        {
+            float digitWidth = 0f;
+            for (char digit = '0'; digit <= '9'; digit++)
+                digitWidth = Math.Max(digitWidth, font.MeasureString(digit.ToString()).X);
+
+            float width = 0f;
+            foreach (char c in text)
+                width += char.IsDigit(c) ? digitWidth : font.MeasureString(c.ToString()).X;
+
+            float x = topCentre.X - width * scale / 2f;
+            foreach (char c in text)
+            {
+                string glyph = c.ToString();
+                float glyphWidth = font.MeasureString(glyph).X;
+                float cell = char.IsDigit(c) ? digitWidth : glyphWidth;
+                Manager.DrawShadowedText(font, glyph, new Vector2(x + (cell - glyphWidth) * scale / 2f, topCentre.Y), colour, Color.Black, scale);
+                x += cell * scale;
+            }
+            return new Vector2(width, font.LineSpacing) * scale;
         }
 
         private void DrawBig(SpriteBatch batch, string text, Color colour, float size, float alpha)
