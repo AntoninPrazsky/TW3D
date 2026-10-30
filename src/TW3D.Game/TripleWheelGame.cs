@@ -11,7 +11,8 @@ using TW3D.Shared;
 
 namespace TW3D
 {
-    public class Game1 : Game
+    /// <summary>The game: its window (or the screen of a phone), the screens from the menu to the levels and the settings.</summary>
+    public class TripleWheelGame : Game
     {
 #if ANDROID
         //Samples per pixel of the multisample antialiasing; fewer on phones, where it costs more
@@ -34,7 +35,7 @@ namespace TW3D
 
         /// <param name="windowSize">Size of the window; null = by the settings (full screen, or a maximized window).</param>
         /// <param name="startLevel">Level to start directly, skipping the menu; null = start with the menu.</param>
-        public Game1(Point? windowSize = null, string startLevel = null)
+        public TripleWheelGame(Point? windowSize = null, string startLevel = null)
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";

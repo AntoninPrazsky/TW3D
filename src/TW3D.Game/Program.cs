@@ -26,7 +26,7 @@ namespace TW3D
                     windowSize = new Point(width, height);
             }
 
-            using (var game = new Game1(windowSize, ArgumentValue(args, "--level")))
+            using (var game = new TripleWheelGame(windowSize, ArgumentValue(args, "--level")))
                 game.Run();
         }
 

@@ -21,7 +21,7 @@ namespace TW3D
             | ConfigChanges.ScreenSize | ConfigChanges.ScreenLayout | ConfigChanges.SmallestScreenSize | ConfigChanges.UiMode)]
     public class MainActivity : AndroidGameActivity
     {
-        private Game1 game;
+        private TripleWheelGame game;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -44,7 +44,7 @@ namespace TW3D
             }
             Window.Attributes = attributes;
 
-            game = new Game1();
+            game = new TripleWheelGame();
             SetContentView((View)game.Services.GetService(typeof(View)));
             HideSystemBars();
             game.Run();
