@@ -144,7 +144,7 @@ namespace TW3D.GamePlay
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            controls.Update(input, Manager.Viewport, Manager.UiScale);
+            controls.Update(input, Manager.Viewport, Manager.ControlsScale);
             if (input.BackPressed || input.KeyPressed(Keys.P) || controls.PausePressed)
             {
                 Pause();
@@ -312,7 +312,7 @@ namespace TW3D.GamePlay
 
             SpriteBatch batch = Manager.SpriteBatch;
             batch.Begin();
-            controls.Layout(Manager.Viewport, Manager.UiScale);
+            controls.Layout(Manager.Viewport, Manager.ControlsScale);
             controls.Draw(batch, 1f);
             //Fading in and out through black
             batch.Draw(Manager.Pixel, Manager.Viewport.Bounds, Color.Black * (1f - Visibility));

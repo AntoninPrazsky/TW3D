@@ -55,6 +55,15 @@ namespace TW3D.Screens
         /// </summary>
         public float UiSize { get; set; } = 1f;
 
+        /// <summary>
+        /// Size of the on-screen controls relative to the screen, like <see cref="UiSize"/>. On phones they need not
+        /// be as big as the text of the menus: they are not read, only hit by a thumb.
+        /// </summary>
+        public float ControlsSize { get; set; } = 1f;
+
+        /// <summary>Scale of the on-screen controls (see <see cref="UiScale"/> and <see cref="ControlsSize"/>).</summary>
+        public float ControlsScale => UiScale / UiSize * ControlsSize;
+
         /// <summary>The screen without the margin along its edges; the user interface stays inside it.</summary>
         public Rectangle SafeArea
         {

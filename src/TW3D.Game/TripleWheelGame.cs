@@ -17,8 +17,10 @@ namespace TW3D
 #if ANDROID
         //Samples per pixel of the multisample antialiasing; fewer on phones, where it costs more
         private const int MultiSampleCount = 4;
-        //A phone screen is small, so the user interface is bigger than on a monitor (see ScreenManager.UiSize)
+        //A phone screen is small, so the user interface is bigger than on a monitor (see ScreenManager.UiSize),
+        //the on-screen controls less so (ScreenManager.ControlsSize)
         private const float PhoneUiSize = 2f;
+        private const float PhoneControlsSize = 1.5f;
 #else
         //Samples per pixel of the multisample antialiasing
         private const int MultiSampleCount = 8;
@@ -68,6 +70,7 @@ namespace TW3D
             screens = new ScreenManager(this);
 #if ANDROID
             screens.UiSize = PhoneUiSize;
+            screens.ControlsSize = PhoneControlsSize;
 #endif
             Components.Add(screens);
             Components.Add(new FrameRateCounter(this, screens, settings) { DrawOrder = 100 });

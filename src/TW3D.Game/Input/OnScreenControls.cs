@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -17,8 +18,11 @@ namespace TW3D.Input
         private const float ButtonSpacing = 32f;
         //How far the stick can be pulled from the centre, in texture pixels
         private const float StickTravel = 30f;
-        //Size of the pause button, in reference pixels
-        private const float PauseButtonSize = 96f;
+        //Size of the pause button and its distance from the screen edges, in reference pixels;
+        //it reacts to a touch a little around it too
+        private const float PauseButtonSize = 64f;
+        private const float PauseMargin = 24f;
+        private const float PauseTouchMargin = 24f;
 
         //Sprite sheet regions: released and pressed state
         private static readonly Rectangle BrakeReleased = new Rectangle(1, 1, 145, 160);
@@ -37,6 +41,7 @@ namespace TW3D.Input
         private Vector2 brakeCenter;
         private Vector2 lockCenter;
         private Rectangle pauseBounds;
+        private Rectangle pauseTouchBounds;
 
         private int? joystickPointerId;
         private Vector2 stickOffset;
@@ -61,9 +66,10 @@ namespace TW3D.Input
             this.pixel = pixel;
         }
 
-        public void Update(InputState input, Viewport viewport, float uiScale)
+        /// <param name="controlsScale">Scale of the controls (see <see cref="Screens.ScreenManager.ControlsScale"/>).</param>
+        public void Update(InputState input, Viewport viewport, float controlsScale)
         {
-            Layout(viewport, uiScale);
+            Layout(viewport, controlsScale);
 
             UpdateJoystick(input);
 
@@ -78,7 +84,7 @@ namespace TW3D.Input
                     BrakePressed = true;
                 if (ButtonBounds(lockCenter, LockReleased).Contains(pointer.Position))
                     LockPressed = true;
-                if (pointer.Phase == PointerPhase.Pressed && pauseBounds.Contains(pointer.Position))
+                if (pointer.Phase == PointerPhase.Pressed && pauseTouchBounds.Contains(pointer.Position))
                     PausePressed = true;
             }
         }
@@ -92,16 +98,16 @@ namespace TW3D.Input
                 || Vector2.Distance(pointer.Position, joystickCenter) <= JoystickRadius
                 || ButtonBounds(brakeCenter, BrakeReleased).Contains(pointer.Position)
                 || ButtonBounds(lockCenter, LockReleased).Contains(pointer.Position)
-                || pauseBounds.Contains(pointer.Position);
+                || pauseTouchBounds.Contains(pointer.Position);
         }
 
         private float JoystickRadius => socketTexture.Width / 2f * scale;
 
         /// <summary>Places the controls on the screen; called by Update, or before drawing when there was no input.</summary>
-        public void Layout(Viewport viewport, float uiScale)
+        public void Layout(Viewport viewport, float controlsScale)
         {
-            scale = ReferenceScale * uiScale;
-            float margin = EdgeMargin * uiScale;
+            scale = ReferenceScale * controlsScale;
+            float margin = EdgeMargin * controlsScale;
             float bottom = viewport.Height - margin;
 
             //Joystick in the bottom left corner, brake in the bottom right corner and the lock button next to it
@@ -112,11 +118,14 @@ namespace TW3D.Input
             brakeCenter = new Vector2(viewport.Width - margin - brakeSize.X / 2f, bottom - brakeSize.Y / 2f);
 
             Vector2 lockSize = new Vector2(LockReleased.Width, LockReleased.Height) * scale;
-            lockCenter = new Vector2(brakeCenter.X - brakeSize.X / 2f - ButtonSpacing * uiScale - lockSize.X / 2f, bottom - lockSize.Y / 2f);
+            lockCenter = new Vector2(brakeCenter.X - brakeSize.X / 2f - ButtonSpacing * controlsScale - lockSize.X / 2f, bottom - lockSize.Y / 2f);
 
-            //Pause in the top right corner
-            int pauseSize = (int)(PauseButtonSize * uiScale);
-            pauseBounds = new Rectangle((int)(viewport.Width - margin) - pauseSize, (int)margin, pauseSize, pauseSize);
+            //Pause in the top right corner, closer to it than the other controls are to theirs
+            int pauseSize = (int)(PauseButtonSize * controlsScale);
+            int pauseMargin = (int)(PauseMargin * controlsScale);
+            pauseBounds = new Rectangle(viewport.Width - pauseMargin - pauseSize, pauseMargin, pauseSize, pauseSize);
+            pauseTouchBounds = pauseBounds;
+            pauseTouchBounds.Inflate((int)(PauseTouchMargin * controlsScale), (int)(PauseTouchMargin * controlsScale));
         }
 
         private void UpdateJoystick(InputState input)
@@ -181,16 +190,20 @@ namespace TW3D.Input
             DrawPauseButton(batch, alpha);
         }
 
-        /// <summary>Two upright bars, like the buttons half transparent.</summary>
+        /// <summary>Two upright bars, like the buttons half transparent, with a shadow to be seen against the sky.</summary>
         private void DrawPauseButton(SpriteBatch batch, float alpha)
         {
             int barWidth = (int)(pauseBounds.Width * 0.22f);
             int barHeight = (int)(pauseBounds.Height * 0.7f);
             int gap = (int)(pauseBounds.Width * 0.2f);
-            int left = pauseBounds.Center.X - gap / 2 - barWidth;
-            int top = pauseBounds.Center.Y - barHeight / 2;
-            batch.Draw(pixel, new Rectangle(left, top, barWidth, barHeight), Color.White * (0.5f * alpha));
-            batch.Draw(pixel, new Rectangle(left + barWidth + gap, top, barWidth, barHeight), Color.White * (0.5f * alpha));
+            int shadow = Math.Max(1, (int)(pauseBounds.Width * 0.04f));
+            Rectangle left = new Rectangle(pauseBounds.Center.X - gap / 2 - barWidth, pauseBounds.Center.Y - barHeight / 2, barWidth, barHeight);
+            Rectangle right = new Rectangle(left.X + barWidth + gap, left.Y, barWidth, barHeight);
+            foreach (Rectangle bar in new[] { left, right })
+            {
+                batch.Draw(pixel, new Rectangle(bar.X + shadow, bar.Y + shadow, bar.Width, bar.Height), Color.Black * (0.3f * alpha));
+                batch.Draw(pixel, bar, Color.White * (0.5f * alpha));
+            }
         }
 
         private void DrawButton(SpriteBatch batch, Texture2D texture, Vector2 center, Rectangle region, float alpha)
