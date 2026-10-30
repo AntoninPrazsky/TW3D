@@ -29,7 +29,7 @@ namespace TW3D
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
         private readonly string startLevel;
-        private readonly GraphicsSettings settings = GraphicsSettings.Load();
+        private readonly GameSettings settings = GameSettings.Load();
 #if !ANDROID
         //The window size given on the command line (a window always, whatever the settings say)
         private readonly Point? windowSize;
@@ -160,8 +160,8 @@ namespace TW3D
 
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
             menu.AddItem("Play", OpenLevelSelect);
+            menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings)));
             //Not implemented
-            menu.AddItem("Garage", null);
             menu.AddItem("About", null);
 #if ANDROID
             menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, null)));

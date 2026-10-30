@@ -107,6 +107,10 @@ uses as many columns as fit the screen.
 Enter, a gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back
 gesture or button of a phone) goes back; in the main menu it quits the game.
 
+**Garage:** the cars to choose from, one at a time; the arrows next to the name (or
+left and right) show the others. The car shown is the one to drive, saved with the
+options.
+
 **Options:** full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion and the frame rate (frames per second in the top left
@@ -233,20 +237,22 @@ game and the editor:
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution and
   the models they can use (`Env/<model>`).
+- **cars**: the cars of the garage: the name, the model of the body and the model of
+  a wheel. All cars have the same chassis (the holders of the wheels, `holder`).
 
-A new block or object only needs its model in `content/` (and a `/build` line
+A new block, object or car only needs its model in `content/` (and a `/build` line
 in `content/Content.mgcb`) and an entry in the catalog.
 
 ### Collision shapes
 
-The physics shapes of the blocks, the dynamic objects and the car are generated
+The physics shapes of the blocks, the dynamic objects and the cars are generated
 from their models by [`tools/CollisionGen`](tools/CollisionGen/README.md) into
-`content/collision.json`: convex polygons, whatever of a model the car can touch
+`content/collision.json`: convex polygons, whatever of a model a car can touch
 as it drives in the plane z = 0. The build of the game runs it whenever a model
-or the catalog changes. The car is 4.3 model units wide across the plane: its body
-touches what is within |z| ≤ 1.49 of a block, its wheels at the sides what is
-within 1.42 ≤ |z| ≤ 2.15, so the arch of a tunnel is lower for the wheels than for
-the body, and the pillars of gates at the sides of the road are left out.
+or the catalog changes. The cars are up to 4.35 model units wide across the plane:
+their bodies touch what is within |z| ≤ 1.49 of a block, their wheels at the sides
+what is within 1.42 ≤ |z| ≤ 2.18, so the arch of a tunnel is lower for the wheels
+than for the body, and the pillars of gates at the sides of the road are left out.
 
 Until 2026 the shapes were traced from collision bitmaps (screenshots of the models
 from Wings 3D, some edited by hand) every time a level loaded; they are kept as
@@ -331,7 +337,7 @@ Issues found during the migration, roughly in order of importance:
 
 1. **Sources of the other content:** the images and fonts are still only
    precompiled `.xnb` files.
-2. **Unfinished menu:** Garage and About.
+2. **Unfinished menu:** About.
 3. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).

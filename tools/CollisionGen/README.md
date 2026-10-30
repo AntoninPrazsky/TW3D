@@ -2,7 +2,8 @@
 
 Generates the physics shapes of the models into `content/collision.json`: the blocks
 with `"collision": true` and the objects with the shape `model` in
-`content/catalog.json`, and the car (`car`, `car2` and the holder of the wheels).
+`content/catalog.json`, and the cars of the catalog (their bodies and the holder of the
+wheels).
 The build of the game (`src/TW3D.Game`) runs it whenever a model, the catalog or the
 generator changes; the file is in the repository, so commit it with the models.
 
@@ -16,18 +17,19 @@ dotnet run --project tools/CollisionGen -- --svg some/folder
 
 ## How
 
-The physics world is the plane z = 0 of the models, and the car is 4.3 model units
-wide across it. A shape is whatever of a model the car can touch while moving in that
-plane: everything within a band of z, seen along the z axis.
+The physics world is the plane z = 0 of the models, and the cars are up to 4.35 model
+units wide across it. A shape is whatever of a model a car can touch while moving in
+that plane: everything within a band of z, seen along the z axis.
 
-- The bands come from the models of the car: its body (with the holders of the wheels)
-  is within |z| ≤ 1.49, the wheels at its sides within 1.42 ≤ |z| ≤ 2.15.
+- The bands come from the models of the cars, all of them together: their bodies (with
+  the holders of the wheels) are within |z| ≤ 1.49, the wheels at their sides within
+  1.42 ≤ |z| ≤ 2.18.
 - A block gets one shape for each band. They are the same for most blocks (straight
   along z); where they differ, the body and the wheels collide with their own shape
   (`body` and `wheels` in the file, collision categories in the game): the arch of a
   tunnel is lower for the wheels than for the body, the plate `xa6` reaches further
   below the wheels than below the body.
-- A dynamic object gets the shape within the whole width of the car, the car the
+- A dynamic object gets the shape within the whole width of the cars, a car the
   shape of its whole models.
 - The part of a model within a band is the faces clipped to the band and the cuts
   through the model at the edges of the band (a block straight along z has no face

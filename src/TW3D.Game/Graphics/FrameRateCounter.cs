@@ -12,13 +12,13 @@ namespace TW3D.Graphics
     public sealed class FrameRateCounter : DrawableGameComponent
     {
         private readonly ScreenManager screens;
-        private readonly GraphicsSettings settings;
+        private readonly GameSettings settings;
         private double secondTimer;
         private int framesThisSecond;
         private int framesPerSecond;
         private bool f12WasDown;
 
-        public FrameRateCounter(Game game, ScreenManager screens, GraphicsSettings settings)
+        public FrameRateCounter(Game game, ScreenManager screens, GameSettings settings)
             : base(game)
         {
             this.screens = screens;

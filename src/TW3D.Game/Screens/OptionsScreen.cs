@@ -1,5 +1,4 @@
 using System;
-using TW3D.Graphics;
 
 namespace TW3D.Screens
 {
@@ -9,10 +8,10 @@ namespace TW3D.Screens
     /// </summary>
     public sealed class OptionsScreen : ListMenuScreen
     {
-        private readonly GraphicsSettings settings;
+        private readonly GameSettings settings;
 
         /// <param name="displayChanged">Applies a switch between full screen and a window; null = no such option (phones).</param>
-        public OptionsScreen(GraphicsSettings settings, Action displayChanged)
+        public OptionsScreen(GameSettings settings, Action displayChanged)
             : base("Options")
         {
             this.settings = settings;

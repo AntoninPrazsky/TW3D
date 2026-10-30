@@ -15,11 +15,10 @@ namespace TW3D.CollisionGen
     /// </summary>
     static class Program
     {
-        //Models of the car: its body and the holder of the wheels collide with the car's own shapes (the whole model),
-        //their width and the width of the wheels decide which parts of the track they touch
-        private static readonly string[] CarBodies = { "car", "car2" };
+        //The holder of the wheels, the same for all cars (the cars are in the catalog). The bodies and the holder
+        //collide with their own shapes (the whole models); their width and the width of the wheels decide which parts
+        //of the track they touch
         private const string Holder = "holder";
-        private const string Wheel = "wheel";
 
         //A body differing from the wheels in less than this area has the same shape (square model units)
         private const double SameShapeArea = 0.001;
@@ -52,14 +51,14 @@ namespace TW3D.CollisionGen
             Catalog catalog = Catalog.Load(Path.Combine(content, Catalog.FileName));
             ObjMesh Load(string model) => ObjMesh.Load(Path.Combine(content, model + ".obj"));
 
-            //The car across the physics plane: the body (with the holders) in the middle, the wheels at both sides
-            //(the car and the track are drawn at the same scale, both centred on the plane z = 0)
-            double body = Math.Max(Load(CarBodies[0]).MaxAbsZ, Load(Holder).MaxAbsZ);
-            ObjMesh wheel = Load(Wheel);
-            double wheelsInner = Math.Min(Math.Abs(wheel.MinZ), Math.Abs(wheel.MaxZ));
-            double wheelsOuter = wheel.MaxAbsZ;
+            //The cars across the physics plane: the bodies (with the holders) in the middle, the wheels at both sides
+            //(the cars and the track are drawn at the same scale, all centred on the plane z = 0); the bands hold all cars
+            double body = Math.Max(catalog.Cars.Max(car => Load(car.Model).MaxAbsZ), Load(Holder).MaxAbsZ);
+            List<ObjMesh> wheels = catalog.Cars.Select(car => car.Wheel).Distinct().Select(Load).ToList();
+            double wheelsInner = wheels.Min(wheel => Math.Min(Math.Abs(wheel.MinZ), Math.Abs(wheel.MaxZ)));
+            double wheelsOuter = wheels.Max(wheel => wheel.MaxAbsZ);
             Console.WriteLine(FormattableString.Invariant(
-                $"Car body |z| <= {body:0.###}, wheels {wheelsInner:0.###} <= |z| <= {wheelsOuter:0.###}"));
+                $"Car bodies |z| <= {body:0.###}, wheels {wheelsInner:0.###} <= |z| <= {wheelsOuter:0.###}"));
 
             CollisionShapes shapes = new CollisionShapes();
             Dictionary<string, PathsD> outlines = new Dictionary<string, PathsD>();
@@ -118,8 +117,8 @@ namespace TW3D.CollisionGen
                 outlines[asset] = region;
             }
 
-            //The car: the whole models
-            foreach (string model in CarBodies.Append(Holder))
+            //The cars: the whole models
+            foreach (string model in catalog.Cars.Select(car => car.Model).Append(Holder))
             {
                 PathsD region = Band(model, Load(model), 0, double.PositiveInfinity);
                 shapes.Models[model] = new CollisionShape { Shape = Shape(model, region, "") };

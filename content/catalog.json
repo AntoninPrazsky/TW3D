@@ -69,5 +69,9 @@
     { "type": "Tb", "shape": "model", "friction": 0.9, "mass": 70, "restitution": 0, "models": [ "tb1" ] },
     { "type": "Co", "shape": "model", "friction": 0.9, "mass": 500, "restitution": 0, "models": [ "co", "co2" ] },
     { "type": "Mov", "shape": "model", "friction": 0.45, "mass": 200, "restitution": 0, "models": [ "mov1" ] }
+  ],
+  "cars": [
+    { "name": "Buggy", "model": "car", "wheel": "wheel" },
+    { "name": "Sand Rail", "model": "car2", "wheel": "wheel2" }
   ]
 }

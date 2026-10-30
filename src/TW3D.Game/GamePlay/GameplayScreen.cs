@@ -51,7 +51,7 @@ namespace TW3D.GamePlay
         private const float GameSpeed = 1.5f;
 
         private readonly string levelName;
-        private readonly GraphicsSettings settings;
+        private readonly GameSettings settings;
 
         private World world;
         private PhysicsClock physics;
@@ -68,7 +68,7 @@ namespace TW3D.GamePlay
         private FixedMouseJoint dragJoint;
         private int dragPointerId;
 
-        public GameplayScreen(string levelName, GraphicsSettings settings)
+        public GameplayScreen(string levelName, GameSettings settings)
         {
             this.levelName = levelName;
             this.settings = settings;
@@ -99,7 +99,8 @@ namespace TW3D.GamePlay
             mood = level.Mood;
             renderer.Lighting = Lighting.For(mood);
             sky = new Sky(Manager, camera);
-            car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), "car", "wheel");
+            CarType carType = catalog.FindCar(settings.Car);
+            car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), carType.Model, carType.Wheel);
 
             debugView = new DebugView(world)
             {
