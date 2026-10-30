@@ -13,7 +13,7 @@ const Cell = 22.5;
 const Step = 2.5;
 
 // Height of the road surface at the left and right edge of each road block, relative to its base.
-// Measured on the collision bitmaps (content/Levels/bit); a flat a1 has its surface at the base.
+// Measured on the 2016 collision bitmaps (now docs/catalog/bl/cols); a flat a1 has its surface at the base.
 // s1/s1f (stairs) start or end with a step at the block edge.
 const Profiles = {
   a1: [0, 0], xa1: [0, 0], lo: [0, 0], ba1: [0, 0], ba2: [0, 0],

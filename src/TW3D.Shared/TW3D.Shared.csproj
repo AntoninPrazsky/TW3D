@@ -1,8 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Data shared by the game and the level editor: the catalog of track blocks and
-    dynamic objects (content/catalog.json) and the level file format.
+    Data shared by the game, the level editor and the tools: the catalog of track blocks
+    and dynamic objects (content/catalog.json), the level file format and the collision
+    shapes of the models (content/collision.json).
     Deliberately independent of MonoGame.
   -->
   <PropertyGroup>

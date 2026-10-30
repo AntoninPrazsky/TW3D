@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Generates the collision shapes of the models (content/collision.json) from the models, see README.md.
+    The build of the game runs it whenever a model changes (src/TW3D.Game/TW3D.Game.csproj).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <RootNamespace>TW3D.CollisionGen</RootNamespace>
+    <AssemblyName>CollisionGen</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Private: the game references the generator only to build it, its packages are not the game's -->
+    <PackageReference Include="Aether.Physics2D" PrivateAssets="all" />
+    <PackageReference Include="Clipper2" PrivateAssets="all" />
+    <ProjectReference Include="..\..\src\TW3D.Shared\TW3D.Shared.csproj" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

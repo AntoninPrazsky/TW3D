@@ -64,11 +64,11 @@ namespace TW3D.GameObjects
             wheelModel = screenManager.Content.Load<Model>(WheelName);
             holderModel = screenManager.Content.Load<Model>("holder");
 
-            car = CreatePolyBody("Bitmaps/" + CarName, 2f, BodyType.Dynamic);
+            car = CreateModelBody(CarName, BodyType.Dynamic);
             car.Position = position;
             car.BodyType = BodyType.Dynamic;
 
-            holderB = CreatePolyBody("Bitmaps/holder", 2f, BodyType.Dynamic);
+            holderB = CreateModelBody("holder", BodyType.Dynamic);
             
             holderB.Position = position;
             
@@ -143,7 +143,7 @@ namespace TW3D.GameObjects
 
             world.Add(springB);
 
-            holderF = CreatePolyBody("Bitmaps/holder", 2f, BodyType.Dynamic);
+            holderF = CreateModelBody("holder", BodyType.Dynamic);
             holderF.Position = position;
             holderF.BodyType = BodyType.Dynamic;
 
@@ -224,19 +224,20 @@ namespace TW3D.GameObjects
             wJoints.Add(springTopB);
             wJoints.Add(springTopF);
             
-            car.SetCollisionCategories(Category.Cat1);
-            holderB.SetCollisionCategories(Category.Cat2);
-            holderF.SetCollisionCategories(Category.Cat2);
-            wheel4LB.SetCollisionCategories(Category.Cat3);
-            wheel4RB.SetCollisionCategories(Category.Cat3);
-            wheel4TB.SetCollisionCategories(Category.Cat3);
-            wheel4LF.SetCollisionCategories(Category.Cat3);
-            wheel4RF.SetCollisionCategories(Category.Cat3);
-            wheel4TF.SetCollisionCategories(Category.Cat3);
+            car.SetCollisionCategories(CollisionCategories.CarBody);
+            holderB.SetCollisionCategories(CollisionCategories.Holder);
+            holderF.SetCollisionCategories(CollisionCategories.Holder);
 
-            car.SetCollidesWith(Category.All & ~Category.Cat2 & ~Category.Cat3);
+            //The body and the wheels are each in their own band across the track (the wheels at the sides of the car),
+            //so they touch different parts of some blocks (see ModelCollision)
+            car.SetCollidesWith(Category.All & ~CollisionCategories.Holder & ~CollisionCategories.Wheel & ~CollisionCategories.TrackForWheels);
             holderB.SetCollidesWith(Category.None);
             holderF.SetCollidesWith(Category.None);
+            foreach (Body wheel in new[] { wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF })
+            {
+                wheel.SetCollisionCategories(CollisionCategories.Wheel);
+                wheel.SetCollidesWith(Category.All & ~CollisionCategories.TrackForBody);
+            }
         }
 
         public override void Update()

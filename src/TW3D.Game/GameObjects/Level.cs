@@ -2,7 +2,6 @@
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
@@ -19,16 +18,6 @@ namespace TW3D.GameObjects
         public float blockShift { get; set; }
         public Model blockModel { get; set; }
         public string modelName { get; set; }
-    }
-
-    static class TrackBlockVertices //Vertices found in the block bitmaps
-    {
-        public static Dictionary<string, List<Vertices>> BlockVertices = new Dictionary<string,List<Vertices>>();
-    }
-
-    static class TrackPropVertices //Vertices found in the dynamic object bitmaps
-    {
-        public static Dictionary<string, List<Vertices>> ObjectVertices = new Dictionary<string, List<Vertices>>();
     }
 
     static class TrackBlockModels //Track block models
@@ -97,14 +86,7 @@ namespace TW3D.GameObjects
             //Only the blocks of the middle layer take part in the physics simulation
             if (physical)
             {
-                //The shape of a block is found in its collision bitmap only once and then reused
-                if (!TrackBlockVertices.BlockVertices.TryGetValue(type.Name, out List<Vertices> vertices))
-                {
-                    vertices = CreateListOfVertices(type.CollisionAsset, 10f);
-                    TrackBlockVertices.BlockVertices.Add(type.Name, vertices);
-                }
-
-                Body trackBlockBody = CreatePolyBody(vertices, BodyType.Static);
+                Body trackBlockBody = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track);
                 trackBlockBody.Position = trackBlock.blockAbsPosition;
                 trackBlockBody.SetRestitution(1f);
                 trackBlockBody.SetFriction(1f);
@@ -116,15 +98,7 @@ namespace TW3D.GameObjects
 
         private TrackProp CreateObject(ObjectPlacement placement, ObjectType type)
         {
-            //Objects with a bitmap shape: the bitmap of the model is vectorized only once and then reused
-            List<Vertices> vertices = null;
-            if (type.Shape == ObjectShape.Bitmap && !TrackPropVertices.ObjectVertices.TryGetValue(placement.Model, out vertices))
-            {
-                vertices = CreateListOfVertices(ObjectType.CollisionAsset(placement.Model), 10f);
-                TrackPropVertices.ObjectVertices.Add(placement.Model, vertices);
-            }
-
-            return new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y), type, TrackPropModels.Models[placement.Model], vertices);
+            return new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y), type, placement.Model);
         }
 
         public override void Update()

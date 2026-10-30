@@ -121,7 +121,10 @@ namespace TW3D.GamePlay
             debugView?.Dispose();
         }
 
-        /// <summary>Loads the catalog and the models of all its blocks and objects (shared by all levels, loaded only once).</summary>
+        /// <summary>
+        /// Loads the catalog, the models of all its blocks and objects and the collision shapes
+        /// (shared by all levels, loaded only once).
+        /// </summary>
         private static void LoadCatalog(ContentManager content)
         {
             if (catalog != null)
@@ -129,6 +132,7 @@ namespace TW3D.GamePlay
 
             using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
                 catalog = Catalog.Load(stream);
+            ModelCollision.Load();
 
             foreach (BlockType block in catalog.Blocks)
                 TrackBlockModels.Models.Add(block.Name, content.Load<Model>(block.ModelAsset));

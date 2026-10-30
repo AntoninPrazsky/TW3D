@@ -23,6 +23,28 @@
     <PackageReference Include="Aether.Physics2D.MG" />
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
+    <!-- Built for the target below, not referenced by the game -->
+    <ProjectReference Include="..\..\tools\CollisionGen\CollisionGen.csproj" ReferenceOutputAssembly="false" OutputItemType="CollisionGenAssembly" />
   </ItemGroup>
+
+  <!--
+    The collision shapes of the models (content/collision.json) are generated from the models by tools/CollisionGen
+    whenever a model, the catalog or the generator changes. The file is in the repository with the models,
+    the other projects (Android, the editor) take it as it is.
+  -->
+  <Target Name="GenerateCollisionShapes" AfterTargets="ResolveProjectReferences" DependsOnTargets="FindCollisionShapeSources"
+          Inputs="@(CollisionShapeSource);@(CollisionGenAssembly)" Outputs="$(GameContentDir)collision.json">
+    <PropertyGroup>
+      <_DotNetHost>$(DOTNET_HOST_PATH)</_DotNetHost>
+      <_DotNetHost Condition="'$(_DotNetHost)' == ''">dotnet</_DotNetHost>
+    </PropertyGroup>
+    <Exec Command="&quot;$(_DotNetHost)&quot; &quot;@(CollisionGenAssembly)&quot; &quot;$(GameContentDir).&quot;" />
+  </Target>
+
+  <Target Name="FindCollisionShapeSources">
+    <ItemGroup>
+      <CollisionShapeSource Include="$(GameContentDir)**\*.obj;$(GameContentDir)catalog.json" Exclude="$(GameContentDir)bin\**;$(GameContentDir)obj\**" />
+    </ItemGroup>
+  </Target>
 
 </Project>

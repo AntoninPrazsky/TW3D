@@ -65,9 +65,9 @@
   "objects": [
     { "type": "Box", "shape": "rectangle", "size": 3.2, "friction": 0.5, "mass": 50, "restitution": 0.1, "models": [ "box" ] },
     { "type": "Bar", "shape": "circle", "size": 3, "friction": 0.7, "mass": 10, "restitution": 0.3, "models": [ "bar1", "bar2" ] },
-    { "type": "Ramp", "shape": "bitmap", "friction": 1, "mass": 100, "restitution": 0, "models": [ "rm" ] },
-    { "type": "Tb", "shape": "bitmap", "friction": 0.9, "mass": 70, "restitution": 0, "models": [ "tb1" ] },
-    { "type": "Co", "shape": "bitmap", "friction": 0.9, "mass": 500, "restitution": 0, "models": [ "co", "co2" ] },
-    { "type": "Mov", "shape": "bitmap", "friction": 0.45, "mass": 200, "restitution": 0, "models": [ "mov1" ] }
+    { "type": "Ramp", "shape": "model", "friction": 1, "mass": 100, "restitution": 0, "models": [ "rm" ] },
+    { "type": "Tb", "shape": "model", "friction": 0.9, "mass": 70, "restitution": 0, "models": [ "tb1" ] },
+    { "type": "Co", "shape": "model", "friction": 0.9, "mass": 500, "restitution": 0, "models": [ "co", "co2" ] },
+    { "type": "Mov", "shape": "model", "friction": 0.45, "mass": 200, "restitution": 0, "models": [ "mov1" ] }
   ]
 }

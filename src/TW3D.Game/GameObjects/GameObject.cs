@@ -1,15 +1,9 @@
-﻿using System.Collections.Generic;
-using nkast.Aether.Physics2D.Collision.Shapes;
-using nkast.Aether.Physics2D.Common;
-using nkast.Aether.Physics2D.Dynamics;
+﻿using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nkast.Aether.Physics2D.Common.PolygonManipulation;
-using nkast.Aether.Physics2D.Common.Decomposition;
-using System;
 
 namespace TW3D.GameObjects
 {
@@ -34,50 +28,13 @@ namespace TW3D.GameObjects
             return physics != null ? physics.Rotation(body) : body.Rotation;
         }
 
-        public List<Vertices> CreateListOfVertices(string textureName, float distanceReduction)
+        /// <summary>A body with the collision shape of a model (see <see cref="ModelCollision"/>).</summary>
+        /// <param name="model">Content name of the model.</param>
+        public Body CreateModelBody(string model, BodyType bodyType, Category category = Category.Cat1)
         {
-            Texture2D texture;
-
-            texture = screenManager.Content.Load<Texture2D>(textureName);
-            
-            //Array for the bitmap data
-            uint[] data = new uint[texture.Width * texture.Height];
-            texture.GetData(data);
-
-            //Find the vertices that form the outline of the shape in the original bitmap
-            Vertices vertices = PolygonTools.CreatePolygon(data, texture.Width);
-
-            //Centre of the bitmap as the centroid
-            Vector2 centroid = new Vector2(-texture.Width / 2, -texture.Height / 2);
-
-            //polygon centroid vs. bitmap "centroid"
-
-            //Translate the vertices so that the found polygon is centred on the centroid
-            vertices.Translate(ref centroid);
-
-            vertices = SimplifyTools.ReduceByDistance(vertices, distanceReduction);
-            List<Vertices> list = Triangulate.ConvexPartition(vertices, TriangulationAlgorithm.Bayazit);
-            
-            //Ratio between the image size in the bitmap and the shape size in the physics simulation (constant)
-            Vector2 vertScale = new Vector2(0.2524f) * scale;
-
-            foreach (Vertices ver in list)
-            {
-                ver.Scale(ref vertScale);
-            }
-
-            return list;
-        }
-
-        public Body CreatePolyBody(string textureName, float distanceReduction, BodyType bodyType)
-        {
-            List<Vertices> list = CreateListOfVertices(textureName, distanceReduction);
-            return world.CreateCompoundPolygon(list, 1f, Vector2.Zero, 0f, bodyType);
-        }
-
-        public Body CreatePolyBody(List<Vertices> listOfVertices, BodyType bodyType)
-        {
-            return world.CreateCompoundPolygon(listOfVertices, 1f, Vector2.Zero, 0f, bodyType);
+            Body body = world.CreateBody(Vector2.Zero, 0f, bodyType);
+            ModelCollision.AddTo(body, model, category);
+            return body;
         }
 
         /// <summary>Adds a model to the scene, at a position and rotation of the physics world.</summary>

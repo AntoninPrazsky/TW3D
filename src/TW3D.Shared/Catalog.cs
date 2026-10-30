@@ -12,16 +12,13 @@ namespace TW3D.Shared
         public string Name { get; set; }
 
         /// <summary>
-        /// The block has a collision bitmap, so it can be placed in the middle (physics) layer.
-        /// Blocks without it are decoration for the back and front layers only.
+        /// The block has a collision shape (generated from its model, see <see cref="CollisionShapes"/>),
+        /// so it can be placed in the middle (physics) layer. Blocks without it are decoration for the back and front layers only.
         /// </summary>
         public bool Collision { get; set; }
 
         [JsonIgnore]
         public string ModelAsset => "Levels/mod/" + Name;
-
-        [JsonIgnore]
-        public string CollisionAsset => "Levels/bit/" + Name;
     }
 
     public enum ObjectShape
@@ -30,8 +27,8 @@ namespace TW3D.Shared
         Rectangle,
         /// <summary>A circle with the radius <see cref="ObjectType.Size"/>.</summary>
         Circle,
-        /// <summary>The shape is read from the collision bitmap of the model.</summary>
-        Bitmap
+        /// <summary>The collision shape of the model (see <see cref="CollisionShapes"/>).</summary>
+        Model
     }
 
     /// <summary>A kind of dynamic object (moved by the physics simulation) with the models it can use.</summary>
@@ -49,8 +46,6 @@ namespace TW3D.Shared
         public List<string> Models { get; set; } = new List<string>();
 
         public static string ModelAsset(string model) => "Env/" + model;
-
-        public static string CollisionAsset(string model) => "Env/bit/" + model;
     }
 
     /// <summary>

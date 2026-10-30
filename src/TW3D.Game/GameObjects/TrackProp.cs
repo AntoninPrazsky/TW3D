@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using nkast.Aether.Physics2D.Collision.Shapes;
+﻿using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
@@ -17,20 +16,20 @@ namespace TW3D.GameObjects
         public Body propBody { get; set; }
         private Model model;
 
-        /// <param name="ListOfVertices">Shape from the collision bitmap; only for objects with the bitmap shape.</param>
-        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, ObjectType type, Model ObjModel, List<Vertices> ListOfVertices)
+        /// <param name="modelName">One of the models of the object type.</param>
+        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, ObjectType type, string modelName)
         {
             world = World;
             screenManager = ScreenManager;
             camera = Camera;
             physics = Physics;
             position = Position;
-            model = ObjModel;
+            model = TrackPropModels.Models[modelName];
 
             switch (type.Shape)
             {
-                case ObjectShape.Bitmap:
-                    propBody = CreatePolyBody(ListOfVertices, BodyType.Dynamic);
+                case ObjectShape.Model:
+                    propBody = CreateModelBody(ObjectType.ModelAsset(modelName), BodyType.Dynamic);
                     propBody.Position = position;
                     break;
                 case ObjectShape.Rectangle:

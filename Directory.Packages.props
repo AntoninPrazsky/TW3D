@@ -10,5 +10,8 @@
     <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.6" />
     <PackageVersion Include="Aether.Physics2D.MG" Version="2.2.0" />
     <PackageVersion Include="Aether.Physics2D.Diagnostics.MG" Version="2.2.0" />
+    <!-- tools/CollisionGen: the same physics engine without MonoGame, and polygon clipping -->
+    <PackageVersion Include="Aether.Physics2D" Version="2.2.0" />
+    <PackageVersion Include="Clipper2" Version="2.0.0" />
   </ItemGroup>
 </Project>

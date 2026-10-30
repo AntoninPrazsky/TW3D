@@ -17,11 +17,12 @@ physics bodies.
 |---|---|
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
-| `src/TW3D.Shared/` | Library shared by the game and the editor: the catalog of blocks and objects and the level file format |
-| `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. |
+| `src/TW3D.Shared/` | Library shared by the game, the editor and the tools: the catalog of blocks and objects, the level file format and the collision shapes |
+| `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`), the collision shapes of the models (`collision.json`, generated) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. |
 | `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
+| `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](tools/CollisionGen/README.md) |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 
@@ -205,8 +206,7 @@ original Wings 3D files are in [`art/wings/`](art/wings/README.md).
 
 The other files are still the **precompiled** `.xnb` files from XNA 4.0, without
 their sources in the repository: the images of the user interface (`Common/`),
-the level previews (`Levels/levimgs/`), the collision bitmaps (`Levels/bit/`,
-`Env/bit/`, `Bitmaps/`) and the fonts (only the font descriptions
+the level previews (`Levels/levimgs/`) and the fonts (only the font descriptions
 `*.spritefont` are here).
 
 ### Editing models
@@ -216,7 +216,8 @@ Wavefront (.obj)* over the original file. The default settings work: the import
 converts the axes (OBJ has Y up, Blender Z up) and the export converts them back.
 Keep the export of normals and materials on and *Triangulated Mesh* off (the
 content pipeline triangulates the polygons itself). The next build of the game
-builds the changed model.
+builds the changed model and generates its collision shape again (commit
+`content/collision.json` with the model).
 
 ### Catalog
 
@@ -224,15 +225,29 @@ builds the changed model.
 game and the editor:
 
 - **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
-  collision bitmap (`Levels/bit/<name>`). Only blocks with a collision bitmap can
-  be in the middle (physics) layer; the others are decoration for the back and
-  front layers.
+  collision shape (`collision`). Only blocks with a collision shape can be in the
+  middle (physics) layer; the others are decoration for the back and front layers.
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
-  `bitmap` from `Env/bit/<model>`), size, friction, mass, restitution and the
-  models they can use (`Env/<model>`).
+  `model`: the collision shape of the model), size, friction, mass, restitution and
+  the models they can use (`Env/<model>`).
 
 A new block or object only needs its model in `content/` (and a `/build` line
-in `content/Content.mgcb`), its collision bitmap and an entry in the catalog.
+in `content/Content.mgcb`) and an entry in the catalog.
+
+### Collision shapes
+
+The physics shapes of the blocks, the dynamic objects and the car are generated
+from their models by [`tools/CollisionGen`](tools/CollisionGen/README.md) into
+`content/collision.json`: convex polygons, whatever of a model the car can touch
+as it drives in the plane z = 0. The build of the game runs it whenever a model
+or the catalog changes. The car is 4.3 model units wide across the plane: its body
+touches what is within |z| ≤ 1.49 of a block, its wheels at the sides what is
+within 1.42 ≤ |z| ≤ 2.15, so the arch of a tunnel is lower for the wheels than for
+the body, and the pillars of gates at the sides of the road are left out.
+
+Until 2026 the shapes were traced from collision bitmaps (screenshots of the models
+from Wings 3D, some edited by hand) every time a level loaded; they are kept as
+images in `docs/catalog/bl/cols/`.
 
 ### Level format
 
@@ -266,9 +281,8 @@ Levels are JSON files with one block or object per line:
   moves the block vertically in steps of 2.5 physics units.
 - Objects: `x`, `y` in physics units.
 
-In the game, the physics shape of each block is created by vectorizing its
-collision bitmap. The levels lock, startblock and tunel were converted from the
-original `.lev` format of the 2016 version, which the editor can still open.
+The levels lock, startblock and tunel were converted from the original `.lev`
+format of the 2016 version, which the editor can still open.
 
 The summit level is generated by a script in `tools/levelgen/`, which keeps the
 road continuous and adds the decorations; see its
@@ -295,6 +309,9 @@ carry the changes over to the script, otherwise running it again overwrites them
 - The original model files turned up on an old disk; the models are now built
   from OBJ sources by the MonoGame Content Pipeline instead of being only
   precompiled `.xnb` files (see [Game content](#game-content)).
+- The collision shapes are generated from the models while building instead of
+  being traced from the collision bitmaps at runtime (see
+  [Collision shapes](#collision-shapes)).
 
 ## License
 
@@ -309,17 +326,11 @@ under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
 
 Issues found during the migration, roughly in order of importance:
 
-1. **Collision shapes from the models.** The physics shapes are traced from
-   collision bitmaps (screenshots of the models from Wings 3D) every time a level
-   loads. They could be computed from the models while building the content
-   instead: from the cross-section of a model in the physics plane z = 0, which
-   also leaves out the side walls of tunnels and gates, the reason why the
-   bitmaps had to be edited by hand.
-2. **Sources of the other content:** the images and fonts are still only
+1. **Sources of the other content:** the images and fonts are still only
    precompiled `.xnb` files.
-3. **Unfinished menu:** Garage and About.
-4. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+2. **Unfinished menu:** Garage and About.
+3. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-5. **Automated tests and CI**, e.g. tests of the level format and builds via
+4. **Automated tests and CI**, e.g. tests of the level format and builds via
    GitHub Actions.
