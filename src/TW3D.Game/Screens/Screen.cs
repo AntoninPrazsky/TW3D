@@ -17,7 +17,7 @@ namespace TW3D.Screens
         protected TimeSpan FadeOutTime { get; set; } = TimeSpan.FromSeconds(0.5);
 
         /// <summary>A popup leaves the screens below it visible; any other screen makes them disappear.</summary>
-        protected bool IsPopup { get; set; }
+        public bool IsPopup { get; protected set; }
 
         /// <summary>The screen stays visible even when another screen is opened on top of it (e.g. the background).</summary>
         protected bool StaysVisibleWhenCovered { get; set; }
@@ -67,8 +67,6 @@ namespace TW3D.Screens
         {
             IsCovered = covered;
         }
-
-        internal bool IsPopupScreen => IsPopup;
 
         internal void UpdateVisibility(GameTime gameTime)
         {

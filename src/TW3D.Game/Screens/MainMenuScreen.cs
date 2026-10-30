@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.Input;
@@ -22,20 +21,10 @@ namespace TW3D.Screens
             BottomRight
         }
 
-        private sealed class MenuItem
-        {
-            public string Text;
-            public Placement Placement;
-            public Action Activate;
-            //Where the text is drawn, and the slightly bigger area that reacts to the mouse
-            public Rectangle TextBounds;
-            public Rectangle Bounds;
+        //The items take these places in the order they are added
+        private static readonly Placement[] Places = { Placement.MiddleLeft, Placement.MiddleRight, Placement.BottomLeft, Placement.BottomCenter, Placement.BottomRight };
 
-            public bool IsEnabled => Activate != null;
-        }
-
-        //Font scale of the items and the title at the reference resolution
-        private const float ItemScale = 0.8f;
+        //Font scale of the title at the reference resolution
         private const float TitleScale = 1.3f;
         //Extra area around the item text that reacts to the mouse, in reference pixels
         private const float ItemPadding = 20f;
@@ -43,11 +32,11 @@ namespace TW3D.Screens
         private const float ItemSlide = 320f;
         private const float TitleSlide = 140f;
 
+        /// <summary>The colour of the focused item and of the titles, used by all screens.</summary>
         public static readonly Color Yellow = new Color(255, 210, 0);
 
         private readonly string title;
-        private readonly List<MenuItem> items = new List<MenuItem>();
-        private int focusedItem = -1;
+        private readonly MenuItems items = new MenuItems();
 
         public MainMenuScreen(string title)
         {
@@ -59,55 +48,25 @@ namespace TW3D.Screens
         /// <summary>Adds an item; items without an action are shown dimmed as not yet available.</summary>
         public void AddItem(string text, Action activate)
         {
-            Placement[] order = { Placement.MiddleLeft, Placement.MiddleRight, Placement.BottomLeft, Placement.BottomCenter, Placement.BottomRight };
-            if (items.Count >= order.Length)
-                throw new InvalidOperationException("The main menu has room for " + order.Length + " items.");
+            if (items.Count >= Places.Length)
+                throw new InvalidOperationException("The main menu has room for " + Places.Length + " items.");
 
-            items.Add(new MenuItem { Text = text, Placement = order[items.Count], Activate = activate });
+            items.Add(new MenuItem { Text = () => text, Activate = activate, IsEnabled = () => activate != null });
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             UpdateLayout();
-
-            //The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys)
-            int hovered = ItemAt(input.PointerPosition);
-            if (input.Mouse.Position != input.PreviousMouse.Position)
-                focusedItem = hovered;
+            items.FollowMouse(input);
 
             if (input.LeftPressed || input.UpPressed)
-                MoveFocus(-1);
+                items.MoveFocus(-1);
             if (input.RightPressed || input.DownPressed)
-                MoveFocus(1);
+                items.MoveFocus(1);
 
-            if (input.PointerPressed && hovered >= 0)
-                items[hovered].Activate();
-            else if (input.ConfirmPressed && focusedItem >= 0)
-                items[focusedItem].Activate();
-            else if (input.BackPressed)
+            //Left and right move the focus here
+            if (!items.Activate(input, switchByLeftRight: false) && input.BackPressed)
                 Manager.Game.Exit();
-        }
-
-        private int ItemAt(Vector2 position)
-        {
-            for (int i = 0; i < items.Count; i++)
-                if (items[i].IsEnabled && items[i].Bounds.Contains(position))
-                    return i;
-            return -1;
-        }
-
-        private void MoveFocus(int direction)
-        {
-            int index = focusedItem < 0 ? (direction > 0 ? -1 : items.Count) : focusedItem;
-            for (int step = 0; step < items.Count; step++)
-            {
-                index = (index + direction + items.Count) % items.Count;
-                if (items[index].IsEnabled)
-                {
-                    focusedItem = index;
-                    return;
-                }
-            }
         }
 
         private void UpdateLayout()
@@ -115,16 +74,16 @@ namespace TW3D.Screens
             Viewport viewport = Manager.Viewport;
             Rectangle safe = Manager.SafeArea;
             SpriteFont font = Manager.Fonts.Menu;
-            float scale = ItemScale * Manager.UiScale;
+            float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float bottomRowY = safe.Bottom - lineHeight / 2f;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
-            foreach (MenuItem item in items)
+            for (int i = 0; i < items.Count; i++)
             {
-                Vector2 size = font.MeasureString(item.Text) * scale;
+                Vector2 size = font.MeasureString(items[i].Text()) * scale;
                 Vector2 center;
-                switch (item.Placement)
+                switch (Places[i])
                 {
                     case Placement.MiddleLeft: center = new Vector2(viewport.Width / 5f, viewport.Height / 2f); break;
                     case Placement.MiddleRight: center = new Vector2(viewport.Width * 0.8f, viewport.Height / 2f); break;
@@ -132,18 +91,13 @@ namespace TW3D.Screens
                     case Placement.BottomCenter: center = new Vector2(viewport.Width / 2f, bottomRowY); break;
                     default: center = new Vector2(safe.Right - size.X / 2f, bottomRowY); break;
                 }
-
-                item.TextBounds = new Rectangle((int)(center.X - size.X / 2f), (int)(center.Y - lineHeight / 2f), (int)size.X, (int)lineHeight);
-                item.Bounds = item.TextBounds;
-                item.Bounds.Inflate(padding, padding);
+                items[i].Place(new Rectangle((int)(center.X - size.X / 2f), (int)(center.Y - lineHeight / 2f), (int)size.X, (int)lineHeight), padding);
             }
         }
 
         public override void Draw(GameTime gameTime)
         {
             UpdateLayout();
-
-            SpriteFont font = Manager.Fonts.Menu;
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
 
@@ -152,21 +106,12 @@ namespace TW3D.Screens
             float titleSlide = SlideAmount * TitleSlide * uiScale;
 
             Manager.SpriteBatch.Begin();
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                MenuItem item = items[i];
-                Color color = !item.IsEnabled ? Color.White * 0.45f : (i == focusedItem && HasFocus ? Yellow : Color.White);
-                Vector2 position = new Vector2(item.TextBounds.X + slide, item.TextBounds.Y);
-                Manager.DrawShadowedText(font, item.Text, position, color * alpha, Color.DarkSlateGray * (alpha * alpha), ItemScale * uiScale);
-            }
-
+            items.Draw(Manager, MenuItems.TextScale * uiScale, slide, alpha, HasFocus);
             DrawTitle(Manager, title, Manager.SafeArea.Top - titleSlide, alpha);
-
             Manager.SpriteBatch.End();
         }
 
-        /// <summary>Draws a screen title centred horizontally, with its top at the given height (shared with the level select).</summary>
+        /// <summary>Draws a screen title centred horizontally, with its top at the given height (shared by all screens).</summary>
         public static void DrawTitle(ScreenManager manager, string title, float top, float alpha)
         {
             SpriteFont font = manager.Fonts.Menu;

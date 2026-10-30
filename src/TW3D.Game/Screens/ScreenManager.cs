@@ -123,7 +123,7 @@ namespace TW3D.Screens
                 {
                     if (focused == null)
                         focused = screen;
-                    if (!screen.IsPopupScreen)
+                    if (!screen.IsPopup)
                         covered = true;
                 }
             }

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.Input;
@@ -14,20 +13,7 @@ namespace TW3D.Screens
     /// </summary>
     public abstract class ListMenuScreen : Screen
     {
-        protected sealed class MenuItem
-        {
-            public Func<string> Text;
-            public Action Activate;
-            public Func<bool> IsEnabled = () => true;
-            /// <summary>The item switches a setting, so left and right switch it too.</summary>
-            public bool IsSwitch;
-            //Where the text is drawn, and the slightly bigger area that reacts to the mouse
-            public Rectangle TextBounds;
-            public Rectangle Bounds;
-        }
-
-        //Font scale of the items at the reference resolution, and the line spacing relative to the line height
-        private const float ItemScale = 0.8f;
+        //The line spacing relative to the line height
         private const float LineSpacing = 1.4f;
         //The least gap between the items in a row, relative to the line height
         private const float RowGap = 2f;
@@ -38,8 +24,7 @@ namespace TW3D.Screens
         private const float TitleSlide = 140f;
 
         private readonly string title;
-        private readonly List<MenuItem> items = new List<MenuItem>();
-        private int focusedItem = -1;
+        private readonly MenuItems items = new MenuItems();
         private float contentTop;
         //Font scale of the items as laid out (in a row they may be smaller)
         private float itemScale;
@@ -64,46 +49,16 @@ namespace TW3D.Screens
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             UpdateLayout();
-
-            //The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys)
-            int hovered = ItemAt(input.PointerPosition);
-            if (input.Mouse.Position != input.PreviousMouse.Position)
-                focusedItem = hovered;
+            items.FollowMouse(input);
 
             if (ItemsInRow ? input.LeftPressed : input.UpPressed)
-                MoveFocus(-1);
+                items.MoveFocus(-1);
             if (ItemsInRow ? input.RightPressed : input.DownPressed)
-                MoveFocus(1);
+                items.MoveFocus(1);
 
-            bool switchPressed = !ItemsInRow && (input.LeftPressed || input.RightPressed);
-            if (input.PointerPressed && hovered >= 0)
-                items[hovered].Activate();
-            else if (focusedItem >= 0 && items[focusedItem].IsEnabled() && (input.ConfirmPressed || (switchPressed && items[focusedItem].IsSwitch)))
-                items[focusedItem].Activate();
-            else if (input.BackPressed)
+            //In a row, left and right move the focus, so they do not switch an item
+            if (!items.Activate(input, switchByLeftRight: !ItemsInRow) && input.BackPressed)
                 Close();
-        }
-
-        private int ItemAt(Vector2 position)
-        {
-            for (int i = 0; i < items.Count; i++)
-                if (items[i].IsEnabled() && items[i].Bounds.Contains(position))
-                    return i;
-            return -1;
-        }
-
-        private void MoveFocus(int direction)
-        {
-            int index = focusedItem < 0 ? (direction > 0 ? -1 : items.Count) : focusedItem;
-            for (int step = 0; step < items.Count; step++)
-            {
-                index = (index + direction + items.Count) % items.Count;
-                if (items[index].IsEnabled())
-                {
-                    focusedItem = index;
-                    return;
-                }
-            }
         }
 
         private void UpdateLayout()
@@ -111,7 +66,7 @@ namespace TW3D.Screens
             Viewport viewport = Manager.Viewport;
             SpriteFont font = Manager.Fonts.Menu;
             Rectangle safe = Manager.SafeArea;
-            float scale = ItemScale * Manager.UiScale;
+            float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float belowTitle = safe.Top + MainMenuScreen.TitleHeight(Manager) + lineHeight * (LineSpacing - 1f) * 2f;
             float content = ContentHeight;
@@ -132,9 +87,7 @@ namespace TW3D.Screens
                 for (int i = 0; i < items.Count; i++)
                 {
                     Vector2 size = font.MeasureString(items[i].Text()) * itemScale;
-                    items[i].TextBounds = new Rectangle((int)x, (int)rowTop, (int)size.X, (int)rowHeight);
-                    items[i].Bounds = items[i].TextBounds;
-                    items[i].Bounds.Inflate(padding, padding);
+                    items[i].Place(new Rectangle((int)x, (int)rowTop, (int)size.X, (int)rowHeight), padding);
                     x += size.X + gap;
                 }
                 //The content in the middle between the title and the row
@@ -150,9 +103,7 @@ namespace TW3D.Screens
             for (int i = 0; i < items.Count; i++)
             {
                 Vector2 size = font.MeasureString(items[i].Text()) * scale;
-                items[i].TextBounds = new Rectangle((int)((viewport.Width - size.X) / 2f), (int)(top + i * lineHeight * LineSpacing), (int)size.X, (int)lineHeight);
-                items[i].Bounds = items[i].TextBounds;
-                items[i].Bounds.Inflate(padding, padding);
+                items[i].Place(new Rectangle((int)((viewport.Width - size.X) / 2f), (int)(top + i * lineHeight * LineSpacing), (int)size.X, (int)lineHeight), padding);
             }
         }
 
@@ -169,8 +120,6 @@ namespace TW3D.Screens
         public override void Draw(GameTime gameTime)
         {
             UpdateLayout();
-
-            SpriteFont font = Manager.Fonts.Menu;
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
 
@@ -178,20 +127,10 @@ namespace TW3D.Screens
             float slide = SlideAmount * ItemSlide * uiScale * (IsDisappearing ? 1f : -1f);
 
             Manager.SpriteBatch.Begin();
-
             DrawBackdrop();
             DrawContent(contentTop, slide, alpha);
-
-            for (int i = 0; i < items.Count; i++)
-            {
-                MenuItem item = items[i];
-                Color color = !item.IsEnabled() ? Color.White * 0.45f : (i == focusedItem && HasFocus ? MainMenuScreen.Yellow : Color.White);
-                Vector2 position = new Vector2(item.TextBounds.X + slide, item.TextBounds.Y);
-                Manager.DrawShadowedText(font, item.Text(), position, color * alpha, Color.DarkSlateGray * (alpha * alpha), itemScale);
-            }
-
+            items.Draw(Manager, itemScale, slide, alpha, HasFocus);
             MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
-
             Manager.SpriteBatch.End();
         }
     }
