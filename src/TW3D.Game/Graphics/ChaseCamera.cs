@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Shared;
 
 namespace TW3D.Graphics
 {
@@ -9,7 +10,7 @@ namespace TW3D.Graphics
     /// and the 2D view for the physics debug view.
     /// </summary>
     /// <remarks>
-    /// Physics coordinates (x, y) map to 3D coordinates (-x / 10, -y / 10); the physics plane is z = 0.
+    /// Physics coordinates (x, y) are drawn at (-x, -y) × <see cref="Units.PhysicsToScene"/>; the physics plane is z = 0.
     /// </remarks>
     public sealed class ChaseCamera
     {
@@ -21,7 +22,7 @@ namespace TW3D.Graphics
         private const float FullTurnSpeedAngle = 5f;
         private const float MaxTurnSpeed = 80f;
 
-        private const float WorldTo3D = 0.1f;
+        private const float WorldTo3D = Units.PhysicsToScene;
         //Far clipping plane distance. The 2016 version used 22 or 50 to save the performance of phones,
         //which cut off the scene too close; now it is far beyond the sky and any level.
         private const float FarPlane = 1000f;

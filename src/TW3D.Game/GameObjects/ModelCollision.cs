@@ -31,10 +31,6 @@ namespace TW3D.GameObjects
     /// </summary>
     static class ModelCollision
     {
-        //A model is drawn at a quarter of its size, the physics world is 10 times larger and turned by 180°
-        //(see GameObject.ModelWorld): one unit of a model is -2.5 physics units
-        private const float ModelToPhysics = -2.5f;
-
         private static CollisionShapes shapes;
 
         public static void Load()
@@ -65,9 +61,10 @@ namespace TW3D.GameObjects
         {
             foreach (float[] polygon in polygons)
             {
+                //The shapes are in the units of the models (see Units)
                 Vertices vertices = new Vertices(polygon.Length / 2);
                 for (int i = 0; i < polygon.Length; i += 2)
-                    vertices.Add(new Vector2(polygon[i], polygon[i + 1]) * ModelToPhysics);
+                    vertices.Add(new Vector2(polygon[i], polygon[i + 1]) * Units.ModelToPhysics);
                 Fixture fixture = body.CreateFixture(new PolygonShape(vertices, 1f));
                 fixture.CollisionCategories = category;
             }

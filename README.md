@@ -17,7 +17,7 @@ physics bodies.
 |---|---|
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
-| `src/TW3D.Shared/` | Library shared by the game, the editor and the tools: the catalog of blocks and objects, the level file format and the collision shapes |
+| `src/TW3D.Shared/` | Library shared by the game, the editor and the tools: the catalog of blocks and objects, the level file format, the collision shapes and the units of the coordinates (`Units`: the models, the physics world and the scene) |
 | `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`), the collision shapes of the models (`collision.json`, generated) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. |
 | `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
