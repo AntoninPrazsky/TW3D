@@ -185,7 +185,7 @@ rectangle with its name.
 | Folder | Contents |
 |---|---|
 | `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
-| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera, debug view and the run (countdown, time, finish); `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
+| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `Race`: a run of the level (countdown, time, finish) and `RaceHud`, what it shows on the screen; `CarDrag`: the car dragged by hand; `DevelopmentKeys`: the keys for development; `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
 | `GameObjects/` | The car, the level (built from a level file and `LevelAssets`: the catalog, the models of its blocks and objects and the collision shapes, loaded once), the sky, dynamic objects and the 3D garage behind the menus (`GarageScene`) |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
