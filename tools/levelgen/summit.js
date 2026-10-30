@@ -57,11 +57,11 @@ t.road("d2f", "b2f", "b2f", "b2f", "b2f", "b2f", "b2f", "b2f", "b2f");
 const plateau = t.x, plateauH = t.h;
 t.road("a1");
 
-// Finish on the plateau: checkered floor and the finish gate, then a pile of crates
-// in front of the wall at the end, which stops the car
+// Finish on the plateau: checkered floor and the finish gate (the finish of the level), then a pile of
+// crates in front of the wall at the end, which stops the car
 const finish = t.x;
 t.road("xa1", "xa1", "xa1");
-t.put("middle", "g", finish + 1, t.h - 4).put("middle", "st", finish + 1, t.h - 13);
+t.put("middle", "g", finish + 1, t.h - 4, { finish: true }).put("middle", "st", finish + 1, t.h - 13);
 t.road("a1", "a1", "a1");
 const wall = t.x;
 t.road("u1");

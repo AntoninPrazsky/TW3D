@@ -101,7 +101,7 @@
     {"block":"a1","x":82,"y":8,"shift":-1},
     {"block":"a1","x":83,"y":8,"shift":-1},
     {"block":"a1","x":84,"y":8,"shift":-1},
-    {"block":"sb","x":85,"y":8,"shift":-5},
+    {"block":"sb","x":85,"y":8,"shift":-5,"finish":true},
     {"block":"a1","x":86,"y":8,"shift":-1},
     {"block":"a1","x":87,"y":8,"shift":-1},
     {"block":"u1","x":88,"y":8,"shift":-5},

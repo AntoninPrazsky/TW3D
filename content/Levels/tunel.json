@@ -92,6 +92,8 @@
     {"block":"t1","x":66,"y":3,"shift":0},
     {"block":"a1","x":62,"y":7,"shift":4},
     {"block":"a1","x":63,"y":7,"shift":4},
+    {"block":"g","x":63,"y":6,"shift":9,"finish":true},
+    {"block":"st","x":63,"y":5,"shift":9},
     {"block":"a1","x":64,"y":7,"shift":4},
     {"block":"a1","x":65,"y":7,"shift":4},
     {"block":"t2","x":61,"y":3,"shift":0},

@@ -104,7 +104,7 @@
     {"block":"t1","x":85,"y":5,"shift":1},
     {"block":"t1","x":85,"y":4,"shift":1},
     {"block":"t1","x":85,"y":3,"shift":1},
-    {"block":"g","x":81,"y":6,"shift":1},
+    {"block":"g","x":81,"y":6,"shift":1,"finish":true},
     {"block":"st","x":81,"y":5,"shift":1},
     {"block":"a1","x":82,"y":6,"shift":5}
   ],

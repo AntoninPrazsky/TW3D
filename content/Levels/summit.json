@@ -70,7 +70,7 @@
     {"block":"xa1","x":57,"y":-4,"shift":-2},
     {"block":"xa1","x":58,"y":-4,"shift":-2},
     {"block":"xa1","x":59,"y":-4,"shift":-2},
-    {"block":"g","x":58,"y":-5,"shift":3},
+    {"block":"g","x":58,"y":-5,"shift":3,"finish":true},
     {"block":"st","x":58,"y":-6,"shift":3},
     {"block":"a1","x":60,"y":-4,"shift":-2},
     {"block":"a1","x":61,"y":-4,"shift":-2},
