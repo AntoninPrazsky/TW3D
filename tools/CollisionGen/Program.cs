@@ -53,8 +53,9 @@ namespace TW3D.CollisionGen
 
             //The cars across the physics plane: the bodies (with the holders) in the middle, the wheels at both sides
             //(the cars and the track are drawn at the same scale, all centred on the plane z = 0); the bands hold all cars
+            //and all wheels (any wheels fit any car)
             double body = Math.Max(catalog.Cars.Max(car => Load(car.Model).MaxAbsZ), Load(Holder).MaxAbsZ);
-            List<ObjMesh> wheels = catalog.Cars.Select(car => car.Wheel).Distinct().Select(Load).ToList();
+            List<ObjMesh> wheels = catalog.Wheels.Select(wheel => wheel.Model).Distinct().Select(Load).ToList();
             double wheelsInner = wheels.Min(wheel => Math.Min(Math.Abs(wheel.MinZ), Math.Abs(wheel.MaxZ)));
             double wheelsOuter = wheels.Max(wheel => wheel.MaxAbsZ);
             Console.WriteLine(FormattableString.Invariant(

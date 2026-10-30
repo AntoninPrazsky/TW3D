@@ -21,9 +21,9 @@ The physics world is the plane z = 0 of the models, and the cars are up to 4.35 
 units wide across it. A shape is whatever of a model a car can touch while moving in
 that plane: everything within a band of z, seen along the z axis.
 
-- The bands come from the models of the cars, all of them together: their bodies (with
-  the holders of the wheels) are within |z| ≤ 1.49, the wheels at their sides within
-  1.42 ≤ |z| ≤ 2.18.
+- The bands come from the models of the cars and the wheels, all of them together (any
+  wheels fit any car): the bodies (with the holders of the wheels) are within |z| ≤ 1.49,
+  the wheels at their sides within 1.42 ≤ |z| ≤ 2.18.
 - A block gets one shape for each band. They are the same for most blocks (straight
   along z); where they differ, the body and the wheels collide with their own shape
   (`body` and `wheels` in the file, collision categories in the game): the arch of a

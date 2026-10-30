@@ -110,7 +110,12 @@ gesture or button of a phone) goes back; in the main menu it quits the game.
 
 **Garage:** the cars to choose from, one at a time; dragging the car sideways (with a
 finger or the mouse) or the arrows next to the name (or left and right) show the others.
-The car shown is the one to drive, saved with the options.
+The car shown is the one to drive. On the right its wheels are chosen, for the front and
+the rear axle each (any wheels fit any car; up and down choose the row, left and right the
+wheels); on the left bars show how fast, heavy and gripping the car is with them. The cars
+differ in their top speed and weight (the Sand Rail is faster and lighter than the Buggy),
+the wheels in their grip and weight (the off-road wheels grip better, the racing ones are
+lighter). The choices are saved with the options, the wheels for each car.
 
 **Options:** full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
@@ -254,10 +259,14 @@ game and the editor:
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution and
   the models they can use (`Env/<model>`).
-- **cars**: the cars of the garage: the name, the model of the body and the model of
-  a wheel. All cars have the same chassis (the holders of the wheels, `holder`).
+- **cars**: the cars of the garage: the name, the model of the body, the wheels it comes
+  with, the mass of the body and the top speed (how fast the motors turn the wheels at
+  most, radians per second). All cars have the same chassis (the holders of the wheels,
+  `holder`), so any wheels fit any car.
+- **wheels**: the wheels of the garage: the name, the model, the friction of the tyre (its
+  grip on the track, whose friction is 1) and the mass of one wheel.
 
-A new block, object or car only needs its model in `content/` (and a `/build` line
+A new block, object, car or wheel only needs its model in `content/` (and a `/build` line
 in `content/Content.mgcb`) and an entry in the catalog.
 
 ### Collision shapes

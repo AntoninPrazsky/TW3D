@@ -5,6 +5,7 @@ using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
+using TW3D.Shared;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Dynamics.Joints;
@@ -35,8 +36,11 @@ namespace TW3D.GameObjects
         private static readonly Vector3 Forward = -Vector3.UnitX;
 
         private Model carModel;
-        private Model wheelModel;
+        private Model frontWheelModel, rearWheelModel;
         private Model holderModel;
+
+        //How fast the motors turn the wheels at most (radians per second)
+        private readonly float topSpeed;
 
         public float acceleration;
 
@@ -49,7 +53,9 @@ namespace TW3D.GameObjects
 
         public bool holderRotLockChnage;
         
-        public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, string CarName, string WheelName)
+        /// <summary>A car of the catalog with its wheels: one kind on the front axle, one on the rear one.</summary>
+        public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, CarType Type,
+            WheelType FrontWheels, WheelType RearWheels)
         {
             world = World;
             screenManager = ScreenManager;
@@ -59,11 +65,13 @@ namespace TW3D.GameObjects
             
             acceleration = 0f;
 
-            carModel = screenManager.Content.Load<Model>(CarName);
-            wheelModel = screenManager.Content.Load<Model>(WheelName);
+            carModel = screenManager.Content.Load<Model>(Type.Model);
+            frontWheelModel = screenManager.Content.Load<Model>(FrontWheels.Model);
+            rearWheelModel = screenManager.Content.Load<Model>(RearWheels.Model);
             holderModel = screenManager.Content.Load<Model>("holder");
+            topSpeed = Type.TopSpeed;
 
-            car = CreateModelBody(CarName, BodyType.Dynamic);
+            car = CreateModelBody(Type.Model, BodyType.Dynamic);
             car.Position = position;
             car.BodyType = BodyType.Dynamic;
 
@@ -73,7 +81,6 @@ namespace TW3D.GameObjects
             
             holderB.BodyType = BodyType.Dynamic;
 
-            float wFriction = 1f;
             float mSpeed = 0f;
             float mTorque = 900f;
 
@@ -86,19 +93,19 @@ namespace TW3D.GameObjects
             //Originally just position.X etc. instead of _holderB.Position.X (before the centre of the equilateral triangle was fixed)
             wheel4LB.Position = new Vector2(holderB.Position.X - 0.76454f * scale * 10, holderB.Position.Y + 0.644055f * scale * 10);
             wheel4LB.CreateFixture(wheelShape);
-            wheel4LB.SetFriction(wFriction);
+            wheel4LB.SetFriction(RearWheels.Friction);
 
             wheel4RB = world.CreateBody();
             wheel4RB.BodyType = BodyType.Dynamic;
             wheel4RB.Position = new Vector2(holderB.Position.X + 0.76454f * scale * 10, holderB.Position.Y + 0.644055f * scale * 10);
             wheel4RB.CreateFixture(wheelShape);
-            wheel4RB.SetFriction(wFriction);
+            wheel4RB.SetFriction(RearWheels.Friction);
 
             wheel4TB = world.CreateBody();
             wheel4TB.BodyType = BodyType.Dynamic;
             wheel4TB.Position = new Vector2(holderB.Position.X + 0, holderB.Position.Y - 0.680167f * scale * 10);
             wheel4TB.CreateFixture(wheelShape);
-            wheel4TB.SetFriction(wFriction);
+            wheel4TB.SetFriction(RearWheels.Friction);
 
             //Assembling the holder (axle)
             Vector2 axis = new Vector2(0, -1f);
@@ -150,33 +157,33 @@ namespace TW3D.GameObjects
             wheel4LF.BodyType = BodyType.Dynamic;
             wheel4LF.Position = new Vector2(position.X - 0.76454f * scale * 10, position.Y + 0.644055f * scale * 10);
             wheel4LF.CreateFixture(wheelShape);
-            wheel4LF.SetFriction(wFriction);
+            wheel4LF.SetFriction(FrontWheels.Friction);
 
             wheel4RF = world.CreateBody();
             wheel4RF.BodyType = BodyType.Dynamic;
             wheel4RF.Position = new Vector2(position.X + 0.76454f * scale * 10, position.Y + 0.644055f * scale * 10);
             wheel4RF.CreateFixture(wheelShape);
-            wheel4RF.SetFriction(wFriction);
+            wheel4RF.SetFriction(FrontWheels.Friction);
 
             wheel4TF = world.CreateBody();
             wheel4TF.BodyType = BodyType.Dynamic;
             wheel4TF.Position = new Vector2(position.X + 0, position.Y - 0.680167f * scale * 10);
             wheel4TF.CreateFixture(wheelShape);
-            wheel4TF.SetFriction(wFriction);
+            wheel4TF.SetFriction(FrontWheels.Friction);
             
             //Masses
             holderF.Mass = 15;
             holderB.Mass = 15;
 
-            wheel4LF.Mass = 30;
-            wheel4RF.Mass = 30;
-            wheel4TF.Mass = 30;
+            wheel4LF.Mass = FrontWheels.Mass;
+            wheel4RF.Mass = FrontWheels.Mass;
+            wheel4TF.Mass = FrontWheels.Mass;
 
-            wheel4LB.Mass = 30;
-            wheel4RB.Mass = 30;
-            wheel4TB.Mass = 30;
+            wheel4LB.Mass = RearWheels.Mass;
+            wheel4RB.Mass = RearWheels.Mass;
+            wheel4TB.Mass = RearWheels.Mass;
 
-            car.Mass = 200f;
+            car.Mass = Type.Mass;
             
             springLeftF = new RevoluteJoint(holderF, wheel4LF, wheel4LF.Position, true);
             springLeftF.MotorSpeed = mSpeed;
@@ -245,9 +252,9 @@ namespace TW3D.GameObjects
 
             foreach (RevoluteJoint joint in wJoints)
             {
-                joint.MotorSpeed = Math.Sign(acceleration) * MathHelper.SmoothStep(0f, 50f, Math.Abs(acceleration));
+                joint.MotorSpeed = Math.Sign(acceleration) * MathHelper.SmoothStep(0f, topSpeed, Math.Abs(acceleration));
                 
-                if (Math.Abs(joint.MotorSpeed) < 50f * 0.06f)
+                if (Math.Abs(joint.MotorSpeed) < topSpeed * 0.06f)
                 {
                     joint.MotorEnabled = false;
                 }
@@ -340,24 +347,24 @@ namespace TW3D.GameObjects
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
             renderer.SetCar(carModel, body, Forward, brake);
 
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false);
 
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false);
 
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true);
 
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true);
-            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true);
         }
     }

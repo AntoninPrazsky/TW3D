@@ -100,7 +100,8 @@ namespace TW3D.GamePlay
             renderer.Lighting = Lighting.For(mood);
             sky = new Sky(Manager, camera);
             CarType carType = catalog.FindCar(settings.Car);
-            car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), carType.Model, carType.Wheel);
+            CarWheels wheels = settings.WheelsOf(carType);
+            car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
 
             debugView = new DebugView(world)
             {

@@ -71,7 +71,11 @@
     { "type": "Mov", "shape": "model", "friction": 0.45, "mass": 200, "restitution": 0, "models": [ "mov1" ] }
   ],
   "cars": [
-    { "name": "Buggy", "model": "car", "wheel": "wheel" },
-    { "name": "Sand Rail", "model": "car2", "wheel": "wheel2" }
+    { "name": "Buggy", "model": "car", "wheel": "wheel", "mass": 200, "topSpeed": 50 },
+    { "name": "Sand Rail", "model": "car2", "wheel": "wheel2", "mass": 150, "topSpeed": 62 }
+  ],
+  "wheels": [
+    { "name": "Off-road", "model": "wheel", "friction": 1.2, "mass": 30 },
+    { "name": "Racing", "model": "wheel2", "friction": 0.75, "mass": 20 }
   ]
 }
