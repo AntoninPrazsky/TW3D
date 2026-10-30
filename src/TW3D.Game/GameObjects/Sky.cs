@@ -20,9 +20,9 @@ namespace TW3D.GameObjects
         /// The sky is drawn first, as a background: it does not use the depth buffer, so it never hides
         /// the track. (Drawn with depth, the small sky dome used to cut off the track further away.)
         /// </summary>
-        public override void Draw()
+        public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(sky, new Vector3(camera.Focus, -25f), 0f, false, false, asBackground: true);
+            DrawModel(renderer, sky, new Vector3(camera.Focus, -25f), 0f, false, asBackground: true);
         }
     }
 }

@@ -49,9 +49,9 @@ namespace TW3D.GameObjects
             propBody.SetRestitution(type.Restitution);
         }
 
-        public override void Draw()
+        public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(model, new Vector3(DrawPosition(propBody), 0f), DrawRotation(propBody), false, true);
+            DrawModel(renderer, model, new Vector3(DrawPosition(propBody), 0f), DrawRotation(propBody), false);
         }
     }
 }

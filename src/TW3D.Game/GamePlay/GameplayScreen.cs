@@ -55,6 +55,7 @@ namespace TW3D.GamePlay
         private World world;
         private PhysicsClock physics;
         private ChaseCamera camera;
+        private SceneRenderer renderer;
         private DebugView debugView;
         private OnScreenControls controls;
 
@@ -88,6 +89,7 @@ namespace TW3D.GamePlay
                 AutoClearForces = true
             });
             camera = new ChaseCamera { MinRotation = -0.5f, MaxRotation = 0.5f };
+            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
 
             level = new Level(world, Manager, camera, physics, catalog, Vector2.Zero, levelName);
             sky = new Sky(Manager, camera);
@@ -206,6 +208,12 @@ namespace TW3D.GamePlay
 
             if (input.ButtonPressed(Buttons.Start))
                 debugView.Flags ^= GamePadDebugFlags;
+
+            //The lighting of the 2016 version and the scene without shadows, for comparison
+            if (input.KeyPressed(Keys.F9))
+                renderer.Classic = !renderer.Classic;
+            if (input.KeyPressed(Keys.F10))
+                renderer.Shadows = !renderer.Shadows;
         }
 
         private void HandleCameraKeys(InputState input, float elapsed)
@@ -244,10 +252,11 @@ namespace TW3D.GamePlay
 
         public override void Draw(GameTime gameTime)
         {
-            //The sky is a background and has to be drawn first
-            sky.Draw();
-            car.Draw();
-            level.Draw();
+            renderer.Begin(camera);
+            sky.Draw(renderer);
+            car.Draw(renderer);
+            level.Draw(renderer);
+            renderer.End();
 
             Matrix debugProjection = camera.DebugProjection;
             Matrix debugViewMatrix = camera.DebugView;

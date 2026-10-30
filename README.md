@@ -125,6 +125,8 @@ Development keys while driving:
 | Num 8 / 2 / 4 / 6 | Move the camera away from the car |
 | Page Up / Page Down | Zoom of the debug view |
 | Home | Reset the camera |
+| F9 | The lighting of the 2016 version, for comparison |
+| F10 | Shadows on / off |
 | F12 | Frames per second (shown by default in Debug builds) |
 
 The editor controls are described in
@@ -144,7 +146,7 @@ rectangle with its name.
 | `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu and level select screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `PhysicsClock`: fixed-step simulation |
 | `GameObjects/` | The car, the level (built from a level file and the catalog), the sky and dynamic objects |
-| `Graphics/` | Camera following the car (3D view and debug view), frame rate counter |
+| `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
 
 The game draws one frame per refresh of the monitor (e.g. 75 frames per second
@@ -152,6 +154,14 @@ on a 75 Hz monitor), with 8× multisample antialiasing (fewer samples if the
 graphics card does not support 8). The physics simulation is independent of that: it always
 runs 60 fixed steps of 1/60 s per game second, and the positions of moving bodies are
 interpolated between the last two steps for drawing.
+
+The models are lit by the game's own shader (`content/Effects/Scene.fx`): the sun with
+its shadows (a shadow map fitted to the part of the scene the camera sees), the light of
+the sky from above and of the ground from below, highlights by the specular colour of
+the materials and a rim of sky light. The light is computed in linear colour space and
+mapped to the screen by a filmic curve, and the distance fades into the colour of the
+sky. The 2016 version lit the models by three coloured directional lights of
+`BasicEffect` (F9 switches to it); the level editor and CatalogRender still draw so.
 
 The game runs 1.5 times as fast as real time (`GameSpeed` in `GameplayScreen`). For the
 physics engine the world is huge (the car is about 20 metres long), so at real time

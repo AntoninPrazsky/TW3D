@@ -131,20 +131,20 @@ namespace TW3D.GameObjects
             }
         }
 
-        public override void Draw()
+        public override void Draw(SceneRenderer renderer)
         {
-            //Models outside the camera view are skipped by DrawModel
+            //Models outside the camera view are skipped by the renderer
             foreach (TrackBlock tb in backTrackBlocks)
-                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, -LayerDepth), 0f, false, true);
+                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, -LayerDepth), 0f, false);
 
             foreach (TrackBlock tb in trackBlocks)
-                DrawModel(tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false, true);
+                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false);
 
             foreach (TrackBlock tb in frontTrackBlocks)
-                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, LayerDepth), 0f, false, true);
+                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, LayerDepth), 0f, false);
 
             foreach (TrackProp obj in gObjects)
-                obj.Draw();
+                obj.Draw(renderer);
         }
     }
 }

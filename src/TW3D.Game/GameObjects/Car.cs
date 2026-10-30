@@ -330,29 +330,29 @@ namespace TW3D.GameObjects
                 return false;
         }
 
-        public override void Draw()
+        public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false, true);
+            DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
 
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false, true);
-            DrawModel(holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false, true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false);
 
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false, true);
-            DrawModel(holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false, true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false);
 
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true, true);
-            DrawModel(holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true, true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true);
 
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true, true);
-            DrawModel(wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true, true);
-            DrawModel(holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true, true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true);
+            DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true);
         }
     }
 }

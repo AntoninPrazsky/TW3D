@@ -80,89 +80,21 @@ namespace TW3D.GameObjects
             return world.CreateCompoundPolygon(listOfVertices, 1f, Vector2.Zero, 0f, bodyType);
         }
 
+        /// <summary>Adds a model to the scene, at a position and rotation of the physics world.</summary>
         /// <param name="asBackground">
-        /// Draw without the depth buffer, so the model never hides anything drawn after it (used for the sky).
+        /// Draw it behind everything else, unlit and without the depth buffer (used for the sky).
         /// </param>
-        public void DrawModel(Model model, Vector3 modelPosition, float modelRotation, bool flip, bool lighting, bool asBackground = false)
+        public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, bool asBackground = false)
         {
             float convCon = 10f;
 
-            Matrix world = new Matrix();
-
-            world = (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
+            Matrix world = (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
                * Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition / convCon);
 
-            //Models whose bounding sphere is completely outside the camera view are not drawn
-            if (camera.Frustum.Contains(ModelBounds(model).Transform(world)) == ContainmentType.Disjoint)
-                return;
-
-            screenManager.GraphicsDevice.BlendState = BlendState.Opaque;
-            screenManager.GraphicsDevice.DepthStencilState = asBackground ? DepthStencilState.None : DepthStencilState.Default;
-            screenManager.GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
-            screenManager.GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
-
-            Matrix view = camera.View;
-            Matrix projection = camera.Projection;
-
-            if (lighting)
-            {
-                Matrix[] transforms = new Matrix[model.Bones.Count];
-                model.CopyAbsoluteBoneTransformsTo(transforms);
-                foreach (ModelMesh mesh in model.Meshes)
-                {
-                    foreach (BasicEffect effect in mesh.Effects)
-                    {
-                        effect.PreferPerPixelLighting = true;
-                        effect.LightingEnabled = true;
-                        effect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
-
-                        effect.SpecularColor = new Vector3(1, 1, 1);
-                        effect.SpecularPower = 30;
-
-                        effect.DirectionalLight0.Direction = new Vector3(1, -1, 0);
-                        effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f);
-                        effect.DirectionalLight0.SpecularColor = new Vector3(1, 1, 1);
-
-                        effect.DirectionalLight1.Direction = new Vector3(0, -1, -1);
-                        effect.DirectionalLight1.DiffuseColor = new Color(90, 166, 206).ToVector3() / 2;
-                        effect.DirectionalLight1.SpecularColor = new Color(90, 166, 206).ToVector3();
-                        effect.DirectionalLight1.Enabled = true;
-
-                        effect.DirectionalLight2.Direction = new Vector3(-1, -1, 0);
-                        effect.DirectionalLight2.DiffuseColor = new Color(74, 125, 156).ToVector3() / 2;
-                        effect.DirectionalLight2.SpecularColor = new Color(74, 125, 156).ToVector3();
-                        effect.DirectionalLight2.Enabled = true;
-
-                        effect.View = view;
-                        effect.Projection = projection;
-                        effect.World = transforms[mesh.ParentBone.Index] * world;
-                    }
-                    mesh.Draw();
-                }
-            }
-            else { model.Draw(world, view, projection); }
-        }
-
-        private static readonly Dictionary<Model, BoundingSphere> modelBounds = new Dictionary<Model, BoundingSphere>();
-
-        /// <summary>Bounding sphere of the whole model in model coordinates (computed once per model).</summary>
-        private static BoundingSphere ModelBounds(Model model)
-        {
-            if (modelBounds.TryGetValue(model, out BoundingSphere bounds))
-                return bounds;
-
-            Matrix[] transforms = new Matrix[model.Bones.Count];
-            model.CopyAbsoluteBoneTransformsTo(transforms);
-            bool first = true;
-            foreach (ModelMesh mesh in model.Meshes)
-            {
-                BoundingSphere meshBounds = mesh.BoundingSphere.Transform(transforms[mesh.ParentBone.Index]);
-                bounds = first ? meshBounds : BoundingSphere.CreateMerged(bounds, meshBounds);
-                first = false;
-            }
-
-            modelBounds[model] = bounds;
-            return bounds;
+            if (asBackground)
+                renderer.SetBackground(model, world);
+            else
+                renderer.Add(model, world);
         }
 
         public Ray GetPickRay(float x, float y)
@@ -172,7 +104,7 @@ namespace TW3D.GameObjects
 
         public virtual void Update() { }
 
-        public virtual void Draw() { }
+        public virtual void Draw(SceneRenderer renderer) { }
 
     }
 }

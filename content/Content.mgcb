@@ -1,9 +1,9 @@
 # Content pipeline project: builds the 3D models of the game (OBJ + MTL, their textures
-# are built with them) into .xnb files. The projects reference it as MonoGameContentReference,
-# the build output goes to Content/ next to the program. The other files in content/
-# (precompiled textures and fonts, levels, the catalog) are copied as they are.
+# are built with them) and the shaders into .xnb files. The projects reference it as
+# MonoGameContentReference, the build output goes to Content/ next to the program. The other
+# files in content/ (precompiled textures and fonts, levels, the catalog) are copied as they are.
 #
-# A new model: add a /build line below.
+# A new model: add a /build line below the models.
 
 #----------------------------- Global Properties ----------------------------#
 
@@ -11,6 +11,11 @@
 /compress:False
 
 #---------------------------------- Content ---------------------------------#
+
+# Shaders
+/importer:EffectImporter
+/processor:EffectProcessor
+/build:Effects/Scene.fx
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
 # it creates XNA compatible materials (BasicEffect), which the game draws with.
