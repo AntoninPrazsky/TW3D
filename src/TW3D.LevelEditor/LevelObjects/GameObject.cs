@@ -55,7 +55,7 @@ namespace LevelEditor.LevelObjects
             {
                 foreach (BasicEffect effect in mesh.Effects)
                 {
-                    SceneRenderer.ApplyClassicLighting(effect);
+                    Lighting.ApplyClassic(effect);
                     effect.View = camera.viewMatrix;
                     effect.Projection = projection;
                     effect.World = transforms[mesh.ParentBone.Index] * world;

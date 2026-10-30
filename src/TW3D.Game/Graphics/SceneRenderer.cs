@@ -737,7 +737,7 @@ namespace TW3D.Graphics
         private void DrawClassicPart(ModelPart part, Matrix world)
         {
             BasicEffect basic = part.Effect;
-            ApplyClassicLighting(basic);
+            Lighting.ApplyClassic(basic);
             if (part.Lamp != Lamp.None)
                 basic.EmissiveColor = part.ClassicEmissive * LampGlow(part.Lamp);
             basic.View = view;
@@ -745,31 +745,6 @@ namespace TW3D.Graphics
             basic.World = world;
             basic.CurrentTechnique.Passes[0].Apply();
             DrawPart(part.MeshPart);
-        }
-
-        /// <summary>Sets up a BasicEffect with the lighting of the 2016 version.</summary>
-        public static void ApplyClassicLighting(BasicEffect effect)
-        {
-            effect.PreferPerPixelLighting = true;
-            effect.LightingEnabled = true;
-            effect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
-
-            effect.SpecularColor = new Vector3(1, 1, 1);
-            effect.SpecularPower = 30;
-
-            effect.DirectionalLight0.Direction = new Vector3(1, -1, 0);
-            effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f);
-            effect.DirectionalLight0.SpecularColor = new Vector3(1, 1, 1);
-
-            effect.DirectionalLight1.Direction = new Vector3(0, -1, -1);
-            effect.DirectionalLight1.DiffuseColor = new Color(90, 166, 206).ToVector3() / 2;
-            effect.DirectionalLight1.SpecularColor = new Color(90, 166, 206).ToVector3();
-            effect.DirectionalLight1.Enabled = true;
-
-            effect.DirectionalLight2.Direction = new Vector3(-1, -1, 0);
-            effect.DirectionalLight2.DiffuseColor = new Color(74, 125, 156).ToVector3() / 2;
-            effect.DirectionalLight2.SpecularColor = new Color(74, 125, 156).ToVector3();
-            effect.DirectionalLight2.Enabled = true;
         }
 
         /// <summary>Models whose bounding sphere is completely outside the camera view are not drawn.</summary>

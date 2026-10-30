@@ -10,6 +10,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The lighting of the 2016 version, shared with the game and the level editor -->
+    <Compile Include="..\..\src\TW3D.Game\Graphics\Lighting.cs" Link="Lighting.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Models built by the content pipeline into Content/ (the tool uses the blocks and the selector of the level editor) -->
     <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
   </ItemGroup>

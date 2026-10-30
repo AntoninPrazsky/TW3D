@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Graphics;
 using TW3D.Shared;
 
 namespace TW3D.CatalogRender
@@ -174,7 +175,7 @@ namespace TW3D.CatalogRender
         /// <summary>Draws a model at the block position the way the level editor does (GameObject.DrawModel).</summary>
         private static void DrawModel(Model model, Matrix view, Matrix projection)
         {
-            Matrix world = Matrix.CreateScale(0.25f);
+            Matrix world = Matrix.CreateScale(Units.ModelToScene);
             Matrix[] transforms = new Matrix[model.Bones.Count];
             model.CopyAbsoluteBoneTransformsTo(transforms);
 
@@ -182,26 +183,7 @@ namespace TW3D.CatalogRender
             {
                 foreach (BasicEffect effect in mesh.Effects)
                 {
-                    effect.PreferPerPixelLighting = true;
-                    effect.LightingEnabled = true;
-                    effect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
-                    effect.SpecularColor = new Vector3(1, 1, 1);
-                    effect.SpecularPower = 30;
-
-                    effect.DirectionalLight0.Direction = new Vector3(1, -1, 0);
-                    effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f);
-                    effect.DirectionalLight0.SpecularColor = new Vector3(1, 1, 1);
-
-                    effect.DirectionalLight1.Direction = new Vector3(0, -1, -1);
-                    effect.DirectionalLight1.DiffuseColor = new Color(90, 166, 206).ToVector3() / 2;
-                    effect.DirectionalLight1.SpecularColor = new Color(90, 166, 206).ToVector3();
-                    effect.DirectionalLight1.Enabled = true;
-
-                    effect.DirectionalLight2.Direction = new Vector3(-1, -1, 0);
-                    effect.DirectionalLight2.DiffuseColor = new Color(74, 125, 156).ToVector3() / 2;
-                    effect.DirectionalLight2.SpecularColor = new Color(74, 125, 156).ToVector3();
-                    effect.DirectionalLight2.Enabled = true;
-
+                    Lighting.ApplyClassic(effect);
                     effect.View = view;
                     effect.Projection = projection;
                     effect.World = transforms[mesh.ParentBone.Index] * world;

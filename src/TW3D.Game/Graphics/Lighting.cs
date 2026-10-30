@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using TW3D.Shared;
 
 namespace TW3D.Graphics
@@ -10,6 +11,34 @@ namespace TW3D.Graphics
     /// </summary>
     public sealed class Lighting
     {
+        /// <summary>
+        /// Sets up a BasicEffect with the lighting of the 2016 version: three coloured directional lights. The classic
+        /// look of the game, the level editor and the catalog images are drawn with it.
+        /// </summary>
+        public static void ApplyClassic(BasicEffect effect)
+        {
+            effect.PreferPerPixelLighting = true;
+            effect.LightingEnabled = true;
+            effect.AmbientLightColor = new Vector3(0.2f, 0.2f, 0.2f);
+
+            effect.SpecularColor = new Vector3(1, 1, 1);
+            effect.SpecularPower = 30;
+
+            effect.DirectionalLight0.Direction = new Vector3(1, -1, 0);
+            effect.DirectionalLight0.DiffuseColor = new Vector3(0.6f, 0.6f, 0.6f);
+            effect.DirectionalLight0.SpecularColor = new Vector3(1, 1, 1);
+
+            effect.DirectionalLight1.Direction = new Vector3(0, -1, -1);
+            effect.DirectionalLight1.DiffuseColor = new Color(90, 166, 206).ToVector3() / 2;
+            effect.DirectionalLight1.SpecularColor = new Color(90, 166, 206).ToVector3();
+            effect.DirectionalLight1.Enabled = true;
+
+            effect.DirectionalLight2.Direction = new Vector3(-1, -1, 0);
+            effect.DirectionalLight2.DiffuseColor = new Color(74, 125, 156).ToVector3() / 2;
+            effect.DirectionalLight2.SpecularColor = new Color(74, 125, 156).ToVector3();
+            effect.DirectionalLight2.Enabled = true;
+        }
+
         /// <summary>Unit vector towards the sun.</summary>
         public Vector3 SunDirection { get; init; }
         public Vector3 SunColor { get; init; }
