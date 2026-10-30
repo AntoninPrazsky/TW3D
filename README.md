@@ -256,8 +256,10 @@ the windows, the lift, the furniture and the tools, and the poles outside, with 
 normals by the hard edges of Wings and metal materials where there was metal. The
 landscape behind the windows is the sky of the levels (`Env/sky.png`). Run the script after
 changing the `.wings` files or the script and commit its output. The car chosen in the
-garage stands on the lift, the other cars in a row along its axis. The menus look into the
-garage as the picture of 2016 did; the garage screen moves the camera to the car.
+garage stands on the lift facing the camera, the other cars in a row along its axis in the
+order of the catalog (the next ones behind it). The menus look into the garage as the
+picture of 2016 did; the garage screen moves the camera to the car, and to the wheels of
+the axle being chosen.
 
 The other files are still the **precompiled** `.xnb` files from XNA 4.0, without
 their sources in the repository: the images of the user interface (`Common/`),

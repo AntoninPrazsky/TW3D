@@ -337,6 +337,27 @@ namespace TW3D.GameObjects
             }
         }
 
+        /// <summary>
+        /// Middle of the three wheels of an axle in the 3D world, before <see cref="GameObject.Placement"/>: on the side of
+        /// the car towards -z (the wheels drawn as they are) or towards +z (the wheels drawn turned around).
+        /// </summary>
+        public Vector3 WheelsCentre(bool front, bool turned)
+        {
+            Body[] wheels = front ? new[] { wheel4LF, wheel4RF, wheel4TF } : new[] { wheel4LB, wheel4RB, wheel4TB };
+            Vector2 middle = (DrawPosition(wheels[0]) + DrawPosition(wheels[1]) + DrawPosition(wheels[2])) / 3f;
+
+            //The wheel models lie beside the car, away from their origin
+            Model model = front ? frontWheelModel : rearWheelModel;
+            Matrix[] transforms = new Matrix[model.Bones.Count];
+            model.CopyAbsoluteBoneTransformsTo(transforms);
+            float side = 0f;
+            foreach (ModelMesh mesh in model.Meshes)
+                side += Vector3.Transform(mesh.BoundingSphere.Center, transforms[mesh.ParentBone.Index]).Z / model.Meshes.Count;
+            side *= scale;
+
+            return new Vector3(-middle / 10f, turned ? -side : side);
+        }
+
         public bool IsIntersected(float x, float y)
         {
             Ray pickRay = GetPickRay(x, y);

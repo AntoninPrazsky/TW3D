@@ -13,18 +13,20 @@ namespace TW3D.Screens
     /// <summary>
     /// The garage: the camera of the 3D garage behind the menus (<see cref="GarageScene"/>) comes to the car on the
     /// lift. The arrows next to the name of the car (or left and right, or dragging the car sideways) move the row of
-    /// cars, so that another car comes onto the lift; the car on the lift is the one chosen. On the right the wheels of
-    /// its front and rear axle are chosen (any wheels fit any car), on the left bars show how fast, heavy and gripping
-    /// it is with them. Everything chosen is saved at once.
+    /// cars, so that the next or the previous car of the catalog comes onto the lift; the car on the lift is the one
+    /// chosen. On the right the wheels of its front and rear axle are chosen (any wheels fit any car), the camera
+    /// looking at the wheels of the axle being chosen; on the left bars show how fast, heavy and gripping the car is
+    /// with them. Everything chosen is saved at once.
     /// </summary>
     public sealed class GarageScreen : Screen
     {
         //The row of cars follows a pointer dragging it sideways. Dragged by this part of the distance of the cars, or
         //flicked faster than this (reference pixels per second), it brings the next car; let go, it settles at this
-        //rate (1 / seconds)
+        //rate (1 / seconds). Beyond its ends it gives only this far (world units).
         private const float SwitchDistance = 0.25f;
         private const float FlickSpeed = 800f;
         private const float SettleRate = 10f;
+        private const float EndGive = 0.3f;
         //Font scale of the name and of Back, the size of the arrows and their distance from the name, in reference pixels
         private const float TextScale = 0.8f;
         private const float ArrowScale = 0.6f;
@@ -113,6 +115,7 @@ namespace TW3D.Screens
         {
             scene.Focus = 0f;
             scene.Scroll = 0f;
+            scene.View = GarageScene.CarView.Whole;
         }
 
         /// <summary>How fast, heavy and gripping a car is with its wheels, each as a part of the most there is.</summary>
@@ -131,11 +134,15 @@ namespace TW3D.Screens
 
         private static float Spacing => GarageScene.Spacing;
 
+        /// <summary>There is a car further along the row in the direction (1 = the next car of the catalog, -1 = the previous one).</summary>
+        private bool HasCar(int direction) => selected + direction >= 0 && selected + direction < cars.Count;
+
         private void Show(int direction)
         {
-            if (cars.Count < 2)
+            focus = Row.Car;
+            if (!HasCar(direction))
                 return;
-            selected = (selected + direction + cars.Count) % cars.Count;
+            selected += direction;
             //The row moves by one car: the car chosen stays where it is on the screen, then settles in the middle
             scroll = MathHelper.Clamp(scroll + direction * Spacing, -Spacing, Spacing);
             settings.Car = cars[selected].Model;
@@ -170,7 +177,7 @@ namespace TW3D.Screens
             if (dragPointer == null)
             {
                 scroll *= MathF.Exp(-SettleRate * elapsed);
-                if (Math.Abs(scroll) < 0.5f)
+                if (Math.Abs(scroll) < 0.001f)
                     scroll = 0f;
             }
 
@@ -182,6 +189,8 @@ namespace TW3D.Screens
             //The camera of the garage comes to the car as the screen appears, and goes back as it disappears
             scene.Focus = Visibility;
             scene.Scroll = scroll;
+            scene.View = focus == Row.FrontWheels ? GarageScene.CarView.FrontWheels
+                : focus == Row.RearWheels ? GarageScene.CarView.RearWheels : GarageScene.CarView.Whole;
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -238,8 +247,10 @@ namespace TW3D.Screens
         {
             foreach (Pointer pointer in input.Pointers)
             {
-                if (dragPointer == null && pointer.Phase == PointerPhase.Pressed && cars.Count > 1 && !IsButton(pointer.Position))
+                if (dragPointer == null && pointer.Phase == PointerPhase.Pressed && !IsButton(pointer.Position))
                 {
+                    //Touching the cars brings the camera back to the whole car
+                    focus = Row.Car;
                     dragPointer = pointer.Id;
                     dragX = pointer.Position.X;
                     dragVelocity = 0f;
@@ -248,11 +259,11 @@ namespace TW3D.Screens
                 if (pointer.Id != dragPointer)
                     continue;
 
-                //The cars follow the pointer on the screen
+                //The cars follow the pointer on the screen (the next car comes as the row moves backwards)
                 float move = pointer.Position.X - dragX;
                 dragX = pointer.Position.X;
                 if (Math.Abs(scene.PixelsPerUnit) > 1f)
-                    scroll = MathHelper.Clamp(scroll + move / scene.PixelsPerUnit, -Spacing, Spacing);
+                    scroll = MathHelper.Clamp(scroll + move / scene.PixelsPerUnit, HasCar(1) ? -Spacing : -EndGive, HasCar(-1) ? Spacing : EndGive);
                 if (elapsed > 0f)
                     dragVelocity = MathHelper.Lerp(dragVelocity, move / elapsed, 0.5f);
                 if (pointer.Phase == PointerPhase.Released)
@@ -362,8 +373,9 @@ namespace TW3D.Screens
                 Manager.DrawShadowedText(font, car.Name, new Vector2((viewport.Width - nameWidth) / 2f + x + slide, namePosition.Y),
                     Color.White * nameAlpha, Color.DarkSlateGray * (nameAlpha * nameAlpha), TextScale * uiScale);
             }
-            DrawArrow(leftArrow, -MathHelper.PiOver2, ArrowScale, pointer, slide, alpha);
-            DrawArrow(rightArrow, MathHelper.PiOver2, ArrowScale, pointer, slide, alpha);
+            //At the ends of the row, the arrow towards nothing is faint
+            DrawArrow(leftArrow, -MathHelper.PiOver2, ArrowScale, pointer, slide, alpha, HasCar(-1));
+            DrawArrow(rightArrow, MathHelper.PiOver2, ArrowScale, pointer, slide, alpha, HasCar(1));
 
             //The wheels of the car shown, the chosen row in yellow
             CarWheels chosen = settings.WheelsOf(cars[selected]);
@@ -400,12 +412,12 @@ namespace TW3D.Screens
             Manager.SpriteBatch.End();
         }
 
-        /// <summary>An arrow turned to the side; yellow and slightly bigger under the pointer.</summary>
-        private void DrawArrow(Rectangle bounds, float rotation, float arrowScale, Vector2 pointer, float slide, float alpha)
+        /// <summary>An arrow turned to the side; yellow and slightly bigger under the pointer, faint when it leads nowhere.</summary>
+        private void DrawArrow(Rectangle bounds, float rotation, float arrowScale, Vector2 pointer, float slide, float alpha, bool enabled = true)
         {
-            bool highlighted = bounds.Contains(pointer) && HasFocus;
+            bool highlighted = enabled && bounds.Contains(pointer) && HasFocus;
             float scale = arrowScale * Manager.UiScale * (highlighted ? 1.1f : 1f);
-            Color color = (highlighted ? MainMenuScreen.Yellow : Color.White) * alpha;
+            Color color = (highlighted ? MainMenuScreen.Yellow : Color.White) * (alpha * (enabled ? 1f : 0.35f));
             Vector2 origin = new Vector2(arrowTexture.Width, arrowTexture.Height) / 2f;
             Manager.SpriteBatch.Draw(arrowTexture, bounds.Center.ToVector2() + new Vector2(slide, 0f), null, color, rotation, origin, scale, SpriteEffects.None, 0f);
         }

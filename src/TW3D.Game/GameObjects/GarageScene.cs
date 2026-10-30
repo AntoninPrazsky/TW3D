@@ -13,15 +13,29 @@ namespace TW3D.GameObjects
     /// <summary>
     /// The 3D garage behind the menus (content/Garage, built from the Wings 3D files of 2015–2016): a hall with a lift in
     /// its middle, the car chosen in the garage on the lift with its wheels, the other cars in a row along the axis of
-    /// the lift, and a landscape behind the windows. The camera slowly drifts around the view of the menu, or, as
-    /// <see cref="Focus"/> grows, sweeps around the car on the lift (the garage screen).
+    /// the lift in the order of the catalog, and a landscape behind the windows. The camera slowly drifts around the view
+    /// of the menu, or, as <see cref="Focus"/> grows, sweeps around the car on the lift (the garage screen), or comes to
+    /// the wheels of one of its axles (<see cref="View"/>).
     /// </summary>
     public sealed class GarageScene
     {
+        /// <summary>What the camera of the garage screen looks at.</summary>
+        public enum CarView
+        {
+            Whole,
+            FrontWheels,
+            RearWheels
+        }
+
         //The garage model is in the units of the car models, y up, with the axis of the lift along z and its middle
         //on the floor here; it is turned so that the axis runs along x (as the cars stand) and scaled as the cars
         private const float ModelScale = 0.25f;
         private static readonly Vector3 LiftCentre = new Vector3(0.14f, -1.1522f, 0f);
+        //The cars face +x, towards the camera of the menu, as the car of the render of 2015 did (their models face -x).
+        //The row runs from the car on the lift backwards: the next cars of the catalog behind it, the previous ones in
+        //front of it, out of the view of the menu.
+        private static readonly Matrix Turned = Matrix.CreateRotationY(MathHelper.Pi);
+        private static readonly Vector3 RowAxis = -Vector3.UnitX;
 
         //The view of the menu (in the garage model): where the camera of the render of 2015 stood and where it looked,
         //its vertical field of view (degrees); it drifts this far around the car (radians) at this rate (radians per second)
@@ -34,18 +48,27 @@ namespace TW3D.GameObjects
 
         //The view of the garage screen: the camera looks at the car on the lift from this distance (world units),
         //this much from above (degrees), with this field of view, sweeping this far to both sides (degrees) of the
-        //view from the front corner of the car (this far from its side view) at this rate (radians per second)
+        //view from the front corner of the car (this far from its side view) at this rate (radians per second); it
+        //stays beside the cars rolling along the row
         private const float GarageDistance = 3f;
         private const float GaragePitch = 18f;
         private const float GarageFieldOfView = 40f;
         private const float GarageCorner = 45f;
-        private const float GarageSweep = 35f;
+        private const float GarageSweep = 30f;
         private const float GarageSweepRate = 0.25f;
+        //The view of the wheels of an axle: from this distance (world units), this much from above (degrees), from
+        //the side of the car turned this far towards the end of the car the axle is at, sweeping this far (degrees);
+        //the camera comes to the wheels or goes back in this time (seconds)
+        private const float WheelsDistance = 1.6f;
+        private const float WheelsPitch = 12f;
+        private const float WheelsAngle = 30f;
+        private const float WheelsSweep = 10f;
+        private const float WheelsTime = 0.8f;
         //The shadows reach across the hall (world units)
         private const float ShadowDistance = 10f;
 
-        /// <summary>Distance of the cars of the row (world units).</summary>
-        public const float Spacing = 2.7f;
+        /// <summary>Distance of the cars of the row (world units): the car in front of the lift stands behind the camera of the menu.</summary>
+        public const float Spacing = 4f;
 
         private readonly ScreenManager manager;
         private readonly GameSettings settings;
@@ -56,9 +79,8 @@ namespace TW3D.GameObjects
         private readonly World world = new World(Vector2.Zero);
         private readonly Dictionary<(string Car, string Front, string Rear), Car> previews = new Dictionary<(string, string, string), Car>();
         private readonly List<(CarType Car, float Offset)> row = new List<(CarType, float)>();
-        //With two cars, the side of the lift the other one stands on (it stays there when the row stops): at first
-        //the side away from the camera of the menu
-        private int otherSide = -1;
+        //How far the camera has come to the wheels of each axle (0–1)
+        private float frontWheels, rearWheels;
         private float time;
 
         public GarageScene(ScreenManager manager, GameSettings settings)
@@ -79,6 +101,9 @@ namespace TW3D.GameObjects
 
         /// <summary>How far the row of cars is moved along its axis (world units), while it is dragged or settles.</summary>
         public float Scroll { get; set; }
+
+        /// <summary>What the camera of the garage screen looks at: the whole car on the lift or the wheels of an axle.</summary>
+        public CarView View { get; set; }
 
         /// <summary>
         /// Pixels the cars on the lift move to the right on the screen when the row moves by a world unit, as last
@@ -102,31 +127,36 @@ namespace TW3D.GameObjects
         }
 
         /// <summary>
-        /// The cars of the row near the lift and how far along the row from it they are (world units): the chosen
-        /// car and its neighbours (with two cars, the other one on the side the row moves from).
+        /// The cars of the row near the lift and how far along the row from it they are (world units, the next cars of
+        /// the catalog further): the chosen car and its neighbours.
         /// </summary>
         public List<(CarType Car, float Offset)> Row()
         {
             row.Clear();
             int selected = Selected;
-            if (Scroll > 0.001f)
-                otherSide = -1;
-            else if (Scroll < -0.001f)
-                otherSide = 1;
-            for (int offset = -1; offset <= 1; offset++)
-            {
-                if (cars.Count == 2 && offset == -otherSide)
-                    continue;
-                if (cars.Count < 2 && offset != 0)
-                    continue;
-                row.Add((cars[(selected + offset + cars.Count) % cars.Count], offset * Spacing + Scroll));
-            }
+            for (int index = Math.Max(0, selected - 1); index <= Math.Min(cars.Count - 1, selected + 1); index++)
+                row.Add((cars[index], (index - selected) * Spacing + Scroll));
             return row;
         }
 
         public void Update(float elapsed)
         {
             time += elapsed;
+            float step = elapsed / WheelsTime;
+            frontWheels = MathHelper.Clamp(frontWheels + (View == CarView.FrontWheels ? step : -step), 0f, 1f);
+            rearWheels = MathHelper.Clamp(rearWheels + (View == CarView.RearWheels ? step : -step), 0f, 1f);
+        }
+
+        /// <summary>
+        /// Where the camera looks at the wheels of an axle of the car on the lift from: from its side turned to the
+        /// camera of the garage screen (towards -z), turned towards the end of the car the axle is at.
+        /// </summary>
+        private (Vector3 Eye, Vector3 Target) WheelsView(Car car, bool front)
+        {
+            Vector3 target = Vector3.Transform(car.WheelsCentre(front, true), Turned);
+            float angle = MathHelper.ToRadians((front ? WheelsAngle : -WheelsAngle) + WheelsSweep * MathF.Sin(time * GarageSweepRate));
+            float pitch = MathHelper.ToRadians(WheelsPitch);
+            return (target + WheelsDistance * new Vector3(MathF.Sin(angle) * MathF.Cos(pitch), MathF.Sin(pitch), -MathF.Cos(angle) * MathF.Cos(pitch)), target);
         }
 
         public void Draw()
@@ -148,16 +178,31 @@ namespace TW3D.GameObjects
             float sweep = MathHelper.ToRadians(GarageCorner + GarageSweep * MathF.Sin(time * GarageSweepRate));
             float pitch = MathHelper.ToRadians(GaragePitch);
             Vector3 carEye = carTarget + GarageDistance * new Vector3(MathF.Sin(sweep) * MathF.Cos(pitch), MathF.Sin(pitch), -MathF.Cos(sweep) * MathF.Cos(pitch));
+            Vector3 garageEye = carEye, garageTarget = carTarget;
+            if (frontWheels > 0f)
+            {
+                (Vector3 eye, Vector3 target) wheels = WheelsView(selected, true);
+                float blend = MathHelper.SmoothStep(0f, 1f, frontWheels);
+                garageEye = Vector3.Lerp(garageEye, wheels.eye, blend);
+                garageTarget = Vector3.Lerp(garageTarget, wheels.target, blend);
+            }
+            if (rearWheels > 0f)
+            {
+                (Vector3 eye, Vector3 target) wheels = WheelsView(selected, false);
+                float blend = MathHelper.SmoothStep(0f, 1f, rearWheels);
+                garageEye = Vector3.Lerp(garageEye, wheels.eye, blend);
+                garageTarget = Vector3.Lerp(garageTarget, wheels.target, blend);
+            }
 
             float focus = MathHelper.SmoothStep(0f, 1f, MathHelper.Clamp(Focus, 0f, 1f));
-            Vector3 eye = Vector3.Lerp(menuEye, carEye, focus);
-            Vector3 target = Vector3.Lerp(menuTarget, carTarget, focus);
+            Vector3 eye = Vector3.Lerp(menuEye, garageEye, focus);
+            Vector3 target = Vector3.Lerp(menuTarget, garageTarget, focus);
             float fieldOfView = MathHelper.Lerp(MenuFieldOfView, GarageFieldOfView, focus);
             Matrix view = Matrix.CreateLookAt(eye, target, Vector3.Up);
             Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(fieldOfView), viewport.AspectRatio, 0.05f, 100f);
 
             Vector3 left = viewport.Project(carTarget, projection, view, Matrix.Identity);
-            Vector3 right = viewport.Project(carTarget + Vector3.UnitX, projection, view, Matrix.Identity);
+            Vector3 right = viewport.Project(carTarget + RowAxis, projection, view, Matrix.Identity);
             PixelsPerUnit = right.X - left.X;
 
             renderer.Begin(view, projection);
@@ -169,7 +214,7 @@ namespace TW3D.GameObjects
             foreach ((CarType car, float offset) in drawn)
             {
                 Car preview = Preview(car);
-                preview.Placement = Matrix.CreateTranslation(offset, 0f, 0f);
+                preview.Placement = Turned * Matrix.CreateTranslation(RowAxis * offset);
                 preview.Draw(renderer);
             }
             renderer.End();
