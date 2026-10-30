@@ -70,9 +70,9 @@ namespace TW3D.Screens
         {
             UpdateLayout();
 
-            //The mouse (or a finger) focuses the item under it
+            //The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys)
             int hovered = ItemAt(input.PointerPosition);
-            if (hovered >= 0 || input.Mouse.Position != input.PreviousMouse.Position)
+            if (input.Mouse.Position != input.PreviousMouse.Position)
                 focusedItem = hovered;
 
             if (input.LeftPressed || input.UpPressed)
