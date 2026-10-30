@@ -40,12 +40,19 @@ namespace TW3D.Graphics
         private const float OcclusionIntensity = 1.6f;
         private const float OcclusionBias = 0.05f;
 
+        //The headlights of the car: a warm spot light reaching this far (world units)
+        private static readonly Vector3 HeadlightColor = new Vector3(1f, 0.88f, 0.68f) * 5f;
+        private const float HeadlightInnerAngle = 16f;
+        private const float HeadlightOuterAngle = 30f;
+        private const float HeadlightRange = 14f;
+
         /// <summary>A part of a model with one material, ready to draw.</summary>
         private sealed class ModelPart
         {
             public Matrix Transform;
             public ModelMeshPart MeshPart;
             public BasicEffect Effect;
+            public Texture2D Texture;
             public Vector3 Diffuse;
             public Vector3 Emissive;
             public float Specular;
@@ -96,6 +103,8 @@ namespace TW3D.Graphics
         private Vector3 eye;
         private Model background;
         private Matrix backgroundWorld;
+        private bool headlights;
+        private Vector3 headlightPosition, headlightDirection;
 
         public SceneRenderer(GraphicsDevice device, ContentManager content)
         {
@@ -118,6 +127,11 @@ namespace TW3D.Graphics
             occlusionEffect.Parameters["Radius"].SetValue(OcclusionRadius);
             occlusionEffect.Parameters["Intensity"].SetValue(OcclusionIntensity);
             occlusionEffect.Parameters["Bias"].SetValue(OcclusionBias);
+
+            float inner = MathF.Cos(MathHelper.ToRadians(HeadlightInnerAngle));
+            float outer = MathF.Cos(MathHelper.ToRadians(HeadlightOuterAngle));
+            effect.Parameters["SpotCone"].SetValue(new Vector2(outer, 1f / (inner - outer)));
+            effect.Parameters["SpotRange"].SetValue(HeadlightRange);
         }
 
         /// <summary>Draw with the lighting of the 2016 version.</summary>
@@ -132,6 +146,12 @@ namespace TW3D.Graphics
         /// <summary>The light of the scene.</summary>
         public Lighting Lighting { get; set; } = Lighting.Day;
 
+        /// <summary>
+        /// Distance added to where the haze starts and ends: for a camera further from the scene than
+        /// the camera of the game (the level editor's).
+        /// </summary>
+        public float HazeOffset { get; set; }
+
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;
 
@@ -144,12 +164,21 @@ namespace TW3D.Graphics
             frustum.Matrix = view * projection;
             items.Clear();
             background = null;
+            headlights = false;
         }
 
         /// <summary>Adds a model to the scene.</summary>
         public void Add(Model model, Matrix world)
         {
             items.Add(new DrawItem(GetModelData(model), world));
+        }
+
+        /// <summary>The headlights of the car, shining if the lighting has them on.</summary>
+        public void SetHeadlights(Vector3 position, Vector3 direction)
+        {
+            headlights = true;
+            headlightPosition = position;
+            headlightDirection = Vector3.Normalize(direction);
         }
 
         /// <summary>
@@ -183,7 +212,10 @@ namespace TW3D.Graphics
             {
                 device.DepthStencilState = DepthStencilState.None;
                 device.SamplerStates[0] = SamplerState.LinearWrap;
-                background.Draw(backgroundWorld, view, projection);
+                if (Classic)
+                    background.Draw(backgroundWorld, view, projection);
+                else
+                    DrawSky();
             }
 
             device.DepthStencilState = DepthStencilState.Default;
@@ -343,6 +375,29 @@ namespace TW3D.Graphics
             effect.Parameters["ShadowBias"].SetValue(ShadowBiasWorld / (2f * radius + ShadowCasterReach));
         }
 
+        /// <summary>The sky picture tinted by the colours of the light.</summary>
+        private void DrawSky()
+        {
+            Lighting lighting = Lighting;
+            effect.Parameters["SkyHorizon"].SetValue(lighting.SkyHorizon);
+            effect.Parameters["SkyZenith"].SetValue(lighting.SkyZenith);
+            effect.Parameters["SkyRecolor"].SetValue(lighting.SkyRecolor);
+            effect.Parameters["SunGlow"].SetValue(lighting.SunGlow);
+            effect.Parameters["SunDirection"].SetValue(lighting.SunDirection);
+            effect.Parameters["ViewProjection"].SetValue(view * projection);
+            effect.Parameters["CameraPosition"].SetValue(eye);
+            EffectTechnique technique = effect.Techniques["Sky"];
+            effect.CurrentTechnique = technique;
+
+            foreach (ModelPart part in GetModelData(background).Parts)
+            {
+                worldParameter.SetValue(part.Transform * backgroundWorld);
+                effect.Parameters["SkyTexture"].SetValue(part.Texture);
+                technique.Passes[0].Apply();
+                DrawPart(part.MeshPart);
+            }
+        }
+
         private void DrawLit()
         {
             Lighting lighting = Lighting;
@@ -353,7 +408,10 @@ namespace TW3D.Graphics
             effect.Parameters["RimLight"].SetValue(lighting.RimLight);
             effect.Parameters["Exposure"].SetValue(lighting.Exposure);
             effect.Parameters["HazeColor"].SetValue(lighting.HazeColor);
-            effect.Parameters["Haze"].SetValue(new Vector3(lighting.HazeStart, 1f / (lighting.HazeEnd - lighting.HazeStart), lighting.HazeMax));
+            effect.Parameters["Haze"].SetValue(new Vector3(lighting.HazeStart + HazeOffset, 1f / (lighting.HazeEnd - lighting.HazeStart), lighting.HazeMax));
+            effect.Parameters["SpotPosition"].SetValue(headlightPosition);
+            effect.Parameters["SpotDirection"].SetValue(headlights ? headlightDirection : Vector3.UnitX);
+            effect.Parameters["SpotColor"].SetValue(headlights && lighting.Headlights ? HeadlightColor : Vector3.Zero);
 
             effect.Parameters["ViewProjection"].SetValue(view * projection);
             effect.Parameters["CameraPosition"].SetValue(eye);
@@ -468,6 +526,7 @@ namespace TW3D.Graphics
                         Transform = transform,
                         MeshPart = meshPart,
                         Effect = material,
+                        Texture = material.Texture,
                         //The colours of the models were picked on the screen, the light works with linear ones
                         Diffuse = ToLinear(material.DiffuseColor),
                         Emissive = ToLinear(material.EmissiveColor),

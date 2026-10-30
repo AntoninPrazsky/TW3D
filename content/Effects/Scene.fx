@@ -1,9 +1,12 @@
 // Lighting of the 3D scene. The models are polygons of a single colour each (no textures),
 // so the light makes the whole look: the sun with its shadows, the light of the sky from above
 // and the light reflected by the ground from below (both dimmed in corners and crevices by
-// ambient occlusion), a highlight of the sun and a rim of sky light at grazing angles. It is
-// computed in linear colour space and mapped to the screen by a filmic curve; the distance
-// fades into the colour of the sky.
+// ambient occlusion), a highlight of the sun, a rim of sky light at grazing angles and the
+// headlights of the car (a spot light, at night). It is computed in linear colour space and
+// mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
+//
+// Technique Sky draws the sky: its picture recoloured by the colours of the light from the
+// horizon up (it keeps the brightness of the picture, the clouds), with a glow around the sun.
 //
 // Technique Depth draws the shadow map: the depth of the scene seen from the sun, packed into
 // the four 8-bit channels of an ordinary texture (phones may not render to float textures).
@@ -31,6 +34,30 @@ float3 RimLight;            // linear, light at grazing angles
 float Exposure;
 float3 HazeColor;           // on the screen (gamma), the colour of the sky at the horizon
 float3 Haze;                // start distance, 1 / (end distance - start distance), maximum amount
+
+// The headlights of the car: a spot light
+float3 SpotPosition;
+float3 SpotDirection;       // unit vector
+float3 SpotColor;           // linear; black = off
+float2 SpotCone;            // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
+float SpotRange;
+
+// The sky: the brightness of its picture in these colours (on the screen) at the horizon and above,
+// mixed with the picture as it is by SkyRecolor (0 = the picture as it is)
+float3 SkyHorizon;
+float3 SkyZenith;
+float SkyRecolor;
+float3 SunGlow;
+texture SkyTexture;
+sampler2D SkySampler = sampler_state
+{
+	Texture = <SkyTexture>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+	MipFilter = Linear;
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
 
 // Shadows
 float4x4 LightViewProjection;
@@ -76,8 +103,8 @@ struct VertexInput
 };
 
 // Phones run pixel shaders in half precision, too coarse for positions in a long level:
-// the vector to the camera and the position in the shadow map are computed here,
-// in the vertex shader, where they are still precise
+// the vectors to the camera and to the headlights and the position in the shadow map are
+// computed here, in the vertex shader, where they are still precise
 struct VertexOutput
 {
 	float4 Position : SV_POSITION;
@@ -85,6 +112,7 @@ struct VertexOutput
 	float3 Normal : TEXCOORD1;
 	float3 Shadow : TEXCOORD2;     // texture coordinates and depth in the shadow map
 	float4 Screen : TEXCOORD3;     // position on the screen (clip space)
+	float3 ToSpot : TEXCOORD4;
 };
 
 VertexOutput MainVS(VertexInput input)
@@ -101,6 +129,7 @@ VertexOutput MainVS(VertexInput input)
 	shadow.xyz /= shadow.w;
 	output.Shadow = float3(shadow.x * 0.5 + 0.5, -shadow.y * 0.5 + 0.5, shadow.z);
 	output.Screen = output.Position;
+	output.ToSpot = SpotPosition - world.xyz;
 	return output;
 }
 
@@ -151,7 +180,13 @@ float4 MainPS(VertexOutput input) : COLOR0
 	float3 ambient = lerp(GroundLight, SkyLight, normal.y * 0.5 + 0.5) * occlusion;
 	float rim = pow(1.0 - saturate(dot(normal, view)), 4.0) * occlusion;
 
-	float3 light = DiffuseColor * (SunColor * sun + ambient) + SunColor * highlight + RimLight * rim + EmissiveColor;
+	float spotDistance = length(input.ToSpot);
+	float3 toSpot = input.ToSpot / max(spotDistance, 0.001);
+	float cone = saturate((dot(-toSpot, SpotDirection) - SpotCone.x) * SpotCone.y);
+	float spotFade = saturate(1.0 - spotDistance / SpotRange);
+	float3 spot = SpotColor * (saturate(dot(normal, toSpot)) * cone * spotFade * spotFade);
+
+	float3 light = DiffuseColor * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + EmissiveColor;
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;
@@ -227,5 +262,47 @@ technique NormalDepth
 	{
 		VertexShader = compile VS_SHADERMODEL NormalDepthVS();
 		PixelShader = compile PS_SHADERMODEL NormalDepthPS();
+	}
+};
+
+struct SkyInput
+{
+	float4 Position : POSITION0;
+	float2 TexCoord : TEXCOORD0;
+};
+
+struct SkyOutput
+{
+	float4 Position : SV_POSITION;
+	float2 TexCoord : TEXCOORD0;
+	float3 Direction : TEXCOORD1;  // from the camera
+};
+
+SkyOutput SkyVS(SkyInput input)
+{
+	SkyOutput output;
+	float4 world = mul(input.Position, World);
+	output.Position = mul(world, ViewProjection);
+	output.TexCoord = input.TexCoord;
+	output.Direction = world.xyz - CameraPosition;
+	return output;
+}
+
+float4 SkyPS(SkyOutput input) : COLOR0
+{
+	float3 direction = normalize(input.Direction);
+	float3 picture = tex2D(SkySampler, input.TexCoord).rgb;
+	float3 tint = lerp(SkyHorizon, SkyZenith, saturate(direction.y * 2.0));
+	float3 recoloured = dot(picture, float3(0.3, 0.59, 0.11)) * tint;
+	float3 glow = SunGlow * pow(saturate(dot(direction, SunDirection)), 12.0);
+	return float4(lerp(picture, recoloured, SkyRecolor) + glow, 1.0);
+}
+
+technique Sky
+{
+	pass P0
+	{
+		VertexShader = compile VS_SHADERMODEL SkyVS();
+		PixelShader = compile PS_SHADERMODEL SkyPS();
 	}
 };

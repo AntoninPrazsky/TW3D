@@ -25,6 +25,8 @@ namespace LevelEditor
         static readonly Color BackgroundColor = Color.Gray;
         //Where the sky is drawn relative to the camera: as in the game, which draws it around the car
         static readonly Vector3 SkyOffset = new Vector3(0f, -2f, 6.5f);
+        //The editor's camera is about 15 units further from the level than the game's, the haze starts so much later
+        const float HazeOffset = 15f;
 
         /// <param name="startLevel">Level file to open; null = ask for it.</param>
         public Editor(string startLevel = null)
@@ -67,7 +69,7 @@ namespace LevelEditor
             level = new Level(graphics, camera, catalog, Vector2.Zero, 0.25f, startLevel);
             selector = new Selector(graphics, camera, Vector2.Zero, 0.25f, Content, level);
 
-            renderer = new SceneRenderer(GraphicsDevice, Content) { ClearColor = BackgroundColor };
+            renderer = new SceneRenderer(GraphicsDevice, Content) { ClearColor = BackgroundColor, HazeOffset = HazeOffset };
             sky = Content.Load<Model>("Env/sky");
 
             spriteBatch = new SpriteBatch(GraphicsDevice);
@@ -97,6 +99,12 @@ namespace LevelEditor
                 renderer.Shadows = !renderer.Shadows;
                 Console.WriteLine(renderer.Shadows ? "Shadows on." : "Shadows off.");
             }
+            //The mood of the level (day, sunset, night), saved with it
+            if (keys.IsKeyDown(Keys.M) && previousKeys.IsKeyUp(Keys.M))
+            {
+                level.Mood = (LevelMood)(((int)level.Mood + 1) % 3);
+                Console.WriteLine("Mood of the level: " + level.Mood + ".");
+            }
             previousKeys = keys;
 
             float timeDifference = (float)gameTime.ElapsedGameTime.TotalMilliseconds / 1000f;
@@ -109,6 +117,7 @@ namespace LevelEditor
         {
             GraphicsDevice.Clear(BackgroundColor);
 
+            renderer.Lighting = Lighting.For(level.Mood);
             renderer.Begin(camera.viewMatrix, GameObject.CreateProjection(GraphicsDevice.Viewport, camera.IsOrtographic));
             if (!renderer.Classic)
                 renderer.SetBackground(sky, Matrix.CreateScale(0.25f) * Matrix.CreateTranslation(camera.cameraPosition + SkyOffset));

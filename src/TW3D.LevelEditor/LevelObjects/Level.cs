@@ -57,6 +57,9 @@ namespace LevelEditor.LevelObjects
         //Position of the level in the game's level select, kept from the loaded file
         private int? order;
 
+        /// <summary>The light of the level.</summary>
+        public LevelMood Mood { get; set; }
+
         /// <param name="fileName">Level file to open; null = ask for it.</param>
         public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale, string fileName = null)
         {
@@ -112,6 +115,7 @@ namespace LevelEditor.LevelObjects
             frontTrackBlocks.Clear();
             gObjects.Clear();
             order = data.Order;
+            Mood = data.Mood;
 
             foreach (string problem in data.Validate(Catalog))
                 Console.WriteLine("Warning: " + problem + " Skipped.");
@@ -159,7 +163,7 @@ namespace LevelEditor.LevelObjects
 
         public void WriteFile()
         {
-            LevelData data = new LevelData { Order = order };
+            LevelData data = new LevelData { Order = order, Mood = Mood };
             data.Middle.AddRange(ToPlacements(trackBlocks));
             data.Back.AddRange(ToPlacements(backTrackBlocks));
             data.Front.AddRange(ToPlacements(frontTrackBlocks));

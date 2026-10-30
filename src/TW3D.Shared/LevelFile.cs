@@ -14,6 +14,7 @@ namespace TW3D.Shared
     /// {
     ///   "format": 1,
     ///   "order": 1,
+    ///   "mood": "sunset",
     ///   "middle": [
     ///     {"block":"a1","x":0,"y":0,"shift":0},
     ///     ...
@@ -115,6 +116,8 @@ namespace TW3D.Shared
             json.Append("  \"format\": ").Append(level.Format).Append(",\n");
             if (level.Order.HasValue)
                 json.Append("  \"order\": ").Append(level.Order.Value).Append(",\n");
+            if (level.Mood != LevelMood.Day)
+                json.Append("  \"mood\": ").Append(JsonSerializer.Serialize(level.Mood, JsonOptions.Default)).Append(",\n");
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);
             AppendList(json, "front", level.Front, false);

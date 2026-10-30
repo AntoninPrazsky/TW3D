@@ -56,6 +56,7 @@ namespace TW3D.GamePlay
         private PhysicsClock physics;
         private ChaseCamera camera;
         private SceneRenderer renderer;
+        private LevelMood mood;
         private DebugView debugView;
         private OnScreenControls controls;
 
@@ -92,6 +93,8 @@ namespace TW3D.GamePlay
             renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
 
             level = new Level(world, Manager, camera, physics, catalog, Vector2.Zero, levelName);
+            mood = level.Mood;
+            renderer.Lighting = Lighting.For(mood);
             sky = new Sky(Manager, camera);
             car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), "car", "wheel");
 
@@ -216,6 +219,13 @@ namespace TW3D.GamePlay
                 renderer.Shadows = !renderer.Shadows;
             if (input.KeyPressed(Keys.F11))
                 renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+
+            //The moods of the levels, to try them on any level
+            if (input.KeyPressed(Keys.M))
+            {
+                mood = (LevelMood)(((int)mood + 1) % 3);
+                renderer.Lighting = Lighting.For(mood);
+            }
         }
 
         private void HandleCameraKeys(InputState input, float elapsed)

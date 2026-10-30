@@ -86,15 +86,21 @@ namespace TW3D.GameObjects
         /// </param>
         public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, bool asBackground = false)
         {
-            float convCon = 10f;
-
-            Matrix world = (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
-               * Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition / convCon);
-
+            Matrix world = ModelWorld(modelPosition, modelRotation, flip);
             if (asBackground)
                 renderer.SetBackground(model, world);
             else
                 renderer.Add(model, world);
+        }
+
+        /// <summary>World matrix of a model at a position and rotation of the physics world.</summary>
+        /// <param name="flip">Turned around the vertical axis (the far side of the car).</param>
+        protected static Matrix ModelWorld(Vector3 modelPosition, float modelRotation, bool flip)
+        {
+            float convCon = 10f;
+
+            return (flip ? (Matrix.CreateRotationY(MathHelper.ToRadians(180f)) * (Matrix.CreateRotationZ(modelRotation))) : (Matrix.CreateRotationZ(modelRotation)))
+               * Matrix.CreateScale(scale) * Matrix.CreateTranslation(-modelPosition / convCon);
         }
 
         public Ray GetPickRay(float x, float y)

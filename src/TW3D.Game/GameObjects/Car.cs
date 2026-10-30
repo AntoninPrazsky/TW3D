@@ -31,6 +31,10 @@ namespace TW3D.GameObjects
         private RevoluteJoint springLeftB, springRightB, springTopB, springLeftF, springRightF, springTopF;
         List<RevoluteJoint> wJoints = new List<RevoluteJoint>();
 
+        //The headlights at the front of the car (model coordinates; the car drives towards -x of its model)
+        private static readonly Vector3 HeadlightPosition = new Vector3(-4.2f, 0.4f, 0f);
+        private static readonly Vector3 HeadlightDirection = new Vector3(-1f, -0.3f, 0f);
+
         private Model carModel;
         private Model wheelModel;
         private Model holderModel;
@@ -333,6 +337,8 @@ namespace TW3D.GameObjects
         public override void Draw(SceneRenderer renderer)
         {
             DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
+            Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
+            renderer.SetHeadlights(Vector3.Transform(HeadlightPosition, body), Vector3.TransformNormal(HeadlightDirection, body));
 
             DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
             DrawModel(renderer, wheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);

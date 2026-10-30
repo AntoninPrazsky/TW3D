@@ -30,6 +30,14 @@ namespace TW3D.Shared
         public float Y { get; set; }
     }
 
+    /// <summary>The light of a level.</summary>
+    public enum LevelMood
+    {
+        Day,
+        Sunset,
+        Night
+    }
+
     /// <summary>
     /// A level: track blocks in three layers and dynamic objects.
     /// Only the middle layer takes part in the physics simulation; the back and front layers are decoration.
@@ -46,6 +54,9 @@ namespace TW3D.Shared
         /// levels without it come after the others, sorted by name.
         /// </summary>
         public int? Order { get; set; }
+
+        /// <summary>The light of the level (optional, a day by default).</summary>
+        public LevelMood Mood { get; set; }
 
         public List<BlockPlacement> Middle { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Back { get; set; } = new List<BlockPlacement>();

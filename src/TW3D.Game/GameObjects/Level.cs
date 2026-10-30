@@ -55,6 +55,9 @@ namespace TW3D.GameObjects
         private readonly List<TrackBlock> frontTrackBlocks = new List<TrackBlock>();
         private readonly List<TrackProp> gObjects = new List<TrackProp>();
 
+        /// <summary>The light of the level.</summary>
+        public LevelMood Mood { get; }
+
         public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Catalog catalog, Vector2 Position, string fileName)
         {
             world = World;
@@ -67,6 +70,7 @@ namespace TW3D.GameObjects
             LevelData data;
             using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + fileName + LevelFile.Extension))
                 data = LevelFile.Load(stream);
+            Mood = data.Mood;
 
             List<string> problems = data.Validate(catalog);
             if (problems.Count > 0)

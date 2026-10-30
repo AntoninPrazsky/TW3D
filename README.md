@@ -129,6 +129,7 @@ Development keys while driving:
 | F9 | The lighting of the 2016 version, for comparison |
 | F10 | Shadows on / off |
 | F11 | Ambient occlusion on / off |
+| M | Switches the mood of the level (day, sunset, night) to try it; the level file stays as it is |
 | F12 | Frames per second (shown by default in Debug builds) |
 
 The editor asks for the level to open, or opens the one given by `--level <file>`.
@@ -167,7 +168,8 @@ the materials and a rim of sky light. The light is computed in linear colour spa
 mapped to the screen by a filmic curve, and the distance fades into the colour of the
 sky. The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
-game (`SceneRenderer` is shared; F9 and F10 work there too), CatalogRender with the 2016
+game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
+level, which is saved with it), CatalogRender with the 2016
 lighting, as the catalog images were taken so.
 
 The game runs 1.5 times as fast as real time (`GameSpeed` in `GameplayScreen`). For the
@@ -233,6 +235,7 @@ Levels are JSON files with one block or object per line:
 {
   "format": 1,
   "order": 1,
+  "mood": "sunset",
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
     ...
@@ -248,6 +251,9 @@ Levels are JSON files with one block or object per line:
 
 - `order` (optional): position in the level select. Levels without it come after
   the others, sorted by name.
+- `mood` (optional): the light of the level: `day` (without it), `sunset` (a low
+  orange sun and long shadows) or `night` (moonlight, the headlights of the car on).
+  In the editor, M switches it.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
   moves the block vertically in steps of 2.5 physics units.
