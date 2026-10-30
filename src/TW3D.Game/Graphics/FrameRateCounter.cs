@@ -49,10 +49,10 @@ namespace TW3D.Graphics
         {
             framesThisSecond++;
 
-            //The font contains only digits, space and the letters of "fps". Always the same size in pixels, whatever the
-            //size of the screen or the window (larger on phones, whose pixels are smaller, as the whole user interface)
+            //The font contains only digits, space and the letters of "fps". Always in the native size of the bitmap font,
+            //whatever the screen (small on phones)
             string text = framesPerSecond + " fps";
-            float scale = screens.UiSize;
+            const float scale = 1f;
             Vector2 position = new Vector2(24f, 16f) * scale;
 
             SpriteBatch batch = screens.SpriteBatch;
