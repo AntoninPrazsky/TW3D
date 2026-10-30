@@ -119,7 +119,9 @@ namespace TW3D.Screens
             SpriteFont font = Manager.Fonts.Menu;
             float scale = ItemScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
-            float top = viewport.Height / 2f - lineHeight * LineSpacing * items.Count / 2f;
+            //In the middle of the screen, but below the title (the user interface of phones is bigger)
+            float top = Math.Max(viewport.Height / 2f - lineHeight * LineSpacing * items.Count / 2f,
+                Manager.SafeArea.Top + MainMenuScreen.TitleHeight(Manager) + lineHeight * (LineSpacing - 1f) * 2f);
             int padding = (int)(ItemPadding * Manager.UiScale);
 
             for (int i = 0; i < items.Count; i++)
