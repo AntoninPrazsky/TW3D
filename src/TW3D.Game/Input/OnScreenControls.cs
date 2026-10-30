@@ -1,4 +1,3 @@
-using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -190,20 +189,16 @@ namespace TW3D.Input
             DrawPauseButton(batch, alpha);
         }
 
-        /// <summary>Two upright bars, like the buttons half transparent, with a shadow to be seen against the sky.</summary>
+        /// <summary>Two upright bars, like the buttons half transparent.</summary>
         private void DrawPauseButton(SpriteBatch batch, float alpha)
         {
             int barWidth = (int)(pauseBounds.Width * 0.22f);
             int barHeight = (int)(pauseBounds.Height * 0.7f);
             int gap = (int)(pauseBounds.Width * 0.2f);
-            int shadow = Math.Max(1, (int)(pauseBounds.Width * 0.04f));
-            Rectangle left = new Rectangle(pauseBounds.Center.X - gap / 2 - barWidth, pauseBounds.Center.Y - barHeight / 2, barWidth, barHeight);
-            Rectangle right = new Rectangle(left.X + barWidth + gap, left.Y, barWidth, barHeight);
-            foreach (Rectangle bar in new[] { left, right })
-            {
-                batch.Draw(pixel, new Rectangle(bar.X + shadow, bar.Y + shadow, bar.Width, bar.Height), Color.Black * (0.3f * alpha));
-                batch.Draw(pixel, bar, Color.White * (0.5f * alpha));
-            }
+            int left = pauseBounds.Center.X - gap / 2 - barWidth;
+            int top = pauseBounds.Center.Y - barHeight / 2;
+            batch.Draw(pixel, new Rectangle(left, top, barWidth, barHeight), Color.White * (0.5f * alpha));
+            batch.Draw(pixel, new Rectangle(left + barWidth + gap, top, barWidth, barHeight), Color.White * (0.5f * alpha));
         }
 
         private void DrawButton(SpriteBatch batch, Texture2D texture, Vector2 center, Rectangle region, float alpha)
