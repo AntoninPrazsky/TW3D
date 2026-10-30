@@ -81,6 +81,7 @@ namespace TW3D.GamePlay
         private float raceTime;
         private float sinceFinish;
         private bool resultsShown;
+        private ResultsScreen results;
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
         private bool record;
@@ -390,9 +391,10 @@ namespace TW3D.GamePlay
                     {
                         resultsShown = true;
                         string next = NextLevel();
-                        Manager.Add(new ResultsScreen(raceTime, level.Par, previousBest, record, !assisted,
+                        results = new ResultsScreen(raceTime, level.Par, previousBest, record, !assisted,
                             next != null ? () => { Manager.Add(new GameplayScreen(next, settings, records, levels)); Close(); } : null,
-                            Restart, Close));
+                            Restart, Close);
+                        Manager.Add(results);
                     }
                     break;
             }
@@ -436,14 +438,16 @@ namespace TW3D.GamePlay
             Rectangle safe = Manager.SafeArea;
             float centreX = Manager.Viewport.Width / 2f;
 
+            //The time gives way to the title of the results, which show it too
+            float alpha = results != null ? 1f - results.Visibility : 1f;
             string time = RaceScore.FormatTime(race == RaceState.Countdown ? 0f : raceTime);
             Color timeColour = race == RaceState.Finished ? MainMenuScreen.Yellow : Color.White;
-            Vector2 timeSize = DrawTime(font, time, new Vector2(centreX, safe.Top), timeColour, TimeScale * uiScale);
+            Vector2 timeSize = DrawTime(font, time, new Vector2(centreX, safe.Top), timeColour * alpha, TimeScale * uiScale, alpha);
             if (level.FinishArea.HasValue)
             {
                 string par = "Par " + RaceScore.FormatTime(level.Par);
                 Vector2 parSize = font.MeasureString(par) * ParScale * uiScale;
-                Manager.DrawShadowedText(font, par, new Vector2(centreX - parSize.X / 2f, safe.Top + timeSize.Y), Color.LightGray, Color.Black, ParScale * uiScale);
+                Manager.DrawShadowedText(font, par, new Vector2(centreX - parSize.X / 2f, safe.Top + timeSize.Y), Color.LightGray * alpha, Color.Black * alpha, ParScale * uiScale);
             }
 
             //3, 2, 1: each number appears large and shrinks a little; then Start, fading out; at the finish Finish
@@ -463,7 +467,7 @@ namespace TW3D.GamePlay
         /// Draws a time centred under a point, its digits in cells of the same width, so that it stands still as the
         /// digits change (the digits of the font are not equally wide). Returns its size.
         /// </summary>
-        private Vector2 DrawTime(SpriteFont font, string text, Vector2 topCentre, Color colour, float scale)
+        private Vector2 DrawTime(SpriteFont font, string text, Vector2 topCentre, Color colour, float scale, float alpha)
         {
             float digitWidth = 0f;
             for (char digit = '0'; digit <= '9'; digit++)
@@ -479,7 +483,7 @@ namespace TW3D.GamePlay
                 string glyph = c.ToString();
                 float glyphWidth = font.MeasureString(glyph).X;
                 float cell = char.IsDigit(c) ? digitWidth : glyphWidth;
-                Manager.DrawShadowedText(font, glyph, new Vector2(x + (cell - glyphWidth) * scale / 2f, topCentre.Y), colour, Color.Black, scale);
+                Manager.DrawShadowedText(font, glyph, new Vector2(x + (cell - glyphWidth) * scale / 2f, topCentre.Y), colour, Color.Black * alpha, scale);
                 x += cell * scale;
             }
             return new Vector2(width, font.LineSpacing) * scale;

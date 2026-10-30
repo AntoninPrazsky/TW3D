@@ -8,7 +8,8 @@ namespace TW3D.Screens
 {
     /// <summary>
     /// A menu with a title and its items one per line in the middle of the screen (Options, the pause menu), possibly
-    /// with some content above them (the results of a level).
+    /// with some content above them, or with its items in a row along the bottom of the screen and the content in the
+    /// middle (the results of a level).
     /// The items are chosen by the mouse or touch, the arrow keys and Enter, or a gamepad; Esc (Back) closes the menu.
     /// </summary>
     public abstract class ListMenuScreen : Screen
@@ -28,6 +29,8 @@ namespace TW3D.Screens
         //Font scale of the items at the reference resolution, and the line spacing relative to the line height
         private const float ItemScale = 0.8f;
         private const float LineSpacing = 1.4f;
+        //The least gap between the items in a row, relative to the line height
+        private const float RowGap = 2f;
         //Extra area around the item text that reacts to the mouse, in reference pixels
         private const float ItemPadding = 12f;
         //How far the items slide in and out, and the title, in reference pixels
@@ -38,6 +41,8 @@ namespace TW3D.Screens
         private readonly List<MenuItem> items = new List<MenuItem>();
         private int focusedItem = -1;
         private float contentTop;
+        //Font scale of the items as laid out (in a row they may be smaller)
+        private float itemScale;
 
         protected ListMenuScreen(string title)
         {
@@ -49,6 +54,13 @@ namespace TW3D.Screens
             items.Add(item);
         }
 
+        /// <summary>
+        /// The items stand in a row along the bottom of the screen, the first one on the left, the last one on the right
+        /// (left and right move between them), leaving the middle of the screen to the content: on phones, whose user
+        /// interface is bigger, a column of items leaves little room for content above it.
+        /// </summary>
+        protected bool ItemsInRow { get; set; }
+
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             UpdateLayout();
@@ -58,14 +70,15 @@ namespace TW3D.Screens
             if (input.Mouse.Position != input.PreviousMouse.Position)
                 focusedItem = hovered;
 
-            if (input.UpPressed)
+            if (ItemsInRow ? input.LeftPressed : input.UpPressed)
                 MoveFocus(-1);
-            if (input.DownPressed)
+            if (ItemsInRow ? input.RightPressed : input.DownPressed)
                 MoveFocus(1);
 
+            bool switchPressed = !ItemsInRow && (input.LeftPressed || input.RightPressed);
             if (input.PointerPressed && hovered >= 0)
                 items[hovered].Activate();
-            else if (focusedItem >= 0 && items[focusedItem].IsEnabled() && (input.ConfirmPressed || ((input.LeftPressed || input.RightPressed) && items[focusedItem].IsSwitch)))
+            else if (focusedItem >= 0 && items[focusedItem].IsEnabled() && (input.ConfirmPressed || (switchPressed && items[focusedItem].IsSwitch)))
                 items[focusedItem].Activate();
             else if (input.BackPressed)
                 Close();
@@ -97,16 +110,43 @@ namespace TW3D.Screens
         {
             Viewport viewport = Manager.Viewport;
             SpriteFont font = Manager.Fonts.Menu;
+            Rectangle safe = Manager.SafeArea;
             float scale = ItemScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
-            //In the middle of the screen, but below the title (the user interface of phones is bigger)
+            float belowTitle = safe.Top + MainMenuScreen.TitleHeight(Manager) + lineHeight * (LineSpacing - 1f) * 2f;
             float content = ContentHeight;
-            float top = Math.Max(viewport.Height / 2f - (content + lineHeight * LineSpacing * items.Count) / 2f,
-                Manager.SafeArea.Top + MainMenuScreen.TitleHeight(Manager) + lineHeight * (LineSpacing - 1f) * 2f);
-            contentTop = top;
-            top += content;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
+            if (ItemsInRow)
+            {
+                //The items spread along the bottom with equal gaps, smaller if the gaps would be too narrow (phones)
+                float width = 0f;
+                foreach (MenuItem item in items)
+                    width += font.MeasureString(item.Text()).X * scale;
+                float fit = Math.Min(1f, (safe.Width - RowGap * lineHeight * (items.Count - 1)) / width);
+                itemScale = scale * fit;
+                float rowHeight = lineHeight * fit;
+                float gap = items.Count > 1 ? (safe.Width - width * fit) / (items.Count - 1) : 0f;
+                float rowTop = safe.Bottom - rowHeight;
+                float x = items.Count > 1 ? safe.Left : (viewport.Width - width * fit) / 2f;
+                for (int i = 0; i < items.Count; i++)
+                {
+                    Vector2 size = font.MeasureString(items[i].Text()) * itemScale;
+                    items[i].TextBounds = new Rectangle((int)x, (int)rowTop, (int)size.X, (int)rowHeight);
+                    items[i].Bounds = items[i].TextBounds;
+                    items[i].Bounds.Inflate(padding, padding);
+                    x += size.X + gap;
+                }
+                //The content in the middle between the title and the row
+                contentTop = Math.Max((belowTitle + rowTop - content) / 2f, belowTitle);
+                return;
+            }
+
+            //In the middle of the screen, but below the title (the user interface of phones is bigger)
+            itemScale = scale;
+            float top = Math.Max(viewport.Height / 2f - (content + lineHeight * LineSpacing * items.Count) / 2f, belowTitle);
+            contentTop = top;
+            top += content;
             for (int i = 0; i < items.Count; i++)
             {
                 Vector2 size = font.MeasureString(items[i].Text()) * scale;
@@ -147,7 +187,7 @@ namespace TW3D.Screens
                 MenuItem item = items[i];
                 Color color = !item.IsEnabled() ? Color.White * 0.45f : (i == focusedItem && HasFocus ? MainMenuScreen.Yellow : Color.White);
                 Vector2 position = new Vector2(item.TextBounds.X + slide, item.TextBounds.Y);
-                Manager.DrawShadowedText(font, item.Text(), position, color * alpha, Color.DarkSlateGray * (alpha * alpha), ItemScale * uiScale);
+                Manager.DrawShadowedText(font, item.Text(), position, color * alpha, Color.DarkSlateGray * (alpha * alpha), itemScale);
             }
 
             MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);

@@ -7,8 +7,9 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The results of a level, over the level at its finish: the stars, the time, the score and the best time, then
-    /// the next level, the level again or the level select. Esc (Back) goes to the level select.
+    /// The results of a level, over the level at its finish: the stars, the time, the score and the best time in the
+    /// middle, along the bottom the level select, the level again and the next level. Esc (Back) goes to the level
+    /// select.
     /// </summary>
     public sealed class ResultsScreen : ListMenuScreen
     {
@@ -37,6 +38,7 @@ namespace TW3D.Screens
             : base("Finish")
         {
             IsPopup = true;
+            ItemsInRow = true;
             FadeInTime = TimeSpan.FromSeconds(0.4);
             FadeOutTime = TimeSpan.FromSeconds(0.25);
             this.levelSelect = levelSelect;
@@ -57,10 +59,11 @@ namespace TW3D.Screens
             else if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
 
+            //From left to right: back, again, on
+            AddItem(new MenuItem { Text = () => "Level select", Activate = () => Leave(levelSelect) });
+            AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });
             if (nextLevel != null)
                 AddItem(new MenuItem { Text = () => "Next level", Activate = () => Leave(nextLevel) });
-            AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });
-            AddItem(new MenuItem { Text = () => "Level select", Activate = () => Leave(levelSelect) });
         }
 
         private void Leave(Action action)
