@@ -16,7 +16,6 @@ namespace TW3D.Graphics
         private double secondTimer;
         private int framesThisSecond;
         private int framesPerSecond;
-        private bool f12WasDown;
 
         public FrameRateCounter(Game game, ScreenManager screens, GameSettings settings)
             : base(game)
@@ -27,13 +26,12 @@ namespace TW3D.Graphics
 
         public override void Update(GameTime gameTime)
         {
-            bool f12Down = Keyboard.GetState().IsKeyDown(Keys.F12);
-            if (f12Down && !f12WasDown)
+            //The input of this frame was read by the screens, which update first
+            if (screens.Input.KeyPressed(Keys.F12))
             {
                 settings.ShowFrameRate = !settings.ShowFrameRate;
                 settings.Save();
             }
-            f12WasDown = f12Down;
             Visible = settings.ShowFrameRate;
 
             secondTimer += gameTime.ElapsedGameTime.TotalSeconds;
