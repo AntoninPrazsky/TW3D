@@ -19,7 +19,7 @@ physics bodies.
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
 | `src/TW3D.Shared/` | Library shared by the game and the editor: the catalog of blocks and objects and the level file format |
 | `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. |
-| `art/wings/` | The original Wings 3D files of the track blocks and dynamic objects (2014–2015), see its [README](art/wings/README.md) |
+| `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
