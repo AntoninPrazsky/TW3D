@@ -6,7 +6,14 @@
     <RollForward>Major</RollForward>
     <RootNamespace>TW3D</RootNamespace>
     <AssemblyName>TW3D</AssemblyName>
+    <!-- The icon of the program; the same as the icon of the Android app (src/TW3D.Android/Resources/drawable/icon.png) -->
+    <ApplicationIcon>Icon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The icon of the window: MonoGame loads it from the resource TW3D.Icon.bmp -->
+    <EmbeddedResource Include="Icon.bmp" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Models built by the content pipeline into Content/ -->
