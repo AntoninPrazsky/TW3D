@@ -30,6 +30,8 @@ namespace TW3D
         private readonly ScreenManager screens;
         private readonly string startLevel;
         private readonly GameSettings settings = GameSettings.Load();
+        //The 3D garage behind the menus
+        private BackgroundScreen background;
         private readonly GameRecords records = GameRecords.Load();
         //The levels of the last level select, in its order; the par times of the levels shown there
         private List<string> levels = new List<string>();
@@ -164,7 +166,7 @@ namespace TW3D
 
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
             menu.AddItem("Play", OpenLevelSelect);
-            menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings)));
+            menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings, background.Scene)));
             menu.AddItem("About", () => screens.Add(new AboutScreen()));
 #if ANDROID
             menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, null)));
@@ -173,7 +175,8 @@ namespace TW3D
 #endif
             menu.AddItem("Exit", Exit);
 
-            screens.Add(new BackgroundScreen());
+            background = new BackgroundScreen(settings);
+            screens.Add(background);
             screens.Add(menu);
 
             if (startLevel != null)

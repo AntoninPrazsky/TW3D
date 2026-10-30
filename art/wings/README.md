@@ -36,6 +36,16 @@ has the hub of `wheel.obj`, joining it to the holder. `wheel2.wings` is the whee
 `content/car.obj` and `car2.obj` got their lamps in 2026 (the objects `Headlight…` and
 `Taillight…`), which `car.wings` and `car2.wings` do not have.
 
+`Garage/garage.wings` (September 2015, `NPG/garage/garage.wings`) is the garage scene the
+picture behind the menus of 2016 was rendered from (in Kerkythea), `Garage/garage_no_car.wings`
+(June 2016) its later version without the car, the lift and the poles, from which the
+tool cart is taken. The game builds its 3D garage from them by `tools/garagegen/build.py` (see "Game
+content" in the main README). Their room was made for one camera (some of its walls are
+missing, some face outwards), so the script builds a new hall and takes only the windows,
+the lift, the furniture and the tools from these files. The photos behind the windows
+(`windowBgs/windBg.jpg`, a stock photo) are not in the repository; the game shows its
+own sky there.
+
 `Levels/mod/tu1.wings`, `tu2.wings` and `tu3.wings` are the whole tunnels; the game uses
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in
 `content/`.

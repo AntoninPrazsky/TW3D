@@ -1,49 +1,46 @@
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using TW3D.GameObjects;
 
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The garage image behind the menus. It fills the whole screen and is cropped
-    /// to the screen's aspect ratio, so it is never stretched.
+    /// The 3D garage behind the menus, with the car chosen in the garage on its lift (see <see cref="GarageScene"/>).
     /// </summary>
     public sealed class BackgroundScreen : Screen
     {
-        private Texture2D texture;
+        private readonly GameSettings settings;
 
-        public BackgroundScreen()
+        public BackgroundScreen(GameSettings settings)
         {
+            this.settings = settings;
             StaysVisibleWhenCovered = true;
             IsOpaque = true;
         }
 
+        /// <summary>The garage; the garage screen moves its camera and its row of cars.</summary>
+        public GarageScene Scene { get; private set; }
+
         public override void LoadContent()
         {
-            texture = Manager.Content.Load<Texture2D>("Common/garage");
+            Scene = new GarageScene(Manager, settings);
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            Scene.Update((float)gameTime.ElapsedGameTime.TotalSeconds);
         }
 
         public override void Draw(GameTime gameTime)
         {
-            Viewport viewport = Manager.Viewport;
-            float screenAspect = (float)viewport.Width / viewport.Height;
-            float imageAspect = (float)texture.Width / texture.Height;
+            Scene.Draw();
 
-            //Crop the sides of an image wider than the screen, or the top and bottom of a narrower one
-            Rectangle source;
-            if (imageAspect > screenAspect)
+            //Fading in from black
+            if (Visibility < 1f)
             {
-                int width = (int)(texture.Height * screenAspect);
-                source = new Rectangle((texture.Width - width) / 2, 0, width, texture.Height);
+                Manager.SpriteBatch.Begin();
+                Manager.SpriteBatch.Draw(Manager.Pixel, Manager.Viewport.Bounds, Color.Black * (1f - Visibility));
+                Manager.SpriteBatch.End();
             }
-            else
-            {
-                int height = (int)(texture.Width / screenAspect);
-                source = new Rectangle(0, (texture.Height - height) / 2, texture.Width, height);
-            }
-
-            Manager.SpriteBatch.Begin();
-            Manager.SpriteBatch.Draw(texture, viewport.Bounds, source, Color.White * Visibility);
-            Manager.SpriteBatch.End();
         }
     }
 }

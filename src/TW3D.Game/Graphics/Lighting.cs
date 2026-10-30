@@ -94,6 +94,25 @@ namespace TW3D.Graphics
             Headlights = true
         };
 
+        /// <summary>
+        /// The garage of the menu: white light from lamps high above, a little from the side of the windows, a light
+        /// hall around; the headlights of the cars on.
+        /// </summary>
+        public static readonly Lighting Garage = new Lighting
+        {
+            SunDirection = Vector3.Normalize(new Vector3(0.2f, 1f, 0.35f)),
+            SunColor = new Vector3(1f, 0.96f, 0.9f) * 1.9f,
+            SkyLight = new Vector3(0.62f, 0.64f, 0.68f) * 0.6f,
+            GroundLight = new Vector3(0.5f, 0.5f, 0.5f) * 0.3f,
+            RimLight = new Vector3(0.6f, 0.65f, 0.75f) * 0.2f,
+            //No haze; its colour is the horizon mirrored by metal: the light grey of the hall
+            HazeColor = new Color(205, 208, 212).ToVector3(),
+            HazeStart = 100f,
+            HazeEnd = 200f,
+            HazeMax = 0f,
+            Headlights = true
+        };
+
         public static Lighting For(LevelMood mood)
         {
             switch (mood)

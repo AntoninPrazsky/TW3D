@@ -53,12 +53,11 @@ namespace TW3D.Graphics
 
         //The shadow map covers the part of the scene the camera sees: the 3D models lie between
         //these planes (the back and front decoration layers are 2.25 units from the physics plane
-        //z = 0, the blocks are 2.25 units deep), at most this far from the camera. It reaches
+        //z = 0, the blocks are 2.25 units deep), at most ShadowDistance from the camera. It reaches
         //this far towards the sun beyond it, for the shadows of objects above the screen.
         private const int ShadowMapSize = 2048;
         private const float SceneNearZ = -3.5f;
         private const float SceneFarZ = 3.5f;
-        private const float ShadowDistance = 40f;
         private const float ShadowCasterReach = 10f;
         //Against shadow acne: the lookup moves this many shadow map texels along the normal,
         //and the depth is compared with this tolerance (in world units)
@@ -258,6 +257,12 @@ namespace TW3D.Graphics
         /// the camera of the game (the level editor's).
         /// </summary>
         public float HazeOffset { get; set; }
+
+        /// <summary>
+        /// How far from the camera the shadows reach (world units): the shadow map covers the scene up to there, so the
+        /// shorter, the sharper the shadows.
+        /// </summary>
+        public float ShadowDistance { get; set; } = 40f;
 
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;

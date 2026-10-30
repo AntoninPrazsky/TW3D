@@ -1,0 +1,581 @@
+# Materials of the garage; Pm and Pr: metal and roughness (tools/ContentPipeline)
+
+newmtl lift_default13
+Kd 0.7336 0.7336 0.7336
+d 1.0000
+Ks 0.5937 0.5937 0.5937
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default14
+Kd 0.3007 0.3007 0.3007
+d 1.0000
+Ks 0.2075 0.2075 0.2075
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default15
+Kd 0.9000 0.0000 0.0000
+d 1.0000
+Ks 0.5937 0.5937 0.5937
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default16
+Kd 0.7070 0.7070 0.7070
+d 1.0000
+Ks 0.5405 0.5405 0.5405
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default17
+Kd 0.4739 0.4739 0.4739
+d 1.0000
+Ks 0.5405 0.5405 0.5405
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default18
+Kd 0.9334 0.9334 0.9334
+d 1.0000
+Ks 0.6404 0.6404 0.6404
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl lift_default19
+Kd 0.8868 0.0000 0.0000
+d 1.0000
+Ks 0.2408 0.0000 0.0000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.45
+illum 2
+
+newmtl cabinet_default22
+Kd 0.8002 0.8002 0.8002
+d 1.0000
+Ks 0.4805 0.4805 0.4805
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.4
+illum 2
+
+newmtl cabinet_default20
+Kd 0.1742 0.1742 0.1742
+d 1.0000
+Ks 0.0676 0.0676 0.0676
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.4
+illum 2
+
+newmtl cabinet_default19
+Kd 0.8868 0.0000 0.0000
+d 1.0000
+Ks 0.2408 0.0000 0.0000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 0
+Pr 0.4
+illum 2
+
+newmtl cabinetWheels_default23
+Kd 0.8468 0.8468 0.8468
+d 1.0000
+Ks 0.8135 0.8135 0.8135
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.35
+illum 2
+
+newmtl cabinetWheels_default24
+Kd 0.1342 0.1342 0.1342
+d 1.0000
+Ks 0.3340 0.3340 0.3340
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.35
+illum 2
+
+newmtl cabinetWheels_default25
+Kd 0.6805 0.7733 0.7733
+d 1.0000
+Ks 0.9267 0.9267 0.9267
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.35
+illum 2
+
+newmtl cone1_default26
+Kd 1.0000 0.2800 0.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl cone1_default27
+Kd 1.0000 1.0000 1.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl cone2_default26
+Kd 1.0000 0.2800 0.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl cone2_default27
+Kd 1.0000 1.0000 1.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl cone3_default26
+Kd 1.0000 0.2800 0.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl cone3_default27
+Kd 1.0000 1.0000 1.0000
+d 1.0000
+Ks 0.7802 0.7802 0.7802
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_default28
+Kd 0.7516 0.6065 0.2265
+d 1.0000
+Ks 0.6283 0.5558 0.3661
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_default29
+Kd 0.2141 0.2141 0.2141
+d 1.0000
+Ks 0.2807 0.2807 0.2807
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy19_default15
+Kd 0.9000 0.0000 0.0000
+d 1.0000
+Ks 0.5937 0.5937 0.5937
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy19_default29
+Kd 0.2141 0.2141 0.2141
+d 1.0000
+Ks 0.2807 0.2807 0.2807
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy30_default28
+Kd 0.7516 0.6065 0.2265
+d 1.0000
+Ks 0.6283 0.5558 0.3661
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy30_default29
+Kd 0.2141 0.2141 0.2141
+d 1.0000
+Ks 0.2807 0.2807 0.2807
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy31_default4
+Kd 0.1808 0.1808 0.1808
+d 1.0000
+Ks 0.1209 0.1209 0.1209
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy31_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy31_default37
+Kd 0.9734 0.9734 0.9734
+d 1.0000
+Ks 0.8535 0.8535 0.8535
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy32_default32
+Kd 0.0000 0.3476 1.0000
+d 1.0000
+Ks 0.3074 0.3074 0.3074
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl oil_copy32_default15
+Kd 0.9000 0.0000 0.0000
+d 1.0000
+Ks 0.5937 0.5937 0.5937
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl wheelsKey_default30
+Kd 0.6737 0.6737 0.6737
+d 1.0000
+Ks 0.7000 0.7000 0.7000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.15
+illum 2
+
+newmtl Tube1_default41
+Kd 0.6737 0.6737 0.6737
+d 1.0000
+Ks 0.7000 0.7000 0.7000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.15
+illum 2
+
+newmtl key_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy16_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy17_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy33_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy34_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy35_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy36_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl key_copy37_default31
+Kd 0.5937 0.5937 0.5937
+d 1.0000
+Ks 0.3207 0.3207 0.3207
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.2
+illum 2
+
+newmtl Cube1_default33
+Kd 0.0000 0.1604 0.4605
+d 1.0000
+Ks 0.1142 0.1142 0.1142
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl Cube1_default32
+Kd 0.0000 0.3476 1.0000
+d 1.0000
+Ks 0.3074 0.3074 0.3074
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl Cube1_default34
+Kd 0.7000 0.7000 0.7000
+d 1.0000
+Ks 0.7869 0.7869 0.7869
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl Cube1_default35
+Kd 1.0000 0.3933 0.0000
+d 1.0000
+Ks 0.3074 0.3074 0.3074
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl Cube1_copy29_default19
+Kd 0.8868 0.0000 0.0000
+d 1.0000
+Ks 0.2408 0.0000 0.0000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl Cylinder1_default40
+Kd 0.8000 0.8000 0.8000
+d 1.0000
+Ks 0.7700 0.7700 0.7700
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.08
+illum 2
+
+newmtl sloupy_default36
+Kd 0.6270 0.6270 0.6270
+d 1.0000
+Ks 0.6870 0.6870 0.6870
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl sloupy_default37
+Kd 0.9734 0.9734 0.9734
+d 1.0000
+Ks 0.8535 0.8535 0.8535
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl sloupy_default38
+Kd 0.4139 0.2003 0.1187
+d 1.0000
+Ks 0.9467 0.9467 0.9467
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl sloupy_default39
+Kd 0.6867 0.5195 0.4316
+d 1.0000
+Ks 0.7869 0.7869 0.7869
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl sloupy_default12
+Kd 0.1409 0.1409 0.1409
+d 1.0000
+Ks 0.7536 0.7536 0.7536
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl window_default
+Kd 0.7899 0.8133 0.6940
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl window_glass
+Kd 0.8200 1.0000 1.0000
+d 0.2000
+Ks 0.6000 0.6000 0.6000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.1
+illum 2
+
+newmtl window_default3
+Kd 1.0000 1.0000 1.0000
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl window_default4
+Kd 0.1808 0.1808 0.1808
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl window_default2
+Kd 0.4938 0.4938 0.4938
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl window_windowBorder
+Kd 0.9201 0.9201 0.9201
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_wall
+Kd 0.7000 0.6800 0.6300
+d 1.0000
+Ks 0.1000 0.1000 0.1000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_dado
+Kd 0.3000 0.3300 0.3700
+d 1.0000
+Ks 0.2000 0.2000 0.2000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_stripe
+Kd 0.9500 0.7500 0.0500
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_floor_light
+Kd 0.6000 0.6000 0.6000
+d 1.0000
+Ks 0.4000 0.4000 0.4000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.55
+illum 2
+
+newmtl hall_floor_dark
+Kd 0.3300 0.3400 0.3600
+d 1.0000
+Ks 0.4000 0.4000 0.4000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.55
+illum 2
+
+newmtl hall_line
+Kd 0.9500 0.7800 0.0500
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_door
+Kd 0.8200 0.8300 0.8400
+d 1.0000
+Ks 0.5000 0.5000 0.5000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.5
+illum 2
+
+newmtl hall_door_groove
+Kd 0.3500 0.3600 0.3800
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl hall_door_frame
+Kd 0.2000 0.2100 0.2300
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2

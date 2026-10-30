@@ -45,6 +45,10 @@
 /build:Env/sky.obj
 /build:Env/tb1.obj
 
+# The 3D garage behind the menus (the landscape behind its windows comes with its texture)
+/build:Garage/garage.obj
+/build:Garage/window.obj
+
 # Track blocks
 /build:Levels/mod/a1.obj
 /build:Levels/mod/b1.obj

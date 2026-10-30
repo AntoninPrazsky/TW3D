@@ -1,0 +1,8 @@
+newmtl window
+Kd 1 1 1
+d 1
+Ks 0 0 0
+Ke 0 0 0
+Ns 0
+map_Kd ../Env/sky.png
+illum 1

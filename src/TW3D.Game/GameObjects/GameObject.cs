@@ -16,6 +16,9 @@ namespace TW3D.GameObjects
         protected PhysicsClock physics;
         protected const float scale = 0.25f;
 
+        /// <summary>Moves the drawn object in the 3D world, wherever its bodies are (the cars standing in the garage of the menu).</summary>
+        public Matrix Placement { get; set; } = Matrix.Identity;
+
         /// <summary>Position of a body to draw (interpolated between the last two simulation steps).</summary>
         protected Vector2 DrawPosition(Body body)
         {
@@ -43,7 +46,7 @@ namespace TW3D.GameObjects
         /// </param>
         public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, bool asBackground = false)
         {
-            Matrix world = ModelWorld(modelPosition, modelRotation, flip);
+            Matrix world = ModelWorld(modelPosition, modelRotation, flip) * Placement;
             if (asBackground)
                 renderer.SetBackground(model, world);
             else

@@ -4,34 +4,25 @@ using System.IO;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GameObjects;
-using TW3D.Graphics;
 using TW3D.Input;
 using TW3D.Shared;
 
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The garage: the cars of the catalog, one at a time, turning in the middle of the screen. The arrows next to
-    /// the name of the car (or left and right, or dragging the car sideways) show the other cars; the car shown is
-    /// the one chosen. On the right the wheels of its front and rear axle are chosen (any wheels fit any car), on the
-    /// left bars show how fast, heavy and gripping it is with them. Everything chosen is saved at once.
+    /// The garage: the camera of the 3D garage behind the menus (<see cref="GarageScene"/>) comes to the car on the
+    /// lift. The arrows next to the name of the car (or left and right, or dragging the car sideways) move the row of
+    /// cars, so that another car comes onto the lift; the car on the lift is the one chosen. On the right the wheels of
+    /// its front and rear axle are chosen (any wheels fit any car), on the left bars show how fast, heavy and gripping
+    /// it is with them. Everything chosen is saved at once.
     /// </summary>
     public sealed class GarageScreen : Screen
     {
-        //How fast the car turns (radians per second); the camera looks at it from this distance (world units),
-        //a little from above, with this vertical field of view (degrees)
-        private const float TurnSpeed = 0.5f;
-        private const float CameraDistance = 5.2f;
-        private const float CameraRise = 0.3f;
-        private const float FieldOfView = 30f;
-        //The cars stand in a row, the next one just out of the screen: this far from the edge (world units, a car
-        //reaches about 1.5 from its middle). The row follows a pointer dragging it sideways. Dragged by this part
-        //of the screen width, or flicked faster than this (reference pixels per second), it brings the next car;
-        //let go, it settles at this rate (1 / seconds)
-        private const float CarReach = 1.8f;
-        private const float SwitchDistance = 0.2f;
+        //The row of cars follows a pointer dragging it sideways. Dragged by this part of the distance of the cars, or
+        //flicked faster than this (reference pixels per second), it brings the next car; let go, it settles at this
+        //rate (1 / seconds)
+        private const float SwitchDistance = 0.25f;
         private const float FlickSpeed = 800f;
         private const float SettleRate = 10f;
         //Font scale of the name and of Back, the size of the arrows and their distance from the name, in reference pixels
@@ -49,8 +40,6 @@ namespace TW3D.Screens
         private const float BarRate = 10f;
         //Extra area around Back and the arrows that reacts to the pointer, in reference pixels
         private const float Padding = 20f;
-        //How much the picture of the garage is darkened, so the car stands out
-        private const float Dimming = 0.45f;
         //How far the title and the texts slide in and out, in reference pixels
         private const float TitleSlide = 140f;
         private const float TextSlide = 320f;
@@ -75,11 +64,10 @@ namespace TW3D.Screens
         private static readonly string[] StatNames = { "Speed", "Weight", "Grip" };
 
         private readonly GameSettings settings;
-        private readonly Dictionary<(string Car, string Front, string Rear), Car> previews = new Dictionary<(string, string, string), Car>();
+        private readonly GarageScene scene;
         private Catalog catalog;
         private List<CarType> cars;
         private int selected;
-        private float angle = 0.8f;
         private Row focus = Row.Car;
         private readonly WheelChoice[] wheelChoices =
         {
@@ -89,25 +77,24 @@ namespace TW3D.Screens
         //The bars as drawn (following the values of the car shown)
         private readonly float[] bars = new float[StatNames.Length];
 
-        //How far the row of cars is moved right of its place (pixels), while dragged or settling
+        //How far the row of cars is moved along its axis (world units, see GarageScene.Scroll), while dragged or settling
         private float scroll;
         //The pointer dragging the row (null = none), where it was in the last frame and how fast it moves (pixels per second)
         private int? dragPointer;
         private float dragX;
         private float dragVelocity;
-        private readonly List<(CarType Car, float X)> visibleCars = new List<(CarType, float)>();
 
-        private World world;
-        private SceneRenderer renderer;
         private Texture2D arrowTexture;
 
         private Vector2 namePosition;
         private Rectangle leftArrow, rightArrow, back, backText;
         private Vector2 statsPosition;
 
-        public GarageScreen(GameSettings settings)
+        /// <param name="scene">The 3D garage behind the menus.</param>
+        public GarageScreen(GameSettings settings, GarageScene scene)
         {
             this.settings = settings;
+            this.scene = scene;
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
@@ -119,33 +106,13 @@ namespace TW3D.Screens
             cars = catalog.Cars;
             selected = Math.Max(0, cars.FindIndex(car => car.Model == settings.Car));
             Array.Copy(Stats(cars[selected]), bars, bars.Length);
-
-            //The cars are built as for a level, in a world of their own that never moves
-            ModelCollision.Load();
-            world = new World(Vector2.Zero);
-            //Without shadows and ambient occlusion: they are drawn into textures first, which clears the screen
-            //with the picture of the garage behind the car
-            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content)
-            {
-                Classic = settings.Classic,
-                Shadows = false,
-                AmbientOcclusion = false,
-                Lighting = Lighting.Day
-            };
             arrowTexture = Manager.Content.Load<Texture2D>("Common/arrow");
         }
 
-        /// <summary>The car with the wheels chosen for it.</summary>
-        private Car Preview(CarType car)
+        public override void UnloadContent()
         {
-            CarWheels wheels = settings.WheelsOf(car);
-            var key = (car.Model, wheels.Front, wheels.Rear);
-            if (!previews.TryGetValue(key, out Car preview))
-            {
-                preview = new Car(world, Manager, null, null, Vector2.Zero, car, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
-                previews.Add(key, preview);
-            }
-            return preview;
+            scene.Focus = 0f;
+            scene.Scroll = 0f;
         }
 
         /// <summary>How fast, heavy and gripping a car is with its wheels, each as a part of the most there is.</summary>
@@ -162,14 +129,7 @@ namespace TW3D.Screens
             };
         }
 
-        //The camera comes from the distance as the screen appears
-        private float Distance => CameraDistance * (1f + 2f * SlideAmount);
-
-        //World units across the view per pixel of the screen, where the cars stand
-        private float UnitsPerPixel => 2f * Distance * MathF.Tan(MathHelper.ToRadians(FieldOfView) / 2f) / Manager.Viewport.Height;
-
-        //How far apart the cars of the row are (pixels)
-        private float Spacing => Manager.Viewport.Width / 2f + CarReach / UnitsPerPixel;
+        private static float Spacing => GarageScene.Spacing;
 
         private void Show(int direction)
         {
@@ -204,7 +164,6 @@ namespace TW3D.Screens
         public override void Update(GameTime gameTime)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
-            angle += TurnSpeed * elapsed;
 
             if (!HasFocus)
                 dragPointer = null;
@@ -219,6 +178,10 @@ namespace TW3D.Screens
             float follow = 1f - MathF.Exp(-BarRate * elapsed);
             for (int i = 0; i < bars.Length; i++)
                 bars[i] += (stats[i] - bars[i]) * follow;
+
+            //The camera of the garage comes to the car as the screen appears, and goes back as it disappears
+            scene.Focus = Visibility;
+            scene.Scroll = scroll;
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -285,9 +248,11 @@ namespace TW3D.Screens
                 if (pointer.Id != dragPointer)
                     continue;
 
+                //The cars follow the pointer on the screen
                 float move = pointer.Position.X - dragX;
                 dragX = pointer.Position.X;
-                scroll = MathHelper.Clamp(scroll + move, -Spacing, Spacing);
+                if (Math.Abs(scene.PixelsPerUnit) > 1f)
+                    scroll = MathHelper.Clamp(scroll + move / scene.PixelsPerUnit, -Spacing, Spacing);
                 if (elapsed > 0f)
                     dragVelocity = MathHelper.Lerp(dragVelocity, move / elapsed, 0.5f);
                 if (pointer.Phase == PointerPhase.Released)
@@ -307,28 +272,15 @@ namespace TW3D.Screens
             dragPointer = null;
             float direction = 0f;
             if (Math.Abs(dragVelocity) > FlickSpeed * Manager.UiScale)
-                direction = dragVelocity;
-            else if (Math.Abs(scroll) > SwitchDistance * Manager.Viewport.Width)
+                direction = dragVelocity / scene.PixelsPerUnit;
+            else if (Math.Abs(scroll) > SwitchDistance * Spacing)
                 direction = scroll;
 
-            //Dragged to the left, the car on the right comes
+            //Moved backwards along the row, the next car comes
             if (direction < 0f)
                 Show(1);
             else if (direction > 0f)
                 Show(-1);
-        }
-
-        /// <summary>The cars on the screen and how far right of its middle they are (pixels).</summary>
-        private List<(CarType Car, float X)> VisibleCars()
-        {
-            visibleCars.Clear();
-            for (int offset = -1; offset <= 1; offset++)
-            {
-                float x = offset * Spacing + scroll;
-                if (Math.Abs(x) < Spacing)
-                    visibleCars.Add((cars[(selected + offset + cars.Count) % cars.Count], x));
-            }
-            return visibleCars;
         }
 
         private void UpdateLayout()
@@ -394,23 +346,6 @@ namespace TW3D.Screens
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
 
-            Manager.SpriteBatch.Begin();
-            Manager.SpriteBatch.Draw(Manager.Pixel, viewport.Bounds, Color.Black * (Dimming * alpha));
-            Manager.SpriteBatch.End();
-
-            //The car turning in the middle of the screen. Each car of the row is drawn by itself, moved sideways
-            //in front of the camera
-            Vector3 target = new Vector3(0f, -0.25f, 0f);
-            Vector3 eye = target + Vector3.Normalize(new Vector3(MathF.Sin(angle), CameraRise, MathF.Cos(angle))) * Distance;
-            Matrix view = Matrix.CreateLookAt(eye, target, Vector3.Up);
-            Matrix projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(FieldOfView), viewport.AspectRatio, 0.1f, 100f);
-            foreach ((CarType car, float x) in VisibleCars())
-            {
-                renderer.Begin(view * Matrix.CreateTranslation(x * UnitsPerPixel, 0f, 0f), projection);
-                Preview(car).Draw(renderer);
-                renderer.End();
-            }
-
             SpriteFont font = Manager.Fonts.Menu;
             float slide = SlideAmount * TextSlide * uiScale * (IsDisappearing ? 1f : -1f);
             Vector2 pointer = Manager.Input.PointerPosition;
@@ -419,8 +354,9 @@ namespace TW3D.Screens
             Manager.SpriteBatch.Begin();
 
             //The names move with the cars, fading out before they reach the arrows
-            foreach ((CarType car, float x) in visibleCars)
+            foreach ((CarType car, float offset) in scene.Row())
             {
+                float x = offset * scene.PixelsPerUnit;
                 float nameWidth = font.MeasureString(car.Name).X * TextScale * uiScale;
                 float nameAlpha = alpha * MathHelper.Clamp(1f - Math.Abs(x) / (viewport.Width / 4f), 0f, 1f);
                 Manager.DrawShadowedText(font, car.Name, new Vector2((viewport.Width - nameWidth) / 2f + x + slide, namePosition.Y),

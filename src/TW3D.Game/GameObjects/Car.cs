@@ -321,6 +321,22 @@ namespace TW3D.GameObjects
             holderF.FixedRotation = holderRotLockChnage;
         }
         
+        /// <summary>Height of the lowest point of the wheels in the 3D world (where the car stands), before <see cref="GameObject.Placement"/>.</summary>
+        public float WheelsBottom
+        {
+            get
+            {
+                float bottom = float.MaxValue;
+                foreach (Body wheel in new[] { wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF })
+                {
+                    //Physics y grows downwards; the 3D world is the physics world shrunk ten times and turned upside down
+                    float radius = ((CircleShape)wheel.FixtureList[0].Shape).Radius;
+                    bottom = Math.Min(bottom, -(wheel.Position.Y + radius) / 10f);
+                }
+                return bottom;
+            }
+        }
+
         public bool IsIntersected(float x, float y)
         {
             Ray pickRay = GetPickRay(x, y);
@@ -344,7 +360,7 @@ namespace TW3D.GameObjects
         public override void Draw(SceneRenderer renderer)
         {
             DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
-            Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
+            Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
             renderer.SetCar(carModel, body, Forward, brake);
 
             DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
