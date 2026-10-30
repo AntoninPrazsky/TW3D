@@ -30,6 +30,8 @@
     <PackageReference Include="Aether.Physics2D.MG" />
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
+    <!-- Built for the content pipeline, which loads it (content/Content.mgcb) -->
+    <ProjectReference Include="..\..\tools\ContentPipeline\ContentPipeline.csproj" ReferenceOutputAssembly="false" />
     <!-- Built for the target below, not referenced by the game -->
     <ProjectReference Include="..\..\tools\CollisionGen\CollisionGen.csproj" ReferenceOutputAssembly="false" OutputItemType="CollisionGenAssembly" />
   </ItemGroup>

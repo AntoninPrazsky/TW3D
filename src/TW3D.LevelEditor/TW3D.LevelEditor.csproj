@@ -31,6 +31,8 @@
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
     <PackageReference Include="MonoGame.Content.Builder.Task" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
+    <!-- Built for the content pipeline, which loads it (content/Content.mgcb) -->
+    <ProjectReference Include="..\..\tools\ContentPipeline\ContentPipeline.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

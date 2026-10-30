@@ -38,6 +38,8 @@
     <!-- Its own copy of the debug view font is not used, the game content has it -->
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" ExcludeAssets="contentFiles" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
+    <!-- Built for the content pipeline, which loads it (content/Content.mgcb) -->
+    <ProjectReference Include="..\..\tools\ContentPipeline\ContentPipeline.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
 </Project>

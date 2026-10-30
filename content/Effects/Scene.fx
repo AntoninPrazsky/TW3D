@@ -5,6 +5,8 @@
 // headlights of the car (a spot light, at night). It is computed in linear colour space and
 // mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
 // Glass (Alpha less than 1) is blended over the scene, less transparent where it shines.
+// Smooth materials (Roughness less than 1) mirror the sky, the ground and the sun; metal
+// (Metallic) only mirrors, in its own colour, like chrome.
 //
 // Technique Sky draws the sky: its picture recoloured by the colours of the light from the
 // horizon up (it keeps the brightness of the picture, the clouds), with a glow around the sun.
@@ -35,6 +37,11 @@ float3 RimLight;            // linear, light at grazing angles
 float Exposure;
 float3 HazeColor;           // on the screen (gamma), the colour of the sky at the horizon
 float3 Haze;                // start distance, 1 / (end distance - start distance), maximum amount
+
+// What smooth materials mirror (linear): the sky overhead and at the horizon, the ground
+float3 MirroredSky;
+float3 MirroredHorizon;
+float3 MirroredGround;
 
 // The headlights of the car: a spot light
 float3 SpotPosition;
@@ -97,6 +104,8 @@ float3 DiffuseColor;        // linear
 float3 EmissiveColor;       // linear
 float Specular;             // strength of the sun's highlight
 float Alpha;                // opacity (1 = opaque; glass is less)
+float Metallic;             // 1 = metal: no diffuse light, mirrors in its own colour
+float Roughness;            // 0 = a perfect mirror, 1 = mirrors nothing (most materials)
 
 struct VertexInput
 {
@@ -162,25 +171,50 @@ float3 Filmic(float3 x)
 	return saturate((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14));
 }
 
+// What a mirror shows in a direction: the ground below the horizon, the sky above it, both brighter
+// towards the horizon (the far ground fades into the haze). On a rough surface the horizon blurs.
+float3 Mirrored(float3 direction, float roughness)
+{
+	float blur = 0.02 + roughness * 0.5;
+	float3 sky = lerp(MirroredHorizon, MirroredSky, sqrt(saturate(direction.y)));
+	float3 ground = lerp(MirroredHorizon * 0.5, MirroredGround, saturate(-direction.y * 2.5));
+	return lerp(ground, sky, smoothstep(-blur, blur, direction.y));
+}
+
 float4 MainPS(VertexOutput input) : COLOR0
 {
 	float3 normal = normalize(input.Normal);
 	float distance = length(input.ToCamera);
 	float3 view = input.ToCamera / distance;
 
-	float sun = saturate(dot(normal, SunDirection));
-	float visible = SunVisibility(input.Shadow, ShadowBias * (3.0 - 2.0 * sun));
-	sun *= lerp(1.0, visible, ShadowStrength);
+	float facing = saturate(dot(normal, SunDirection));
+	float visible = SunVisibility(input.Shadow, ShadowBias * (3.0 - 2.0 * facing));
 
 	// Ambient occlusion darkens the light of the sky and the ground, and a little the sun,
 	// which makes the contact of objects visible in the sun too
 	float2 screen = input.Screen.xy / input.Screen.w * float2(0.5, -0.5) + 0.5;
 	float occlusion = lerp(1.0, tex2D(OcclusionSampler, screen).r, OcclusionStrength);
-	sun *= lerp(1.0, occlusion, 0.5);
+	float sunlit = lerp(1.0, visible, ShadowStrength) * lerp(1.0, occlusion, 0.5);
+	float sun = facing * sunlit;
 
 	float highlight = pow(saturate(dot(normal, normalize(SunDirection + view))), 40.0) * Specular * sun;
 	float3 ambient = lerp(GroundLight, SkyLight, normal.y * 0.5 + 0.5) * occlusion;
 	float rim = pow(1.0 - saturate(dot(normal, view)), 4.0) * occlusion;
+
+	// The mirror image of the surroundings, with the sun as a glint, sharper and brighter the smoother
+	// the surface. Metal mirrors all the light in its own colour (blurred if rough), other materials
+	// 4 % of it and only if smooth; all of them mirror more at grazing angles. Metal has no diffuse
+	// light, its glint takes the place of the highlight.
+	float smoothness = 1.0 - Roughness;
+	float3 reflected = reflect(-view, normal);
+	float3 reflectance = lerp(0.04, DiffuseColor, Metallic);
+	reflectance += (1.0 - reflectance) * pow(1.0 - saturate(dot(normal, view)), 5.0);
+	float glintPower = exp2(4.0 + smoothness * 7.0);
+	float glint = pow(saturate(dot(reflected, SunDirection)), glintPower) * glintPower * 0.05 * sunlit;
+	float3 mirror = (Mirrored(reflected, Roughness) * occlusion + SunColor * glint) * reflectance * lerp(smoothness, 1.0, Metallic);
+	float diffuse = 1.0 - Metallic;
+	highlight *= diffuse;
+	rim *= diffuse;
 
 	float spotDistance = length(input.ToSpot);
 	float3 toSpot = input.ToSpot / max(spotDistance, 0.001);
@@ -188,7 +222,7 @@ float4 MainPS(VertexOutput input) : COLOR0
 	float spotFade = saturate(1.0 - spotDistance / SpotRange);
 	float3 spot = SpotColor * (saturate(dot(normal, toSpot)) * cone * spotFade * spotFade);
 
-	float3 light = DiffuseColor * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + EmissiveColor;
+	float3 light = DiffuseColor * diffuse * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;

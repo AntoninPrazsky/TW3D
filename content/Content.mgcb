@@ -10,6 +10,9 @@
 /profile:Reach
 /compress:False
 
+# The extension of the pipeline (tools/ContentPipeline), built by the projects before the content
+/reference:../tools/ContentPipeline/bin/TW3D.ContentPipeline.dll
+
 #---------------------------------- Content ---------------------------------#
 
 # Shaders
@@ -19,9 +22,10 @@
 /build:Effects/Occlusion.fx
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
-# it creates XNA compatible materials (BasicEffect), which the game draws with.
+# it creates XNA compatible materials (BasicEffect), which the game draws with. The processor
+# of tools/ContentPipeline adds what metal the materials are (Pm and Pr of the .mtl files).
 /importer:FbxImporter
-/processor:ModelProcessor
+/processor:MtlModelProcessor
 
 # Vehicles
 /build:car.obj

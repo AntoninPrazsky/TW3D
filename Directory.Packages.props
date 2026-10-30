@@ -8,6 +8,8 @@
     <PackageVersion Include="MonoGame.Framework.Android" Version="3.8.6" />
     <!-- Content pipeline (content/Content.mgcb); runs the dotnet-mgcb tool of the same version (.config/dotnet-tools.json) -->
     <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.6" />
+    <!-- tools/ContentPipeline: the extension of the content pipeline, for the same version of the tool -->
+    <PackageVersion Include="MonoGame.Framework.Content.Pipeline" Version="3.8.6" />
     <PackageVersion Include="Aether.Physics2D.MG" Version="2.2.0" />
     <PackageVersion Include="Aether.Physics2D.Diagnostics.MG" Version="2.2.0" />
     <!-- tools/CollisionGen: the same physics engine without MonoGame, and polygon clipping -->

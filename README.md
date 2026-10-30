@@ -23,6 +23,7 @@ physics bodies.
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](tools/CollisionGen/README.md) |
+| `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials (built and loaded by the content build) |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 
@@ -181,7 +182,9 @@ screen from the normals and depths the camera sees), highlights by the specular 
 the materials and a rim of sky light. The light is computed in linear colour space and
 mapped to the screen by a filmic curve, and the distance fades into the colour of the
 sky. Glass (a material with an opacity `d` below 1 in its `.mtl` file: the windows of the
-cars) lets the scene through, except where it reflects the light. The 2016 version lit the models by three coloured directional lights of
+cars) lets the scene through, except where it reflects the light. Metal (the rims of the
+wheels, the engines, the tubes) has no diffuse light, it mirrors the sky, the ground and
+the sun in its own colour, sharply if it is smooth (chrome), blurred if it is rough. The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
 game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
 level, which is saved with it), CatalogRender with the 2016
@@ -201,7 +204,12 @@ Pipeline builds them into `.xnb` files whenever the game, the editor or
 CatalogRender is built: `content/Content.mgcb` lists them, and the projects run it
 through the `MonoGame.Content.Builder.Task` package. The models have no textures,
 they are made of coloured polygons only (the colour is the diffuse colour `Kd` of
-the material); only the sky has a texture (`Env/sky.png`).
+the material); only the sky has a texture (`Env/sky.png`). The materials of metal parts
+also have the metallic `Pm` (0–1) and the roughness `Pr` (0–1, 0 = a mirror) of the PBR
+extension of MTL. The importer of MonoGame leaves them out (it reads only what XNA's
+`BasicEffect` has), so the models are processed by `MtlModelProcessor` of
+`tools/ContentPipeline`, which reads them from the `.mtl` file and keeps them with the
+model.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
@@ -222,7 +230,8 @@ In Blender: *File → Import → Wavefront (.obj)*, edit, then *File → Export 
 Wavefront (.obj)* over the original file. The default settings work: the import
 converts the axes (OBJ has Y up, Blender Z up) and the export converts them back.
 Keep the export of normals and materials on and *Triangulated Mesh* off (the
-content pipeline triangulates the polygons itself). The next build of the game
+content pipeline triangulates the polygons itself); turn *PBR Extensions* on, so that
+the metallic and the roughness of the materials are kept. The next build of the game
 builds the changed model and generates its collision shape again (commit
 `content/collision.json` with the model).
 

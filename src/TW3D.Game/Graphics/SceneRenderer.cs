@@ -13,12 +13,19 @@ namespace TW3D.Graphics
     /// <remarks>
     /// <see cref="Classic"/> switches to the lighting of the 2016 version (BasicEffect with three
     /// directional lights). Transparent materials (glass) are drawn after the others, from the back to the front;
-    /// they cast no shadows and do not count for the ambient occlusion.
+    /// they cast no shadows and do not count for the ambient occlusion. Metal and smooth materials (the metallic
+    /// and the roughness of a material, "Pm" and "Pr" in its MTL file, kept by the content pipeline in the Tag of
+    /// its mesh parts) mirror the sky, the ground and the sun.
     /// </remarks>
     public sealed class SceneRenderer
     {
         //Strength of the sun's highlight relative to the specular colour of a material
         private const float SpecularStrength = 0.6f;
+        //What smooth materials mirror: the sky overhead in the colour of its light, the bright horizon in the colour
+        //of the haze, and the ground below in the colour of its light, at these brightnesses
+        private const float MirroredSkyLight = 2f;
+        private const float MirroredHorizon = 1.5f;
+        private const float MirroredGroundLight = 1.5f;
 
         //The shadow map covers the part of the scene the camera sees: the 3D models lie between
         //these planes (the back and front decoration layers are 2.25 units from the physics plane
@@ -59,6 +66,10 @@ namespace TW3D.Graphics
             public float Specular;
             /// <summary>Opacity of the material (the "d" of the MTL file); less than 1 for glass.</summary>
             public float Alpha;
+            /// <summary>1 for metal ("Pm" of the MTL file).</summary>
+            public float Metallic;
+            /// <summary>0 for a perfect mirror, 1 for a material mirroring nothing ("Pr" of the MTL file, 1 without it).</summary>
+            public float Roughness;
 
             public bool IsTransparent => Alpha < 1f;
         }
@@ -85,7 +96,8 @@ namespace TW3D.Graphics
         private readonly GraphicsDevice device;
         private readonly Effect effect, occlusionEffect;
         private readonly EffectTechnique litTechnique, depthTechnique, normalDepthTechnique;
-        private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter;
+        private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter,
+            metallicParameter, roughnessParameter;
         private readonly RenderTarget2D shadowMap;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
         //The corners of the screen, for the passes over the whole screen
@@ -126,6 +138,8 @@ namespace TW3D.Graphics
             emissiveParameter = effect.Parameters["EmissiveColor"];
             specularParameter = effect.Parameters["Specular"];
             alphaParameter = effect.Parameters["Alpha"];
+            metallicParameter = effect.Parameters["Metallic"];
+            roughnessParameter = effect.Parameters["Roughness"];
 
             shadowMap = new RenderTarget2D(device, ShadowMapSize, ShadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
             effect.Parameters["ShadowTexel"].SetValue(1f / ShadowMapSize);
@@ -421,6 +435,9 @@ namespace TW3D.Graphics
             effect.Parameters["Exposure"].SetValue(lighting.Exposure);
             effect.Parameters["HazeColor"].SetValue(lighting.HazeColor);
             effect.Parameters["Haze"].SetValue(new Vector3(lighting.HazeStart + HazeOffset, 1f / (lighting.HazeEnd - lighting.HazeStart), lighting.HazeMax));
+            effect.Parameters["MirroredSky"].SetValue(lighting.SkyLight * MirroredSkyLight);
+            effect.Parameters["MirroredHorizon"].SetValue(ToLinear(lighting.HazeColor) * MirroredHorizon);
+            effect.Parameters["MirroredGround"].SetValue(lighting.GroundLight * MirroredGroundLight);
             effect.Parameters["SpotPosition"].SetValue(headlightPosition);
             effect.Parameters["SpotDirection"].SetValue(headlights ? headlightDirection : Vector3.UnitX);
             effect.Parameters["SpotColor"].SetValue(headlights && lighting.Headlights ? HeadlightColor : Vector3.Zero);
@@ -462,6 +479,8 @@ namespace TW3D.Graphics
             emissiveParameter.SetValue(part.Emissive);
             specularParameter.SetValue(part.Specular);
             alphaParameter.SetValue(part.Alpha);
+            metallicParameter.SetValue(part.Metallic);
+            roughnessParameter.SetValue(part.Roughness);
             pass.Apply();
             DrawPart(part.MeshPart);
         }
@@ -580,6 +599,7 @@ namespace TW3D.Graphics
                 {
                     BasicEffect material = (BasicEffect)meshPart.Effect;
                     Vector3 specular = material.SpecularColor;
+                    Vector2 finish = meshPart.Tag is Vector2 metallicRoughness ? metallicRoughness : new Vector2(0f, 1f);
                     parts.Add(new ModelPart
                     {
                         Transform = transform,
@@ -590,7 +610,9 @@ namespace TW3D.Graphics
                         Diffuse = ToLinear(material.DiffuseColor),
                         Emissive = ToLinear(material.EmissiveColor),
                         Specular = (specular.X + specular.Y + specular.Z) / 3f * SpecularStrength,
-                        Alpha = material.Alpha
+                        Alpha = material.Alpha,
+                        Metallic = finish.X,
+                        Roughness = finish.Y
                     });
                 }
             }

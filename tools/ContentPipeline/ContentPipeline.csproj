@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Extension of the content pipeline (content/Content.mgcb), which loads it from bin/ when it builds the models.
+    The projects building the content reference it only to build it first. Targets the framework of the dotnet-mgcb
+    tool that runs it (.config/dotnet-tools.json).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>TW3D.ContentPipeline</RootNamespace>
+    <AssemblyName>TW3D.ContentPipeline</AssemblyName>
+    <!-- One fixed path for Content.mgcb, whatever the configuration of the build -->
+    <OutputPath>bin\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Provided by the dotnet-mgcb tool at run time (with MonoGame.Framework, of any platform); private: the projects
+         building the content do not get them -->
+    <PackageReference Include="MonoGame.Framework.Content.Pipeline" PrivateAssets="all" IncludeAssets="compile" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" PrivateAssets="all" IncludeAssets="compile" />
+  </ItemGroup>
+
+</Project>

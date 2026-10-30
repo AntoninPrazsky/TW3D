@@ -1,4 +1,5 @@
 # Converted from car.x, the Wings 3D export of the model
+# Pm (metallic) and Pr (roughness) of the metal parts: the PBR extension of MTL, read by tools/ContentPipeline
 
 newmtl default
 Kd 0.7898538076923077 0.8133333333333334 0.6940444444444445
@@ -30,6 +31,8 @@ d 1.0
 Ks 1.0 1.0 1.0
 Ke 0.0 0.0 0.0
 Ns 0.2
+Pm 1
+Pr 0.1
 illum 2
 
 newmtl default2
@@ -70,6 +73,8 @@ d 1.0
 Ks 0.77 0.77 0.77
 Ke 0.0 0.0 0.0
 Ns 0.25333333333333335
+Pm 1
+Pr 0.4
 illum 2
 
 newmtl default7
@@ -86,6 +91,8 @@ d 1.0
 Ks 0.6 0.6 0.6
 Ke 0.0 0.0 0.0
 Ns 0.5
+Pm 1
+Pr 0.35
 illum 2
 
 newmtl default9
@@ -94,4 +101,6 @@ d 1.0
 Ks 0.9 0.9 0.9
 Ke 0.0 0.0 0.0
 Ns 0.3
+Pm 1
+Pr 0.25
 illum 2
