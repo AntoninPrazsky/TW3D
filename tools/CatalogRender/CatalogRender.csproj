@@ -10,12 +10,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Block models and the selector of the level editor -->
-    <None Include="..\..\content\Levels\**\*.xnb" LinkBase="Content\Levels" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Models built by the content pipeline into Content/ (the tool uses the blocks and the selector of the level editor) -->
+    <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" />
     <ProjectReference Include="..\..\src\TW3D.Shared\TW3D.Shared.csproj" />
   </ItemGroup>
 

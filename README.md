@@ -18,7 +18,8 @@ physics bodies.
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
 | `src/TW3D.Shared/` | Library shared by the game and the editor: the catalog of blocks and objects and the level file format |
-| `content/` | Shared game content: compiled models, textures and fonts (`.xnb`), the catalog (`catalog.json`) and levels (`Levels/*.json`). Copied to the build output as `Content/`. |
+| `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. |
+| `art/wings/` | The original Wings 3D files of the track blocks and dynamic objects (2014–2015), see its [README](art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
@@ -31,7 +32,8 @@ physics bodies.
 
 Packages (MonoGame 3.8 DesktopGL, Aether.Physics2D 2.2) are restored
 automatically from NuGet. Their versions are managed centrally in
-`Directory.Packages.props`.
+`Directory.Packages.props`. The build also restores the content pipeline tool
+(`dotnet-mgcb`, listed in `.config/dotnet-tools.json`) and builds the models with it.
 
 ## Building and running
 
@@ -159,11 +161,36 @@ only faster.
 
 ## Game content
 
-The `content/` folder contains only **compiled** `.xnb` files, originally built
-with XNA 4.0. The source files (3D models, images) are not in the repository, so
-the content can currently only be used, not modified. Source files exist only
-for the fonts (`*.spritefont`). The 3D models have no textures, they are made of
-coloured polygons only.
+The **3D models** are in `content/` as `.obj` + `.mtl` files (Wavefront OBJ, a text
+format that Blender and most 3D programs open and save). The MonoGame Content
+Pipeline builds them into `.xnb` files whenever the game, the editor or
+CatalogRender is built: `content/Content.mgcb` lists them, and the projects run it
+through the `MonoGame.Content.Builder.Task` package. The models have no textures,
+they are made of coloured polygons only (the colour is the diffuse colour `Kd` of
+the material); only the sky has a texture (`Env/sky.png`).
+
+The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
+files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
+converted to OBJ: the same polygons, normals and material colours, in the
+right-handed coordinates of the game (DirectX `.x` is left-handed, the XNA importer
+mirrored the z axis). Builds of the converted models were checked against the
+2016 `.xnb` files: the same surfaces and colours, they look the same. The
+original Wings 3D files are in [`art/wings/`](art/wings/README.md).
+
+The other files are still the **precompiled** `.xnb` files from XNA 4.0, without
+their sources in the repository: the images of the user interface (`Common/`),
+the level previews (`Levels/levimgs/`), the collision bitmaps (`Levels/bit/`,
+`Env/bit/`, `Bitmaps/`) and the fonts (only the font descriptions
+`*.spritefont` are here).
+
+### Editing models
+
+In Blender: *File → Import → Wavefront (.obj)*, edit, then *File → Export →
+Wavefront (.obj)* over the original file. The default settings work: the import
+converts the axes (OBJ has Y up, Blender Z up) and the export converts them back.
+Keep the export of normals and materials on and *Triangulated Mesh* off (the
+content pipeline triangulates the polygons itself). The next build of the game
+builds the changed model.
 
 ### Catalog
 
@@ -178,8 +205,8 @@ game and the editor:
   `bitmap` from `Env/bit/<model>`), size, friction, mass, restitution and the
   models they can use (`Env/<model>`).
 
-A new block or object only needs its compiled model (and collision bitmap) in
-`content/` and an entry in the catalog.
+A new block or object only needs its model in `content/` (and a `/build` line
+in `content/Content.mgcb`), its collision bitmap and an entry in the catalog.
 
 ### Level format
 
@@ -235,6 +262,9 @@ carry the changes over to the script, otherwise running it again overwrites them
   samples (screens, menus, input, camera) was replaced by new code, and the user
   interface was made to scale to any aspect ratio (it used to be too big and
   partly off the screen on 21:9 monitors).
+- The original model files turned up on an old disk; the models are now built
+  from OBJ sources by the MonoGame Content Pipeline instead of being only
+  precompiled `.xnb` files (see [Game content](#game-content)).
 
 ## License
 
@@ -249,12 +279,17 @@ under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
 
 Issues found during the migration, roughly in order of importance:
 
-1. **Source models.** Without them the content cannot be changed. If they turn
-   up (e.g. `.blend`/`.fbx`), add them to `content/` and set up the MonoGame
-   Content Pipeline (`.mgcb`).
-2. **Unfinished menu:** Garage, About and Options.
-3. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
+1. **Collision shapes from the models.** The physics shapes are traced from
+   collision bitmaps (screenshots of the models from Wings 3D) every time a level
+   loads. They could be computed from the models while building the content
+   instead: from the cross-section of a model in the physics plane z = 0, which
+   also leaves out the side walls of tunnels and gates, the reason why the
+   bitmaps had to be edited by hand.
+2. **Sources of the other content:** the images and fonts are still only
+   precompiled `.xnb` files.
+3. **Unfinished menu:** Garage, About and Options.
+4. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-4. **Automated tests and CI**, e.g. tests of the level format and builds via
+5. **Automated tests and CI**, e.g. tests of the level format and builds via
    GitHub Actions.

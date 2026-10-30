@@ -7,6 +7,9 @@
 *.slnx    text
 *.lev     text
 *.md      text
+*.obj     text
+*.mtl     text
+*.mgcb    text
 
 # Binary data
 *.xnb     binary
@@ -17,3 +20,4 @@
 *.pdf     binary
 *.rar     binary
 *.zip     binary
+*.wings   binary

@@ -9,14 +9,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Shared compiled content (models, textures, fonts) and levels, copied to the output as Content/ -->
-    <None Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Models built by the content pipeline into Content/ -->
+    <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
+    <!-- The other shared content (precompiled textures and fonts, levels, the catalog), copied to the output as Content/ -->
+    <None Include="$(GameContentDir)**\*" Exclude="$(ContentPipelineSources)" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
     <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
     <None Include="..\..\content\Font.xnb" Link="Content\DiagnosticsFont.xnb" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" />
     <PackageReference Include="Aether.Physics2D.MG" />
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />

@@ -1,0 +1,33 @@
+# Converted from st.x, the Wings 3D export of the model
+
+newmtl default2
+Kd 0.24742 0.24742 0.24742
+d 1.0
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ns 0.3466666666666667
+illum 2
+
+newmtl default4
+Kd 0.76024 0.76024 0.76024
+d 1.0
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ns 0.7466666666666667
+illum 2
+
+newmtl default7
+Kd 0.22744 0.22744 0.22744
+d 1.0
+Ks 0.06094 0.06094 0.06094
+Ke 0.0 0.0 0.0
+Ns 0.3
+illum 2
+
+newmtl default8
+Kd 1.0 1.0 1.0
+d 1.0
+Ks 0.0 0.0 0.0
+Ke 0.0 0.0 0.0
+Ns 0.7466666666666667
+illum 2

@@ -1,0 +1,49 @@
+# Converted from car2.x, the Wings 3D export of the model
+
+newmtl default2
+Kd 0.94006 0.0 0.0
+d 1.0
+Ks 0.6603399999999999 0.6603399999999999 0.6603399999999999
+Ke 0.0 0.0 0.0
+Ns 0.68
+illum 2
+
+newmtl default3
+Kd 0.0 1.0 0.9047619047619048
+d 0.2
+Ks 0.70696 0.70696 0.70696
+Ke 0.0 0.0 0.0
+Ns 0.4
+illum 2
+
+newmtl default4
+Kd 0.2 0.2 0.2
+d 1.0
+Ks 0.22744 0.22744 0.22744
+Ke 0.0 0.0 0.0
+Ns 0.04
+illum 2
+
+newmtl default5
+Kd 0.4 0.4 0.4
+d 1.0
+Ks 0.6 0.6 0.6
+Ke 0.0 0.0 0.0
+Ns 0.5
+illum 2
+
+newmtl default6
+Kd 0.72694 0.72694 0.72694
+d 1.0
+Ks 0.9 0.9 0.9
+Ke 0.0 0.0 0.0
+Ns 0.7066666666666667
+illum 2
+
+newmtl default7
+Kd 0.90676 0.0 0.0
+d 1.0
+Ks 0.91342 0.91342 0.91342
+Ke 0.0 0.0 0.0
+Ns 0.8
+illum 2

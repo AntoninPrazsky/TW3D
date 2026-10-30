@@ -1,0 +1,17 @@
+# Converted from tb1.x, the Wings 3D export of the model
+
+newmtl default2
+Kd 0.7 0.7 0.7
+d 1.0
+Ks 0.78688 0.78688 0.78688
+Ke 0.0 0.0 0.0
+Ns 0.0
+illum 2
+
+newmtl default3
+Kd 1.0 0.3933333333333333 0.0
+d 1.0
+Ks 0.30736 0.30736 0.30736
+Ke 0.0 0.0 0.0
+Ns 0.0
+illum 2

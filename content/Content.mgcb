@@ -1,0 +1,102 @@
+# Content pipeline project: builds the 3D models of the game (OBJ + MTL, their textures
+# are built with them) into .xnb files. The projects reference it as MonoGameContentReference,
+# the build output goes to Content/ next to the program. The other files in content/
+# (precompiled textures and fonts, levels, the catalog) are copied as they are.
+#
+# A new model: add a /build line below.
+
+#----------------------------- Global Properties ----------------------------#
+
+/profile:Reach
+/compress:False
+
+#---------------------------------- Content ---------------------------------#
+
+# The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
+# it creates XNA compatible materials (BasicEffect), which the game draws with.
+/importer:FbxImporter
+/processor:ModelProcessor
+
+# Vehicles
+/build:car.obj
+/build:car2.obj
+/build:holder.obj
+/build:wheel.obj
+/build:wheel2.obj
+
+# Dynamic objects and the sky
+/build:Env/bar1.obj
+/build:Env/bar2.obj
+/build:Env/box.obj
+/build:Env/co.obj
+/build:Env/co2.obj
+/build:Env/mov1.obj
+/build:Env/rm.obj
+/build:Env/sky.obj
+/build:Env/tb1.obj
+
+# Track blocks
+/build:Levels/mod/a1.obj
+/build:Levels/mod/b1.obj
+/build:Levels/mod/b1f.obj
+/build:Levels/mod/b2.obj
+/build:Levels/mod/b2f.obj
+/build:Levels/mod/b3.obj
+/build:Levels/mod/b3f.obj
+/build:Levels/mod/b4.obj
+/build:Levels/mod/b4f.obj
+/build:Levels/mod/ba1.obj
+/build:Levels/mod/ba2.obj
+/build:Levels/mod/bl1.obj
+/build:Levels/mod/bl1s.obj
+/build:Levels/mod/bl2.obj
+/build:Levels/mod/bl2f.obj
+/build:Levels/mod/bl2s.obj
+/build:Levels/mod/bl2sf.obj
+/build:Levels/mod/c1.obj
+/build:Levels/mod/c1f.obj
+/build:Levels/mod/c2.obj
+/build:Levels/mod/c2f.obj
+/build:Levels/mod/c3.obj
+/build:Levels/mod/c3f.obj
+/build:Levels/mod/d1.obj
+/build:Levels/mod/d1f.obj
+/build:Levels/mod/d2.obj
+/build:Levels/mod/d2f.obj
+/build:Levels/mod/d3.obj
+/build:Levels/mod/d3f.obj
+/build:Levels/mod/g.obj
+/build:Levels/mod/kea1a.obj
+/build:Levels/mod/kea1b.obj
+/build:Levels/mod/kea1c.obj
+/build:Levels/mod/kea1d.obj
+/build:Levels/mod/kea1e.obj
+/build:Levels/mod/kea1f.obj
+/build:Levels/mod/lo.obj
+/build:Levels/mod/s1.obj
+/build:Levels/mod/s1f.obj
+/build:Levels/mod/sb.obj
+/build:Levels/mod/sg.obj
+/build:Levels/mod/st.obj
+/build:Levels/mod/st2.obj
+/build:Levels/mod/t1.obj
+/build:Levels/mod/t2.obj
+/build:Levels/mod/tu1s.obj
+/build:Levels/mod/tu1v.obj
+/build:Levels/mod/tu2s.obj
+/build:Levels/mod/tu2v.obj
+/build:Levels/mod/tu3s.obj
+/build:Levels/mod/tu3v.obj
+/build:Levels/mod/u1.obj
+/build:Levels/mod/u2.obj
+/build:Levels/mod/xa1.obj
+/build:Levels/mod/xa2.obj
+/build:Levels/mod/xa3.obj
+/build:Levels/mod/xa4.obj
+/build:Levels/mod/xa5.obj
+/build:Levels/mod/xa6.obj
+/build:Levels/mod/xa7.obj
+/build:Levels/mod/za.obj
+
+# The block selector of the level editor
+/build:Levels/selector.obj

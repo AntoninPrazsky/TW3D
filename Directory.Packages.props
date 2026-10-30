@@ -6,6 +6,8 @@
   <ItemGroup>
     <PackageVersion Include="MonoGame.Framework.DesktopGL" Version="3.8.6" />
     <PackageVersion Include="MonoGame.Framework.Android" Version="3.8.6" />
+    <!-- Content pipeline (content/Content.mgcb); runs the dotnet-mgcb tool of the same version (.config/dotnet-tools.json) -->
+    <PackageVersion Include="MonoGame.Content.Builder.Task" Version="3.8.6" />
     <PackageVersion Include="Aether.Physics2D.MG" Version="2.2.0" />
     <PackageVersion Include="Aether.Physics2D.Diagnostics.MG" Version="2.2.0" />
   </ItemGroup>

@@ -11,4 +11,14 @@
     <Copyright>Copyright © Antonín Pražský 2014–2026</Copyright>
     <Version>1.1.0</Version>
   </PropertyGroup>
+
+  <!--
+    Game content (content/): the content pipeline (Content.mgcb) builds the models from their sources,
+    the other files (precompiled textures and fonts, levels, the catalog) are copied as they are.
+    ContentPipelineSources lists the files not to copy: the sources and the pipeline's build folders.
+  -->
+  <PropertyGroup>
+    <GameContentDir>$(MSBuildThisFileDirectory)content\</GameContentDir>
+    <ContentPipelineSources>$(GameContentDir)Content.mgcb;$(GameContentDir)**\*.obj;$(GameContentDir)**\*.mtl;$(GameContentDir)**\*.png;$(GameContentDir)**\*.spritefont;$(GameContentDir)bin\**;$(GameContentDir)obj\**</ContentPipelineSources>
+  </PropertyGroup>
 </Project>

@@ -1,0 +1,17 @@
+# Converted from holder.x, the Wings 3D export of the model
+
+newmtl default11
+Kd 0.8 0.8 0.8
+d 1.0
+Ks 1.0 1.0 1.0
+Ke 0.0 0.0 0.0
+Ns 0.2
+illum 2
+
+newmtl default12
+Kd 0.14085999999999999 0.14085999999999999 0.14085999999999999
+d 1.0
+Ks 0.75358 0.75358 0.75358
+Ke 0.0 0.0 0.0
+Ns 0.24666666666666667
+illum 2

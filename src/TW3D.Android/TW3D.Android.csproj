@@ -22,14 +22,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Shared game content, packed in the app as Content/ -->
-    <AndroidAsset Include="..\..\content\**\*" Exclude="..\..\content\**\*.spritefont" Link="Assets\Content\%(RecursiveDir)%(Filename)%(Extension)" />
+    <!-- Models built by the content pipeline, packed in the app as Content/ -->
+    <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
+    <!-- The other shared game content (precompiled textures and fonts, levels, the catalog), packed in the app as Content/ -->
+    <AndroidAsset Include="$(GameContentDir)**\*" Exclude="$(ContentPipelineSources)" Link="Assets\Content\%(RecursiveDir)%(Filename)%(Extension)" />
     <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
     <AndroidAsset Include="..\..\content\Font.xnb" Link="Assets\Content\DiagnosticsFont.xnb" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Android" />
+    <PackageReference Include="MonoGame.Content.Builder.Task" />
     <PackageReference Include="Aether.Physics2D.MG" />
     <!-- Its own copy of the debug view font is not used, the game content has it -->
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" ExcludeAssets="contentFiles" />

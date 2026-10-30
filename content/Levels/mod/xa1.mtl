@@ -1,0 +1,17 @@
+# Converted from xa1.x, the Wings 3D export of the model
+
+newmtl default2
+Kd 0.22744 0.22744 0.22744
+d 1.0
+Ks 0.06094 0.06094 0.06094
+Ke 0.0 0.0 0.0
+Ns 0.3
+illum 2
+
+newmtl default3
+Kd 0.82684 0.82684 0.82684
+d 1.0
+Ks 0.59374 0.59374 0.59374
+Ke 0.0 0.0 0.0
+Ns 0.6266666666666667
+illum 2
