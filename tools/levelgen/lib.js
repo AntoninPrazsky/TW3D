@@ -72,9 +72,9 @@ class Track {
     return this;
   }
 
-  /** A block placed directly by its base, outside the road (walls, gates, decorations). */
-  put(layer, block, x, base) {
-    this[layer].push(Track.place(block, x, base));
+  /** A block placed directly by its base, outside the road (walls, gates, decorations); extra fields (e.g. finish) are added to it. */
+  put(layer, block, x, base, extra = {}) {
+    this[layer].push({ ...Track.place(block, x, base), ...extra });
     return this;
   }
 

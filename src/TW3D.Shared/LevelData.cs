@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace TW3D.Shared
 {
@@ -14,6 +16,10 @@ namespace TW3D.Shared
 
         /// <summary>Vertical shift in steps of 1/9 of a grid cell (2.5 physics units).</summary>
         public int Shift { get; set; }
+
+        /// <summary>The finish of the level (a block of the middle layer): the car reaching its cell finishes the level.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool Finish { get; set; }
     }
 
     /// <summary>A dynamic object.</summary>
@@ -58,6 +64,16 @@ namespace TW3D.Shared
         /// <summary>The light of the level (optional, a day by default).</summary>
         public LevelMood Mood { get; set; }
 
+        /// <summary>
+        /// The time a good run takes, in seconds (optional): finishing in it scores 1000 points and three stars.
+        /// Without it the game estimates it from how far the finish is.
+        /// </summary>
+        public float? Par { get; set; }
+
+        /// <summary>The finish block of the level; null if it has none.</summary>
+        [JsonIgnore]
+        public BlockPlacement FinishBlock => Middle.FirstOrDefault(block => block.Finish);
+
         public List<BlockPlacement> Middle { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Back { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Front { get; set; } = new List<BlockPlacement>();
@@ -83,6 +99,12 @@ namespace TW3D.Shared
             CheckLayer(Middle, "middle", true);
             CheckLayer(Back, "back", false);
             CheckLayer(Front, "front", false);
+            foreach (BlockPlacement placement in Back.Concat(Front).Where(block => block.Finish))
+                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] is a finish, but only a block of the middle layer can be.");
+            if (Middle.Count(block => block.Finish) > 1)
+                problems.Add("The level has more than one finish.");
+            if (Par <= 0f)
+                problems.Add("The par time of the level is not positive.");
 
             foreach (ObjectPlacement placement in Objects)
             {

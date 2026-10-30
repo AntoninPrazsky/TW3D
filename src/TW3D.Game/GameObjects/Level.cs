@@ -47,6 +47,12 @@ namespace TW3D.GameObjects
         /// <summary>The light of the level.</summary>
         public LevelMood Mood { get; }
 
+        /// <summary>The time a good run of the level takes, in seconds (see <see cref="RaceScore"/>).</summary>
+        public float Par { get; }
+
+        /// <summary>The cell of the finish block, from its corner with the least coordinates (physics units); null without a finish.</summary>
+        public (Vector2 Min, Vector2 Max)? FinishArea { get; }
+
         public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Catalog catalog, Vector2 Position, string fileName)
         {
             world = World;
@@ -60,6 +66,14 @@ namespace TW3D.GameObjects
             using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + fileName + LevelFile.Extension))
                 data = LevelFile.Load(stream);
             Mood = data.Mood;
+            Par = RaceScore.Par(data);
+            BlockPlacement finish = data.FinishBlock;
+            if (finish != null)
+            {
+                //The cell of the finish block (a block is as large as its cell, around its position)
+                Vector2 centre = new Vector2(finish.X * GridSize, finish.Y * GridSize + finish.Shift * ShiftStep);
+                FinishArea = (centre - new Vector2(GridSize / 2f), centre + new Vector2(GridSize / 2f));
+            }
 
             List<string> problems = data.Validate(catalog);
             if (problems.Count > 0)

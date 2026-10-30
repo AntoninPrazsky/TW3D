@@ -16,6 +16,8 @@ namespace LevelEditor.LevelObjects
         public float blockShift { get; set; }
         public Model blockModel { get; set; }
         public string modelName { get; set; }
+        /// <summary>The finish of the level (a block of the middle layer).</summary>
+        public bool finish { get; set; }
     }
 
     class EditedObject
@@ -54,8 +56,9 @@ namespace LevelEditor.LevelObjects
         /// <summary>The blocks and dynamic objects the level can use.</summary>
         public Catalog Catalog { get; }
 
-        //Position of the level in the game's level select, kept from the loaded file
+        //Position of the level in the game's level select and its par time, kept from the loaded file
         private int? order;
+        private float? par;
 
         /// <summary>The light of the level.</summary>
         public LevelMood Mood { get; set; }
@@ -115,6 +118,7 @@ namespace LevelEditor.LevelObjects
             frontTrackBlocks.Clear();
             gObjects.Clear();
             order = data.Order;
+            par = data.Par;
             Mood = data.Mood;
 
             foreach (string problem in data.Validate(Catalog))
@@ -138,7 +142,11 @@ namespace LevelEditor.LevelObjects
                 gObjects.Add(gObj);
             }
 
-            Console.WriteLine("File " + fileName + " loaded.\n");
+            Console.WriteLine("File " + fileName + " loaded.");
+            BlockPlacement finish = data.FinishBlock;
+            Console.WriteLine(finish != null
+                ? "Finish: block " + finish.Block + " at [" + finish.X + ", " + finish.Y + "].\n"
+                : "The level has no finish (F marks the block of the middle layer under the selector).\n");
             if (Path.GetExtension(fileName).Equals(LevelFile.LegacyExtension, StringComparison.OrdinalIgnoreCase))
                 Console.WriteLine("The level was converted from the old .lev format; it will be saved as " + LevelFile.Extension + ".\n");
         }
@@ -157,13 +165,14 @@ namespace LevelEditor.LevelObjects
                 trackBlock.blockShift = placement.Shift * ShiftStep;
                 trackBlock.blockModel = TrackBlockModels.Models[placement.Block];
                 trackBlock.modelName = placement.Block;
+                trackBlock.finish = physicsLayer && placement.Finish;
                 layer.Add(trackBlock);
             }
         }
 
         public void WriteFile()
         {
-            LevelData data = new LevelData { Order = order, Mood = Mood };
+            LevelData data = new LevelData { Order = order, Par = par, Mood = Mood };
             data.Middle.AddRange(ToPlacements(trackBlocks));
             data.Back.AddRange(ToPlacements(backTrackBlocks));
             data.Front.AddRange(ToPlacements(frontTrackBlocks));
@@ -202,7 +211,8 @@ namespace LevelEditor.LevelObjects
                     Block = tb.modelName,
                     X = (int)Math.Round(tb.blockPosition.X / GridSize),
                     Y = (int)Math.Round(tb.blockPosition.Y / GridSize),
-                    Shift = (int)Math.Round(tb.blockShift / ShiftStep)
+                    Shift = (int)Math.Round(tb.blockShift / ShiftStep),
+                    Finish = tb.finish
                 };
             }
         }

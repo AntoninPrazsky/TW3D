@@ -138,6 +138,16 @@ touch) and a gamepad all work at the same time.
 The car can also be grabbed with the mouse and dragged around. The game also pauses
 when its window loses the focus, or when a phone switches to another app.
 
+**A run of a level** starts with a countdown (3, 2, 1, Start), while the car is held
+still. The time at the top runs from the start until the car reaches the finish of the
+level (its finish block, see the level format); below it is the par time of the level,
+the time a good run takes. The score is 1000 × par time / time: finishing in the par
+time scores 1000 points, faster more and slower less (half the time, twice the points).
+A run within the par time gets three stars, within one and a half of it two, otherwise
+one. The results offer the next level, the level again or the level select. The best
+time of each level is kept (in `TW3D/records.json` next to the settings), and the level
+select shows it with its stars. A run in which the car was dragged by hand does not count.
+
 Development keys while driving:
 
 | Key | Action |
@@ -156,6 +166,8 @@ The editor asks for the level to open, or opens the one given by `--level <file>
 Its controls are described in
 `docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). The editor
 opens levels in the JSON format as well as old `.lev` files, and saves JSON.
+F marks the block of the middle layer under the selector as the finish of the level
+(again, it stops being it); P tells whether a block is the finish.
 It checks the blocks and objects against the catalog (F1 lists the blocks;
 decoration blocks cannot be placed in the middle layer). A new level saved to
 `content/Levels/` appears in the level select automatically (after a rebuild,
@@ -167,8 +179,8 @@ rectangle with its name.
 
 | Folder | Contents |
 |---|---|
-| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, options and pause screens |
-| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view; `PhysicsClock`: fixed-step simulation |
+| `Screens/` | Screen stack (`ScreenManager`) and the logo, background, main menu, level select, garage, options, pause and results screens |
+| `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera, debug view and the run (countdown, time, finish); `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
 | `GameObjects/` | The car, the level (built from a level file and the catalog), the sky and dynamic objects |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input and the on-screen controls |
@@ -311,9 +323,14 @@ Levels are JSON files with one block or object per line:
 - `mood` (optional): the light of the level: `day` (without it), `sunset` (a low
   orange sun and long shadows) or `night` (moonlight, the headlights of the car on).
   In the editor, M switches it.
+- `par` (optional): the time a good run takes, in seconds (see a run of a level under
+  Controls). Without it the game estimates it: half a second for each grid cell the
+  finish is from the start (across and up or down), at least 10 seconds.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
-  moves the block vertically in steps of 2.5 physics units.
+  moves the block vertically in steps of 2.5 physics units. `"finish": true` makes a
+  block of the middle layer the finish of the level (one at most): the run ends when
+  the middle of the car reaches its cell. A level without a finish has no end.
 - Objects: `x`, `y` in physics units.
 
 The levels lock, startblock and tunel were converted from the original `.lev`

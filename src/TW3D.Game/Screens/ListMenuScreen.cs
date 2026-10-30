@@ -7,7 +7,8 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// A menu with a title and its items one per line in the middle of the screen (Options, the pause menu).
+    /// A menu with a title and its items one per line in the middle of the screen (Options, the pause menu), possibly
+    /// with some content above them (the results of a level).
     /// The items are chosen by the mouse or touch, the arrow keys and Enter, or a gamepad; Esc (Back) closes the menu.
     /// </summary>
     public abstract class ListMenuScreen : Screen
@@ -36,6 +37,7 @@ namespace TW3D.Screens
         private readonly string title;
         private readonly List<MenuItem> items = new List<MenuItem>();
         private int focusedItem = -1;
+        private float contentTop;
 
         protected ListMenuScreen(string title)
         {
@@ -98,8 +100,11 @@ namespace TW3D.Screens
             float scale = ItemScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             //In the middle of the screen, but below the title (the user interface of phones is bigger)
-            float top = Math.Max(viewport.Height / 2f - lineHeight * LineSpacing * items.Count / 2f,
+            float content = ContentHeight;
+            float top = Math.Max(viewport.Height / 2f - (content + lineHeight * LineSpacing * items.Count) / 2f,
                 Manager.SafeArea.Top + MainMenuScreen.TitleHeight(Manager) + lineHeight * (LineSpacing - 1f) * 2f);
+            contentTop = top;
+            top += content;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
             for (int i = 0; i < items.Count; i++)
@@ -113,6 +118,13 @@ namespace TW3D.Screens
 
         /// <summary>Draws what is behind the menu; called between SpriteBatch.Begin and End.</summary>
         protected virtual void DrawBackdrop() { }
+
+        /// <summary>Height of the content above the items, in screen pixels.</summary>
+        protected virtual float ContentHeight => 0f;
+
+        /// <summary>Draws the content above the items from its top; called between SpriteBatch.Begin and End.</summary>
+        /// <param name="slide">How far the items are moved sideways as they slide in or out.</param>
+        protected virtual void DrawContent(float top, float slide, float alpha) { }
 
         public override void Draw(GameTime gameTime)
         {
@@ -128,6 +140,7 @@ namespace TW3D.Screens
             Manager.SpriteBatch.Begin();
 
             DrawBackdrop();
+            DrawContent(contentTop, slide, alpha);
 
             for (int i = 0; i < items.Count; i++)
             {

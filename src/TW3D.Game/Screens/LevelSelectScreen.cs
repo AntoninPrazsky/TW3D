@@ -35,6 +35,7 @@ namespace TW3D.Screens
         private readonly string title;
         private readonly List<string> levels;
         private readonly Action<string> startLevel;
+        private readonly Func<string, (int Stars, float Time)?> results;
         private readonly List<Texture2D> images = new List<Texture2D>();
 
         private Texture2D arrowTexture;
@@ -65,11 +66,13 @@ namespace TW3D.Screens
         private Vector2 pressPosition;
         private float pressScroll;
 
-        public LevelSelectScreen(string title, IEnumerable<string> levels, Action<string> startLevel)
+        /// <param name="results">The stars and the best time of a level, shown over its image; null if it was not finished.</param>
+        public LevelSelectScreen(string title, IEnumerable<string> levels, Action<string> startLevel, Func<string, (int Stars, float Time)?> results = null)
         {
             this.title = title;
             this.levels = new List<string>(levels);
             this.startLevel = startLevel;
+            this.results = results;
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
@@ -282,6 +285,8 @@ namespace TW3D.Screens
                     batch.Draw(images[i], bounds, Color.White * alpha);
                 else
                     DrawPlaceholder(batch, bounds, levels[i], alpha);
+                if (results?.Invoke(levels[i]) is (int stars, float time))
+                    DrawResult(batch, bounds, stars, time, alpha);
 
                 if (i == focusedLevel && HasFocus)
                     DrawFrame(batch, bounds, Math.Max(2, (int)(4f * uiScale)), MainMenuScreen.Yellow * alpha);
@@ -310,6 +315,24 @@ namespace TW3D.Screens
             Color color = (highlighted && HasFocus ? MainMenuScreen.Yellow : Color.White) * alpha;
             Vector2 origin = new Vector2(texture.Width, texture.Height) / 2f;
             batch.Draw(texture, new Vector2(scrollBarX + slide, centerY), null, color, 0f, origin, scale, flip ? SpriteEffects.FlipVertically : SpriteEffects.None, 0f);
+        }
+
+        /// <summary>The stars and the best time of a level on a dark band at the bottom of its image.</summary>
+        private void DrawResult(SpriteBatch batch, Rectangle bounds, int stars, float time, float alpha)
+        {
+            int height = (int)(bounds.Height * 0.22f);
+            Rectangle band = new Rectangle(bounds.X, bounds.Bottom - height, bounds.Width, height);
+            batch.Draw(Manager.Pixel, band, Color.Black * (0.55f * alpha));
+
+            float margin = height * 0.2f;
+            float starSize = height * 0.7f;
+            StarIcons.Draw(batch, new Vector2(band.X + margin, band.Center.Y - starSize / 2f), starSize, stars, alpha);
+
+            string text = GamePlay.RaceScore.FormatTime(time);
+            SpriteFont font = Manager.Fonts.Menu;
+            float scale = height * 0.6f / font.MeasureString("M").Y;
+            Vector2 size = font.MeasureString(text) * scale;
+            Manager.DrawShadowedText(font, text, new Vector2(band.Right - margin - size.X, band.Center.Y - size.Y / 2f), Color.White * alpha, Color.Black * alpha, scale);
         }
 
         /// <summary>A dark rectangle with the level name, for a level without a preview image.</summary>

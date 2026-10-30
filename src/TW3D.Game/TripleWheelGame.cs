@@ -30,6 +30,10 @@ namespace TW3D
         private readonly ScreenManager screens;
         private readonly string startLevel;
         private readonly GameSettings settings = GameSettings.Load();
+        private readonly GameRecords records = GameRecords.Load();
+        //The levels of the last level select, in its order; the par times of the levels shown there
+        private List<string> levels = new List<string>();
+        private readonly Dictionary<string, float> pars = new Dictionary<string, float>();
 #if !ANDROID
         //The window size given on the command line (a window always, whatever the settings say)
         private readonly Point? windowSize;
@@ -202,12 +206,28 @@ namespace TW3D
 
         private void OpenLevelSelect()
         {
-            screens.Add(new LevelSelectScreen("Level Select", FindLevels(), StartLevel));
+            levels = FindLevels();
+            screens.Add(new LevelSelectScreen("Level Select", levels, StartLevel, LevelResult));
         }
 
         private void StartLevel(string level)
         {
-            screens.Add(new GameplayScreen(level, settings));
+            screens.Add(new GameplayScreen(level, settings, records, levels));
+        }
+
+        /// <summary>The stars and the best time of a level; null if it was not finished yet.</summary>
+        private (int Stars, float Time)? LevelResult(string level)
+        {
+            float? best = records.BestTime(level);
+            if (!best.HasValue)
+                return null;
+            if (!pars.TryGetValue(level, out float par))
+            {
+                using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + level + LevelFile.Extension))
+                    par = RaceScore.Par(LevelFile.Load(stream));
+                pars[level] = par;
+            }
+            return (RaceScore.Stars(best.Value, par), best.Value);
         }
     }
 }

@@ -118,6 +118,8 @@ namespace TW3D.Shared
                 json.Append("  \"order\": ").Append(level.Order.Value).Append(",\n");
             if (level.Mood != LevelMood.Day)
                 json.Append("  \"mood\": ").Append(JsonSerializer.Serialize(level.Mood, JsonOptions.Default)).Append(",\n");
+            if (level.Par.HasValue)
+                json.Append("  \"par\": ").Append(JsonSerializer.Serialize(level.Par.Value, JsonOptions.Default)).Append(",\n");
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);
             AppendList(json, "front", level.Front, false);

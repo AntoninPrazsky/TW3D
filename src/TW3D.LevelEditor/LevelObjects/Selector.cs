@@ -14,7 +14,7 @@ namespace LevelEditor.LevelObjects
     {
         public Model selectorModel;
 
-        private bool riPr, lePr, upPr, doPr, pgUp, pgDo, inPr, spPr, pPr, shPr, ctPr, f1Pr, f11Pr, f12Pr, mlePr;
+        private bool riPr, lePr, upPr, doPr, pgUp, pgDo, inPr, spPr, pPr, shPr, ctPr, f1Pr, f11Pr, f12Pr, mlePr, finPr;
         private List<TrackBlock> track;
         private List<TrackBlock> bSide;
         private List<TrackBlock> fSide;
@@ -355,7 +355,7 @@ namespace LevelEditor.LevelObjects
                 {
                     if (tb.blockPosition == position)
                     {
-                        Console.WriteLine("There is a block on this position. Model: " + tb.modelName + "; Shift: " + tb.blockShift);
+                        Console.WriteLine("There is a block on this position. Model: " + tb.modelName + "; Shift: " + tb.blockShift + (tb.finish ? "; the finish" : ""));
                         pPr = true;
                     }
                 }
@@ -363,6 +363,29 @@ namespace LevelEditor.LevelObjects
 
             }
             if (keyState.IsKeyUp(Keys.P)) pPr = false;
+
+            //Finish: the block of the middle layer under the selector becomes the finish of the level (the only one),
+            //or stops being it
+            if (keyState.IsKeyDown(Keys.F) && !finPr)
+            {
+                TrackBlock block = track.Find(tb => tb.blockPosition == position);
+                if (where != track || block == null)
+                    Console.WriteLine("The finish can only be a block of the middle layer.");
+                else if (block.finish)
+                {
+                    block.finish = false;
+                    Console.WriteLine("Block " + block.modelName + " at " + position + " is no longer the finish; the level has none.");
+                }
+                else
+                {
+                    foreach (TrackBlock tb in track)
+                        tb.finish = false;
+                    block.finish = true;
+                    Console.WriteLine("Block " + block.modelName + " at " + position + " is the finish of the level.");
+                }
+                finPr = true;
+            }
+            if (keyState.IsKeyUp(Keys.F)) finPr = false;
 
             if (keyState.IsKeyDown(Keys.O))
             {

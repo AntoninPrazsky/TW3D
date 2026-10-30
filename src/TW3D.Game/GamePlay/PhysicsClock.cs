@@ -46,6 +46,9 @@ namespace TW3D.GamePlay
         /// <summary>Position between the previous (0) and the last (1) simulation step to draw.</summary>
         public float Alpha { get; private set; } = 1f;
 
+        /// <summary>Game seconds simulated so far (the steps run times their length).</summary>
+        public double Time { get; private set; }
+
         /// <summary>Runs as many simulation steps as fit into the elapsed game time.</summary>
         public void Advance(float elapsedSeconds)
         {
@@ -56,6 +59,7 @@ namespace TW3D.GamePlay
             {
                 SaveStates();
                 world.Step(StepTime, ref solverIterations);
+                Time += StepTime;
                 accumulatedTime -= StepTime;
                 steps++;
             }

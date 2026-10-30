@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
@@ -19,6 +20,8 @@ namespace TW3D.GamePlay
     /// <summary>
     /// The game itself: one level with the car, its physics simulation, the 3D view,
     /// the on-screen controls, the pause menu and the physics debug view (F1–F8).
+    /// A run of the level starts with a countdown (the car held still); the time runs from the start
+    /// until the car reaches the finish block of the level, then the results follow.
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
@@ -50,8 +53,39 @@ namespace TW3D.GamePlay
         //everything moves along the same paths, only in a shorter time.
         private const float GameSpeed = 1.5f;
 
+        //The run: the countdown before the start and how long the results wait after the finish (real seconds), how
+        //long "Start" shows; the font scales of the countdown, of the time and of the par time below it
+        private const float CountdownTime = 3f;
+        private const float ResultsDelay = 1.5f;
+        private const float StartShown = 0.8f;
+        private const float CountdownScale = 2.6f;
+        private const float TimeScale = 0.6f;
+        private const float ParScale = 0.35f;
+
+        private enum RaceState
+        {
+            Countdown,
+            Racing,
+            Finished
+        }
+
         private readonly string levelName;
         private readonly GameSettings settings;
+        private readonly GameRecords records;
+        private readonly IReadOnlyList<string> levels;
+
+        private RaceState race = RaceState.Countdown;
+        private float countdown = CountdownTime;
+        //Simulated game time at the start; the time of the run in real seconds; real seconds since the finish
+        private double startTime;
+        private float raceTime;
+        private float sinceFinish;
+        private bool resultsShown;
+        //The best time before the run, and whether the run became the best one
+        private float? previousBest;
+        private bool record;
+        //The car was moved by hand during the run, which then does not count
+        private bool assisted;
 
         private World world;
         private PhysicsClock physics;
@@ -68,10 +102,13 @@ namespace TW3D.GamePlay
         private FixedMouseJoint dragJoint;
         private int dragPointerId;
 
-        public GameplayScreen(string levelName, GameSettings settings)
+        /// <param name="levels">All levels in the order of the level select (for the next one after the finish).</param>
+        public GameplayScreen(string levelName, GameSettings settings, GameRecords records, IReadOnlyList<string> levels)
         {
             this.levelName = levelName;
             this.settings = settings;
+            this.records = records;
+            this.levels = levels;
             FadeInTime = TimeSpan.FromSeconds(0.75);
             FadeOutTime = TimeSpan.FromSeconds(0.75);
             IsOpaque = true;
@@ -156,7 +193,11 @@ namespace TW3D.GamePlay
             HandleDebugKeys(input);
             HandleCameraKeys(input, elapsed);
 
-            Drive(DriveInput.Read(input, controls), elapsed * GameSpeed);
+            //The car is held still before the start and rolls out after the finish
+            if (race == RaceState.Racing)
+                Drive(DriveInput.Read(input, controls), elapsed * GameSpeed);
+            else
+                Drive(new DriveInput(Vector2.Zero, race == RaceState.Countdown, false), elapsed * GameSpeed);
             HandleCarDragging(input);
         }
 
@@ -172,8 +213,18 @@ namespace TW3D.GamePlay
         /// <summary>The level from the start: a new game screen in place of this one.</summary>
         private void Restart()
         {
-            Manager.Add(new GameplayScreen(levelName, settings));
+            Manager.Add(new GameplayScreen(levelName, settings, records, levels));
             Close();
+        }
+
+        /// <summary>The level after this one in the level select; null if this is the last one.</summary>
+        private string NextLevel()
+        {
+            int index = -1;
+            for (int i = 0; i < levels.Count; i++)
+                if (levels[i] == levelName)
+                    index = i;
+            return index >= 0 && index + 1 < levels.Count ? levels[index + 1] : null;
         }
 
         private void ExitToMainMenu()
@@ -213,6 +264,8 @@ namespace TW3D.GamePlay
                 {
                     if (pointer.Phase == PointerPhase.Pressed && !controls.Uses(pointer) && car.IsIntersected(pointer.Position.X, pointer.Position.Y))
                     {
+                        if (race != RaceState.Finished)
+                            assisted = true;
                         dragJoint = new FixedMouseJoint(car.car, car.car.Position) { MaxForce = 400f * car.car.Mass };
                         world.Add(dragJoint);
                         car.car.Awake = true;
@@ -298,6 +351,57 @@ namespace TW3D.GamePlay
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
             camera.Update(HasFocus ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
+
+            if (HasFocus)
+                UpdateRace((float)gameTime.ElapsedGameTime.TotalSeconds);
+        }
+
+        /// <summary>The countdown, the time of the run and the finish.</summary>
+        /// <param name="elapsed">Elapsed real time.</param>
+        private void UpdateRace(float elapsed)
+        {
+            switch (race)
+            {
+                case RaceState.Countdown:
+                    countdown -= elapsed;
+                    if (countdown <= 0f)
+                    {
+                        race = RaceState.Racing;
+                        startTime = physics.Time;
+                    }
+                    break;
+
+                case RaceState.Racing:
+                    //The time of the simulation, not of the frames: the run is timed fairly even when frames are slow
+                    raceTime = (float)((physics.Time - startTime) / GameSpeed);
+                    if (level.FinishArea is (Vector2 min, Vector2 max))
+                    {
+                        Vector2 position = car.car.Position;
+                        if (position.X >= min.X && position.X <= max.X && position.Y >= min.Y && position.Y <= max.Y)
+                            Finish();
+                    }
+                    break;
+
+                case RaceState.Finished:
+                    sinceFinish += elapsed;
+                    if (sinceFinish >= ResultsDelay && !resultsShown)
+                    {
+                        resultsShown = true;
+                        string next = NextLevel();
+                        Manager.Add(new ResultsScreen(raceTime, level.Par, previousBest, record, !assisted,
+                            next != null ? () => { Manager.Add(new GameplayScreen(next, settings, records, levels)); Close(); } : null,
+                            Restart, Close));
+                    }
+                    break;
+            }
+        }
+
+        private void Finish()
+        {
+            race = RaceState.Finished;
+            car.acceleration = 0f;
+            previousBest = records.BestTime(levelName);
+            record = !assisted && records.Add(levelName, raceTime);
         }
 
         public override void Draw(GameTime gameTime)
@@ -316,9 +420,51 @@ namespace TW3D.GamePlay
             batch.Begin();
             controls.Layout(Manager.Viewport, Manager.ControlsScale);
             controls.Draw(batch, 1f);
+            DrawRace(batch);
             //Fading in and out through black
             batch.Draw(Manager.Pixel, Manager.Viewport.Bounds, Color.Black * (1f - Visibility));
             batch.End();
+        }
+
+        /// <summary>The time of the run at the top, the countdown and the start and the finish in the middle of the screen.</summary>
+        private void DrawRace(SpriteBatch batch)
+        {
+            SpriteFont font = Manager.Fonts.Menu;
+            float uiScale = Manager.UiScale;
+            Rectangle safe = Manager.SafeArea;
+            float centreX = Manager.Viewport.Width / 2f;
+
+            string time = RaceScore.FormatTime(race == RaceState.Countdown ? 0f : raceTime);
+            Color timeColour = race == RaceState.Finished ? MainMenuScreen.Yellow : Color.White;
+            Vector2 timeSize = font.MeasureString(time) * TimeScale * uiScale;
+            Manager.DrawShadowedText(font, time, new Vector2(centreX - timeSize.X / 2f, safe.Top), timeColour, Color.Black, TimeScale * uiScale);
+            if (level.FinishArea.HasValue)
+            {
+                string par = "Par " + RaceScore.FormatTime(level.Par);
+                Vector2 parSize = font.MeasureString(par) * ParScale * uiScale;
+                Manager.DrawShadowedText(font, par, new Vector2(centreX - parSize.X / 2f, safe.Top + timeSize.Y), Color.LightGray, Color.Black, ParScale * uiScale);
+            }
+
+            //3, 2, 1: each number appears large and shrinks a little; then Start, fading out; at the finish Finish
+            if (race == RaceState.Countdown)
+            {
+                int number = (int)MathF.Ceiling(countdown);
+                float age = number - countdown;
+                DrawBig(batch, number.ToString(), Color.White, 1f + 0.3f * MathF.Max(0f, 1f - age * 4f), MathHelper.Clamp((1f - age) * 4f, 0f, 1f));
+            }
+            else if (race == RaceState.Racing && raceTime < StartShown)
+                DrawBig(batch, "Start", MainMenuScreen.Yellow, 1f, 1f - raceTime / StartShown);
+            else if (race == RaceState.Finished && !resultsShown)
+                DrawBig(batch, "Finish", MainMenuScreen.Yellow, 1f, 1f);
+        }
+
+        private void DrawBig(SpriteBatch batch, string text, Color colour, float size, float alpha)
+        {
+            SpriteFont font = Manager.Fonts.Menu;
+            float scale = CountdownScale * size * Manager.UiScale;
+            Vector2 textSize = font.MeasureString(text) * scale;
+            Vector2 position = new Vector2(Manager.Viewport.Width, Manager.Viewport.Height) / 2f - textSize / 2f;
+            Manager.DrawShadowedText(font, text, position, colour * alpha, Color.Black * alpha, scale);
         }
     }
 }
