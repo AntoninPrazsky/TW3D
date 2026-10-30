@@ -46,6 +46,7 @@ dotnet run --project src/TW3D.Game -- --windowed --level lock
 
 # level editor
 dotnet run --project src/TW3D.LevelEditor
+dotnet run --project src/TW3D.LevelEditor -- --level content/Levels/lock.json
 ```
 
 Game arguments for development:
@@ -129,7 +130,8 @@ Development keys while driving:
 | F10 | Shadows on / off |
 | F12 | Frames per second (shown by default in Debug builds) |
 
-The editor controls are described in
+The editor asks for the level to open, or opens the one given by `--level <file>`.
+Its controls are described in
 `docs/bachelor-thesis/dokumentace-editoru-trati.pdf` (in Czech). The editor
 opens levels in the JSON format as well as old `.lev` files, and saves JSON.
 It checks the blocks and objects against the catalog (F1 lists the blocks;
@@ -161,7 +163,9 @@ the sky from above and of the ground from below, highlights by the specular colo
 the materials and a rim of sky light. The light is computed in linear colour space and
 mapped to the screen by a filmic curve, and the distance fades into the colour of the
 sky. The 2016 version lit the models by three coloured directional lights of
-`BasicEffect` (F9 switches to it); the level editor and CatalogRender still draw so.
+`BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
+game (`SceneRenderer` is shared; F9 and F10 work there too), CatalogRender with the 2016
+lighting, as the catalog images were taken so.
 
 The game runs 1.5 times as fast as real time (`GameSpeed` in `GameplayScreen`). For the
 physics engine the world is huge (the car is about 20 metres long), so at real time

@@ -252,7 +252,7 @@ namespace TW3D.GamePlay
 
         public override void Draw(GameTime gameTime)
         {
-            renderer.Begin(camera);
+            renderer.Begin(camera.View, camera.Projection);
             sky.Draw(renderer);
             car.Draw(renderer);
             level.Draw(renderer);

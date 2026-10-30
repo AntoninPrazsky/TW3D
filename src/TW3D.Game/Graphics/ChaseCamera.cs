@@ -54,9 +54,6 @@ namespace TW3D.Graphics
             set { zoom = MathHelper.Clamp(value, MinZoom, MaxZoom); }
         }
 
-        /// <summary>Position of the camera in 3D coordinates.</summary>
-        public Vector3 Eye { get; private set; }
-
         public Matrix View { get; private set; }
         public Matrix Projection { get; private set; }
         public BoundingFrustum Frustum { get; private set; } = new BoundingFrustum(Matrix.Identity);
@@ -124,7 +121,6 @@ namespace TW3D.Graphics
             Vector3 eye = new Vector3(-Position.X * WorldTo3D, -Position.Y * WorldTo3D + 2f, -4f);
             Vector3 up = new Vector3((float)Math.Cos(MathHelper.PiOver2 - Rotation), (float)Math.Sin(MathHelper.PiOver2 - Rotation), 0f);
 
-            Eye = eye;
             View = Matrix.CreateLookAt(eye, lookAt, up);
             Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.ToRadians(45f), viewport.AspectRatio, 0.1f, FarPlane);
             Frustum = new BoundingFrustum(View * Projection);

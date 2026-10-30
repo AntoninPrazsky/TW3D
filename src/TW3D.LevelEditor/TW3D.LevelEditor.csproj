@@ -16,6 +16,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- The renderer of the 3D scene, shared with the game -->
+    <Compile Include="..\TW3D.Game\Graphics\SceneRenderer.cs;..\TW3D.Game\Graphics\Lighting.cs" LinkBase="Graphics" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Models built by the content pipeline into Content/ -->
     <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
     <!-- The other shared content (precompiled textures and fonts, levels, the catalog), copied to the output as Content/ -->

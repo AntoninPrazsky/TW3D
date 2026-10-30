@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.IO;
 using System.Windows.Forms;
+using TW3D.Graphics;
 using TW3D.Shared;
 
 namespace LevelEditor.LevelObjects
@@ -56,7 +57,8 @@ namespace LevelEditor.LevelObjects
         //Position of the level in the game's level select, kept from the loaded file
         private int? order;
 
-        public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale)
+        /// <param name="fileName">Level file to open; null = ask for it.</param>
+        public Level(GraphicsDeviceManager ScreenManager, Camera3D Camera, Catalog catalog, Vector2 Position, float Scale, string fileName = null)
         {
             screenManager = ScreenManager;
             camera = Camera;
@@ -70,9 +72,13 @@ namespace LevelEditor.LevelObjects
 
             gObjects = new List<EditedObject>();
 
-            ReadFile();
+            if (fileName != null)
+                Load(fileName);
+            else
+                ReadFile();
         }
 
+        /// <summary>Asks for a level file and opens it.</summary>
         public void ReadFile()
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
@@ -84,10 +90,15 @@ namespace LevelEditor.LevelObjects
             if (openFileDialog.ShowDialog() != DialogResult.OK)
                 return;
 
+            Load(openFileDialog.FileName);
+        }
+
+        private void Load(string fileName)
+        {
             LevelData data;
             try
             {
-                data = LevelFile.Load(openFileDialog.FileName);
+                data = LevelFile.Load(fileName);
             }
             catch (Exception ex)
             {
@@ -123,8 +134,8 @@ namespace LevelEditor.LevelObjects
                 gObjects.Add(gObj);
             }
 
-            Console.WriteLine("File " + openFileDialog.FileName + " loaded.\n");
-            if (Path.GetExtension(openFileDialog.FileName).Equals(LevelFile.LegacyExtension, StringComparison.OrdinalIgnoreCase))
+            Console.WriteLine("File " + fileName + " loaded.\n");
+            if (Path.GetExtension(fileName).Equals(LevelFile.LegacyExtension, StringComparison.OrdinalIgnoreCase))
                 Console.WriteLine("The level was converted from the old .lev format; it will be saved as " + LevelFile.Extension + ".\n");
         }
 
@@ -192,24 +203,16 @@ namespace LevelEditor.LevelObjects
             }
         }
 
-        public override void Draw()
+        public override void Draw(SceneRenderer renderer)
         {
             foreach (TrackBlock tb in trackBlocks)
-            {
-                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, 0f), true);
-            }
+                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, 0f)));
             foreach (TrackBlock tb in backTrackBlocks)
-            {
-                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f)), true);
-            }
+                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(-9f))));
             foreach (TrackBlock tb in frontTrackBlocks)
-            {
-                DrawModel(tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f)), true);
-            }
+                renderer.Add(tb.blockModel, ModelWorld(new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, CTW3D(9f))));
             foreach (EditedObject obj in gObjects)
-            {
-                DrawModel(obj.objModel, new Vector3(obj.objPosition.X, obj.objPosition.Y, 0f), true);
-            }
+                renderer.Add(obj.objModel, ModelWorld(new Vector3(obj.objPosition.X, obj.objPosition.Y, 0f)));
         }
     }
 }

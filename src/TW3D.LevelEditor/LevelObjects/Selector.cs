@@ -431,7 +431,7 @@ namespace LevelEditor.LevelObjects
             if (bEdit) posZ = CTW3D(-9f);
             if (fEdit) posZ = CTW3D(9f);
             if (!bEdit && !fEdit) posZ = 0f;
-            DrawModel(selectorModel, new Vector3(position.X, position.Y, posZ), true);
+            DrawModel(selectorModel, new Vector3(position.X, position.Y, posZ));
         }
     }
 }
