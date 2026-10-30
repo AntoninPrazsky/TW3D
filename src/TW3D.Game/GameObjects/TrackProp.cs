@@ -11,48 +11,52 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace TW3D.GameObjects
 {
-    /// <summary>A dynamic object of the level; its shape and physical properties come from the catalog.</summary>
+    /// <summary>A dynamic object of a level; its shape and physical properties come from the catalog.</summary>
     class TrackProp : GameObject
     {
-        public Body propBody { get; set; }
-        private Model model;
+        private readonly Model model;
+
+        public Body Body { get; }
 
         /// <param name="modelName">One of the models of the object type.</param>
-        public TrackProp(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, ObjectType type, string modelName)
+        public TrackProp(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, Vector2 position,
+            ObjectType type, string modelName, LevelAssets assets)
         {
-            world = World;
-            screenManager = ScreenManager;
-            camera = Camera;
-            physics = Physics;
-            position = Position;
-            model = TrackPropModels.Models[modelName];
+            this.world = world;
+            this.screenManager = screenManager;
+            this.camera = camera;
+            this.physics = physics;
+            this.position = position;
+            model = assets.ObjectModel(modelName);
 
             switch (type.Shape)
             {
                 case ObjectShape.Model:
-                    propBody = CreateModelBody(ObjectType.ModelAsset(modelName), BodyType.Dynamic);
-                    propBody.Position = position;
+                    Body = CreateModelBody(ObjectType.ModelAsset(modelName), BodyType.Dynamic);
+                    Body.Position = position;
                     break;
                 case ObjectShape.Rectangle:
-                    propBody = world.CreateBody(Position);
-                    propBody.CreateFixture(new PolygonShape(PolygonTools.CreateRectangle(type.Size, type.Size, Vector2.Zero, 0), 1f));
+                    Body = world.CreateBody(position);
+                    Body.CreateFixture(new PolygonShape(PolygonTools.CreateRectangle(type.Size, type.Size, Vector2.Zero, 0), 1f));
                     break;
                 case ObjectShape.Circle:
-                    propBody = world.CreateBody(Position);
-                    propBody.CreateFixture(new CircleShape(type.Size, 1f));
+                    Body = world.CreateBody(position);
+                    Body.CreateFixture(new CircleShape(type.Size, 1f));
                     break;
+                default:
+                    throw new ArgumentException("Unknown shape " + type.Shape + " of the object type " + type.Type + ".");
             }
 
-            propBody.BodyType = BodyType.Dynamic;
-            propBody.SetFriction(type.Friction);
-            propBody.Mass = type.Mass;
-            propBody.SetRestitution(type.Restitution);
+            Body.BodyType = BodyType.Dynamic;
+            Body.SetFriction(type.Friction);
+            Body.Mass = type.Mass;
+            Body.SetRestitution(type.Restitution);
 
             //A contact bounces as much as the more bouncy of its two bodies. The track bounces fully (the car
             //bounces on it), so an object resting on it would hop for ever and never fall asleep: the contacts
             //of an object bounce at most as much as the object itself.
             float restitution = type.Restitution;
-            propBody.OnCollision += (sender, other, contact) =>
+            Body.OnCollision += (sender, other, contact) =>
             {
                 contact.Restitution = Math.Min(contact.Restitution, restitution);
                 return true;
@@ -61,7 +65,7 @@ namespace TW3D.GameObjects
 
         public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(renderer, model, new Vector3(DrawPosition(propBody), 0f), DrawRotation(propBody), false);
+            DrawModel(renderer, model, new Vector3(DrawPosition(Body), 0f), DrawRotation(Body), false);
         }
     }
 }

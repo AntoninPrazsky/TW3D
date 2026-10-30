@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using nkast.Aether.Physics2D;
@@ -25,9 +23,6 @@ namespace TW3D.GamePlay
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
-        //Blocks and dynamic objects the levels are built from (content/catalog.json), loaded once
-        private static Catalog catalog;
-
         //Debug view flags toggled by the F1–F8 keys
         private static readonly (Keys Key, DebugViewFlags Flags)[] DebugKeys =
         {
@@ -117,7 +112,7 @@ namespace TW3D.GamePlay
 
         public override void LoadContent()
         {
-            LoadCatalog(Manager.Content);
+            LevelAssets assets = LevelAssets.Load(Manager.Content);
 
             Settings.ContinuousPhysics = false;
             world = new World(new Vector2(0f, 12f));
@@ -133,10 +128,11 @@ namespace TW3D.GamePlay
             renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
             settings.Apply(renderer);
 
-            level = new Level(world, Manager, camera, physics, catalog, Vector2.Zero, levelName);
+            level = new Level(world, Manager, camera, physics, assets, Vector2.Zero, levelName);
             mood = level.Mood;
             renderer.Lighting = Lighting.For(mood);
             sky = new Sky(Manager, camera);
+            Catalog catalog = assets.Catalog;
             CarType carType = catalog.FindCar(settings.Car);
             CarWheels wheels = settings.WheelsOf(carType);
             car = new Car(world, Manager, camera, physics, new Vector2(-1.6f, -7f), carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
@@ -159,25 +155,6 @@ namespace TW3D.GamePlay
         public override void UnloadContent()
         {
             debugView?.Dispose();
-        }
-
-        /// <summary>
-        /// Loads the catalog, the models of all its blocks and objects and the collision shapes
-        /// (shared by all levels, loaded only once).
-        /// </summary>
-        private static void LoadCatalog(ContentManager content)
-        {
-            if (catalog != null)
-                return;
-
-            using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
-                catalog = Catalog.Load(stream);
-            ModelCollision.Load();
-
-            foreach (BlockType block in catalog.Blocks)
-                TrackBlockModels.Models.Add(block.Name, content.Load<Model>(block.ModelAsset));
-            foreach (string model in catalog.ObjectModels)
-                TrackPropModels.Models.Add(model, content.Load<Model>(ObjectType.ModelAsset(model)));
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -377,12 +354,8 @@ namespace TW3D.GamePlay
                 case RaceState.Racing:
                     //The time of the simulation, not of the frames: the run is timed fairly even when frames are slow
                     raceTime = (float)((physics.Time - startTime) / GameSpeed);
-                    if (level.FinishArea is (Vector2 min, Vector2 max))
-                    {
-                        Vector2 position = car.car.Position;
-                        if (position.X >= min.X && position.X <= max.X && position.Y >= min.Y && position.Y <= max.Y)
-                            Finish();
-                    }
+                    if (level.IsAtFinish(car.car.Position))
+                        Finish();
                     break;
 
                 case RaceState.Finished:
@@ -443,7 +416,7 @@ namespace TW3D.GamePlay
             string time = RaceScore.FormatTime(race == RaceState.Countdown ? 0f : raceTime);
             Color timeColour = race == RaceState.Finished ? MainMenuScreen.Yellow : Color.White;
             Vector2 timeSize = DrawTime(font, time, new Vector2(centreX, safe.Top), timeColour * alpha, TimeScale * uiScale, alpha);
-            if (level.FinishArea.HasValue)
+            if (level.HasFinish)
             {
                 string par = "Par " + RaceScore.FormatTime(level.Par);
                 Vector2 parSize = font.MeasureString(par) * ParScale * uiScale;

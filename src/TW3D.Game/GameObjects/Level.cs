@@ -10,39 +10,42 @@ using TW3D.Shared;
 
 namespace TW3D.GameObjects
 {
-    class TrackBlock
+    /// <summary>A track block as placed in a level.</summary>
+    sealed class TrackBlock
     {
-        public Body blockBody { get; set; }
-        public Vector2 blockPosition { get; set; }
-        public Vector2 blockAbsPosition { get { return new Vector2(blockPosition.X, blockPosition.Y + blockShift); } }
-        public float blockShift { get; set; }
-        public Model blockModel { get; set; }
-        public string modelName { get; set; }
+        public TrackBlock(BlockType type, Model model, Vector2 position)
+        {
+            Type = type;
+            Model = model;
+            Position = position;
+        }
+
+        public BlockType Type { get; }
+
+        public Model Model { get; }
+
+        /// <summary>Position in physics units, with the vertical shift of the block.</summary>
+        public Vector2 Position { get; }
+
+        /// <summary>The physics body of a block of the middle layer; null for the decoration of the back and front layers.</summary>
+        public Body Body { get; set; }
     }
 
-    static class TrackBlockModels //Track block models
-    {
-        public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
-    }
-
-    static class TrackPropModels //Dynamic object models
-    {
-        public static Dictionary<string, Model> Models = new Dictionary<string, Model>();
-    }
-
-
+    /// <summary>
+    /// A level built from its file (see <see cref="LevelFile"/>): the track blocks of the middle layer, which the car
+    /// drives on, the decoration blocks of the back and front layers behind and in front of it, and the dynamic objects.
+    /// </summary>
     class Level : GameObject
     {
-        //One grid cell of a level is 22.5 physics units, one step of the vertical shift 2.5 physics units
-        private const float GridSize = 22.5f;
-        private const float ShiftStep = 2.5f;
-        //Distance of the back and front decoration layers from the middle (physics) layer
-        private const float LayerDepth = 22.5f;
+        //Distance of the back and front decoration layers from the middle (physics) layer: one cell
+        private const float LayerDepth = Units.GridCell;
 
-        private readonly List<TrackBlock> trackBlocks = new List<TrackBlock>();
-        private readonly List<TrackBlock> backTrackBlocks = new List<TrackBlock>();
-        private readonly List<TrackBlock> frontTrackBlocks = new List<TrackBlock>();
-        private readonly List<TrackProp> gObjects = new List<TrackProp>();
+        private readonly List<TrackBlock> middle = new List<TrackBlock>();
+        private readonly List<TrackBlock> back = new List<TrackBlock>();
+        private readonly List<TrackBlock> front = new List<TrackBlock>();
+        private readonly List<TrackProp> objects = new List<TrackProp>();
+        //The cell of the finish block, from its corner with the least coordinates (physics units); null without a finish
+        private readonly (Vector2 Min, Vector2 Max)? finishArea;
 
         /// <summary>The light of the level.</summary>
         public LevelMood Mood { get; }
@@ -50,93 +53,97 @@ namespace TW3D.GameObjects
         /// <summary>The time a good run of the level takes, in seconds (see <see cref="RaceScore"/>).</summary>
         public float Par { get; }
 
-        /// <summary>The cell of the finish block, from its corner with the least coordinates (physics units); null without a finish.</summary>
-        public (Vector2 Min, Vector2 Max)? FinishArea { get; }
+        /// <summary>The level has a finish block, so a run of it can end (see <see cref="IsAtFinish"/>).</summary>
+        public bool HasFinish => finishArea.HasValue;
 
-        public Level(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Catalog catalog, Vector2 Position, string fileName)
+        /// <param name="fileName">Name of the level file in Content/Levels, without the extension.</param>
+        public Level(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, LevelAssets assets, Vector2 position, string fileName)
         {
-            world = World;
-            screenManager = ScreenManager;
-            camera = Camera;
-            physics = Physics;
-            position = Position;
+            this.world = world;
+            this.screenManager = screenManager;
+            this.camera = camera;
+            this.physics = physics;
+            this.position = position;
 
             //File system access for MonoGame (works on all platforms)
             LevelData data;
             using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + fileName + LevelFile.Extension))
                 data = LevelFile.Load(stream);
+
+            List<string> problems = data.Validate(assets.Catalog);
+            if (problems.Count > 0)
+                throw new InvalidDataException("Level \"" + fileName + "\" is not valid:\n" + string.Join("\n", problems));
+
             Mood = data.Mood;
             Par = RaceScore.Par(data);
             BlockPlacement finish = data.FinishBlock;
             if (finish != null)
             {
-                //The cell of the finish block (a block is as large as its cell, around its position)
-                Vector2 centre = new Vector2(finish.X * GridSize, finish.Y * GridSize + finish.Shift * ShiftStep);
-                FinishArea = (centre - new Vector2(GridSize / 2f), centre + new Vector2(GridSize / 2f));
+                //A block is as large as its cell, around its position
+                Vector2 centre = PhysicsPosition(finish);
+                finishArea = (centre - new Vector2(Units.GridCell / 2f), centre + new Vector2(Units.GridCell / 2f));
             }
-
-            List<string> problems = data.Validate(catalog);
-            if (problems.Count > 0)
-                throw new InvalidDataException("Level \"" + fileName + "\" is not valid:\n" + string.Join("\n", problems));
 
             foreach (BlockPlacement placement in data.Middle)
-                trackBlocks.Add(CreateBlock(placement, catalog.FindBlock(placement.Block), true));
+                middle.Add(CreateBlock(placement, assets, true));
             foreach (BlockPlacement placement in data.Back)
-                backTrackBlocks.Add(CreateBlock(placement, catalog.FindBlock(placement.Block), false));
+                back.Add(CreateBlock(placement, assets, false));
             foreach (BlockPlacement placement in data.Front)
-                frontTrackBlocks.Add(CreateBlock(placement, catalog.FindBlock(placement.Block), false));
+                front.Add(CreateBlock(placement, assets, false));
             foreach (ObjectPlacement placement in data.Objects)
-                gObjects.Add(CreateObject(placement, catalog.FindObject(placement.Type)));
+                objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
+                    assets.Catalog.FindObject(placement.Type), placement.Model, assets));
         }
 
-        private TrackBlock CreateBlock(BlockPlacement placement, BlockType type, bool physical)
+        /// <summary>Where a block of the level grid is in the physics world (see <see cref="Units"/>).</summary>
+        private static Vector2 PhysicsPosition(BlockPlacement placement)
         {
-            TrackBlock trackBlock = new TrackBlock();
-            trackBlock.blockPosition = new Vector2(placement.X, placement.Y) * GridSize;
-            trackBlock.blockShift = placement.Shift * ShiftStep;
-            trackBlock.blockModel = TrackBlockModels.Models[type.Name];
-            trackBlock.modelName = type.Name;
+            return new Vector2(placement.X * Units.GridCell, placement.Y * Units.GridCell + placement.Shift * Units.ShiftStep);
+        }
 
-            //Only the blocks of the middle layer take part in the physics simulation
+        /// <param name="physical">The block is in the middle layer: it takes part in the physics simulation.</param>
+        private TrackBlock CreateBlock(BlockPlacement placement, LevelAssets assets, bool physical)
+        {
+            BlockType type = assets.Catalog.FindBlock(placement.Block);
+            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement));
             if (physical)
             {
-                Body trackBlockBody = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track);
-                trackBlockBody.Position = trackBlock.blockAbsPosition;
-                trackBlockBody.SetRestitution(1f);
-                trackBlockBody.SetFriction(1f);
-                trackBlock.blockBody = trackBlockBody;
+                block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track);
+                block.Body.Position = block.Position;
+                block.Body.SetRestitution(1f);
+                block.Body.SetFriction(1f);
             }
-
-            return trackBlock;
+            return block;
         }
 
-        private TrackProp CreateObject(ObjectPlacement placement, ObjectType type)
+        /// <summary>The point (the middle of the car, in physics units) is in the cell of the finish block.</summary>
+        public bool IsAtFinish(Vector2 point)
         {
-            return new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y), type, placement.Model);
+            if (!(finishArea is (Vector2 min, Vector2 max)))
+                return false;
+            return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
         }
 
         public override void Update()
         {
-            foreach (GameObject obj in gObjects)
-            {
+            foreach (TrackProp obj in objects)
                 obj.Update();
-            }
         }
 
         public override void Draw(SceneRenderer renderer)
         {
             //Models outside the camera view are skipped by the renderer
-            foreach (TrackBlock tb in backTrackBlocks)
-                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, -LayerDepth), 0f, false);
-
-            foreach (TrackBlock tb in trackBlocks)
-                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockBody.Position.X, tb.blockBody.Position.Y, 0f), 0f, false);
-
-            foreach (TrackBlock tb in frontTrackBlocks)
-                DrawModel(renderer, tb.blockModel, new Vector3(tb.blockAbsPosition.X, tb.blockAbsPosition.Y, LayerDepth), 0f, false);
-
-            foreach (TrackProp obj in gObjects)
+            DrawLayer(renderer, back, -LayerDepth);
+            DrawLayer(renderer, middle, 0f);
+            DrawLayer(renderer, front, LayerDepth);
+            foreach (TrackProp obj in objects)
                 obj.Draw(renderer);
+        }
+
+        private void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer, float depth)
+        {
+            foreach (TrackBlock block in layer)
+                DrawModel(renderer, block.Model, new Vector3(block.Position, depth), 0f, false);
         }
     }
 }

@@ -5,15 +5,19 @@ using TW3D.Screens;
 
 namespace TW3D.GameObjects
 {
+    /// <summary>The sky around the car: a dome that moves with it, drawn behind everything else.</summary>
     class Sky : GameObject
     {
-        Model sky;
+        //How far behind the car the dome is centred (physics units)
+        private const float Depth = -25f;
 
-        public Sky(ScreenManager ScreenManager, ChaseCamera Camera)
+        private readonly Model model;
+
+        public Sky(ScreenManager screenManager, ChaseCamera camera)
         {
-            screenManager = ScreenManager;
-            camera = Camera;
-            sky = screenManager.Content.Load<Model>("Env/sky");
+            this.screenManager = screenManager;
+            this.camera = camera;
+            model = screenManager.Content.Load<Model>("Env/sky");
         }
 
         /// <summary>
@@ -22,7 +26,7 @@ namespace TW3D.GameObjects
         /// </summary>
         public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(renderer, sky, new Vector3(camera.Focus, -25f), 0f, false, asBackground: true);
+            DrawModel(renderer, model, new Vector3(camera.Focus, Depth), 0f, false, asBackground: true);
         }
     }
 }
