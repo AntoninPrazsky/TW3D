@@ -25,6 +25,7 @@ namespace TW3D
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
         private readonly string startLevel;
+        private readonly GraphicsSettings settings = GraphicsSettings.Load();
 
         /// <param name="windowSize">Size of the window; null = borderless full screen.</param>
         /// <param name="startLevel">Level to start directly, skipping the menu; null = start with the menu.</param>
@@ -99,7 +100,7 @@ namespace TW3D
             //Not implemented
             menu.AddItem("Garage", null);
             menu.AddItem("About", null);
-            menu.AddItem("Options", null);
+            menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings)));
             menu.AddItem("Exit", Exit);
 
             screens.Add(new BackgroundScreen());
@@ -130,7 +131,7 @@ namespace TW3D
 
         private void StartLevel(string level)
         {
-            screens.Add(new GameplayScreen(level));
+            screens.Add(new GameplayScreen(level, settings));
         }
     }
 }

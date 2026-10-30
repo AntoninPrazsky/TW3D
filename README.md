@@ -105,6 +105,10 @@ uses as many columns as fit the screen.
 **Menus:** mouse (click, wheel and dragging in the level select), arrow keys and
 Enter, or a gamepad (D-pad, A). Esc goes back; in the main menu it quits the game.
 
+**Options:** the look of the game (new, or classic: as the 2016 version looked),
+shadows and ambient occlusion. They are saved in `TW3D/settings.json` in the
+user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
+
 **Driving:** the keyboard, the on-screen controls (operated by the mouse or by
 touch) and a gamepad all work at the same time.
 
@@ -310,7 +314,7 @@ Issues found during the migration, roughly in order of importance:
    bitmaps had to be edited by hand.
 2. **Sources of the other content:** the images and fonts are still only
    precompiled `.xnb` files.
-3. **Unfinished menu:** Garage, About and Options.
+3. **Unfinished menu:** Garage and About.
 4. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
    dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
    A possible replacement: UI directly in the editor window (e.g. ImGui.NET).

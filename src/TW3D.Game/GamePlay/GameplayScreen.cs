@@ -51,6 +51,7 @@ namespace TW3D.GamePlay
         private const float GameSpeed = 1.5f;
 
         private readonly string levelName;
+        private readonly GraphicsSettings settings;
 
         private World world;
         private PhysicsClock physics;
@@ -67,9 +68,10 @@ namespace TW3D.GamePlay
         private FixedMouseJoint dragJoint;
         private int dragPointerId;
 
-        public GameplayScreen(string levelName)
+        public GameplayScreen(string levelName, GraphicsSettings settings)
         {
             this.levelName = levelName;
+            this.settings = settings;
             FadeInTime = TimeSpan.FromSeconds(0.75);
             FadeOutTime = TimeSpan.FromSeconds(0.75);
             IsOpaque = true;
@@ -91,6 +93,7 @@ namespace TW3D.GamePlay
             });
             camera = new ChaseCamera { MinRotation = -0.5f, MaxRotation = 0.5f };
             renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
+            settings.Apply(renderer);
 
             level = new Level(world, Manager, camera, physics, catalog, Vector2.Zero, levelName);
             mood = level.Mood;
@@ -213,6 +216,7 @@ namespace TW3D.GamePlay
                 debugView.Flags ^= GamePadDebugFlags;
 
             //The lighting of the 2016 version, and the scene without shadows or ambient occlusion, for comparison
+            //(only for this level; the Options menu sets them for good)
             if (input.KeyPressed(Keys.F9))
                 renderer.Classic = !renderer.Classic;
             if (input.KeyPressed(Keys.F10))
