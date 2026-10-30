@@ -4,6 +4,7 @@
 // ambient occlusion), a highlight of the sun, a rim of sky light at grazing angles and the
 // headlights of the car (a spot light, at night). It is computed in linear colour space and
 // mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
+// Glass (Alpha less than 1) is blended over the scene, less transparent where it shines.
 //
 // Technique Sky draws the sky: its picture recoloured by the colours of the light from the
 // horizon up (it keeps the brightness of the picture, the clouds), with a glow around the sun.
@@ -95,6 +96,7 @@ float4x4 World;
 float3 DiffuseColor;        // linear
 float3 EmissiveColor;       // linear
 float Specular;             // strength of the sun's highlight
+float Alpha;                // opacity (1 = opaque; glass is less)
 
 struct VertexInput
 {
@@ -190,7 +192,9 @@ float4 MainPS(VertexOutput input) : COLOR0
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;
-	return float4(lerp(color, HazeColor, haze), 1.0);
+	// Glass lets the scene through, except where it reflects the sun or the sky at a grazing angle
+	float opacity = saturate(Alpha + highlight + rim * 0.5);
+	return float4(lerp(color, HazeColor, haze), opacity);
 }
 
 technique Lit

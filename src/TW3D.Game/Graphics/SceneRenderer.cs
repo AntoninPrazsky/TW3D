@@ -12,7 +12,8 @@ namespace TW3D.Graphics
     /// </summary>
     /// <remarks>
     /// <see cref="Classic"/> switches to the lighting of the 2016 version (BasicEffect with three
-    /// directional lights).
+    /// directional lights). Transparent materials (glass) are drawn after the others, from the back to the front;
+    /// they cast no shadows and do not count for the ambient occlusion.
     /// </remarks>
     public sealed class SceneRenderer
     {
@@ -56,6 +57,10 @@ namespace TW3D.Graphics
             public Vector3 Diffuse;
             public Vector3 Emissive;
             public float Specular;
+            /// <summary>Opacity of the material (the "d" of the MTL file); less than 1 for glass.</summary>
+            public float Alpha;
+
+            public bool IsTransparent => Alpha < 1f;
         }
 
         /// <summary>The parts and bounds of a model, found once per model.</summary>
@@ -80,7 +85,7 @@ namespace TW3D.Graphics
         private readonly GraphicsDevice device;
         private readonly Effect effect, occlusionEffect;
         private readonly EffectTechnique litTechnique, depthTechnique, normalDepthTechnique;
-        private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter;
+        private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter;
         private readonly RenderTarget2D shadowMap;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
         //The corners of the screen, for the passes over the whole screen
@@ -97,6 +102,8 @@ namespace TW3D.Graphics
         private readonly Vector3[] sceneCorners = new Vector3[8];
         private readonly Dictionary<Model, ModelData> models = new Dictionary<Model, ModelData>();
         private readonly List<DrawItem> items = new List<DrawItem>();
+        //The transparent parts of the visible models, drawn after the others
+        private readonly List<(ModelPart Part, Matrix World, float Distance)> transparentParts = new List<(ModelPart, Matrix, float)>();
 
         private Matrix view;
         private Matrix projection;
@@ -118,6 +125,7 @@ namespace TW3D.Graphics
             diffuseParameter = effect.Parameters["DiffuseColor"];
             emissiveParameter = effect.Parameters["EmissiveColor"];
             specularParameter = effect.Parameters["Specular"];
+            alphaParameter = effect.Parameters["Alpha"];
 
             shadowMap = new RenderTarget2D(device, ShadowMapSize, ShadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
             effect.Parameters["ShadowTexel"].SetValue(1f / ShadowMapSize);
@@ -245,6 +253,8 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                 {
+                    if (part.IsTransparent)
+                        continue;
                     worldParameter.SetValue(part.Transform * item.World);
                     pass.Apply();
                     DrawPart(part.MeshPart);
@@ -280,6 +290,8 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                 {
+                    if (part.IsTransparent)
+                        continue;
                     worldParameter.SetValue(part.Transform * item.World);
                     pass.Apply();
                     DrawPart(part.MeshPart);
@@ -423,42 +435,89 @@ namespace TW3D.Graphics
             effect.CurrentTechnique = litTechnique;
             EffectPass pass = litTechnique.Passes[0];
 
+            CollectParts();
             foreach (DrawItem item in items)
             {
                 if (!IsVisible(item))
                     continue;
 
                 foreach (ModelPart part in item.Model.Parts)
+                    if (!part.IsTransparent)
+                        DrawLitPart(part, part.Transform * item.World, pass);
+            }
+
+            //Glass over what is behind it, without hiding it from the glass further back
+            device.BlendState = BlendState.NonPremultiplied;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
+                DrawLitPart(part, world, pass);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+        }
+
+        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass)
+        {
+            worldParameter.SetValue(world);
+            diffuseParameter.SetValue(part.Diffuse);
+            emissiveParameter.SetValue(part.Emissive);
+            specularParameter.SetValue(part.Specular);
+            alphaParameter.SetValue(part.Alpha);
+            pass.Apply();
+            DrawPart(part.MeshPart);
+        }
+
+        /// <summary>Finds the transparent parts of the visible models and sorts them from the back to the front.</summary>
+        private void CollectParts()
+        {
+            transparentParts.Clear();
+            foreach (DrawItem item in items)
+            {
+                if (!IsVisible(item))
+                    continue;
+                foreach (ModelPart part in item.Model.Parts)
                 {
-                    worldParameter.SetValue(part.Transform * item.World);
-                    diffuseParameter.SetValue(part.Diffuse);
-                    emissiveParameter.SetValue(part.Emissive);
-                    specularParameter.SetValue(part.Specular);
-                    pass.Apply();
-                    DrawPart(part.MeshPart);
+                    if (!part.IsTransparent)
+                        continue;
+                    Matrix world = part.Transform * item.World;
+                    float distance = Vector3.DistanceSquared(world.Translation, eye);
+                    transparentParts.Add((part, world, distance));
                 }
             }
+            transparentParts.Sort((a, b) => b.Distance.CompareTo(a.Distance));
         }
 
         /// <summary>The lighting of the 2016 version: BasicEffect with three directional lights.</summary>
         private void DrawClassic()
         {
+            CollectParts();
             foreach (DrawItem item in items)
             {
                 if (!IsVisible(item))
                     continue;
 
                 foreach (ModelPart part in item.Model.Parts)
-                {
-                    BasicEffect basic = part.Effect;
-                    ApplyClassicLighting(basic);
-                    basic.View = view;
-                    basic.Projection = projection;
-                    basic.World = part.Transform * item.World;
-                    basic.CurrentTechnique.Passes[0].Apply();
-                    DrawPart(part.MeshPart);
-                }
+                    if (!part.IsTransparent)
+                        DrawClassicPart(part, part.Transform * item.World);
             }
+
+            //BasicEffect multiplies its colour by its alpha
+            device.BlendState = BlendState.AlphaBlend;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
+                DrawClassicPart(part, world);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+        }
+
+        private void DrawClassicPart(ModelPart part, Matrix world)
+        {
+            BasicEffect basic = part.Effect;
+            ApplyClassicLighting(basic);
+            basic.View = view;
+            basic.Projection = projection;
+            basic.World = world;
+            basic.CurrentTechnique.Passes[0].Apply();
+            DrawPart(part.MeshPart);
         }
 
         /// <summary>Sets up a BasicEffect with the lighting of the 2016 version.</summary>
@@ -530,7 +589,8 @@ namespace TW3D.Graphics
                         //The colours of the models were picked on the screen, the light works with linear ones
                         Diffuse = ToLinear(material.DiffuseColor),
                         Emissive = ToLinear(material.EmissiveColor),
-                        Specular = (specular.X + specular.Y + specular.Z) / 3f * SpecularStrength
+                        Specular = (specular.X + specular.Y + specular.Z) / 3f * SpecularStrength,
+                        Alpha = material.Alpha
                     });
                 }
             }

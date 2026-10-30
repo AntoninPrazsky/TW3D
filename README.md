@@ -176,7 +176,8 @@ ambient occlusion (`content/Effects/Occlusion.fx`, computed at half the resoluti
 screen from the normals and depths the camera sees), highlights by the specular colour of
 the materials and a rim of sky light. The light is computed in linear colour space and
 mapped to the screen by a filmic curve, and the distance fades into the colour of the
-sky. The 2016 version lit the models by three coloured directional lights of
+sky. Glass (a material with an opacity `d` below 1 in its `.mtl` file: the windows of the
+cars) lets the scene through, except where it reflects the light. The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
 game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
 level, which is saved with it), CatalogRender with the 2016
