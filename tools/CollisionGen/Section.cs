@@ -61,10 +61,6 @@ namespace TW3D.CollisionGen
             return Clean(region);
         }
 
-        /// <summary>The outlines moved inwards by a distance (model units), the corners kept sharp.</summary>
-        public static PathsD Shrink(PathsD outlines, double distance)
-            => Clean(Clipper.InflatePaths(outlines, -distance, JoinType.Miter, EndType.Polygon, 4, Precision));
-
         /// <summary>
         /// Fills the holes (nothing moving in the plane can get into them), leaves out tiny details
         /// and splits the outlines touching themselves.

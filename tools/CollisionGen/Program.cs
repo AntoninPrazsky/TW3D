@@ -24,11 +24,6 @@ namespace TW3D.CollisionGen
         //A body differing from the wheels in less than this area has the same shape (square model units)
         private const double SameShapeArea = 0.001;
 
-        //The blocks are a hair smaller than their models (by 0.018 physics units), so neighbouring blocks do not quite
-        //touch (the 2016 collision bitmaps left the same gaps). Where the polygons of two blocks meet, the wheels catch
-        //on the corner of the next block: the car accelerated 15 % slower on a straight road made of blocks.
-        private const double BlockInset = 0.0072;
-
         static int Main(string[] args)
         {
             try
@@ -94,8 +89,8 @@ namespace TW3D.CollisionGen
             foreach (BlockType block in catalog.Blocks.Where(block => block.Collision))
             {
                 ObjMesh mesh = Load(block.ModelAsset);
-                PathsD bodyRegion = Section.Shrink(Band(block.ModelAsset, mesh, 0, body), BlockInset);
-                PathsD wheelsRegion = Section.Shrink(Band(block.ModelAsset, mesh, wheelsInner, wheelsOuter), BlockInset);
+                PathsD bodyRegion = Band(block.ModelAsset, mesh, 0, body);
+                PathsD wheelsRegion = Band(block.ModelAsset, mesh, wheelsInner, wheelsOuter);
                 double difference = Math.Abs(Clipper.Area(Clipper.Xor(bodyRegion, wheelsRegion, FillRule.NonZero, 6)));
                 if (difference < SameShapeArea)
                 {

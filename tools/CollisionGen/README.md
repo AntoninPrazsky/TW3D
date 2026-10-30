@@ -34,10 +34,10 @@ plane: everything within a band of z, seen along the z axis.
   in the band that would not be flattened to a line), joined by
   [Clipper2](https://github.com/AngusJohnson/Clipper2). Holes are filled (nothing
   moving in the plane can get into them).
-- The blocks are made 0.0072 model units (0.018 physics units) smaller, so that
-  neighbouring blocks do not quite touch: where the polygons of two blocks meet, the
-  wheels catch on the corner of the next one (the car accelerated 15 % slower on a
-  straight road). The 2016 collision bitmaps left the same gaps.
+- Neighbouring blocks touch exactly, as their models do. The 2016 collision
+  bitmaps left gaps of 0.036 physics units between them (a rounding in the tracing),
+  which the wheels rolled over more easily: on a straight road of blocks the car now
+  accelerates about 15 % slower than in 2016.
 - The outlines are split into convex polygons of at most 8 vertices by the same
   algorithm (Bayazit, Aether.Physics2D) as the game used for the outlines traced
   from the collision bitmaps.
@@ -60,6 +60,6 @@ taken from another view:
 - `tu3s`: the bitmap was the mirror image of the model (below the road, no effect);
 - `tb1`: the bitmap filled the space between the legs.
 
-In a scripted drive (holding the right arrow) through the four levels, the car
-accelerates almost as with the bitmaps (3 % slower over the first 50 units) and climbs
-the same ramps; then the runs diverge, as runs of a physics simulation do.
+In a scripted drive (holding the right arrow) through the four levels, the car climbs
+the same ramps as with the bitmaps, only slower (see the gaps above); the runs soon
+diverge, as runs of a physics simulation do.
