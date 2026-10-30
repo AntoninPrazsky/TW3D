@@ -31,6 +31,9 @@ the old project folder `TripleWheel/`):
 `Levels/mod/bl1s.wings` was saved 8 minutes after its export, so it may differ a little
 from the model in the game.
 
+`content/wheel2.obj` was changed in 2026: its rim is smaller, with a thicker tyre, and it
+has the hub of `wheel.obj`, joining it to the holder. `wheel2.wings` is the wheel as it was.
+
 `Levels/mod/tu1.wings`, `tu2.wings` and `tu3.wings` are the whole tunnels; the game uses
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in
 `content/`.
