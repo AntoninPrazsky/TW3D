@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.GamePlay;
 using TW3D.Input;
 
@@ -19,12 +20,22 @@ namespace TW3D.Screens
         private const float TextScale = 0.6f;
         private const float StarSize = 72f;
         private const float LineSpacing = 1.3f;
+        //The stars ring one after another as the results come, a major chord, and a new record after them (seconds)
+        private const float FirstStarTime = 0.35f;
+        private const float StarInterval = 0.22f;
+        private const float RecordDelay = 0.15f;
+        private static readonly float[] StarPitches = { 0f, 4f / 12f, 7f / 12f };
 
         private readonly int stars;
         private readonly string[] lines;
         private readonly string note;
         private readonly bool noteHighlighted;
         private readonly Action levelSelect;
+        private readonly bool record;
+        //Seconds since the results came, the stars rung so far and whether the record has rung
+        private float age;
+        private int starsRung;
+        private bool recordRung;
 
         /// <param name="time">The time of the run, in seconds.</param>
         /// <param name="par">The par time of the level (see <see cref="RaceScore"/>).</param>
@@ -42,6 +53,7 @@ namespace TW3D.Screens
             FadeInTime = TimeSpan.FromSeconds(0.4);
             FadeOutTime = TimeSpan.FromSeconds(0.25);
             this.levelSelect = levelSelect;
+            this.record = record && counted;
 
             stars = RaceScore.Stars(time, par);
             lines = new[]
@@ -66,6 +78,19 @@ namespace TW3D.Screens
                 AddItem(new MenuItem { Text = () => "Next level", Activate = () => Leave(nextLevel) });
         }
 
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+            age += (float)gameTime.ElapsedGameTime.TotalSeconds;
+            while (starsRung < stars && age >= FirstStarTime + starsRung * StarInterval)
+                Manager.Sounds.Play(Sound.Star, StarPitches[Math.Min(starsRung++, StarPitches.Length - 1)]);
+            if (record && !recordRung && age >= FirstStarTime + stars * StarInterval + RecordDelay)
+            {
+                Manager.Sounds.Play(Sound.NewRecord);
+                recordRung = true;
+            }
+        }
+
         private void Leave(Action action)
         {
             Close();
@@ -75,7 +100,10 @@ namespace TW3D.Screens
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             if (input.BackPressed)
+            {
+                Manager.Sounds.Play(Sound.MenuBack);
                 Leave(levelSelect);
+            }
             else
                 base.HandleInput(input, gameTime);
         }

@@ -59,6 +59,11 @@ namespace TW3D.Screens
                 items.MoveFocus(1);
         }
 
+        public override void LoadContent()
+        {
+            items.Sounds = Manager.Sounds;
+        }
+
         public override void HandleInput(InputState input, GameTime gameTime)
         {
             UpdateLayout();

@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework.Input;
 using nkast.Aether.Physics2D;
 using nkast.Aether.Physics2D.Diagnostics;
 using nkast.Aether.Physics2D.Dynamics;
+using TW3D.Audio;
 using TW3D.GameObjects;
 using TW3D.Graphics;
 using TW3D.Input;
@@ -55,6 +56,8 @@ namespace TW3D.GamePlay
         private Race race;
         //The cards of the tutorial; null when the tutorial is off
         private Tutorial tutorial;
+        //The number of the countdown that last beeped
+        private int countdownBeeped;
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
         private bool record;
@@ -195,15 +198,34 @@ namespace TW3D.GamePlay
 
             if (HasFocus)
             {
+                RaceState before = race.State;
                 if (race.Update(realElapsed, physics.Time / GameSpeed, level.IsAtFinish(car.car.Position)))
                     Finish();
+                BeepCountdown(before);
                 if (race.ResultsDue && results == null)
                     ShowResults();
             }
         }
 
+        /// <summary>Beeps each number of the countdown (3, 2, 1) as it appears, and the start an octave higher.</summary>
+        private void BeepCountdown(RaceState before)
+        {
+            if (race.State == RaceState.Countdown)
+            {
+                int number = (int)MathF.Ceiling(race.Countdown);
+                if (number != countdownBeeped)
+                {
+                    countdownBeeped = number;
+                    Manager.Sounds.Play(Sound.Countdown);
+                }
+            }
+            else if (before == RaceState.Countdown)
+                Manager.Sounds.Play(Sound.Start);
+        }
+
         private void Finish()
         {
+            Manager.Sounds.Play(Sound.Finish);
             car.acceleration = 0f;
             previousBest = records.BestTime(levelName);
             record = !race.Assisted && records.Add(levelName, race.Time);

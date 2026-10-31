@@ -35,6 +35,7 @@ physics bodies.
 | `GameObjects/` | The car, the level (built from a level file and `LevelAssets`: the catalog, the models of its blocks and objects and the collision shapes, loaded once), the sky, dynamic objects and the 3D garage behind the menus (`GarageScene`) |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input (with the device used last) and the on-screen controls |
+| `Audio/` | The sound effects: `Synth` (the arithmetic of tones, noise, filters and reverb), `SoundBakes` (the recipes), `GameSounds` (played by the screens) |
 
 ## Frames and physics steps
 

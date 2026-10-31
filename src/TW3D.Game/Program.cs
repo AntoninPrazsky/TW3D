@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using TW3D.Audio;
 using TW3D.GamePlay;
 
 namespace TW3D
@@ -13,10 +14,18 @@ namespace TW3D
         ///   --level name    skips the menu and loads the given level directly (e.g. --level lock)
         ///   --tutorial      shows the tutorial's lessons of each level again, taught or not, saving nothing
         ///   --tutorial demo shows every lesson in turn, each done by itself after a while (for screenshots)
+        ///   --sounds folder writes the sound effects as WAV files into the folder and quits (to listen to them)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
         {
+            string sounds = ArgumentValue(args, "--sounds");
+            if (sounds != null)
+            {
+                GameSounds.Export(sounds);
+                return;
+            }
+
             Point? windowSize = null;
             if (Array.IndexOf(args, "--windowed") >= 0)
                 windowSize = new Point(1280, 720);

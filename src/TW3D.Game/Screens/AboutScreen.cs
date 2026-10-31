@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.Input;
 
 namespace TW3D.Screens
@@ -98,19 +99,27 @@ namespace TW3D.Screens
             //The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys)
             Item hovered = ItemAt(input.PointerPosition);
             if (input.MouseMoved)
-                focused = hovered;
+                Focus(hovered);
 
             if (input.UpPressed || input.LeftPressed)
-                focused = focused == Item.Back ? Item.Link : Item.Back;
+                Focus(focused == Item.Back ? Item.Link : Item.Back);
             else if (input.DownPressed || input.RightPressed)
-                focused = focused == Item.Link ? Item.Back : Item.Link;
+                Focus(focused == Item.Link ? Item.Back : Item.Link);
 
             if (input.PointerPressed && hovered != Item.None)
                 Activate(hovered);
             else if (input.ConfirmPressed && focused != Item.None)
                 Activate(focused);
             else if (input.BackPressed)
-                Close();
+                Activate(Item.Back);
+        }
+
+        /// <summary>Gives an item the focus; it ticks when an item gets it.</summary>
+        private void Focus(Item item)
+        {
+            if (item != Item.None && item != focused)
+                Manager.Sounds.Play(Sound.MenuMove);
+            focused = item;
         }
 
         private Item ItemAt(Vector2 position)
@@ -121,9 +130,15 @@ namespace TW3D.Screens
         private void Activate(Item item)
         {
             if (item == Item.Link)
+            {
+                Manager.Sounds.Play(Sound.MenuSelect);
                 OpenLink(RepositoryUrl);
+            }
             else
+            {
+                Manager.Sounds.Play(Sound.MenuBack);
                 Close();
+            }
         }
 
         /// <summary>Opens the address in the web browser of the system.</summary>

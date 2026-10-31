@@ -1,6 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.Input;
 
 namespace TW3D.Screens
@@ -58,7 +59,15 @@ namespace TW3D.Screens
 
             //In a row, left and right move the focus, so they do not switch an item
             if (!items.Activate(input, switchByLeftRight: !ItemsInRow) && input.BackPressed)
+            {
+                Manager.Sounds.Play(Sound.MenuBack);
                 Close();
+            }
+        }
+
+        public override void LoadContent()
+        {
+            items.Sounds = Manager.Sounds;
         }
 
         private void UpdateLayout()

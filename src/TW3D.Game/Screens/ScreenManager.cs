@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.Input;
 
 namespace TW3D.Screens
@@ -35,6 +36,9 @@ namespace TW3D.Screens
         public SpriteBatch SpriteBatch { get; private set; }
 
         public GameFonts Fonts { get; private set; }
+
+        /// <summary>The sound effects (see <see cref="GameSounds"/>).</summary>
+        public GameSounds Sounds { get; private set; }
 
         public InputState Input { get; } = new InputState();
 
@@ -90,6 +94,7 @@ namespace TW3D.Screens
         {
             SpriteBatch = new SpriteBatch(GraphicsDevice);
             Fonts = new GameFonts(Content);
+            Sounds = new GameSounds();
             Pixel = new Texture2D(GraphicsDevice, 1, 1);
             Pixel.SetData(new[] { Color.White });
             pointerTexture = Content.Load<Texture2D>("Common/cursor");
@@ -105,6 +110,7 @@ namespace TW3D.Screens
                 screen.UnloadContent();
             Pixel.Dispose();
             SpriteBatch.Dispose();
+            Sounds.Dispose();
         }
 
         public override void Update(GameTime gameTime)

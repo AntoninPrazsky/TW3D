@@ -44,6 +44,9 @@ namespace TW3D
         /// <summary>The cards of the tutorial while driving.</summary>
         public bool Tutorial { get; set; } = true;
 
+        /// <summary>The volume of the sound effects, 0..1.</summary>
+        public float SoundVolume { get; set; } = 0.8f;
+
         /// <summary>The car chosen in the garage: the model of its body (see Catalog.Cars).</summary>
         public string Car { get; set; } = "car";
 

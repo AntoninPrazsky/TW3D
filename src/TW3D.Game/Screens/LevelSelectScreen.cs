@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using TW3D.Audio;
 using TW3D.Input;
 
 namespace TW3D.Screens
@@ -197,11 +198,11 @@ namespace TW3D.Screens
 
             int hovered = LevelAt(pointer);
             if (hovered >= 0 || input.MouseMoved)
-                focusedLevel = hovered;
+                Focus(hovered);
 
             if (input.PointerPressed && back.Contains(pointer))
             {
-                Close();
+                GoBack();
                 return;
             }
 
@@ -238,7 +239,7 @@ namespace TW3D.Screens
             if (input.PointerReleased)
             {
                 if (drag == Drag.PressedOnLevel && LevelAt(pointer) == pressedLevel)
-                    startLevel(levels[pressedLevel]);
+                    Start(pressedLevel);
                 drag = Drag.None;
             }
             else if (input.Pointers.Count == 0)
@@ -255,9 +256,29 @@ namespace TW3D.Screens
             HandleKeyboardFocus(input);
 
             if (input.ConfirmPressed && focusedLevel >= 0)
-                startLevel(levels[focusedLevel]);
+                Start(focusedLevel);
             else if (input.BackPressed)
-                Close();
+                GoBack();
+        }
+
+        /// <summary>Gives a level the focus (-1: none); it ticks when a level gets it.</summary>
+        private void Focus(int level)
+        {
+            if (level >= 0 && level != focusedLevel)
+                Manager.Sounds.Play(Sound.MenuMove);
+            focusedLevel = level;
+        }
+
+        private void Start(int level)
+        {
+            Manager.Sounds.Play(Sound.MenuSelect);
+            startLevel(levels[level]);
+        }
+
+        private void GoBack()
+        {
+            Manager.Sounds.Play(Sound.MenuBack);
+            Close();
         }
 
         private void HandleKeyboardFocus(InputState input)
@@ -270,7 +291,7 @@ namespace TW3D.Screens
             if (move == 0 || levels.Count == 0)
                 return;
 
-            focusedLevel = focusedLevel < 0 ? 0 : MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1);
+            Focus(focusedLevel < 0 ? 0 : MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1));
 
             //Scroll so that the focused level is fully visible
             Rectangle bounds = LevelBounds(focusedLevel);

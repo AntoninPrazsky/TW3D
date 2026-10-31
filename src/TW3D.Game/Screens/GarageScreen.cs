@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.GameObjects;
+using TW3D.Audio;
 using TW3D.Input;
 using TW3D.Shared;
 
@@ -143,6 +144,7 @@ namespace TW3D.Screens
             if (!HasCar(direction))
                 return;
             selected += direction;
+            Manager.Sounds.Play(Sound.GarageSwitch);
             //The row moves by one car: the car chosen stays where it is on the screen, then settles in the middle
             scroll = MathHelper.Clamp(scroll + direction * Spacing, -Spacing, Spacing);
             settings.Car = cars[selected].Model;
@@ -166,6 +168,8 @@ namespace TW3D.Screens
                 Rear = axle == Row.RearWheels ? next : chosen.Rear
             };
             settings.Save();
+            //Wheels are smaller than a car: they sound higher
+            Manager.Sounds.Play(Sound.GarageSwitch, 0.4f);
         }
 
         public override void Update(GameTime gameTime)
@@ -232,7 +236,10 @@ namespace TW3D.Screens
                 }
             }
             if (input.BackPressed || input.ConfirmPressed || (input.PointerPressed && back.Contains(pointer)))
+            {
+                Manager.Sounds.Play(Sound.MenuBack);
                 Close();
+            }
         }
 
         /// <summary>Back, the arrows or a wheel choice is at the position.</summary>

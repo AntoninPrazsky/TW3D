@@ -33,6 +33,7 @@ Game arguments for development:
 | `--level <name>` | Skips the menu and loads the level directly (the file name in `content/Levels` without `.json`, e.g. `lock`). Esc returns to the menu. |
 | `--tutorial` | Shows the tutorial's lessons of each level again, learnt or not, saving nothing |
 | `--tutorial demo` | Shows every lesson of the tutorial in turn on any level, each done by itself after two seconds (for screenshots), saving nothing |
+| `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them |
 
 The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
 the game has not been tested there yet. The level editor runs on Windows only.
@@ -46,7 +47,8 @@ dotnet test TW3D.slnx
 `tests/TW3D.Tests` (xUnit) tests what needs no graphics device: the shipped content (every
 level fits the catalog, has a finish and a preview and is written as `LevelFile` writes
 it; every model of the catalog exists and is built, and the physics has its collision
-shape), the score of a run and the rules of the tutorial. The files of the game it tests
+shape), the score of a run, the rules of the tutorial and the sound effects (each peaks at 0.9,
+ends quietly and has most of its energy between 300 Hz and 4 kHz). The files of the game it tests
 are compiled into it, as they have no MonoGame in them.
 
 Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in

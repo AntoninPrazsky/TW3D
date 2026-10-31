@@ -32,9 +32,22 @@ opens in the web browser (clicked, or chosen by the keys and Enter).
 Full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion, the frame rate (frames per second in the top left
-corner) and the tutorial. With some graphics drivers the game stutters in full screen (measured on an
-AMD Radeon with OpenGL), but not in a window. They are saved in `TW3D/settings.json` in the
-user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
+corner), the tutorial and the volume of the sound (in tenths; Enter turns it up, round to
+off, left and right turn it down and up). A window was the cure when the game stuttered in
+full screen with one graphics driver (an AMD Radeon with OpenGL, 2026). They are saved in
+`TW3D/settings.json` in the user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
+
+## Sound
+
+The sound effects are synthesized when the game starts, no recorded files: the menus (the
+focus moving, an item chosen, going back), the countdown (3, 2, 1 and the start an octave
+higher), the finish, the stars of the results one after another (a major chord) and a new
+record, and the cars and wheels changing in the garage. They follow the rules of the sounds
+of BS3D: pleasant before realistic, nothing harsh, recognizable between 300 Hz and 4 kHz
+(small speakers play little below), mono, and the sounds that are not notes a little higher
+or lower each time. `--sounds <folder>` writes them as WAV files to listen to (see
+[Building](building.md)). The recipes are in `Audio/SoundBakes.cs`, the arithmetic in
+`Audio/Synth.cs`.
 
 ## Driving
 

@@ -1,13 +1,17 @@
 using System;
+using TW3D.Audio;
 
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The Options menu: the graphics and display settings and the tutorial. Selecting an item (or pressing left or right on it)
+    /// The Options menu: the graphics and display settings, the tutorial and the volume of the sound. Selecting an item (or pressing left or right on it)
     /// switches its value; the settings are saved at once.
     /// </summary>
     public sealed class OptionsScreen : ListMenuScreen
     {
+        //The volume changes by tenths
+        private const float VolumeStep = 0.1f;
+
         private readonly GameSettings settings;
 
         /// <param name="displayChanged">Applies a switch between full screen and a window; null = no such option (phones).</param>
@@ -63,7 +67,21 @@ namespace TW3D.Screens
                 Activate = () => Change(() => settings.Tutorial = !settings.Tutorial),
                 IsSwitch = true
             });
+            //Enter (or a click) turns the volume up, round to off; left and right turn it down and up
+            AddItem(new MenuItem
+            {
+                Text = () => "Sound: " + (settings.SoundVolume > 0f ? MathF.Round(settings.SoundVolume * 100f) + "%" : "Off"),
+                Activate = () => SetVolume(settings.SoundVolume >= 1f ? 0f : settings.SoundVolume + VolumeStep),
+                Adjust = step => SetVolume(settings.SoundVolume + step * VolumeStep),
+                IsSwitch = true
+            });
             AddItem(new MenuItem { Text = () => "Back", Activate = Close });
+        }
+
+        private void SetVolume(float volume)
+        {
+            Change(() => settings.SoundVolume = Math.Clamp(MathF.Round(volume / VolumeStep) * VolumeStep, 0f, 1f));
+            GameSounds.Volume = settings.SoundVolume;
         }
 
         private void Change(Action change)

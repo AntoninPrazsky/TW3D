@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.Input;
 
 namespace TW3D.Screens
@@ -9,7 +10,8 @@ namespace TW3D.Screens
     /// <summary>
     /// The items of a menu and the one of them that has the focus: the item under the mouse when it moves, or the one
     /// the arrow keys or a gamepad moved the focus to. An item is activated by a click or a touch on it, or by Enter
-    /// (the gamepad A) on the focused one. The screen places the items (see <see cref="MenuItem.Place"/>).
+    /// (the gamepad A) on the focused one. The screen places the items (see <see cref="MenuItem.Place"/>). The focus moving
+    /// and an item chosen sound (see <see cref="Sounds"/>).
     /// </summary>
     public sealed class MenuItems : IReadOnlyList<MenuItem>
     {
@@ -26,6 +28,9 @@ namespace TW3D.Screens
 
         /// <summary>Index of the item with the focus; -1 for none.</summary>
         public int Focused { get; private set; } = -1;
+
+        /// <summary>The sounds of the menu; null for silence.</summary>
+        public GameSounds Sounds { get; set; }
 
         public void Add(MenuItem item)
         {
@@ -45,7 +50,15 @@ namespace TW3D.Screens
         public void FollowMouse(InputState input)
         {
             if (input.MouseMoved)
-                Focused = ItemAt(input.PointerPosition);
+                Focus(ItemAt(input.PointerPosition));
+        }
+
+        /// <summary>Gives an item the focus (-1: none); it ticks when an item gets it.</summary>
+        private void Focus(int index)
+        {
+            if (index >= 0 && index != Focused)
+                Sounds?.Play(Sound.MenuMove);
+            Focused = index;
         }
 
         /// <summary>Moves the focus to the next (1) or the previous (-1) item that can be chosen, around the ends.</summary>
@@ -57,7 +70,7 @@ namespace TW3D.Screens
                 index = (index + direction + items.Count) % items.Count;
                 if (items[index].IsEnabled())
                 {
-                    Focused = index;
+                    Focus(index);
                     return;
                 }
             }
@@ -73,18 +86,35 @@ namespace TW3D.Screens
             int pressed = input.PointerPressed ? ItemAt(input.PointerPosition) : -1;
             if (pressed >= 0)
             {
-                items[pressed].Activate();
+                Choose(() => items[pressed].Activate());
                 return true;
             }
 
             if (Focused < 0 || !items[Focused].IsEnabled())
                 return false;
-            if (input.ConfirmPressed || (switchByLeftRight && items[Focused].IsSwitch && (input.LeftPressed || input.RightPressed)))
+            MenuItem item = items[Focused];
+            int step = input.LeftPressed ? -1 : input.RightPressed ? 1 : 0;
+            if (switchByLeftRight && item.IsSwitch && step != 0)
             {
-                items[Focused].Activate();
+                if (item.Adjust != null)
+                    Choose(() => item.Adjust(step));
+                else
+                    Choose(item.Activate);
+                return true;
+            }
+            if (input.ConfirmPressed)
+            {
+                Choose(item.Activate);
                 return true;
             }
             return false;
+        }
+
+        /// <summary>Does what an item does, then sounds (after it: a volume changed is heard at its new level).</summary>
+        private void Choose(System.Action action)
+        {
+            action();
+            Sounds?.Play(Sound.MenuSelect);
         }
 
         /// <summary>

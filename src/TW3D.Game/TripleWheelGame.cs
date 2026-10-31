@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Audio;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
@@ -160,6 +161,7 @@ namespace TW3D
         protected override void Initialize()
         {
             base.Initialize();
+            GameSounds.Volume = settings.SoundVolume;
 #if !ANDROID
             MaximizeWindow();
 #endif
