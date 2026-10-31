@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using nkast.Aether.Physics2D.Dynamics;
@@ -56,6 +57,12 @@ namespace TW3D.GameObjects
         /// <summary>The level has a finish block, so a run of it can end (see <see cref="IsAtFinish"/>).</summary>
         public bool HasFinish => finishArea.HasValue;
 
+        /// <summary>
+        /// How low the lowest block of the track reaches (physics y, which grows downwards); below it there is nothing to
+        /// land on.
+        /// </summary>
+        public float Bottom { get; }
+
         /// <param name="fileName">Name of the level file in Content/Levels, without the extension.</param>
         public Level(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, LevelAssets assets, Vector2 position, string fileName)
         {
@@ -86,6 +93,8 @@ namespace TW3D.GameObjects
 
             foreach (BlockPlacement placement in data.Middle)
                 middle.Add(CreateBlock(placement, assets, true));
+            //A block is as large as its cell, around its position
+            Bottom = middle.Count > 0 ? middle.Max(block => block.Position.Y) + Units.GridCell / 2f : 0f;
             foreach (BlockPlacement placement in data.Back)
                 back.Add(CreateBlock(placement, assets, false));
             foreach (BlockPlacement placement in data.Front)

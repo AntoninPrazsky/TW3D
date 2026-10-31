@@ -7,7 +7,7 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// What a run shows over the level: the time of the run at the top of the screen with the par time of the level
-    /// below it, and in the middle of the screen the countdown (3, 2, 1, Start) and the finish.
+    /// below it, and in the middle of the screen the countdown (3, 2, 1, Start) and the finish, or the game over.
     /// </summary>
     static class RaceHud
     {
@@ -16,6 +16,8 @@ namespace TW3D.GamePlay
         private const float CountdownScale = 2.6f;
         private const float TimeScale = 0.6f;
         private const float ParScale = 0.35f;
+        //The colour of Game over: a soft red
+        private static readonly Color GameOverColour = new Color(255, 120, 100);
 
         /// <summary>Draws the display of a run; called between SpriteBatch.Begin and End. Returns where the time and the par time end.</summary>
         /// <param name="timeAlpha">How visible the time and the par time are: they fade out as the results come.</param>
@@ -39,7 +41,7 @@ namespace TW3D.GamePlay
             }
 
             //3, 2, 1: each number appears large and shrinks a little; then Start, fading out; at the finish Finish,
-            //until the results come
+            //until the results come, or Game over when the car fell off the level
             switch (race.State)
             {
                 case RaceState.Countdown:
@@ -52,6 +54,9 @@ namespace TW3D.GamePlay
                     break;
                 case RaceState.Finished when !race.ResultsDue:
                     DrawBig(manager, "Finish", MainMenuScreen.Yellow, 1f, 1f);
+                    break;
+                case RaceState.Lost when !race.ResultsDue:
+                    DrawBig(manager, "Game over", GameOverColour, 1f, 1f);
                     break;
             }
             return bottom;

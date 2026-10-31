@@ -10,7 +10,7 @@ namespace TW3D.Screens
     /// <summary>
     /// The results of a level, over the level at its finish: the stars, the time, the score and the best time in the
     /// middle, along the bottom the level select, the level again and the next level. Esc (Back) goes to the level
-    /// select.
+    /// select. A run lost (the car fell off the level) gets them too, titled Game over: no stars, no time.
     /// </summary>
     public sealed class ResultsScreen : ListMenuScreen
     {
@@ -30,7 +30,7 @@ namespace TW3D.Screens
         private readonly string[] lines;
         private readonly string note;
         private readonly bool noteHighlighted;
-        private readonly Action levelSelect;
+        private Action levelSelect;
         private readonly bool record;
         //Seconds since the results came, the stars rung so far and whether the record has rung
         private float age;
@@ -52,7 +52,6 @@ namespace TW3D.Screens
             ItemsInRow = true;
             FadeInTime = TimeSpan.FromSeconds(0.4);
             FadeOutTime = TimeSpan.FromSeconds(0.25);
-            this.levelSelect = levelSelect;
             this.record = record && counted;
 
             stars = RaceScore.Stars(time, par);
@@ -71,6 +70,31 @@ namespace TW3D.Screens
             else if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
 
+            AddButtons(nextLevel, restart, levelSelect);
+        }
+
+        /// <summary>The results of a run lost: the car fell off the level, so there are no stars and no time.</summary>
+        /// <param name="previousBest">The best time of the level; null if it was not finished before.</param>
+        /// <param name="nextLevel">Starts the next level; null if this is the last one.</param>
+        /// <param name="restart">Starts the level again.</param>
+        /// <param name="levelSelect">Leaves the level for the level select.</param>
+        public ResultsScreen(float? previousBest, Action nextLevel, Action restart, Action levelSelect)
+            : base("Game over")
+        {
+            IsPopup = true;
+            ItemsInRow = true;
+            FadeInTime = TimeSpan.FromSeconds(0.4);
+            FadeOutTime = TimeSpan.FromSeconds(0.25);
+
+            lines = new[] { "Fell off the track" };
+            if (previousBest.HasValue)
+                note = "Best " + RaceScore.FormatTime(previousBest.Value);
+            AddButtons(nextLevel, restart, levelSelect);
+        }
+
+        private void AddButtons(Action nextLevel, Action restart, Action levelSelect)
+        {
+            this.levelSelect = levelSelect;
             //From left to right: back, again, on
             AddItem(new MenuItem { Text = () => "Level select", Activate = () => Leave(levelSelect) });
             AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });

@@ -41,8 +41,8 @@ full screen with one graphics driver (an AMD Radeon with OpenGL, 2026). They are
 
 The sound effects are synthesized when the game starts, no recorded files: the menus (the
 focus moving, an item chosen, going back), the countdown (3, 2, 1 and the start an octave
-higher), the finish, the stars of the results one after another (a major chord) and a new
-record, and the cars and wheels changing in the garage. They are pleasant and deep rather
+higher), the finish, a lost run (the chord broken downwards), the stars of the results one
+after another (a major chord) and a new record, and the cars and wheels changing in the garage. They are pleasant and deep rather
 than bright: struck bars (a marimba) and soft bongs in C major, low, with the octave below
 for body, never a beep; nothing shrill above 5 kHz, but enough between 300 Hz and 4 kHz for
 small speakers, which play little below. Mono. The notes are never nudged off their pitch,
@@ -150,10 +150,16 @@ level (its finish block, see the [level format](levels.md#level-format)); below 
 par time of the level, the time a good run takes. The score is 1000 × par time / time:
 finishing in the par time scores 1000 points, faster more and slower less (half the time,
 twice the points). A run within the par time gets three stars, within one and a half of it
-two, otherwise one. The results offer the level select, the level again and the next level
-in a row along the bottom of the screen (left and right choose between them). The best
-time of each level is kept (in `TW3D/records.json` next to the settings), and the level
-select shows it with its stars. A run in which the car was dragged by hand does not count.
+two, otherwise one. Past the finish the car brakes on its own. The results offer the level
+select, the level again and the next level in a row along the bottom of the screen (left and
+right choose between them). The best time of each level is kept (in `TW3D/records.json` next
+to the settings), and the level select shows it with its stars. A run in which the car was
+dragged by hand does not count.
+
+A car that falls off the level (below its lowest block, where there is nothing to land on)
+for a second, while nobody holds it, loses the run (`GamePlay/Race.cs`): Game over, with a
+falling chord, and results titled Game over with no stars and no time. The camera does not
+follow the car below the level, so it drops out of sight, and stays where it was lost.
 
 ## Development keys
 

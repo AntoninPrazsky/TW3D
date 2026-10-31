@@ -15,6 +15,8 @@ namespace TW3D.Audio
         Countdown,
         Start,
         Finish,
+        /// <summary>The car fell off the level: the run is lost.</summary>
+        GameOver,
         /// <summary>A star of the results; played a third and a fifth higher for the second and the third star.</summary>
         Star,
         NewRecord,
@@ -68,6 +70,7 @@ namespace TW3D.Audio
             Sound.Countdown => 0.6f,
             Sound.Start => 0.65f,
             Sound.Finish => 0.65f,
+            Sound.GameOver => 0.6f,
             Sound.Star => 0.55f,
             Sound.NewRecord => 0.6f,
             Sound.GarageSwitch => 0.4f,
@@ -110,6 +113,7 @@ namespace TW3D.Audio
                 Sound.Countdown => Bong(G4, 0.5f, 6f),
                 Sound.Start => Bong(G5, 0.9f, 3f),
                 Sound.Finish => Finish(),
+                Sound.GameOver => GameOver(),
                 Sound.Star => Star(),
                 Sound.NewRecord => NewRecord(),
                 Sound.GarageSwitch => Whoosh(),
@@ -212,6 +216,23 @@ namespace TW3D.Audio
             for (int i = 0; i < notes.Length; i++)
                 Mallet(signal, i * 0.1f, notes[i], 0.6f, i == notes.Length - 1 ? 2.5f : 4f, 1.5f);
             Pad(signal, 0.3f, 1.6f, 0.12f, C4, E4, G4);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.8f, 0.3f, 0.7f);
+            Synth.FadeOut(signal, 0.4f);
+            return signal;
+        }
+
+        /// <summary>
+        /// Game over: the chord of C major broken downwards on bars, slower than the fanfare of the finish, over the chord
+        /// held softly; gentle, not a buzzer.
+        /// </summary>
+        private static float[] GameOver()
+        {
+            float[] signal = Synth.Buffer(2.4f);
+            float[] notes = { G4, E4, C4 };
+            for (int i = 0; i < notes.Length; i++)
+                Mallet(signal, i * 0.22f, notes[i], 0.6f, i == notes.Length - 1 ? 2f : 4f, 1.6f);
+            Pad(signal, 0.45f, 1.6f, 0.1f, C4, E4, G4);
             Synth.LowPass(signal, 3500f);
             Synth.Reverb(signal, 0.8f, 0.3f, 0.7f);
             Synth.FadeOut(signal, 0.4f);

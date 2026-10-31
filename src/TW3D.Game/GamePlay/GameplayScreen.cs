@@ -19,7 +19,7 @@ namespace TW3D.GamePlay
     /// The game itself: one level with the car, its physics simulation, the 3D view, the on-screen controls, the
     /// tutorial, the pause menu and the keys for development. A run of the level (see <see cref="Race"/>) starts with
     /// a countdown, the car held still; the time runs from the start until the car reaches the finish block of the
-    /// level, then the results follow.
+    /// level, then the car brakes and the results follow. A car fallen off the level loses the run: game over.
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
@@ -68,6 +68,9 @@ namespace TW3D.GamePlay
         private SkidMarks skidMarks;
         private TyreSmoke smoke;
         private ExhaustSmoke exhaust;
+        //Where the camera looks (physics units) and how the car it follows is turned (radians)
+        private Vector2 followed;
+        private float followedRotation;
         private readonly List<WheelSlip> slipping = new List<WheelSlip>();
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
@@ -160,10 +163,10 @@ namespace TW3D.GamePlay
 
             developmentKeys.Handle(input, elapsed);
 
-            //The car is held still before the start and rolls out after the finish
+            //The car is held still before the start and brakes after the finish
             DriveInput drive = race.State == RaceState.Racing
                 ? DriveInput.Read(input, controls)
-                : new DriveInput(Vector2.Zero, race.State == RaceState.Countdown, false);
+                : new DriveInput(Vector2.Zero, race.State is RaceState.Countdown or RaceState.Finished, false);
             Drive(drive, elapsed * GameSpeed);
             throttleHeld = Math.Abs(drive.Stick.X) > ThrottleThreshold ? Math.Min(1f, Math.Abs(drive.Stick.X)) : 0f;
             tutorial?.Update(elapsed, race.State == RaceState.Racing,
@@ -219,16 +222,31 @@ namespace TW3D.GamePlay
                 exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
             }
-            carSounds.Update(realElapsed, running, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
+            //A car fallen off the level is gone: it is not heard any more
+            carSounds.Update(realElapsed, running && race.State != RaceState.Lost, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
 
-            //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
-            camera.Update(running ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
+            //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is
+            //paused. It does not follow the car below the level: a car falling off it drops out of sight, and is left
+            //there when the run is lost
+            if (race.State != RaceState.Lost)
+            {
+                followed = physics.Position(car.car);
+                followed.Y = Math.Min(followed.Y, level.Bottom);
+                followedRotation = physics.Rotation(car.car);
+            }
+            camera.Update(running ? elapsed : 0f, Manager.Viewport, followed, followedRotation);
 
             if (HasFocus)
             {
                 RaceState before = race.State;
-                if (race.Update(realElapsed, physics.Time / GameSpeed, level.IsAtFinish(car.car.Position)))
-                    Finish();
+                bool belowLevel = car.car.Position.Y > level.Bottom && !drag.Holding;
+                if (race.Update(realElapsed, physics.Time / GameSpeed, level.IsAtFinish(car.car.Position), belowLevel))
+                {
+                    if (race.State == RaceState.Finished)
+                        Finish();
+                    else
+                        GameOver();
+                }
                 BeepCountdown(before);
                 if (race.ResultsDue && results == null)
                     ShowResults();
@@ -259,11 +277,21 @@ namespace TW3D.GamePlay
             record = !race.Assisted && records.Add(levelName, race.Time);
         }
 
+        /// <summary>The car fell off the level: the run is lost.</summary>
+        private void GameOver()
+        {
+            Manager.Sounds.Play(Sound.GameOver);
+            car.acceleration = 0f;
+            previousBest = records.BestTime(levelName);
+        }
+
         private void ShowResults()
         {
             string next = NextLevel();
-            results = new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted,
-                next != null ? () => Start(next) : null, Restart, Close);
+            Action nextLevel = next != null ? () => Start(next) : null;
+            results = race.State == RaceState.Lost
+                ? new ResultsScreen(previousBest, nextLevel, Restart, Close)
+                : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close);
             Manager.Add(results);
         }
 

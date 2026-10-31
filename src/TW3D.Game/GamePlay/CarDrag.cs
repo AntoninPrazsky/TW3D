@@ -30,6 +30,9 @@ namespace TW3D.GamePlay
             this.camera = camera;
         }
 
+        /// <summary>A pointer holds the car.</summary>
+        public bool Holding => joint != null;
+
         /// <summary>Follows the pointers; true when one of them grabs the car in this frame.</summary>
         /// <param name="controls">The on-screen controls; a pointer operating them does not grab the car.</param>
         public bool Update(InputState input, OnScreenControls controls, Viewport viewport)

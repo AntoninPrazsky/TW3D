@@ -23,6 +23,7 @@
     window): only plain logic with no MonoGame in it.
   -->
   <ItemGroup>
+    <Compile Include="..\..\src\TW3D.Game\GamePlay\Race.cs" Link="Game\Race.cs" />
     <Compile Include="..\..\src\TW3D.Game\GamePlay\RaceScore.cs" Link="Game\RaceScore.cs" />
     <Compile Include="..\..\src\TW3D.Game\GamePlay\Tutorial.cs" Link="Game\Tutorial.cs" />
     <Compile Include="..\..\src\TW3D.Game\Input\CarControl.cs" Link="Game\CarControl.cs" />
