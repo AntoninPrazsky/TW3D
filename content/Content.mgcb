@@ -1,5 +1,5 @@
 # Content pipeline project: builds the 3D models of the game (OBJ + MTL, their textures
-# are built with them) and the shaders into .xnb files. The projects reference it as
+# are built with them), the shaders and the glyph font into .xnb files. The projects reference it as
 # MonoGameContentReference, the build output goes to Content/ next to the program. The other
 # files in content/ (precompiled textures and fonts, levels, the catalog) are copied as they are.
 #
@@ -20,6 +20,11 @@
 /processor:EffectProcessor
 /build:Effects/Scene.fx
 /build:Effects/Occlusion.fx
+
+# The glyphs of the keys and buttons on the tutorial cards, from PromptFont.ttf
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/build:Fonts/promptFont.spritefont
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
 # it creates XNA compatible materials (BasicEffect), which the game draws with. The processor

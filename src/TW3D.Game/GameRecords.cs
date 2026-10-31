@@ -6,7 +6,10 @@ using System.Text.Json;
 
 namespace TW3D
 {
-    /// <summary>The best times of the levels, saved in the user's application data next to the settings.</summary>
+    /// <summary>
+    /// The best times of the levels and the lessons of the tutorial taught, saved in the user's application data next to
+    /// the settings.
+    /// </summary>
     public sealed class GameRecords
     {
         private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions
@@ -17,6 +20,9 @@ namespace TW3D
 
         /// <summary>The best time of each level finished (seconds), by the name of the level.</summary>
         public Dictionary<string, float> BestTimes { get; set; } = new Dictionary<string, float>();
+
+        /// <summary>The lessons of the tutorial taught, by their keys (see GamePlay.Tutorial.Lessons).</summary>
+        public HashSet<string> Lessons { get; set; } = new HashSet<string>();
 
         private static string FilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TW3D", "records.json");
@@ -35,6 +41,13 @@ namespace TW3D
             BestTimes[level] = time;
             Save();
             return true;
+        }
+
+        /// <summary>Records a lesson of the tutorial as taught.</summary>
+        public void AddLesson(string key)
+        {
+            if (Lessons.Add(key))
+                Save();
         }
 
         /// <summary>The saved records; none if there are none or they cannot be read.</summary>

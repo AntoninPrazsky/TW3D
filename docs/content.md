@@ -48,7 +48,10 @@ and to the wheels of the axle being chosen.
 The other files are still the precompiled `.xnb` files from XNA 4.0, without
 their sources in the repository: the images of the user interface (`Common/`),
 the level previews (`Levels/levimgs/`) and the fonts (only the font descriptions
-`*.spritefont` are here).
+`*.spritefont` are here). The exception is the font of the glyphs of keys and buttons
+on the tutorial cards: `Fonts/promptFont.spritefont` is built by the content pipeline
+from [PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open
+Font License 1.1), only the glyphs it lists.
 
 ## Editing models
 

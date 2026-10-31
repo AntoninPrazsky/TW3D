@@ -31,8 +31,8 @@ opens in the web browser (clicked, or chosen by the keys and Enter).
 
 Full screen or a window (on a desktop; the window opens maximized and
 can be resized), the look of the game (new, or classic: as the 2016 version looked),
-shadows, ambient occlusion and the frame rate (frames per second in the top left
-corner). With some graphics drivers the game stutters in full screen (measured on an
+shadows, ambient occlusion, the frame rate (frames per second in the top left
+corner) and the tutorial. With some graphics drivers the game stutters in full screen (measured on an
 AMD Radeon with OpenGL), but not in a window. They are saved in `TW3D/settings.json` in the
 user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
 
@@ -53,6 +53,28 @@ starts with them shown, a computer with them hidden).
 
 The car can also be grabbed with the mouse and dragged around. The game also pauses
 when its window loses the focus, or when a phone switches to another app.
+
+## Tutorial
+
+While driving, cards at the top of the screen teach the controls one at a time: the key,
+the gamepad button or stick, or the on-screen control (for the device used last), and
+what to do with it. An action stays until it is done, then a word of praise joins it; not
+done, it goes after about 20 seconds and comes back in the next run. A notice stays a few
+seconds. A lesson learnt is kept (in `TW3D/records.json` next to the settings) and not
+shown again; one not learnt yet follows the player into the later levels. The cards never
+stop the game; Options → Tutorial turns them off.
+
+| Lesson | From level | Card (keyboard) |
+|---|---|---|
+| `drive` | 1 | → *Hold to drive* |
+| `axles` | 1 | ↑ ↓ *Hold to turn the axles* |
+| `par` | 2 | *Beat the par time for three stars* |
+| `walk` | 2 | Space *Hold to brake*, then ↑ ↓ *Now turn the axles* / *Keep braking* |
+| `lock` | 3 | Left Ctrl *Hold to lock the axles* |
+
+The levels are counted in the order of the level select. The lessons and their state are
+in `GamePlay/Tutorial.cs`, the card is drawn by `GamePlay/TutorialCard.cs`; the design
+follows the tutorial of BS3D.
 
 ## A run of a level
 

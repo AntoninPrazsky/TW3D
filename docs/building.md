@@ -31,6 +31,8 @@ Game arguments for development:
 | `--windowed` | 1280×720 window instead of full screen |
 | `--size WxH` | Window of the given size, e.g. `--size 2560x1080` for testing other aspect ratios (the window can also be resized) |
 | `--level <name>` | Skips the menu and loads the level directly (the file name in `content/Levels` without `.json`, e.g. `lock`). Esc returns to the menu. |
+| `--tutorial` | Shows the tutorial's lessons of each level again, learnt or not, saving nothing |
+| `--tutorial demo` | Shows every lesson of the tutorial in turn on any level, each done by itself after two seconds (for screenshots), saving nothing |
 
 The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
 the game has not been tested there yet. The level editor runs on Windows only.

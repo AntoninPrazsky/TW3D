@@ -3,6 +3,15 @@ using Microsoft.Xna.Framework.Input;
 
 namespace TW3D.Input
 {
+    /// <summary>A control of the car (the tutorial cards show its key, button or on-screen control).</summary>
+    public enum CarControl
+    {
+        Throttle,
+        Axles,
+        Brake,
+        Lock
+    }
+
     /// <summary>
     /// The player's commands for the car, combined from the keyboard, the on-screen controls and a gamepad.
     /// All sources work at the same time.

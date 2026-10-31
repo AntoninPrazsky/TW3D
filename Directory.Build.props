@@ -19,6 +19,6 @@
   -->
   <PropertyGroup>
     <GameContentDir>$(MSBuildThisFileDirectory)content\</GameContentDir>
-    <ContentPipelineSources>$(GameContentDir)Content.mgcb;$(GameContentDir)**\*.obj;$(GameContentDir)**\*.mtl;$(GameContentDir)**\*.fx;$(GameContentDir)**\*.png;$(GameContentDir)**\*.spritefont;$(GameContentDir)bin\**;$(GameContentDir)obj\**</ContentPipelineSources>
+    <ContentPipelineSources>$(GameContentDir)Content.mgcb;$(GameContentDir)**\*.obj;$(GameContentDir)**\*.mtl;$(GameContentDir)**\*.fx;$(GameContentDir)**\*.png;$(GameContentDir)**\*.spritefont;$(GameContentDir)**\*.ttf;$(GameContentDir)bin\**;$(GameContentDir)obj\**</ContentPipelineSources>
   </PropertyGroup>
 </Project>

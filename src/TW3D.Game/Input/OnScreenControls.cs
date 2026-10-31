@@ -207,6 +207,53 @@ namespace TW3D.Input
             DrawPauseButton(batch, alpha);
         }
 
+        /// <summary>
+        /// Draws the on-screen control of a car control as an icon (on the tutorial cards): the joystick moving the way it
+        /// is used, or the brake or lock button being pressed. Must be called between SpriteBatch.Begin and End.
+        /// </summary>
+        /// <param name="centre">The middle of the icon.</param>
+        /// <param name="height">The height of the icon in pixels.</param>
+        /// <param name="time">Seconds since the icon appeared, for its movement.</param>
+        public void DrawIcon(SpriteBatch batch, CarControl control, Vector2 centre, float height, Color colour, float time)
+        {
+            bool pressed = time % 1.2f >= 0.6f;
+            switch (control)
+            {
+                case CarControl.Throttle:
+                case CarControl.Axles:
+                    float iconScale = height / socketTexture.Height;
+                    float swing = MathF.Sin(time * 3f);
+                    Vector2 push = control == CarControl.Throttle
+                        ? new Vector2(0.55f + 0.45f * swing, 0f)
+                        : new Vector2(0f, swing);
+                    batch.Draw(socketTexture, centre, null, colour, 0f, new Vector2(socketTexture.Width, socketTexture.Height) / 2f, iconScale, SpriteEffects.None, 0f);
+                    batch.Draw(stickTexture, centre + push * StickTravel * iconScale, null, colour, 0f, new Vector2(stickTexture.Width, stickTexture.Height) / 2f, iconScale, SpriteEffects.None, 0f);
+                    break;
+                case CarControl.Brake:
+                    DrawIconButton(batch, brakeTexture, pressed ? BrakePressedRegion : BrakeReleased, centre, height, colour);
+                    break;
+                case CarControl.Lock:
+                    DrawIconButton(batch, lockTexture, pressed ? LockPressedRegion : LockReleased, centre, height, colour);
+                    break;
+            }
+        }
+
+        /// <summary>The width of an icon of <see cref="DrawIcon"/> of the given height.</summary>
+        public float IconWidth(CarControl control, float height)
+        {
+            return control switch
+            {
+                CarControl.Brake => height * BrakeReleased.Width / BrakeReleased.Height,
+                CarControl.Lock => height * LockReleased.Width / LockReleased.Height,
+                _ => height * socketTexture.Width / socketTexture.Height
+            };
+        }
+
+        private static void DrawIconButton(SpriteBatch batch, Texture2D texture, Rectangle region, Vector2 centre, float height, Color colour)
+        {
+            batch.Draw(texture, centre, region, colour, 0f, new Vector2(region.Width, region.Height) / 2f, height / region.Height, SpriteEffects.None, 0f);
+        }
+
         /// <summary>Two upright bars, like the buttons half transparent.</summary>
         private void DrawPauseButton(SpriteBatch batch, float alpha)
         {

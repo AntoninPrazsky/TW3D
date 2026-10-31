@@ -17,9 +17,9 @@ namespace TW3D.GamePlay
         private const float TimeScale = 0.6f;
         private const float ParScale = 0.35f;
 
-        /// <summary>Draws the display of a run; called between SpriteBatch.Begin and End.</summary>
+        /// <summary>Draws the display of a run; called between SpriteBatch.Begin and End. Returns where the time and the par time end.</summary>
         /// <param name="timeAlpha">How visible the time and the par time are: they fade out as the results come.</param>
-        public static void Draw(ScreenManager manager, Race race, float timeAlpha)
+        public static float Draw(ScreenManager manager, Race race, float timeAlpha)
         {
             SpriteFont font = manager.Fonts.Menu;
             float uiScale = manager.UiScale;
@@ -29,11 +29,13 @@ namespace TW3D.GamePlay
             string time = RaceScore.FormatTime(race.State == RaceState.Countdown ? 0f : race.Time);
             Color timeColour = race.State == RaceState.Finished ? MainMenuScreen.Yellow : Color.White;
             Vector2 timeSize = DrawTime(manager, time, new Vector2(centreX, safe.Top), timeColour * timeAlpha, TimeScale * uiScale, timeAlpha);
+            float bottom = safe.Top + timeSize.Y;
             if (race.HasFinish)
             {
                 string par = "Par " + RaceScore.FormatTime(race.Par);
                 Vector2 parSize = font.MeasureString(par) * ParScale * uiScale;
-                manager.DrawShadowedText(font, par, new Vector2(centreX - parSize.X / 2f, safe.Top + timeSize.Y), Color.LightGray * timeAlpha, Color.Black * timeAlpha, ParScale * uiScale);
+                manager.DrawShadowedText(font, par, new Vector2(centreX - parSize.X / 2f, bottom), Color.LightGray * timeAlpha, Color.Black * timeAlpha, ParScale * uiScale);
+                bottom += parSize.Y;
             }
 
             //3, 2, 1: each number appears large and shrinks a little; then Start, fading out; at the finish Finish,
@@ -52,6 +54,7 @@ namespace TW3D.GamePlay
                     DrawBig(manager, "Finish", MainMenuScreen.Yellow, 1f, 1f);
                     break;
             }
+            return bottom;
         }
 
         /// <summary>

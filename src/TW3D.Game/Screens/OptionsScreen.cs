@@ -3,7 +3,7 @@ using System;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The Options menu: the graphics and display settings. Selecting an item (or pressing left or right on it)
+    /// The Options menu: the graphics and display settings and the tutorial. Selecting an item (or pressing left or right on it)
     /// switches its value; the settings are saved at once.
     /// </summary>
     public sealed class OptionsScreen : ListMenuScreen
@@ -55,6 +55,12 @@ namespace TW3D.Screens
             {
                 Text = () => "Frame rate: " + (settings.ShowFrameRate ? "On" : "Off"),
                 Activate = () => Change(() => settings.ShowFrameRate = !settings.ShowFrameRate),
+                IsSwitch = true
+            });
+            AddItem(new MenuItem
+            {
+                Text = () => "Tutorial: " + (settings.Tutorial ? "On" : "Off"),
+                Activate = () => Change(() => settings.Tutorial = !settings.Tutorial),
                 IsSwitch = true
             });
             AddItem(new MenuItem { Text = () => "Back", Activate = Close });

@@ -41,6 +41,9 @@ namespace TW3D
         /// <summary>Frames per second in the top left corner.</summary>
         public bool ShowFrameRate { get; set; } = true;
 
+        /// <summary>The cards of the tutorial while driving.</summary>
+        public bool Tutorial { get; set; } = true;
+
         /// <summary>The car chosen in the garage: the model of its body (see Catalog.Cars).</summary>
         public string Car { get; set; } = "car";
 

@@ -15,10 +15,10 @@ using TW3D.Shared;
 namespace TW3D.GamePlay
 {
     /// <summary>
-    /// The game itself: one level with the car, its physics simulation, the 3D view, the on-screen controls, the pause
-    /// menu and the keys for development. A run of the level (see <see cref="Race"/>) starts with a countdown, the car
-    /// held still; the time runs from the start until the car reaches the finish block of the level, then the results
-    /// follow.
+    /// The game itself: one level with the car, its physics simulation, the 3D view, the on-screen controls, the
+    /// tutorial, the pause menu and the keys for development. A run of the level (see <see cref="Race"/>) starts with
+    /// a countdown, the car held still; the time runs from the start until the car reaches the finish block of the
+    /// level, then the results follow.
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
@@ -27,6 +27,10 @@ namespace TW3D.GamePlay
         //Shrinking the whole world while keeping its look would be the same as running the game faster:
         //everything moves along the same paths, only in a shorter time.
         private const float GameSpeed = 1.5f;
+
+        //How far the stick has to be pushed sideways to drive, and up or down to turn the axles
+        private const float ThrottleThreshold = 0.2f;
+        private const float AxlesThreshold = 0.7f;
 
         //Where the car starts (physics units): on the road at the cell [0, 0] of the level
         private static readonly Vector2 CarStart = new Vector2(-1.6f, -7f);
@@ -49,6 +53,8 @@ namespace TW3D.GamePlay
         private Sky sky;
         private Car car;
         private Race race;
+        //The cards of the tutorial; null when the tutorial is off
+        private Tutorial tutorial;
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
         private bool record;
@@ -105,6 +111,8 @@ namespace TW3D.GamePlay
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
             developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood);
+            if (settings.Tutorial || Tutorial.Lever != TutorialLever.None)
+                tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
 
             //Loading takes a while; the game should not try to catch up with the lost time afterwards
@@ -134,6 +142,8 @@ namespace TW3D.GamePlay
                 ? DriveInput.Read(input, controls)
                 : new DriveInput(Vector2.Zero, race.State == RaceState.Countdown, false);
             Drive(drive, elapsed * GameSpeed);
+            tutorial?.Update(elapsed, race.State == RaceState.Racing,
+                new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage));
 
             //A run in which the car was dragged by hand does not count
             if (drag.Update(input, controls, Manager.Viewport) && race.State != RaceState.Finished)
@@ -144,13 +154,13 @@ namespace TW3D.GamePlay
         private void Drive(DriveInput drive, float elapsed)
         {
             //Throttle, slowly fading out when released
-            if (Math.Abs(drive.Stick.X) > 0.2f)
+            if (Math.Abs(drive.Stick.X) > ThrottleThreshold)
                 car.acceleration = drive.Stick.X * 5f;
             else
                 car.acceleration -= Math.Sign(car.acceleration) * 2f * elapsed;
 
             //Axle rotation
-            car.holderRotation = Math.Abs(drive.Stick.Y) > 0.7f;
+            car.holderRotation = Math.Abs(drive.Stick.Y) > AxlesThreshold;
             if (car.holderRotation)
                 car.holderRotationDir = drive.Stick.Y > 0f;
 
@@ -229,10 +239,17 @@ namespace TW3D.GamePlay
         /// <summary>The level after this one in the level select; null if this is the last one.</summary>
         private string NextLevel()
         {
-            for (int i = 0; i + 1 < levels.Count; i++)
-                if (levels[i] == levelName)
-                    return levels[i + 1];
-            return null;
+            int index = IndexOf(levelName);
+            return index >= 0 && index + 1 < levels.Count ? levels[index + 1] : null;
+        }
+
+        /// <summary>The position of a level in the level select; -1 if it is not there.</summary>
+        private int IndexOf(string level)
+        {
+            for (int i = 0; i < levels.Count; i++)
+                if (levels[i] == level)
+                    return i;
+            return -1;
         }
 
         private void ExitToMainMenu()
@@ -260,7 +277,9 @@ namespace TW3D.GamePlay
             controls.Layout(Manager.Viewport, Manager.ControlsScale);
             controls.Draw(batch, 1f);
             //The time gives way to the title of the results, which show it too
-            RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
+            float hudBottom = RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
+            if (tutorial != null)
+                TutorialCard.Draw(Manager, tutorial, controls, hudBottom);
             //Fading in and out through black
             batch.Draw(Manager.Pixel, Manager.Viewport.Bounds, Color.Black * (1f - Visibility));
             batch.End();

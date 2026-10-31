@@ -116,7 +116,8 @@ namespace TW3D.Input
         }
 
         /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
-        public void Update(Point windowOrigin)
+        /// <param name="active">The game has the focus; the devices are noted only then (the mouse moves over other windows too).</param>
+        public void Update(Point windowOrigin, bool active)
         {
             PreviousKeyboard = Keyboard;
             PreviousMouse = Mouse;
@@ -140,7 +141,7 @@ namespace TW3D.Input
                 }
             }
 
-            NoteDevice(pointers.Count > 0, windowOrigin);
+            NoteDevice(pointers.Count > 0, windowOrigin, active);
 
             if (pointers.Count == 0)
                 AddMousePointer();
@@ -162,10 +163,16 @@ namespace TW3D.Input
 
         /// <param name="touched">Something touches the screen.</param>
         /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
-        private void NoteDevice(bool touched, Point windowOrigin)
+        /// <param name="active">The game has the focus.</param>
+        private void NoteDevice(bool touched, Point windowOrigin, bool active)
         {
             //The mouse on the screen, not in the window: moving the window under it is no use of the mouse
             Point mouse = Mouse.Position + windowOrigin;
+            if (!active)
+            {
+                mouseRest = mouse;
+                return;
+            }
             mouseRest ??= mouse;
             Point moved = mouse - mouseRest.Value;
 

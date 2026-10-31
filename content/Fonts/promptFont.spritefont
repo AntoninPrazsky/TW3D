@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  PromptFont (content/Fonts/PromptFont.ttf, SIL Open Font License 1.1, see PromptFont-OFL.txt): the glyphs of the
+  keys and gamepad buttons on the tutorial cards. Only the glyphs the game draws are built; a new one needs its
+  character region here (and a look at it rendered: the font has a glyph for a codepoint, not always the one expected).
+-->
+<XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
+  <Asset Type="Graphics:FontDescription">
+    <FontName>PromptFont.ttf</FontName>
+    <Size>72</Size>
+    <Spacing>0</Spacing>
+    <UseKerning>false</UseKerning>
+    <Style>Regular</Style>
+    <CharacterRegions>
+      <!-- → arrow right (keyboard: drive) -->
+      <CharacterRegion>
+        <Start>&#x2192;</Start>
+        <End>&#x2192;</End>
+      </CharacterRegion>
+      <!-- ↑ arrow up (keyboard: axles) -->
+      <CharacterRegion>
+        <Start>&#x2191;</Start>
+        <End>&#x2191;</End>
+      </CharacterRegion>
+      <!-- ↓ arrow down (keyboard: axles) -->
+      <CharacterRegion>
+        <Start>&#x2193;</Start>
+        <End>&#x2193;</End>
+      </CharacterRegion>
+      <!-- left stick right (pad: drive) -->
+      <CharacterRegion>
+        <Start>&#x21C0;</Start>
+        <End>&#x21C0;</End>
+      </CharacterRegion>
+      <!-- left stick up and down (pad: axles) -->
+      <CharacterRegion>
+        <Start>&#x21C5;</Start>
+        <End>&#x21C5;</End>
+      </CharacterRegion>
+      <!-- B button (pad: lock) -->
+      <CharacterRegion>
+        <Start>&#x21D2;</Start>
+        <End>&#x21D2;</End>
+      </CharacterRegion>
+      <!-- A button (pad: brake) -->
+      <CharacterRegion>
+        <Start>&#x21D3;</Start>
+        <End>&#x21D3;</End>
+      </CharacterRegion>
+      <!-- Space key (keyboard: brake) -->
+      <CharacterRegion>
+        <Start>&#x243A;</Start>
+        <End>&#x243A;</End>
+      </CharacterRegion>
+      <!-- left Ctrl key (keyboard: lock) -->
+      <CharacterRegion>
+        <Start>&#x244D;</Start>
+        <End>&#x244D;</End>
+      </CharacterRegion>
+    </CharacterRegions>
+  </Asset>
+</XnaContent>

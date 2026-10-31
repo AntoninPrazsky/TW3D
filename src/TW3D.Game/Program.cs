@@ -1,5 +1,6 @@
 using System;
 using Microsoft.Xna.Framework;
+using TW3D.GamePlay;
 
 namespace TW3D
 {
@@ -10,6 +11,8 @@ namespace TW3D
         ///   --windowed      runs the game in a 1280×720 window instead of full screen
         ///   --size WxH      runs the game in a window of the given size (e.g. --size 2560x1080)
         ///   --level name    skips the menu and loads the given level directly (e.g. --level lock)
+        ///   --tutorial      shows the tutorial's lessons of each level again, taught or not, saving nothing
+        ///   --tutorial demo shows every lesson in turn, each done by itself after a while (for screenshots)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
@@ -25,6 +28,9 @@ namespace TW3D
                 if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height))
                     windowSize = new Point(width, height);
             }
+
+            if (Array.IndexOf(args, "--tutorial") >= 0)
+                Tutorial.Lever = ArgumentValue(args, "--tutorial") == "demo" ? TutorialLever.Demo : TutorialLever.Replay;
 
             using (var game = new TripleWheelGame(windowSize, ArgumentValue(args, "--level")))
                 game.Run();
