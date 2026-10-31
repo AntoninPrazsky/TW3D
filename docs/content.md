@@ -82,8 +82,10 @@ game and the editor:
   with, the mass of the body, the top speed (how fast the motors turn the wheels at
   most, radians per second) and its engine: how much higher it sounds (`enginePitch`,
   octaves, 0 by default) and how fast it follows the wheels (`engineResponse`, 1 / seconds,
-  3 by default): a sporty car sounds higher and revs up faster. All cars have the same chassis (the holders of the wheels,
-  `holder`), so any wheels fit any car.
+  3 by default): a sporty car sounds higher and revs up faster; and where its exhaust blows
+  out (`exhaust`: the end of the pipe in the coordinates of the model, x to the back of the
+  car and y up, one pipe on each side, at z and -z). All cars have the same chassis (the
+  holders of the wheels, `holder`), so any wheels fit any car.
 - **wheels**: the wheels of the garage: the name, the model, the friction of the tyre (its
   grip on the track, whose friction is 1) and the mass of one wheel.
 

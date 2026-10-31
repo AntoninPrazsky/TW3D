@@ -67,6 +67,7 @@ namespace TW3D.GamePlay
         private const float SlipSpeed = 8f;
         private SkidMarks skidMarks;
         private TyreSmoke smoke;
+        private ExhaustSmoke exhaust;
         private readonly List<WheelSlip> slipping = new List<WheelSlip>();
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
@@ -132,6 +133,7 @@ namespace TW3D.GamePlay
             carSounds = new CarSounds(Manager.Sounds, car);
             skidMarks = new SkidMarks();
             smoke = new TyreSmoke();
+            exhaust = new ExhaustSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);
 
             //Loading takes a while; the game should not try to catch up with the lost time afterwards
@@ -214,6 +216,7 @@ namespace TW3D.GamePlay
                 car.SlippingWheels(slipping, SlipSpeed);
                 skidMarks.Update(realElapsed, car, slipping);
                 smoke.Update(realElapsed, car, slipping);
+                exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
             }
             carSounds.Update(realElapsed, running, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
@@ -319,6 +322,8 @@ namespace TW3D.GamePlay
             level.Draw(renderer);
             skidMarks.Draw(renderer);
             smoke.Draw(renderer);
+            if (!developmentKeys.TrackOnly)
+                exhaust.Draw(renderer);
             renderer.End();
 
             Matrix debugProjection = camera.DebugProjection;

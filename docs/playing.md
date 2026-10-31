@@ -64,12 +64,24 @@ than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or 
 spinning at a launch or landing from a jump; louder and higher the faster they slip. Where they
 slip, they leave dark skid marks (`GameObjects/SkidMarks.cs`: under the wheels on both sides
 of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
-fading away after 20 seconds), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: soft
-puffs rising and thinning out, their colour a greyed haze of the level's light). The car has
-traction control: a wheel on the ground spinning faster than it rolls gets less torque, so it
-grips instead of spinning (the motors never hold the wheels back, and wheels in the air spin
-up freely); only at a launch the tyres may spin up for a moment, less the faster the car
-goes.
+fading away after 20 seconds), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: big
+soft puffs rising and thinning out, their colour a greyed haze of the level's light). The car
+has traction control: a wheel on the ground spinning faster than it rolls gets less torque, so
+it grips instead of spinning (the motors never hold the wheels back, and wheels in the air
+spin up freely); only at a launch the tyres may spin up for a moment, less the faster the car
+goes. A launch (the throttle pressed with the car standing, not braked) is a burnout: the
+motors spin the wheels with all their torque and the tyres grip little, so the wheels really
+spin, screeching and smoking, while the car creeps; after about a second of spinning they grip
+again and the car shoots off. Letting go of the throttle or braking ends it, and it does not
+come when the wheels do not start spinning within two seconds (the axles turning instead, or
+the car against an obstacle), so it does not get in the way of climbing.
+
+The exhaust smokes too (`GameObjects/ExhaustSmoke.cs`): small bluish grey puffs blown out to
+the back from the ends of the two pipes (`exhaust` in the catalog), thin idling, thicker under
+the throttle and a burst when it is pressed; wispier than the smoke of the tyres, they thin
+out quicker and hardly rise. Both kinds of smoke are clouds of `GameObjects/Smoke.cs`, each
+with its own look.
+
 The loops last a second and every part of them is a whole number of hertz, so they loop
 without a seam; they pause with the game. Things hitting each other are heard too
 (`GamePlay/ImpactSounds.cs`): from the impulse of every contact the physics solves, how much

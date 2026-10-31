@@ -85,6 +85,12 @@ namespace TW3D.Shared
 
         /// <summary>How fast its engine follows the wheels (1 / seconds): a sportier car revs up faster.</summary>
         public float EngineResponse { get; set; } = 3f;
+
+        /// <summary>
+        /// Where the exhaust blows out (the end of the pipe, in the coordinates of the model: x to the back of the car, y
+        /// up), one on each side of the car (z and -z); null for a car without an exhaust.
+        /// </summary>
+        public float[] Exhaust { get; set; }
     }
 
     /// <summary>Wheels for the cars.</summary>

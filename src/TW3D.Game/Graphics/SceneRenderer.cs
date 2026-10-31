@@ -160,7 +160,7 @@ namespace TW3D.Graphics
         private int markTriangles;
         private BasicEffect markEffect;
         //The smoke for this frame (see AddSmoke) and what draws it: soft puffs facing the camera
-        private readonly List<(Vector3 Centre, float Radius, float Opacity)> puffs = new List<(Vector3, float, float)>();
+        private readonly List<(Vector3 Centre, float Radius, float Opacity, Vector3 Tint)> puffs = new List<(Vector3, float, float, Vector3)>();
         private readonly List<VertexPositionColorTexture> smokeVertices = new List<VertexPositionColorTexture>();
         private readonly Texture2D smokeTexture;
         private readonly BasicEffect smokeEffect;
@@ -323,15 +323,16 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
-        /// A puff of smoke (of the tyres) facing the camera, its colour taken from the light of the scene; for this frame
-        /// (see Begin).
+        /// A puff of smoke (of the tyres or the exhaust) facing the camera, its colour taken from the light of the scene;
+        /// for this frame (see Begin).
         /// </summary>
         /// <param name="radius">Scene units.</param>
         /// <param name="opacity">How much it hides what is behind it in its middle, 0..1.</param>
-        public void AddSmoke(Vector3 centre, float radius, float opacity)
+        /// <param name="tint">Its colour, times a greyed haze of the light (white: as grey as the haze).</param>
+        public void AddSmoke(Vector3 centre, float radius, float opacity, Vector3 tint)
         {
             if (opacity > 0f)
-                puffs.Add((centre, radius, opacity));
+                puffs.Add((centre, radius, opacity, tint));
         }
 
         /// <summary>Adds a model to the scene.</summary>
@@ -455,7 +456,7 @@ namespace TW3D.Graphics
 
         /// <summary>
         /// Draws the puffs of smoke over the scene, the furthest first, facing the camera and hidden by what is in front
-        /// of them. Their colour is a greyed haze of the light: whitish by day, warm at sunset, dim at night.
+        /// of them. Their colour is a greyed haze of the light (whitish by day, warm at sunset, dim at night), tinted.
         /// </summary>
         private void DrawSmoke()
         {
@@ -463,13 +464,13 @@ namespace TW3D.Graphics
                 return;
             Matrix camera = Matrix.Invert(view);
             Vector3 right = camera.Right, up = camera.Up;
-            Vector3 tint = Classic ? new Vector3(0.75f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.6f), 0.4f);
+            Vector3 light = Classic ? new Vector3(0.75f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.6f), 0.4f);
             puffs.Sort((a, b) => Vector3.DistanceSquared(b.Centre, eye).CompareTo(Vector3.DistanceSquared(a.Centre, eye)));
             smokeVertices.Clear();
-            foreach ((Vector3 centre, float radius, float opacity) in puffs)
+            foreach ((Vector3 centre, float radius, float opacity, Vector3 tint) in puffs)
             {
                 //Premultiplied by its alpha
-                Color colour = new Color(new Vector4(tint * opacity, opacity));
+                Color colour = new Color(new Vector4(light * tint * opacity, opacity));
                 Vector3 x = right * radius, y = up * radius;
                 smokeVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
                 smokeVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));

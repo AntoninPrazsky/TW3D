@@ -70,6 +70,23 @@ namespace TW3D.GameObjects
         private const float SlipFade = 4f;
         private const float LaunchSlip = 35f;
         private const float LaunchSpeed = 14f;
+        //A burnout at a launch: the throttle pressed with the car going slower than this (physics units a second), the
+        //motors spin the wheels with all their torque and the tyres grip only this share of their grip, so the wheels
+        //really spin and the car creeps. It lasts while the tyres spin faster than this over the ground (physics units a
+        //second) for this long (seconds of the physics), the last share of it gripping again; it is over when they have
+        //not started spinning this long after the launch (the axles turning instead, or the car against an obstacle)
+        private const float BurnoutSpeed = 3f;
+        private const float BurnoutGrip = 0.08f;
+        private const float BurnoutSpin = 15f;
+        private const float BurnoutTime = 1.8f;
+        private const float BurnoutFade = 0.4f;
+        private const float BurnoutWait = 2f;
+        //The spinning left of the burnout and how long since its launch (seconds of the physics); whether the motors
+        //drove the wheels and how fast the fastest spinning tyre on the ground spun at the last update; when that was
+        private float burnoutLeft, burnoutAge;
+        private bool driving;
+        private float mostSpinning;
+        private double lastUpdate;
 
         public float acceleration;
 
@@ -337,6 +354,36 @@ namespace TW3D.GameObjects
             return true;
         }
 
+        /// <summary>Lets the tyre of a wheel grip only a share of its grip on whatever it touches.</summary>
+        private static void Grip(Body wheel, float share)
+        {
+            for (ContactEdge edge = wheel.ContactList; edge != null; edge = edge.Next)
+            {
+                edge.Contact.ResetFriction();
+                if (share < 1f)
+                    edge.Contact.Friction *= share;
+            }
+        }
+
+        /// <summary>
+        /// The ends of the exhaust pipes in the scene, one on each side of the car (see <see cref="CarType.Exhaust"/>), and
+        /// which way they blow (to the back of the car); false for a car without an exhaust.
+        /// </summary>
+        public bool Exhausts(Vector3[] ends, out Vector3 blowing)
+        {
+            blowing = Vector3.Zero;
+            if (Type.Exhaust is not { Length: 3 } exhaust)
+                return false;
+            Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
+            ends[0] = Vector3.Transform(new Vector3(exhaust[0], exhaust[1], exhaust[2]), body);
+            ends[1] = Vector3.Transform(new Vector3(exhaust[0], exhaust[1], -exhaust[2]), body);
+            blowing = Vector3.Normalize(Vector3.TransformNormal(-Forward, body));
+            return true;
+        }
+
+        /// <summary>The velocity of the car in the scene (scene units a second).</summary>
+        public Vector3 Velocity => new Vector3(-car.LinearVelocity * Units.PhysicsToScene, 0f);
+
         /// <summary>How far a wheel (see <see cref="SlippingWheels"/>) is from the middle of the car across the track (scene units).</summary>
         public float WheelSide(int wheel) => wheel < 3 ? rearSide : frontSide;
 
@@ -376,13 +423,45 @@ namespace TW3D.GameObjects
             if (car.Rotation >= 2 * Math.PI || car.Rotation <= -2 * Math.PI) { car.Rotation = 0; }
 
             float motorSpeed = Math.Sign(acceleration) * MathHelper.SmoothStep(0f, topSpeed, Math.Abs(acceleration));
+            bool drive = Math.Abs(motorSpeed) >= topSpeed * 0.06f;
+
+            //A launch starts a burnout, counted down while the tyres spin; letting go of the throttle or braking ends it
+            double time = physics?.Time ?? 0.0;
+            float step = (float)(time - lastUpdate);
+            lastUpdate = time;
+            if (!drive || brake)
+                burnoutLeft = 0f;
+            else if (!driving && Speed < BurnoutSpeed)
+            {
+                burnoutLeft = BurnoutTime;
+                burnoutAge = 0f;
+            }
+            driving = drive;
+            if (burnoutLeft > 0f)
+            {
+                burnoutAge += step;
+                if (mostSpinning >= BurnoutSpin)
+                    burnoutLeft -= step;
+                else if (burnoutLeft >= BurnoutTime && burnoutAge > BurnoutWait)
+                    burnoutLeft = 0f;
+            }
+            float burnout = MathHelper.Clamp(burnoutLeft / (BurnoutTime * BurnoutFade), 0f, 1f);
+
             float allowed = GripSlip + LaunchSlip * MathHelper.Clamp(1f - Speed / LaunchSpeed, 0f, 1f);
+            mostSpinning = 0f;
             foreach (RevoluteJoint joint in wJoints)
             {
                 joint.MotorSpeed = motorSpeed;
-                joint.MotorEnabled = Math.Abs(motorSpeed) >= topSpeed * 0.06f;
-                float grip = Spinning(joint.BodyB, out float spinning) ? MathHelper.Clamp(1f - (spinning - allowed) / SlipFade, 0f, 1f) : 1f;
-                joint.MaxMotorTorque = MotorTorque * grip;
+                joint.MotorEnabled = drive;
+                float torque = 1f;
+                if (Spinning(joint.BodyB, out float spinning))
+                {
+                    mostSpinning = Math.Max(mostSpinning, spinning);
+                    if (burnout <= 0f)
+                        torque = MathHelper.Clamp(1f - (spinning - allowed) / SlipFade, 0f, 1f);
+                }
+                joint.MaxMotorTorque = MotorTorque * torque;
+                Grip(joint.BodyB, MathHelper.Lerp(1f, BurnoutGrip, burnout));
             }
             
             if (holderRotation)

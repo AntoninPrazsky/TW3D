@@ -64,5 +64,30 @@ namespace TW3D.Tests
                 Assert.True(car.EngineResponse > 0f, car.Name);
             });
         }
+
+        /// <summary>The end of a car's exhaust pipe is a point of its model (in its bounds), so the smoke comes out of the car.</summary>
+        [Fact]
+        public void EveryCarsExhaustIsInItsModel()
+        {
+            Assert.All(catalog.Cars, car =>
+            {
+                if (car.Exhaust == null)
+                    return;
+                Assert.Equal(3, car.Exhaust.Length);
+                float[] min = { float.MaxValue, float.MaxValue, float.MaxValue }, max = { float.MinValue, float.MinValue, float.MinValue };
+                foreach (string line in File.ReadLines(Path.Combine(Repository.Content, car.Model + ".obj")).Where(line => line.StartsWith("v ")))
+                {
+                    float[] vertex = line.Split(' ', System.StringSplitOptions.RemoveEmptyEntries).Skip(1).Take(3)
+                        .Select(number => float.Parse(number, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+                    for (int axis = 0; axis < 3; axis++)
+                    {
+                        min[axis] = System.Math.Min(min[axis], vertex[axis]);
+                        max[axis] = System.Math.Max(max[axis], vertex[axis]);
+                    }
+                }
+                for (int axis = 0; axis < 3; axis++)
+                    Assert.InRange(car.Exhaust[axis], min[axis], max[axis]);
+            });
+        }
     }
 }
