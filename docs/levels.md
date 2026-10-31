@@ -20,9 +20,10 @@ The editor draws the level the same way as the game: F9 switches to the lighting
 2016 version, F10 the shadows, and M the mood of the level, which is saved with it.
 
 A new level saved to `content/Levels/` appears in the level select automatically (after
-a rebuild, which copies it to the build output). Its preview image is loaded from
-`content/Levels/levimgs/<name>.xnb`; a level without one is shown as a dark
-rectangle with its name.
+a rebuild, which copies it to the build output). Its preview image is
+`content/Levels/levimgs/<name>.png` (700 × 394, built by the content pipeline: add a
+`/build` line for it at the end of `content/Content.mgcb`); a level without one is shown
+as a dark rectangle with its name.
 
 ## Level format
 

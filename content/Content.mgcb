@@ -119,3 +119,17 @@
 
 # The block selector of the level editor
 /build:Levels/selector.obj
+
+# Preview images of the levels in the level select, 700 x 394 (the previews of the levels of 2016
+# are precompiled .xnb files). A new level: a PNG of the same size and a /build line.
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyEnabled=False
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:TextureFormat=Color
+/build:Levels/levimgs/training1.png
+/build:Levels/levimgs/training2.png
+/build:Levels/levimgs/training3.png
+/build:Levels/levimgs/summit.png
