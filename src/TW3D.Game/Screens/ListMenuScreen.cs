@@ -104,15 +104,19 @@ namespace TW3D.Screens
                 return;
             }
 
-            //In the middle of the screen, but below the title (the user interface of phones is bigger)
-            itemScale = scale;
-            float top = Math.Max(viewport.Height / 2f - (content + lineHeight * LineSpacing * items.Count) / 2f, belowTitle);
+            //In the middle of the screen, but below the title; smaller if they do not fit under it (the user interface of
+            //phones is bigger)
+            float needed = lineHeight * (LineSpacing * (items.Count - 1) + 1f);
+            float columnFit = Math.Min(1f, (safe.Bottom - belowTitle - content) / needed);
+            itemScale = scale * columnFit;
+            float line = lineHeight * columnFit;
+            float top = Math.Max(viewport.Height / 2f - (content + line * LineSpacing * items.Count) / 2f, belowTitle);
             contentTop = top;
             top += content;
             for (int i = 0; i < items.Count; i++)
             {
-                Vector2 size = font.MeasureString(items[i].Text()) * scale;
-                items[i].Place(new Rectangle((int)((viewport.Width - size.X) / 2f), (int)(top + i * lineHeight * LineSpacing), (int)size.X, (int)lineHeight), padding);
+                Vector2 size = font.MeasureString(items[i].Text()) * itemScale;
+                items[i].Place(new Rectangle((int)((viewport.Width - size.X) / 2f), (int)(top + i * line * LineSpacing), (int)size.X, (int)line), padding);
             }
         }
 
