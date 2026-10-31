@@ -42,10 +42,12 @@ full screen with one graphics driver (an AMD Radeon with OpenGL, 2026). They are
 The sound effects are synthesized when the game starts, no recorded files: the menus (the
 focus moving, an item chosen, going back), the countdown (3, 2, 1 and the start an octave
 higher), the finish, the stars of the results one after another (a major chord) and a new
-record, and the cars and wheels changing in the garage. They follow the rules of the sounds
-of BS3D: pleasant before realistic, nothing harsh, recognizable between 300 Hz and 4 kHz
-(small speakers play little below), mono, and the sounds that are not notes a little higher
-or lower each time. `--sounds <folder>` writes them as WAV files to listen to (see
+record, and the cars and wheels changing in the garage. They are pleasant and deep rather
+than bright: struck bars (a marimba) and soft bongs in C major, low, with the octave below
+for body, never a beep; nothing shrill above 5 kHz, but enough between 300 Hz and 4 kHz for
+small speakers, which play little below. Mono. The notes are never nudged off their pitch,
+so they stay in tune with each other; only the noise of the garage plays a little higher or
+lower each time. `--sounds <folder>` writes them as WAV files to listen to (see
 [Building](building.md)). The recipes are in `Audio/SoundBakes.cs`, the arithmetic in
 `Audio/Synth.cs`.
 

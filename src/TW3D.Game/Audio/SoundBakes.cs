@@ -24,37 +24,34 @@ namespace TW3D.Audio
 
     /// <summary>
     /// The recipes of the sound effects: each is synthesized (see <see cref="Synth"/>) when the game starts, no recorded
-    /// files. The rules, after BS3D: pleasant before realistic and nothing harsh; what makes a sound recognizable lies
-    /// between 300 Hz and 4 kHz (small speakers play little below); mono; a sound that is not a note plays a little
-    /// higher or lower each time, so nothing sounds the same twice.
+    /// files. Pleasant and deep rather than bright: the notes are struck bars (a marimba) and soft bongs in C major, low
+    /// (octaves 3 to 5) with an octave below for body, never a beep; nothing shrill above 5 kHz, but enough between 300 Hz
+    /// and 4 kHz for small speakers, which play little below. Mono. The notes are never nudged off their pitch, so the
+    /// sounds stay in tune with each other; only the noise of the garage plays a little higher or lower each time.
+    /// (The owner found the first, brighter version too high, beeping and out of tune in the menus.)
     /// </summary>
     public static class SoundBakes
     {
         //The notes of the sounds (Hz)
-        private const float E5 = 659.26f, G5 = 783.99f, B5 = 987.77f, C5 = 523.25f;
-        private const float C6 = 1046.5f, D6 = 1174.66f, E6 = 1318.51f, G6 = 1567.98f, C7 = 2093f;
+        private const float C4 = 261.63f, E4 = 329.63f, G4 = 392f, C5 = 523.25f, E5 = 659.26f, G5 = 783.99f;
 
         /// <summary>How loud a sound plays (0..1), before the volume of the Options menu.</summary>
         public static float Volume(Sound sound) => sound switch
         {
-            Sound.MenuMove => 0.25f,
-            Sound.MenuSelect => 0.45f,
-            Sound.MenuBack => 0.4f,
-            Sound.Countdown => 0.55f,
-            Sound.Start => 0.6f,
-            Sound.Finish => 0.6f,
-            Sound.Star => 0.5f,
-            Sound.NewRecord => 0.55f,
-            Sound.GarageSwitch => 0.35f,
+            Sound.MenuMove => 0.3f,
+            Sound.MenuSelect => 0.5f,
+            Sound.MenuBack => 0.45f,
+            Sound.Countdown => 0.6f,
+            Sound.Start => 0.65f,
+            Sound.Finish => 0.65f,
+            Sound.Star => 0.55f,
+            Sound.NewRecord => 0.6f,
+            Sound.GarageSwitch => 0.4f,
             _ => 0.5f
         };
 
-        /// <summary>How far (octaves) a sound's pitch may be nudged at random; the notes of the race are not.</summary>
-        public static float Nudge(Sound sound) => sound switch
-        {
-            Sound.MenuMove or Sound.MenuSelect or Sound.MenuBack or Sound.GarageSwitch => 0.03f,
-            _ => 0f
-        };
+        /// <summary>How far (octaves) a sound's pitch may be nudged at random: only the noise, the notes stay in tune.</summary>
+        public static float Nudge(Sound sound) => sound == Sound.GarageSwitch ? 0.03f : 0f;
 
         /// <summary>The samples of a sound (see <see cref="Synth"/>), peaking at 0.9.</summary>
         public static float[] Bake(Sound sound)
@@ -62,10 +59,10 @@ namespace TW3D.Audio
             float[] signal = sound switch
             {
                 Sound.MenuMove => MenuMove(),
-                Sound.MenuSelect => TwoNotes(G5, D6),
-                Sound.MenuBack => TwoNotes(B5, E5),
-                Sound.Countdown => Beep(E5, 0.25f),
-                Sound.Start => Beep(E6, 0.6f),
+                Sound.MenuSelect => TwoNotes(C4, G4),
+                Sound.MenuBack => TwoNotes(G4, C4),
+                Sound.Countdown => Bong(G4, 0.5f, 6f),
+                Sound.Start => Bong(G5, 0.9f, 3f),
                 Sound.Finish => Finish(),
                 Sound.Star => Star(),
                 Sound.NewRecord => NewRecord(),
@@ -76,81 +73,109 @@ namespace TW3D.Audio
             return signal;
         }
 
-        /// <summary>A short tick: a tone falling a little, and a knock.</summary>
+        /// <summary>
+        /// A struck bar (a marimba): the fundamental with its first harmonics (which small speakers play when they drop the
+        /// fundamental), the octave below for body, and the partials of a bar (about four and nine times the fundamental),
+        /// which die away much faster and give the knock of the mallet.
+        /// </summary>
+        private static void Mallet(float[] signal, float start, float frequency, float amplitude, float decay, float length)
+        {
+            Synth.AddTone(signal, start, length, frequency, frequency, amplitude, 0.003f, decay, 1f, 0.35f, 0.1f);
+            Synth.AddTone(signal, start, length, frequency / 2f, frequency / 2f, amplitude * 0.3f, 0.006f, decay * 0.8f, 1f);
+            Synth.AddTone(signal, start, length * 0.5f, frequency * 3.93f, frequency * 3.93f, amplitude * 0.22f, 0.001f, decay * 4f, 1f);
+            Synth.AddTone(signal, start, length * 0.25f, frequency * 9.2f, frequency * 9.2f, amplitude * 0.04f, 0.0005f, decay * 9f, 1f);
+        }
+
+        /// <summary>A soft held chord under a melody, for warmth: sine tones swelling in and dying slowly.</summary>
+        private static void Pad(float[] signal, float start, float length, float amplitude, params float[] notes)
+        {
+            foreach (float note in notes)
+            {
+                Synth.AddTone(signal, start, length, note, note, amplitude, 0.12f, 1.5f, 1f, 0.15f);
+                Synth.AddTone(signal, start, length, note * 1.003f, note * 1.003f, amplitude * 0.5f, 0.12f, 1.5f, 1f);
+            }
+        }
+
+        /// <summary>The focus moving: a short, quiet knock of a bar.</summary>
         private static float[] MenuMove()
         {
-            float[] signal = Synth.Buffer(0.06f);
-            Synth.AddTone(signal, 0f, 0.06f, 1500f, 1150f, 0.7f, 0.001f, 70f, 1f, 0.3f);
-            Synth.AddNoise(signal, 0f, 0.012f, 1.5f, 0.0005f, 300f, 3000f, 3000f, 0.8f, seed: 1);
+            float[] signal = Synth.Buffer(0.2f);
+            Mallet(signal, 0f, G4, 0.8f, 30f, 0.18f);
+            Synth.LowPass(signal, 3500f);
             return signal;
         }
 
-        /// <summary>Two soft notes, one after the other: up for choosing, down for going back.</summary>
+        /// <summary>Two bars, one after the other: a fifth up for choosing, down for going back.</summary>
         private static float[] TwoNotes(float first, float second)
         {
-            float[] signal = Synth.Buffer(0.4f);
-            Synth.AddTone(signal, 0f, 0.13f, first, first, 0.6f, 0.003f, 22f, 1f, 0.35f, 0.12f);
-            Synth.AddTone(signal, 0.07f, 0.26f, second, second, 0.6f, 0.003f, 14f, 1f, 0.35f, 0.12f);
-            Synth.Reverb(signal, 0.35f, 0.18f, 0.3f);
-            Synth.FadeOut(signal, 0.05f);
+            float[] signal = Synth.Buffer(0.8f);
+            Mallet(signal, 0f, first, 0.7f, 9f, 0.5f);
+            Mallet(signal, 0.08f, second, 0.7f, 7f, 0.6f);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.5f, 0.2f, 0.4f);
+            Synth.FadeOut(signal, 0.1f);
             return signal;
         }
 
-        /// <summary>A beep of the start lights: a held note with odd harmonics (a soft square), the edge rolled off.</summary>
-        private static float[] Beep(float frequency, float length)
+        /// <summary>A soft bong of the start lights: a round tone with a few harmonics and the octave below, dying away.</summary>
+        private static float[] Bong(float frequency, float length, float decay)
         {
-            float[] signal = Synth.Buffer(length + 0.05f);
-            Synth.AddTone(signal, 0f, length, frequency, frequency, 0.7f, 0.004f, 2.5f, 1f, 0.05f, 0.3f, 0.03f, 0.15f);
-            Synth.LowPass(signal, 4000f);
+            float[] signal = Synth.Buffer(length + 0.2f);
+            Synth.AddTone(signal, 0f, length, frequency, frequency, 0.7f, 0.006f, decay, 1f, 0.4f, 0.15f, 0.06f);
+            Synth.AddTone(signal, 0f, length, frequency / 2f, frequency / 2f, 0.3f, 0.01f, decay * 0.8f, 1f);
+            Synth.LowPass(signal, 3000f);
+            Synth.Reverb(signal, 0.4f, 0.15f, 0.3f);
+            Synth.FadeOut(signal, 0.12f);
             return signal;
         }
 
-        /// <summary>A short fanfare: the chord of C major broken upwards, ringing like bells.</summary>
+        /// <summary>A short fanfare: the chord of C major broken upwards on bars, over the chord held softly.</summary>
         private static float[] Finish()
         {
-            float[] signal = Synth.Buffer(1.8f);
-            float[] notes = { C5, E5, G5, C6 };
+            float[] signal = Synth.Buffer(2.2f);
+            float[] notes = { C4, E4, G4, C5 };
             for (int i = 0; i < notes.Length; i++)
-            {
-                float start = i * 0.09f;
-                Synth.AddTone(signal, start, 1.3f - start, notes[i], notes[i], 0.5f, 0.003f, i == notes.Length - 1 ? 2.5f : 4.5f, 1f, 0.45f, 0.2f, 0.1f);
-            }
-            Synth.Reverb(signal, 0.7f, 0.3f, 0.6f);
-            Synth.FadeOut(signal, 0.3f);
+                Mallet(signal, i * 0.1f, notes[i], 0.6f, i == notes.Length - 1 ? 2.5f : 4f, 1.5f);
+            Pad(signal, 0.3f, 1.6f, 0.12f, C4, E4, G4);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.8f, 0.3f, 0.7f);
+            Synth.FadeOut(signal, 0.4f);
             return signal;
         }
 
-        /// <summary>A bell: C6 with its harmonics, and a shimmer an octave up.</summary>
+        /// <summary>A star: a bar of C5 ringing long, with a faint octave above.</summary>
         private static float[] Star()
         {
-            float[] signal = Synth.Buffer(1f);
-            Synth.AddTone(signal, 0f, 0.8f, C6, C6, 0.8f, 0.002f, 7f, 1f, 0.5f, 0.15f, 0.08f);
-            Synth.AddTone(signal, 0f, 0.5f, C7 * 1.004f, C7 * 1.004f, 0.15f, 0.002f, 12f, 1f);
-            Synth.Reverb(signal, 0.4f, 0.2f, 0.4f);
-            Synth.FadeOut(signal, 0.15f);
+            float[] signal = Synth.Buffer(1.2f);
+            Mallet(signal, 0f, C5, 0.8f, 5f, 1f);
+            Synth.AddTone(signal, 0f, 0.6f, C5 * 2f, C5 * 2f, 0.1f, 0.002f, 8f, 1f);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.5f, 0.25f, 0.5f);
+            Synth.FadeOut(signal, 0.2f);
             return signal;
         }
 
-        /// <summary>A quick run up two octaves, then a shimmer of two notes a hair apart.</summary>
+        /// <summary>A new record: a quick run up two octaves of C major, then the chord held, shimmering a little.</summary>
         private static float[] NewRecord()
         {
-            float[] signal = Synth.Buffer(1.8f);
-            float[] notes = { G5, C6, E6, G6, C7 };
+            float[] signal = Synth.Buffer(2.2f);
+            float[] notes = { C4, E4, G4, C5, E5, G5 };
             for (int i = 0; i < notes.Length; i++)
-                Synth.AddTone(signal, i * 0.06f, 0.5f, notes[i], notes[i], 0.45f, 0.002f, 6f, 1f, 0.4f, 0.12f);
-            Synth.AddTone(signal, 0.3f, 1.2f, C7, C7, 0.25f, 0.05f, 3f, 1f, 0.2f);
-            Synth.AddTone(signal, 0.3f, 1.2f, C7 * 1.003f, C7 * 1.003f, 0.25f, 0.05f, 3f, 1f, 0.2f);
-            Synth.Reverb(signal, 0.6f, 0.3f, 0.6f);
-            Synth.FadeOut(signal, 0.3f);
+                Mallet(signal, i * 0.06f, notes[i], 0.5f, 6f, 0.8f);
+            Pad(signal, 0.35f, 1.6f, 0.12f, C5, E5, G5);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.8f, 0.35f, 0.7f);
+            Synth.FadeOut(signal, 0.4f);
             return signal;
         }
 
-        /// <summary>A whoosh: noise in a band rising from low to middle, swelling and fading, with a soft second layer.</summary>
+        /// <summary>A whoosh: noise in a band rising from low to middle, swelling and fading.</summary>
         private static float[] Whoosh()
         {
-            float[] signal = Synth.Buffer(0.36f);
-            Synth.AddNoise(signal, 0f, 0.36f, 1f, 0.12f, 9f, 450f, 1600f, 1.6f, seed: 2);
-            Synth.AddNoise(signal, 0.02f, 0.3f, 0.5f, 0.1f, 10f, 700f, 2400f, 2.5f, seed: 3);
+            float[] signal = Synth.Buffer(0.38f);
+            Synth.AddNoise(signal, 0f, 0.38f, 1f, 0.13f, 8f, 250f, 900f, 1.2f, seed: 2);
+            Synth.AddNoise(signal, 0.02f, 0.32f, 0.4f, 0.1f, 10f, 400f, 1400f, 2f, seed: 3);
+            Synth.LowPass(signal, 3000f);
             Synth.FadeOut(signal, 0.08f);
             return signal;
         }

@@ -48,7 +48,7 @@ dotnet test TW3D.slnx
 level fits the catalog, has a finish and a preview and is written as `LevelFile` writes
 it; every model of the catalog exists and is built, and the physics has its collision
 shape), the score of a run, the rules of the tutorial and the sound effects (each peaks at 0.9,
-ends quietly and has most of its energy between 300 Hz and 4 kHz). The files of the game it tests
+ends quietly, is heard on small speakers and is not shrill). The files of the game it tests
 are compiled into it, as they have no MonoGame in them.
 
 Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in

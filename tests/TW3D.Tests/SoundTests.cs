@@ -11,7 +11,7 @@ namespace TW3D.Tests
     /// <summary>
     /// The sound effects (Audio/SoundBakes and Audio/Synth): what the rules of the sounds ask that arithmetic can tell.
     /// Whether a sound is right is for the ear; these catch a recipe gone wrong (silence, clipping, a click at the end,
-    /// a hiss, a bass the speakers drop).
+    /// a hiss, a sound all in the bass small speakers drop, notes out of tune).
     /// </summary>
     public class SoundTests
     {
@@ -37,37 +37,51 @@ namespace TW3D.Tests
             Assert.True(rms < 0.01f, $"{sound} ends at RMS {rms}");
         }
 
-        /// <summary>What makes a sound recognizable lies between 300 Hz and 4 kHz: most of its energy is there.</summary>
+        /// <summary>
+        /// Deep, but heard on small speakers, which play little below 300 Hz: a good part of its energy lies between 300 Hz
+        /// and 4 kHz; and nothing shrill: next to none above 5 kHz.
+        /// </summary>
         [Theory]
         [MemberData(nameof(Sounds))]
-        public void LivesBetween300HzAnd4kHz(Sound sound)
+        public void IsHeardOnSmallSpeakersAndNotShrill(Sound sound)
         {
             float[] signal = SoundBakes.Bake(sound);
             Complex[] spectrum = Spectrum(signal);
             double hzPerBin = (double)Synth.SampleRate / spectrum.Length;
-            double total = 0.0, band = 0.0;
+            double total = 0.0, band = 0.0, shrill = 0.0;
             for (int i = 1; i < spectrum.Length / 2; i++)
             {
                 double energy = spectrum[i].Magnitude * spectrum[i].Magnitude;
+                double frequency = i * hzPerBin;
                 total += energy;
-                if (i * hzPerBin >= 300.0 && i * hzPerBin <= 4000.0)
+                if (frequency >= 300.0 && frequency <= 4000.0)
                     band += energy;
+                if (frequency > 5000.0)
+                    shrill += energy;
             }
-            Assert.True(band / total > 0.9, $"{sound}: {band / total:P1} of its energy between 300 Hz and 4 kHz");
+            Assert.True(band / total > 0.35, $"{sound}: {band / total:P1} of its energy between 300 Hz and 4 kHz");
+            Assert.True(shrill / total < 0.02, $"{sound}: {shrill / total:P1} of its energy above 5 kHz");
         }
 
+        /// <summary>The sounds of a menu do not pile up as the player goes through it: they are over (but a soft tail) in 0.35 s.</summary>
         [Fact]
         public void TheMenuSoundsAreShort()
         {
             foreach (Sound sound in new[] { Sound.MenuMove, Sound.MenuSelect, Sound.MenuBack })
-                Assert.True(SoundBakes.Bake(sound).Length <= Synth.SampleRate / 2, $"{sound} is longer than half a second");
+            {
+                float[] signal = SoundBakes.Bake(sound);
+                float total = signal.Sum(s => s * s);
+                float early = signal.Take((int)(0.35f * Synth.SampleRate)).Sum(s => s * s);
+                Assert.True(early / total > 0.9f, $"{sound}: {early / total:P0} of its energy in the first 0.35 s");
+            }
         }
 
+        /// <summary>The notes stay in tune with each other: only the noise of the garage is nudged off its pitch.</summary>
         [Fact]
-        public void TheNotesOfTheRaceAreNotNudged()
+        public void OnlyTheNoiseIsNudged()
         {
-            foreach (Sound sound in new[] { Sound.Countdown, Sound.Start, Sound.Finish, Sound.Star, Sound.NewRecord })
-                Assert.Equal(0f, SoundBakes.Nudge(sound));
+            foreach (Sound sound in Enum.GetValues<Sound>())
+                Assert.Equal(sound == Sound.GarageSwitch, SoundBakes.Nudge(sound) > 0f);
         }
 
         [Fact]
