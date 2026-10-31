@@ -155,6 +155,10 @@ namespace TW3D.Graphics
         private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter,
             metallicParameter, roughnessParameter;
         private readonly RenderTarget2D shadowMap;
+        //The marks on the track for this frame (see SetMarks) and what draws them
+        private VertexPositionColor[] marks;
+        private int markTriangles;
+        private BasicEffect markEffect;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
         //The corners of the screen, for the passes over the whole screen
         private readonly VertexPositionTexture[] screenQuad =
@@ -272,6 +276,7 @@ namespace TW3D.Graphics
         {
             this.view = view;
             this.projection = projection;
+            markTriangles = 0;
             eye = Matrix.Invert(view).Translation;
             frustum.Matrix = view * projection;
             items.Clear();
@@ -279,6 +284,34 @@ namespace TW3D.Graphics
             car = false;
             braking = false;
             Array.Clear(lights);
+        }
+
+        /// <summary>
+        /// Marks lying on the track (the skid marks of the tyres): triangles of dark, half transparent vertices (colours
+        /// premultiplied by their alpha), drawn over the track and under the glass, unlit. For this frame (see Begin).
+        /// </summary>
+        public void SetMarks(VertexPositionColor[] vertices, int triangles)
+        {
+            marks = vertices;
+            markTriangles = triangles;
+        }
+
+        private void DrawMarks()
+        {
+            if (markTriangles == 0)
+                return;
+            markEffect ??= new BasicEffect(device) { VertexColorEnabled = true, LightingEnabled = false, TextureEnabled = false };
+            markEffect.World = Matrix.Identity;
+            markEffect.View = view;
+            markEffect.Projection = projection;
+            device.BlendState = BlendState.AlphaBlend;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            device.RasterizerState = RasterizerState.CullNone;
+            markEffect.CurrentTechnique.Passes[0].Apply();
+            device.DrawUserPrimitives(PrimitiveType.TriangleList, marks, 0, markTriangles);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         /// <summary>Adds a model to the scene.</summary>
@@ -669,6 +702,8 @@ namespace TW3D.Graphics
                         DrawLitPart(part, part.Transform * item.World, pass);
             }
 
+            DrawMarks();
+
             //Glass over what is behind it, without hiding it from the glass further back
             device.BlendState = BlendState.NonPremultiplied;
             device.DepthStencilState = DepthStencilState.DepthRead;
@@ -726,6 +761,8 @@ namespace TW3D.Graphics
             }
 
             //BasicEffect multiplies its colour by its alpha
+            DrawMarks();
+
             device.BlendState = BlendState.AlphaBlend;
             device.DepthStencilState = DepthStencilState.DepthRead;
             foreach ((ModelPart part, Matrix world, float distance) in transparentParts)

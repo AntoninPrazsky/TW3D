@@ -2,6 +2,7 @@
 using nkast.Aether.Physics2D.Collision.Shapes;
 using nkast.Aether.Physics2D.Common;
 using nkast.Aether.Physics2D.Dynamics;
+using nkast.Aether.Physics2D.Dynamics.Contacts;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
@@ -28,6 +29,13 @@ namespace TW3D.GameObjects
         private Body wheel4TF;
         
         private WheelJoint springB, springF;
+
+        /// <summary>How many wheels the physics has (each is a pair of wheels, one on each side of the car).</summary>
+        public const int WheelCount = 6;
+        //The wheels, the rear ones first; how far the middle of the rear and the front wheels is from the middle of the
+        //car across the track (scene units)
+        private Body[] wheels;
+        private float rearSide, frontSide;
         
         private RevoluteJoint springLeftB, springRightB, springTopB, springLeftF, springRightF, springTopF;
         List<RevoluteJoint> wJoints = new List<RevoluteJoint>();
@@ -248,7 +256,38 @@ namespace TW3D.GameObjects
             //Every part knows its car, so a contact tells the car from the track and the objects (see ImpactSounds)
             foreach (Body body in new[] { car, holderB, holderF, wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF })
                 body.Tag = this;
+
+            wheels = new[] { wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF };
+            rearSide = WheelsCentre(false, false).Z;
+            frontSide = WheelsCentre(true, false).Z;
         }
+
+        /// <summary>
+        /// The wheels sliding braked (they cannot turn) on the track faster than a speed (physics units a second), and the
+        /// points where they touch it (physics coordinates): where the tyres leave skid marks. Wheels on objects do not.
+        /// </summary>
+        public void SlidingWheels(List<(int Wheel, Vector2 Point)> sliding, float minSpeed)
+        {
+            sliding.Clear();
+            if (!brake)
+                return;
+            for (int i = 0; i < wheels.Length; i++)
+            {
+                if (wheels[i].LinearVelocity.Length() < minSpeed)
+                    continue;
+                for (ContactEdge edge = wheels[i].ContactList; edge != null; edge = edge.Next)
+                {
+                    if (!edge.Contact.IsTouching || edge.Other.BodyType != BodyType.Static)
+                        continue;
+                    edge.Contact.GetWorldManifold(out _, out FixedArray2<Vector2> points);
+                    sliding.Add((i, points[0]));
+                    break;
+                }
+            }
+        }
+
+        /// <summary>How far a wheel (see <see cref="SlidingWheels"/>) is from the middle of the car across the track (scene units).</summary>
+        public float WheelSide(int wheel) => wheel < 3 ? rearSide : frontSide;
 
         /// <summary>
         /// How fast the wheels turn on their axles, as a share of the top speed of the car: 0 standing, about 1 at full

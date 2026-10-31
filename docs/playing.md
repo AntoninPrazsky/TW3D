@@ -51,10 +51,15 @@ each time. `--sounds <folder>` writes them as WAV files to listen to (see
 [Building](building.md)). The recipes are in `Audio/SoundBakes.cs`, the arithmetic in
 `Audio/Synth.cs`.
 
-The car sounds as it drives (`GamePlay/CarSounds.cs`): the engine is two loops in step, idling
-and under the throttle, crossfaded by the throttle and pitched by how fast the wheels turn
-(so wheels spinning in the air rev it); the motor of the axles hums while they turn; the
-lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
+The car sounds as it drives (`GamePlay/CarSounds.cs`): the engine, deep and unhurried (a slow
+firing with a strong burble at half its rate), is two loops in step, idling and under the
+throttle, crossfaded by the throttle and pitched by how fast the wheels turn (so wheels
+spinning in the air rev it), following them slowly; the motor of the axles hums while they
+turn; the lock of the axles clunks (softer as it opens); the brake grabs the wheels of a
+moving car, and the tyres screech while the braked wheels slide on the track, louder and
+higher the faster the car goes. Where they slide, they leave dark skid marks on the track
+(`GameObjects/SkidMarks.cs`: under the wheels on both sides of the car, fading away after
+20 seconds).
 The loops last a second and every part of them is a whole number of hertz, so they loop
 without a seam; they pause with the game. Things hitting each other are heard too
 (`GamePlay/ImpactSounds.cs`): from the impulse of every contact the physics solves, how much

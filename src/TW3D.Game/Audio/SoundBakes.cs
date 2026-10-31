@@ -26,6 +26,8 @@ namespace TW3D.Audio
         EngineLoad,
         /// <summary>The motor turning the axles (a loop), while they turn.</summary>
         AxleMotor,
+        /// <summary>The tyres screeching (a loop) while the braked wheels slide.</summary>
+        Skid,
         /// <summary>The axles locked (and, higher and softer, unlocked).</summary>
         AxleLock,
         /// <summary>The brake grabbing the wheels of a moving car.</summary>
@@ -51,9 +53,9 @@ namespace TW3D.Audio
         //The notes of the sounds (Hz)
         private const float C4 = 261.63f, E4 = 329.63f, G4 = 392f, C5 = 523.25f, E5 = 659.26f, G5 = 783.99f;
         //The loops last a second and every part of them is a whole number of hertz, so their end meets their start; the
-        //engine fires this many times a second at the pitch it is baked at
+        //engine fires this many times a second at the pitch it is baked at (an even number: the half order is whole too)
         private const float LoopLength = 1f;
-        private const int Firing = 60;
+        private const int Firing = 40;
 
         /// <summary>How loud a sound plays (0..1), before the volume of the Options menu.</summary>
         public static float Volume(Sound sound) => sound switch
@@ -70,6 +72,7 @@ namespace TW3D.Audio
             Sound.EngineIdle => 0.3f,
             Sound.EngineLoad => 0.5f,
             Sound.AxleMotor => 0.35f,
+            Sound.Skid => 0.45f,
             Sound.AxleLock => 0.55f,
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,
@@ -79,7 +82,7 @@ namespace TW3D.Audio
         };
 
         /// <summary>The sound loops (played on and on, its pitch and volume changed as it plays).</summary>
-        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor;
+        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid;
 
         /// <summary>
         /// How far (octaves) a sound's pitch may be nudged at random: the noises and the knocks, so no two sound the same;
@@ -110,6 +113,7 @@ namespace TW3D.Audio
                 Sound.EngineIdle => Engine(load: false),
                 Sound.EngineLoad => Engine(load: true),
                 Sound.AxleMotor => AxleMotor(),
+                Sound.Skid => Skid(),
                 Sound.AxleLock => AxleLock(),
                 Sound.Brake => Brake(),
                 Sound.ImpactMetal => ImpactMetal(),
@@ -237,21 +241,24 @@ namespace TW3D.Audio
         }
 
         /// <summary>
-        /// The engine: the harmonics of its firing shaped by two resonances of its body (the deep rumble and the bark), a
-        /// four-stroke lope at half the rate, an uneven beat, and grit: noise in bursts with the firing. Under the throttle
-        /// the harmonics reach higher and the grit is louder. A loop (see <see cref="LoopLength"/>).
+        /// The engine of a car, deep and unhurried: the harmonics of its slow firing shaped by two resonances of its body
+        /// (the rumble and the throat), a strong burble at half the rate (the uneven beat of a big engine), the firings
+        /// alternating stronger and weaker, and grit: noise in bursts with the firing. Under the throttle the harmonics
+        /// reach higher and the grit is louder. A loop (see <see cref="LoopLength"/>). (The first, faster engine sounded
+        /// like a motorbike to the owner.)
         /// </summary>
         private static float[] Engine(bool load)
         {
             float[] signal = Synth.Buffer(LoopLength);
-            for (int h = 1; h * Firing <= 3000; h++)
-                Synth.AddSine(signal, h * Firing, EngineShape(h * Firing, load) / MathF.Sqrt(h), h * 2.4f);
-            for (int h = 0; (h + 0.5f) * Firing <= 1500; h++)
-                Synth.AddSine(signal, (h + 0.5f) * Firing, 0.35f * EngineShape((h + 0.5f) * Firing, load) / MathF.Sqrt(h + 1), h * 1.7f + 1f);
-            Synth.Modulate(signal, t => 1f + 0.1f * MathF.Sin(2f * MathF.PI * 3f * t) + 0.06f * MathF.Sin(2f * MathF.PI * 7f * t + 1f));
+            for (int h = 1; h * Firing <= 2400; h++)
+                Synth.AddSine(signal, h * Firing, EngineShape(h * Firing, load) / MathF.Pow(h, 0.6f), h * 2.4f);
+            for (int h = 0; (h + 0.5f) * Firing <= 1200; h++)
+                Synth.AddSine(signal, (h + 0.5f) * Firing, 0.5f * EngineShape((h + 0.5f) * Firing, load) / MathF.Pow(h + 1, 0.6f), h * 1.7f + 1f);
+            Synth.Modulate(signal, t => 1f + 0.15f * MathF.Sin(2f * MathF.PI * Firing / 2f * t) + 0.08f * MathF.Sin(2f * MathF.PI * 2f * t)
+                + 0.05f * MathF.Sin(2f * MathF.PI * 5f * t + 1f));
 
-            float[] grit = Synth.LoopNoise(signal.Length, 900f, 1f, seed: 4);
-            float gritLevel = load ? 0.35f : 0.12f;
+            float[] grit = Synth.LoopNoise(signal.Length, 600f, 0.8f, seed: 4);
+            float gritLevel = load ? 0.22f : 0.08f;
             for (int i = 0; i < signal.Length; i++)
             {
                 float pulse = 0.5f + 0.5f * MathF.Cos(2f * MathF.PI * Firing * i / Synth.SampleRate);
@@ -266,10 +273,32 @@ namespace TW3D.Audio
         /// </summary>
         private static float EngineShape(float frequency, bool load)
         {
-            float rumble = 1f / (1f + MathF.Pow((frequency - 330f) / 150f, 2f));
-            float bark = 0.8f / (1f + MathF.Pow((frequency - 950f) / 320f, 2f));
-            float lows = frequency / (frequency + 180f);
-            return (rumble + bark + (load ? 0.25f : 0.12f)) * lows * lows * MathF.Exp(-frequency / (load ? 2600f : 1600f));
+            float rumble = 1f / (1f + MathF.Pow((frequency - 180f) / 100f, 2f));
+            float throat = 0.8f / (1f + MathF.Pow((frequency - 450f) / 180f, 2f));
+            float lows = frequency / (frequency + 120f);
+            return (rumble + throat + (load ? 0.2f : 0.12f)) * lows * lows * MathF.Exp(-frequency / (load ? 2000f : 1300f));
+        }
+
+        /// <summary>
+        /// Tyres screeching: a cluster of tones close together around 1 kHz (they beat against each other, the wobble of a
+        /// screech), the rubber scrubbing (noise in a band) and a rumble of the road. A loop. Kept in the middle rather
+        /// than shrill.
+        /// </summary>
+        private static float[] Skid()
+        {
+            float[] signal = Synth.Buffer(LoopLength);
+            int[] tones = { 940, 953, 967, 988, 1004 };
+            for (int i = 0; i < tones.Length; i++)
+            {
+                Synth.AddSine(signal, tones[i], 0.25f, i * 1.3f);
+                Synth.AddSine(signal, tones[i] * 2, 0.06f, i * 2.1f);
+            }
+            float[] scrub = Synth.LoopNoise(signal.Length, 1300f, 1.5f, seed: 11);
+            float[] road = Synth.LoopNoise(signal.Length, 320f, 0.8f, seed: 12);
+            for (int i = 0; i < signal.Length; i++)
+                signal[i] += scrub[i] * 0.35f + road[i] * 0.3f;
+            Synth.Modulate(signal, t => 1f + 0.2f * MathF.Sin(2f * MathF.PI * 6f * t) + 0.1f * MathF.Sin(2f * MathF.PI * 11f * t + 0.5f));
+            return signal;
         }
 
         /// <summary>The motor of the axles: an electric hum and its harmonics, and the whine of its gears. A loop.</summary>
