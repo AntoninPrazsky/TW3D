@@ -45,13 +45,18 @@ namespace TW3D.Screens
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
 
-        /// <summary>Adds an item; items without an action are shown dimmed as not yet available.</summary>
+        /// <summary>
+        /// Adds an item; items without an action are shown dimmed as not yet available. The first item that can be
+        /// chosen (Play) has the focus from the start, so Enter or A starts the game.
+        /// </summary>
         public void AddItem(string text, Action activate)
         {
             if (items.Count >= Places.Length)
                 throw new InvalidOperationException("The main menu has room for " + Places.Length + " items.");
 
             items.Add(new MenuItem { Text = () => text, Activate = activate, IsEnabled = () => activate != null });
+            if (items.Focused < 0 && activate != null)
+                items.MoveFocus(1);
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
