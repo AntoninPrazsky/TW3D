@@ -59,7 +59,7 @@ namespace TW3D.Audio
             float[] signal = sound switch
             {
                 Sound.MenuMove => MenuMove(),
-                Sound.MenuSelect => TwoNotes(C4, G4),
+                Sound.MenuSelect => Choose(),
                 Sound.MenuBack => TwoNotes(G4, C4),
                 Sound.Countdown => Bong(G4, 0.5f, 6f),
                 Sound.Start => Bong(G5, 0.9f, 3f),
@@ -105,7 +105,26 @@ namespace TW3D.Audio
             return signal;
         }
 
-        /// <summary>Two bars, one after the other: a fifth up for choosing, down for going back.</summary>
+        /// <summary>
+        /// Choosing: a quick run up the chord of C major on bars (E4, G4, C5), the last note sung: two soft tones a hair
+        /// apart swell in under it and ring on, beating gently. (A bare fifth up sounded empty and gloomy to the owner, like
+        /// a sound of an old operating system rather than of a game.)
+        /// </summary>
+        private static float[] Choose()
+        {
+            float[] signal = Synth.Buffer(0.9f);
+            Mallet(signal, 0f, E4, 0.5f, 12f, 0.35f);
+            Mallet(signal, 0.055f, G4, 0.5f, 10f, 0.4f);
+            Mallet(signal, 0.11f, C5, 0.6f, 5f, 0.7f);
+            Synth.AddTone(signal, 0.11f, 0.7f, C5, C5, 0.22f, 0.025f, 4f, 1f, 0.25f);
+            Synth.AddTone(signal, 0.11f, 0.7f, C5 * 1.004f, C5 * 1.004f, 0.16f, 0.025f, 4f, 1f);
+            Synth.LowPass(signal, 3500f);
+            Synth.Reverb(signal, 0.55f, 0.22f, 0.45f);
+            Synth.FadeOut(signal, 0.12f);
+            return signal;
+        }
+
+        /// <summary>Going back: two bars a fifth down.</summary>
         private static float[] TwoNotes(float first, float second)
         {
             float[] signal = Synth.Buffer(0.8f);

@@ -96,8 +96,9 @@ namespace TW3D.Screens
             int step = input.LeftPressed ? -1 : input.RightPressed ? 1 : 0;
             if (switchByLeftRight && item.IsSwitch && step != 0)
             {
+                //A step of a value ticks: holding left or right steps it again and again
                 if (item.Adjust != null)
-                    Choose(() => item.Adjust(step));
+                    Choose(() => item.Adjust(step), Sound.MenuMove);
                 else
                     Choose(item.Activate);
                 return true;
@@ -111,10 +112,10 @@ namespace TW3D.Screens
         }
 
         /// <summary>Does what an item does, then sounds (after it: a volume changed is heard at its new level).</summary>
-        private void Choose(System.Action action)
+        private void Choose(System.Action action, Sound sound = Sound.MenuSelect)
         {
             action();
-            Sounds?.Play(Sound.MenuSelect);
+            Sounds?.Play(sound);
         }
 
         /// <summary>
