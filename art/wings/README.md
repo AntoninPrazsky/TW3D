@@ -3,8 +3,8 @@
 The vehicles, the track blocks, the dynamic objects and the block selector of the level
 editor were modelled in [Wings 3D](https://www.wings3d.com/) in 2014–2015. These are the
 original `.wings` files, kept for reference; the game does not use them. The models the
-game is built from are the `.obj` + `.mtl` files in `content/` (see "Game content" in the
-main README), converted from the DirectX `.x` files exported from these files. Blender
+game is built from are the `.obj` + `.mtl` files in `content/` (see
+[Game content](../../docs/content.md)), converted from the DirectX `.x` files exported from these files. Blender
 cannot open `.wings` files; Wings 3D can, and exports OBJ as well.
 
 The folders follow `content/`: `Levels/mod/a1.wings` is the original of
@@ -39,8 +39,8 @@ has the hub of `wheel.obj`, joining it to the holder. `wheel2.wings` is the whee
 `Garage/garage.wings` (September 2015, `NPG/garage/garage.wings`) is the garage scene the
 picture behind the menus of 2016 was rendered from (in Kerkythea), `Garage/garage_no_car.wings`
 (June 2016) its later version without the car, the lift and the poles, from which the
-tool cart is taken. The game builds its 3D garage from them by `tools/garagegen/build.py` (see "Game
-content" in the main README). Their room was made for one camera (some of its walls are
+tool cart is taken. The game builds its 3D garage from them by `tools/garagegen/build.py` (see [the
+garage](../../docs/content.md#the-garage)). Their room was made for one camera (some of its walls are
 missing, some face outwards), so the script builds a new hall and takes only the windows,
 the lift, the furniture and the tools from these files. The photos behind the windows
 (`windowBgs/windBg.jpg`, a stock photo) are not in the repository; the game shows its

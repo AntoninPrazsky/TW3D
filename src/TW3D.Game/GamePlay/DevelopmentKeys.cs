@@ -8,7 +8,7 @@ using TW3D.Shared;
 namespace TW3D.GamePlay
 {
     /// <summary>
-    /// The keys for development while driving (see the README): the physics debug view (F1–F8, or the gamepad Start
+    /// The keys for development while driving (see docs/playing.md): the physics debug view (F1–F8, or the gamepad Start
     /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9–F11) and the mood of the level (M)
     /// to compare them, and the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home).
     /// They change only the level being played; the Options menu sets the look for good.
