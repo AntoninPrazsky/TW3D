@@ -1,5 +1,7 @@
 # Triple Wheel 3D (TW3D)
 
+[![Build](https://github.com/AntoninPrazsky/TW3D/actions/workflows/build.yml/badge.svg)](https://github.com/AntoninPrazsky/TW3D/actions/workflows/build.yml)
+
 ![The car jumping over the hills of the summit level at sunset](docs/images/screenshot.png)
 
 An obstacle course driving game with 3D graphics and 2D physics: a car with
@@ -31,7 +33,7 @@ The on-screen controls, a gamepad and touch work too.
 
 ## Documentation
 
-- [Building and running](docs/building.md): requirements, development arguments, Android
+- [Building and running](docs/building.md): requirements, development arguments, tests and CI, Android
 - [Playing](docs/playing.md): menus, garage, options, controls, scoring, development keys
 - [Levels](docs/levels.md): the level editor and the level format
 - [Game content](docs/content.md): models, the garage, the catalog, collision shapes

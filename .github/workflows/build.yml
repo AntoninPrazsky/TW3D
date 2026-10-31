@@ -1,0 +1,91 @@
+name: Build
+
+# Every push, to any branch. A push that changes only documentation builds nothing: no build reads it.
+on:
+  push:
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
+  workflow_dispatch:
+
+# Nothing here writes to the repository: the token only has to check the code out.
+permissions:
+  contents: read
+
+# A newer push to the same branch makes the older run's answer worthless.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      # The NuGet packages, restored from the cache unless a project or the package versions changed
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', '.config/dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      # The content pipeline tool (dotnet-mgcb) the content build runs
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Build (Debug)
+        run: dotnet build TW3D.slnx
+
+      - name: Build (Release)
+        run: dotnet build TW3D.slnx -c Release
+
+      - name: Test
+        run: dotnet test TW3D.slnx -c Release --no-build
+
+      # The committed collision shapes and generated levels must be what their generators make of the sources:
+      # a model, the catalog or a level script changed without its output fails here. (The summit level is left
+      # out: its file has the same blocks as the script makes, but its decorations in another order and with
+      # their heights written otherwise.)
+      - name: Generated files are up to date
+        shell: bash
+        run: |
+          dotnet run --project tools/CollisionGen -c Release --no-build -- content
+          for script in tools/levelgen/training*.js; do node "$script"; done
+          git diff --exit-code -- content
+
+  android:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-android-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', '.config/dotnet-tools.json') }}
+          restore-keys: nuget-android-${{ runner.os }}-
+
+      - name: Install the Android workload
+        run: dotnet workload install android
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      # The SDK packages the project targets, into the runner's Android SDK, with the runner's JDK 17
+      - name: Install Android dependencies
+        run: dotnet build src/TW3D.Android -t:InstallAndroidDependencies -f net10.0-android "-p:AndroidSdkDirectory=$env:ANDROID_SDK_ROOT" "-p:JavaSdkDirectory=$env:JAVA_HOME_17_X64" -p:AcceptAndroidSDKLicenses=True
+
+      - name: Build
+        run: dotnet build src/TW3D.Android "-p:AndroidSdkDirectory=$env:ANDROID_SDK_ROOT" "-p:JavaSdkDirectory=$env:JAVA_HOME_17_X64"

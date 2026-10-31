@@ -37,6 +37,23 @@ Game arguments for development:
 The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
 the game has not been tested there yet. The level editor runs on Windows only.
 
+## Tests and CI
+
+```sh
+dotnet test TW3D.slnx
+```
+
+`tests/TW3D.Tests` (xUnit) tests what needs no graphics device: the shipped content (every
+level fits the catalog, has a finish and a preview and is written as `LevelFile` writes
+it; every model of the catalog exists and is built, and the physics has its collision
+shape), the score of a run and the rules of the tutorial. The files of the game it tests
+are compiled into it, as they have no MonoGame in them.
+
+Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in
+Debug and Release, the tests, a check that the collision shapes and the generated
+training levels are what their generators make (`tools/CollisionGen`,
+`tools/levelgen/training*.js`), and the Android build.
+
 ## Android
 
 `src/TW3D.Android` builds the game for Android phones (Android 7.0 and newer). It

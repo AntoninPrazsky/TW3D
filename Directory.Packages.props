@@ -15,5 +15,9 @@
     <!-- tools/CollisionGen: the same physics engine without MonoGame, and polygon clipping -->
     <PackageVersion Include="Aether.Physics2D" Version="2.2.0" />
     <PackageVersion Include="Clipper2" Version="2.0.0" />
+    <!-- tests/TW3D.Tests -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
 </Project>

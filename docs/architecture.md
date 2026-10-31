@@ -21,6 +21,8 @@ physics bodies.
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](../tools/CollisionGen/README.md) |
 | `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars (built and loaded by the content build) |
+| `tests/TW3D.Tests/` | Tests of the content, the score and the tutorial (see [Building](building.md#tests-and-ci)) |
+| `.github/workflows/` | The build of every push on GitHub Actions |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
 | `docs/catalog/` | Catalog of track blocks and dynamic objects. Open `catalog.html` in a browser. |
 

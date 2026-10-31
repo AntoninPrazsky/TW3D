@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Tests of what needs no graphics device: the shipped content (catalog, levels, collision shapes, previews), the
+    score of a run and the rules of the tutorial. Run by `dotnet test` and by the CI (.github/workflows/build.yml).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>TW3D.Tests</RootNamespace>
+    <AssemblyName>TW3D.Tests</AssemblyName>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!--
+    Files of the game compiled in, rather than a reference to the game (a program built with its content and a
+    window): only plain logic with no MonoGame in it.
+  -->
+  <ItemGroup>
+    <Compile Include="..\..\src\TW3D.Game\GamePlay\RaceScore.cs" Link="Game\RaceScore.cs" />
+    <Compile Include="..\..\src\TW3D.Game\GamePlay\Tutorial.cs" Link="Game\Tutorial.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Input\CarControl.cs" Link="Game\CarControl.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TW3D.Shared\TW3D.Shared.csproj" />
+  </ItemGroup>
+
+</Project>
