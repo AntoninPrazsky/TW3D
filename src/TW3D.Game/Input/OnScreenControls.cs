@@ -8,7 +8,7 @@ namespace TW3D.Input
     /// <summary>
     /// Virtual joystick (bottom left), the brake and axle lock buttons (bottom right) and the pause button
     /// (top right) operated by touch or by the mouse. They are shown while the player uses touch or the mouse,
-    /// and fade out for the keyboard or a gamepad (they still work then, and using them brings them back).
+    /// and fade out for the keyboard or a gamepad (they still work then, and a click or a touch brings them back).
     /// </summary>
     public sealed class OnScreenControls
     {

@@ -40,8 +40,9 @@ user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
 
 The keyboard, the on-screen controls (operated by the mouse or by
 touch) and a gamepad all work at the same time. The on-screen controls are shown while
-the mouse or touch is used, and fade out when the keyboard or a gamepad is (a phone
-starts with them shown, a computer with them hidden).
+the mouse or touch is used, and fade out when the keyboard or a gamepad is. A level starts
+with the keyboard on a computer (the controls hidden, whatever was used in the menus) and
+with touch on a phone (the controls shown); a click or a touch in the level shows them.
 
 | Key | On screen / gamepad | Action |
 |---|---|---|

@@ -108,6 +108,8 @@ namespace TW3D.GamePlay
             };
             debugView.LoadContent(Manager.GraphicsDevice, Manager.Content);
 
+            //A computer is driven with the keyboard, a phone by touch, until the player clicks or touches the level
+            Manager.Input.UseDefaultDevice();
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
             developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood);

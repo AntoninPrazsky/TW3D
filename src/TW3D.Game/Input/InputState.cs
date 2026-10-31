@@ -56,16 +56,19 @@ namespace TW3D.Input
     {
         //Mouse pointer ids are kept apart from touch ids
         private const int FirstMousePointerId = 1000000;
-        //How far the mouse has to move (in pixels) to count as being used
-        private const int MouseMoveThreshold = 8;
+
+        //The device the platform is played with: a phone has no keyboard, a computer is assumed to have one
+#if ANDROID
+        private const InputDevice DefaultDevice = InputDevice.Touch;
+#else
+        private const InputDevice DefaultDevice = InputDevice.Keyboard;
+#endif
 
         //Every gamepad button, including the sticks and the triggers pushed in a direction
         private static readonly Buttons[] AllButtons = Enum.GetValues<Buttons>();
 
         private readonly List<Pointer> pointers = new List<Pointer>();
         private int mousePointerId = FirstMousePointerId;
-        //Where the mouse was when it was last used (or first seen), to tell whether it has moved since
-        private Point? mouseRest;
 
         //The back gesture or button of the phone, reported by the Android activity (from another thread)
         private static int systemBackRequested;
@@ -96,15 +99,11 @@ namespace TW3D.Input
         public bool SystemBackPressed { get; private set; }
 
         /// <summary>
-        /// The device the player used last: a key pressed, the mouse moved or clicked, the screen touched, or a
-        /// gamepad button, stick or trigger pushed. A phone starts with touch, a computer with the keyboard.
+        /// The device the player used last: a key pressed, the mouse clicked, the screen touched, or a gamepad button,
+        /// stick or trigger pushed (moving the mouse does not count). A phone starts with touch, a computer with the
+        /// keyboard.
         /// </summary>
-        public InputDevice LastDevice { get; private set; } =
-#if ANDROID
-            InputDevice.Touch;
-#else
-            InputDevice.Keyboard;
-#endif
+        public InputDevice LastDevice { get; private set; } = DefaultDevice;
 
         /// <summary>
         /// Reports the back gesture or button of the system. Since Android 16 the system no longer sends it as a key,
@@ -115,9 +114,8 @@ namespace TW3D.Input
             Interlocked.Exchange(ref systemBackRequested, 1);
         }
 
-        /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
-        /// <param name="active">The game has the focus; the devices are noted only then (the mouse moves over other windows too).</param>
-        public void Update(Point windowOrigin, bool active)
+        /// <param name="active">The game has the focus; the devices are noted only then (a gamepad is read without it too).</param>
+        public void Update(bool active)
         {
             PreviousKeyboard = Keyboard;
             PreviousMouse = Mouse;
@@ -141,7 +139,8 @@ namespace TW3D.Input
                 }
             }
 
-            NoteDevice(pointers.Count > 0, windowOrigin, active);
+            if (active)
+                NoteDevice(pointers.Count > 0);
 
             if (pointers.Count == 0)
                 AddMousePointer();
@@ -161,36 +160,28 @@ namespace TW3D.Input
             }
         }
 
-        /// <param name="touched">Something touches the screen.</param>
-        /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
-        /// <param name="active">The game has the focus.</param>
-        private void NoteDevice(bool touched, Point windowOrigin, bool active)
+        /// <summary>
+        /// Goes back to the device the platform is played with (see <see cref="LastDevice"/>), unless a gamepad was used
+        /// last: the mouse or a key in the menus says nothing about how the player drives. Called when a level starts.
+        /// </summary>
+        public void UseDefaultDevice()
         {
-            //The mouse on the screen, not in the window: moving the window under it is no use of the mouse
-            Point mouse = Mouse.Position + windowOrigin;
-            if (!active)
-            {
-                mouseRest = mouse;
-                return;
-            }
-            mouseRest ??= mouse;
-            Point moved = mouse - mouseRest.Value;
+            if (LastDevice != InputDevice.GamePad)
+                LastDevice = DefaultDevice;
+        }
 
+        /// <param name="touched">Something touches the screen.</param>
+        private void NoteDevice(bool touched)
+        {
             if (Keyboard.GetPressedKeyCount() > 0 && Keyboard != PreviousKeyboard)
                 LastDevice = InputDevice.Keyboard;
             else if (GamePadUsed())
                 LastDevice = InputDevice.GamePad;
             else if (touched)
                 LastDevice = InputDevice.Touch;
-            else if (Math.Abs(moved.X) + Math.Abs(moved.Y) > MouseMoveThreshold || WheelDelta != 0
-                || Mouse.LeftButton == ButtonState.Pressed && PreviousMouse.LeftButton == ButtonState.Released
+            else if (Mouse.LeftButton == ButtonState.Pressed && PreviousMouse.LeftButton == ButtonState.Released
                 || Mouse.RightButton == ButtonState.Pressed && PreviousMouse.RightButton == ButtonState.Released)
                 LastDevice = InputDevice.Mouse;
-
-            //The mouse counts from where it was last used, so that slow movements add up; a platform may move it with a
-            //finger too, which is no use of the mouse
-            if (LastDevice == InputDevice.Mouse || touched)
-                mouseRest = mouse;
         }
 
         private bool GamePadUsed()
