@@ -267,7 +267,8 @@ namespace TW3D.GamePlay
         {
             renderer.Begin(camera.View, camera.Projection);
             sky.Draw(renderer);
-            car.Draw(renderer);
+            if (!developmentKeys.TrackOnly)
+                car.Draw(renderer);
             level.Draw(renderer);
             renderer.End();
 
@@ -277,12 +278,15 @@ namespace TW3D.GamePlay
 
             SpriteBatch batch = Manager.SpriteBatch;
             batch.Begin();
-            controls.Layout(Manager.Viewport, Manager.ControlsScale);
-            controls.Draw(batch, 1f);
-            //The time gives way to the title of the results, which show it too
-            float hudBottom = RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
-            if (tutorial != null)
-                TutorialCard.Draw(Manager, tutorial, controls, hudBottom);
+            if (!developmentKeys.TrackOnly)
+            {
+                controls.Layout(Manager.Viewport, Manager.ControlsScale);
+                controls.Draw(batch, 1f);
+                //The time gives way to the title of the results, which show it too
+                float hudBottom = RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
+                if (tutorial != null)
+                    TutorialCard.Draw(Manager, tutorial, controls, hudBottom);
+            }
             //Fading in and out through black
             batch.Draw(Manager.Pixel, Manager.Viewport.Bounds, Color.Black * (1f - Visibility));
             batch.End();

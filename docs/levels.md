@@ -21,8 +21,9 @@ The editor draws the level the same way as the game: F9 switches to the lighting
 
 A new level saved to `content/Levels/` appears in the level select automatically (after
 a rebuild, which copies it to the build output). Its preview image is
-`content/Levels/levimgs/<name>.png` (700 × 394, built by the content pipeline: add a
-`/build` line for it at the end of `content/Content.mgcb`); a level without one is shown
+`content/Levels/levimgs/<name>.png` (700 × 394, a screenshot of the track without the car:
+press H while driving; built by the content pipeline: add a `/build` line for it at the end
+of `content/Content.mgcb`); a level without one is shown
 as a dark rectangle with its name.
 
 ## Level format

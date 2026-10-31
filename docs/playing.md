@@ -114,3 +114,4 @@ While driving:
 | F11 | Ambient occlusion on / off |
 | M | Switches the mood of the level (day, sunset, night) to try it; the level file stays as it is |
 | F12 | Frames per second on / off (also in Options) |
+| H | The track alone: the car, the time, the tutorial and the on-screen controls hidden (for the previews of the levels) |

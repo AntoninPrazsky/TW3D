@@ -10,8 +10,9 @@ namespace TW3D.GamePlay
     /// <summary>
     /// The keys for development while driving (see docs/playing.md): the physics debug view (F1–F8, or the gamepad Start
     /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9–F11) and the mood of the level (M)
-    /// to compare them, and the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home).
-    /// They change only the level being played; the Options menu sets the look for good.
+    /// to compare them, the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home), and the
+    /// track alone (H: the car and everything over the level hidden, for the previews of the levels in the level
+    /// select). They change only the level being played; the Options menu sets the look for good.
     /// </summary>
     sealed class DevelopmentKeys
     {
@@ -40,6 +41,9 @@ namespace TW3D.GamePlay
         private readonly ChaseCamera camera;
         private LevelMood mood;
 
+        /// <summary>The track alone: the car, the time, the tutorial and the on-screen controls are not drawn (H).</summary>
+        public bool TrackOnly { get; private set; }
+
         /// <param name="mood">The mood of the level, which M changes from.</param>
         public DevelopmentKeys(DebugView debugView, SceneRenderer renderer, ChaseCamera camera, LevelMood mood)
         {
@@ -64,6 +68,9 @@ namespace TW3D.GamePlay
                 renderer.Shadows = !renderer.Shadows;
             if (input.KeyPressed(Keys.F11))
                 renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+
+            if (input.KeyPressed(Keys.H))
+                TrackOnly = !TrackOnly;
 
             //The moods of the levels, to try them on any level
             if (input.KeyPressed(Keys.M))
