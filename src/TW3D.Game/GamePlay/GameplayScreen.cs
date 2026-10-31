@@ -58,6 +58,10 @@ namespace TW3D.GamePlay
         private Tutorial tutorial;
         //The number of the countdown that last beeped
         private int countdownBeeped;
+        //The sounds of the car and of things hitting each other, and how far the throttle is held (0..1)
+        private CarSounds carSounds;
+        private ImpactSounds impacts;
+        private float throttleHeld;
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
         private bool record;
@@ -119,6 +123,8 @@ namespace TW3D.GamePlay
             if (settings.Tutorial || Tutorial.Lever != TutorialLever.None)
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
+            carSounds = new CarSounds(Manager.Sounds, car);
+            impacts = new ImpactSounds(world, Manager.Sounds);
 
             //Loading takes a while; the game should not try to catch up with the lost time afterwards
             Manager.Game.ResetElapsedTime();
@@ -127,6 +133,8 @@ namespace TW3D.GamePlay
         public override void UnloadContent()
         {
             debugView?.Dispose();
+            carSounds?.Dispose();
+            impacts?.Dispose();
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -147,6 +155,7 @@ namespace TW3D.GamePlay
                 ? DriveInput.Read(input, controls)
                 : new DriveInput(Vector2.Zero, race.State == RaceState.Countdown, false);
             Drive(drive, elapsed * GameSpeed);
+            throttleHeld = Math.Abs(drive.Stick.X) > ThrottleThreshold ? Math.Min(1f, Math.Abs(drive.Stick.X)) : 0f;
             tutorial?.Update(elapsed, race.State == RaceState.Racing,
                 new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage),
                 car.car.LinearVelocity.X);
@@ -192,6 +201,9 @@ namespace TW3D.GamePlay
             bool running = HasFocus || (results != null && Manager.Game.IsActive && !IsClosing && Manager.Screens[Manager.Screens.Count - 1] is ResultsScreen);
             if (running)
                 physics.Advance(elapsed);
+            carSounds.Update(realElapsed, running, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation);
+            if (running)
+                impacts.Update(realElapsed);
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
             camera.Update(running ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));

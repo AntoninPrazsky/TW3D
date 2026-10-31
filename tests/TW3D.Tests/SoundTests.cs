@@ -17,6 +17,16 @@ namespace TW3D.Tests
     {
         public static IEnumerable<object[]> Sounds => Enum.GetValues<Sound>().Select(sound => new object[] { sound });
 
+        public static IEnumerable<object[]> OneShots => Enum.GetValues<Sound>().Where(sound => !SoundBakes.IsLoop(sound)).Select(sound => new object[] { sound });
+
+        public static IEnumerable<object[]> Loops => Enum.GetValues<Sound>().Where(SoundBakes.IsLoop).Select(sound => new object[] { sound });
+
+        //The sounds that are notes: they stay in tune
+        private static readonly Sound[] Notes =
+        {
+            Sound.MenuMove, Sound.MenuSelect, Sound.MenuBack, Sound.Countdown, Sound.Start, Sound.Finish, Sound.Star, Sound.NewRecord
+        };
+
         [Theory]
         [MemberData(nameof(Sounds))]
         public void PeaksAtNineTenthsWithoutGaps(Sound sound)
@@ -28,7 +38,7 @@ namespace TW3D.Tests
 
         /// <summary>A sound cut off loud clicks: its last 5 ms are quiet.</summary>
         [Theory]
-        [MemberData(nameof(Sounds))]
+        [MemberData(nameof(OneShots))]
         public void EndsQuietly(Sound sound)
         {
             float[] signal = SoundBakes.Bake(sound);
@@ -76,12 +86,24 @@ namespace TW3D.Tests
             }
         }
 
-        /// <summary>The notes stay in tune with each other: only the noise of the garage is nudged off its pitch.</summary>
-        [Fact]
-        public void OnlyTheNoiseIsNudged()
+        /// <summary>A loop clicks where its end meets its start unless the step there is like any other step of it.</summary>
+        [Theory]
+        [MemberData(nameof(Loops))]
+        public void LoopsWithoutASeam(Sound sound)
         {
-            foreach (Sound sound in Enum.GetValues<Sound>())
-                Assert.Equal(sound == Sound.GarageSwitch, SoundBakes.Nudge(sound) > 0f);
+            float[] signal = SoundBakes.Bake(sound);
+            float largestStep = 0f;
+            for (int i = 1; i < signal.Length; i++)
+                largestStep = Math.Max(largestStep, Math.Abs(signal[i] - signal[i - 1]));
+            Assert.True(Math.Abs(signal[0] - signal[^1]) <= largestStep, $"{sound}: a step of {Math.Abs(signal[0] - signal[^1])} where it loops");
+        }
+
+        /// <summary>The notes stay in tune with each other: they are never nudged off their pitch, nor are the loops.</summary>
+        [Fact]
+        public void TheNotesAndTheLoopsAreNotNudged()
+        {
+            foreach (Sound sound in Notes.Concat(Enum.GetValues<Sound>().Where(SoundBakes.IsLoop)))
+                Assert.Equal(0f, SoundBakes.Nudge(sound));
         }
 
         [Fact]

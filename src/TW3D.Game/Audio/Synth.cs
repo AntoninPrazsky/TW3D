@@ -74,6 +74,45 @@ namespace TW3D.Audio
             }
         }
 
+        /// <summary>
+        /// Adds a steady sine with no envelope, a part of a loop: over a buffer of a whole second, a whole number of hertz
+        /// ends where it starts, so the loop has no seam.
+        /// </summary>
+        public static void AddSine(float[] signal, float frequency, float amplitude, float phase)
+        {
+            for (int i = 0; i < signal.Length; i++)
+                signal[i] += amplitude * MathF.Sin(2f * MathF.PI * frequency * i / SampleRate + phase);
+        }
+
+        /// <summary>Multiplies the sound by a function of time (seconds): a tremolo, or bursts.</summary>
+        public static void Modulate(float[] signal, Func<float, float> gain)
+        {
+            for (int i = 0; i < signal.Length; i++)
+                signal[i] *= gain((float)i / SampleRate);
+        }
+
+        /// <summary>
+        /// Noise through a band-pass filter that loops without a seam: the filter runs over the buffer twice and keeps the
+        /// second pass, so it starts from where it ends. Peaks at 1.
+        /// </summary>
+        public static float[] LoopNoise(int length, float frequency, float q, int seed)
+        {
+            double w = 2.0 * Math.PI * frequency / SampleRate, alpha = Math.Sin(w) / (2.0 * q), a0 = 1.0 + alpha;
+            double b0 = alpha / a0, b2 = -alpha / a0, a1 = -2.0 * Math.Cos(w) / a0, a2 = (1.0 - alpha) / a0;
+            double z1 = 0.0, z2 = 0.0;
+            float[] noise = new float[length];
+            for (int pass = 0; pass < 2; pass++)
+                for (int i = 0; i < length; i++)
+                {
+                    double x = Noise(i, seed), y = b0 * x + z1;
+                    z1 = -a1 * y + z2;
+                    z2 = b2 * x - a2 * y;
+                    noise[i] = (float)y;
+                }
+            Normalize(noise, 1f);
+            return noise;
+        }
+
         /// <summary>White noise as a function of the sample index: the same every time.</summary>
         public static float Noise(int index, int seed)
         {

@@ -46,10 +46,24 @@ record, and the cars and wheels changing in the garage. They are pleasant and de
 than bright: struck bars (a marimba) and soft bongs in C major, low, with the octave below
 for body, never a beep; nothing shrill above 5 kHz, but enough between 300 Hz and 4 kHz for
 small speakers, which play little below. Mono. The notes are never nudged off their pitch,
-so they stay in tune with each other; only the noise of the garage plays a little higher or
-lower each time. `--sounds <folder>` writes them as WAV files to listen to (see
+so they stay in tune with each other; the noises and knocks play a little higher or lower
+each time. `--sounds <folder>` writes them as WAV files to listen to (see
 [Building](building.md)). The recipes are in `Audio/SoundBakes.cs`, the arithmetic in
 `Audio/Synth.cs`.
+
+The car sounds as it drives (`GamePlay/CarSounds.cs`): the engine is two loops in step, idling
+and under the throttle, crossfaded by the throttle and pitched by how fast the wheels turn
+(so wheels spinning in the air rev it); the motor of the axles hums while they turn; the
+lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
+The loops last a second and every part of them is a whole number of hertz, so they loop
+without a seam; they pause with the game. Things hitting each other are heard too
+(`GamePlay/ImpactSounds.cs`): from the impulse of every contact the physics solves, how much
+it changed the speed of each body; the hardest hit of a frame for the car, a metal object and a
+wooden one sounds, as loud as it was (an object lower the heavier it is), each body not again
+for 0.15 s. The car's light wheels take every bump of the road, so the car is heard from a
+change of 30 physics units a second, an object from 12: about once a second over humps and
+once a step up stairs. What an object is made of is in the catalog (see
+[Game content](content.md#catalog)).
 
 ## Driving
 

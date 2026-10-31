@@ -75,8 +75,9 @@ game and the editor:
   collision shape (`collision`). Only blocks with a collision shape can be in the
   middle (physics) layer; the others are decoration for the back and front layers.
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
-  `model`: the collision shape of the model), size, friction, mass, restitution and
-  the models they can use (`Env/<model>`).
+  `model`: the collision shape of the model), size, friction, mass, restitution, the
+  models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the
+  default, or `wood`), which decides how they sound when they hit something.
 - **cars**: the cars of the garage: the name, the model of the body, the wheels it comes
   with, the mass of the body and the top speed (how fast the motors turn the wheels at
   most, radians per second). All cars have the same chassis (the holders of the wheels,

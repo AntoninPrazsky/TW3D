@@ -244,7 +244,32 @@ namespace TW3D.GameObjects
                 wheel.SetCollisionCategories(CollisionCategories.Wheel);
                 wheel.SetCollidesWith(Category.All & ~CollisionCategories.TrackForBody);
             }
+
+            //Every part knows its car, so a contact tells the car from the track and the objects (see ImpactSounds)
+            foreach (Body body in new[] { car, holderB, holderF, wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF })
+                body.Tag = this;
         }
+
+        /// <summary>
+        /// How fast the wheels turn on their axles, as a share of the top speed of the car: 0 standing, about 1 at full
+        /// speed (more when they spin in the air or on ice).
+        /// </summary>
+        public float WheelSpin
+        {
+            get
+            {
+                float spin = Math.Abs(wheel4LB.AngularVelocity - holderB.AngularVelocity) + Math.Abs(wheel4RB.AngularVelocity - holderB.AngularVelocity)
+                    + Math.Abs(wheel4TB.AngularVelocity - holderB.AngularVelocity) + Math.Abs(wheel4LF.AngularVelocity - holderF.AngularVelocity)
+                    + Math.Abs(wheel4RF.AngularVelocity - holderF.AngularVelocity) + Math.Abs(wheel4TF.AngularVelocity - holderF.AngularVelocity);
+                return spin / 6f / topSpeed;
+            }
+        }
+
+        /// <summary>How fast the axles turn against the body (radians per second).</summary>
+        public float AxleSpin => (Math.Abs(holderB.AngularVelocity - car.AngularVelocity) + Math.Abs(holderF.AngularVelocity - car.AngularVelocity)) / 2f;
+
+        /// <summary>The speed of the car (physics units a second).</summary>
+        public float Speed => car.LinearVelocity.Length();
 
         public override void Update()
         {

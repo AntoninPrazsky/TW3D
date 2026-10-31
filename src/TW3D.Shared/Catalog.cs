@@ -31,6 +31,13 @@ namespace TW3D.Shared
         Model
     }
 
+    /// <summary>What a dynamic object is made of: how it sounds when it hits something.</summary>
+    public enum ObjectMaterial
+    {
+        Metal,
+        Wood
+    }
+
     /// <summary>A kind of dynamic object (moved by the physics simulation) with the models it can use.</summary>
     public sealed class ObjectType
     {
@@ -44,6 +51,9 @@ namespace TW3D.Shared
         public float Mass { get; set; }
         public float Restitution { get; set; }
         public List<string> Models { get; set; } = new List<string>();
+
+        /// <summary>What it is made of (how it sounds when it hits something); metal if not given.</summary>
+        public ObjectMaterial Material { get; set; }
 
         public static string ModelAsset(string model) => "Env/" + model;
     }

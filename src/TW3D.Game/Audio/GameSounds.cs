@@ -37,7 +37,8 @@ namespace TW3D.Audio
         }
 
         /// <param name="pitch">Octaves up (positive) or down, -1..1; the sound's random nudge is added.</param>
-        public void Play(Sound sound, float pitch = 0f)
+        /// <param name="volume">A share of the sound's own volume (a hit as hard as it was), 0..1.</param>
+        public void Play(Sound sound, float pitch = 0f, float volume = 1f)
         {
             SoundEffect effect = effects[(int)sound];
             if (effect == null)
@@ -45,12 +46,27 @@ namespace TW3D.Audio
             float nudge = SoundBakes.Nudge(sound) * (random.NextSingle() * 2f - 1f);
             try
             {
-                effect.Play(SoundBakes.Volume(sound), Math.Clamp(pitch + nudge, -1f, 1f), 0f);
+                effect.Play(SoundBakes.Volume(sound) * Math.Clamp(volume, 0f, 1f), Math.Clamp(pitch + nudge, -1f, 1f), 0f);
             }
             catch (InstancePlayLimitException)
             {
                 //Too many sounds at once: this one is left out
             }
+        }
+
+        /// <summary>
+        /// A loop of a sound (see <see cref="SoundBakes.IsLoop"/>), silent and stopped: its owner sets its volume and pitch
+        /// and plays it. Null without an audio device.
+        /// </summary>
+        public SoundEffectInstance Loop(Sound sound)
+        {
+            SoundEffect effect = effects[(int)sound];
+            if (effect == null)
+                return null;
+            SoundEffectInstance loop = effect.CreateInstance();
+            loop.IsLooped = true;
+            loop.Volume = 0f;
+            return loop;
         }
 
         /// <summary>Writes every sound as a WAV file into a folder, to listen to them outside the game (see Program).</summary>

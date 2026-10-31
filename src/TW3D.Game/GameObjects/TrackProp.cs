@@ -48,6 +48,8 @@ namespace TW3D.GameObjects
             }
 
             Body.BodyType = BodyType.Dynamic;
+            //The body knows its type, so a hit sounds of its material (see GamePlay.ImpactSounds)
+            Body.Tag = type;
             Body.SetFriction(type.Friction);
             Body.Mass = type.Mass;
             Body.SetRestitution(type.Restitution);
