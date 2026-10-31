@@ -1,6 +1,7 @@
 {
   "format": 1,
   "order": 1,
+  "par": 10,
   "middle": [
     {"block":"u2","x":-4,"y":0,"shift":-4},
     {"block":"t2","x":-4,"y":-1,"shift":-4},

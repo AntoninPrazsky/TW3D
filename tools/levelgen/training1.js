@@ -9,6 +9,8 @@ const path = require("path");
 const { Track } = require("./lib.js");
 
 const t = new Track(-3, 0);
+// Par: a good run, a little slower than the owner's best (8.6 s)
+t.par = 10;
 
 // ---- Road (middle layer, takes part in the physics) ----
 

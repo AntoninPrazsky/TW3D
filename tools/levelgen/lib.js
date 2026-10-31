@@ -37,6 +37,8 @@ class Track {
     this.objects = [];
     // The light of the level: "day" (default), "sunset" or "night"
     this.mood = "day";
+    // The par time in seconds (the time a good run takes); null = estimated by the game
+    this.par = null;
     // Road blocks by column: { block, base, left, right } (left/right = surface height at the edges)
     this.cells = new Map();
   }
@@ -188,6 +190,7 @@ class Track {
       + (last ? "\n" : ",\n");
     return "{\n  \"format\": 1,\n" + (order != null ? `  "order": ${order},\n` : "")
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
+      + (this.par != null ? `  "par": ${this.par},\n` : "")
       + list("middle", this.middle) + list("back", this.back) + list("front", this.front) + list("objects", this.objects, true) + "}\n";
   }
 

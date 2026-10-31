@@ -42,6 +42,7 @@ t.put("back", "st2", 2, -5);             // any block in any layer, by its base
 t.obj("Box", "box", 50, Track.top(0) - 3.3);
 for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
 t.mood = "sunset";                       // the light: "day" (default), "sunset" or "night"
+t.par = 20;                              // the par time in seconds (default: estimated by the game)
 t.save("content/Levels/example.json");
 ```
 

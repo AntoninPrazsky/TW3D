@@ -12,6 +12,9 @@ const { Track } = require("./lib.js");
 const t = new Track(-3, 0);
 // The long climb at sunset
 t.mood = "sunset";
+// Par: a good run with the throttle and the axles, a little slower than the owner's best (11.5 s);
+// walking up with the brake takes about 30 s
+t.par = 15;
 
 // ---- Road (middle layer, takes part in the physics) ----
 
