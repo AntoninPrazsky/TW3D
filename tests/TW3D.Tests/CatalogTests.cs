@@ -50,5 +50,19 @@ namespace TW3D.Tests
         {
             Assert.All(catalog.Cars, car => Assert.Contains(catalog.Wheels, wheel => wheel.Model == car.Wheel));
         }
+
+        /// <summary>
+        /// The engine sweeps from 0.4 octaves below to 0.6 above its baked pitch (GamePlay/CarSounds.cs), shifted by the
+        /// car's own; MonoGame pitches a sound an octave either way at most, so a car's own stays between -0.6 and 0.4.
+        /// </summary>
+        [Fact]
+        public void EveryCarsEngineCanBePitchedAndFollowsTheWheels()
+        {
+            Assert.All(catalog.Cars, car =>
+            {
+                Assert.InRange(car.EnginePitch, -0.6f, 0.4f);
+                Assert.True(car.EngineResponse > 0f, car.Name);
+            });
+        }
     }
 }

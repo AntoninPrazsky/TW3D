@@ -53,18 +53,28 @@ each time. `--sounds <folder>` writes them as WAV files to listen to (see
 
 The car sounds as it drives (`GamePlay/CarSounds.cs`): the engine, deep and unhurried (a slow
 firing with a strong burble at half its rate), is two loops in step, idling and under the
-throttle, crossfaded by the throttle and pitched by how fast the wheels turn (so wheels
-spinning in the air rev it), following them slowly; the motor of the axles hums while they
-turn; the lock of the axles clunks (softer as it opens); the brake grabs the wheels of a
-moving car, and the tyres screech while the braked wheels slide on the track, louder and
-higher the faster the car goes. Where they slide, they leave dark skid marks on the track
-(`GameObjects/SkidMarks.cs`: under the wheels on both sides of the car, fading away after
-20 seconds).
+throttle, crossfaded by the throttle and pitched by how fast the wheels turn (those on the
+ground, which follow the car; all of them in the air, so wheels spinning in the air rev it),
+following them. Each car has its own engine in the catalog: the Sand Rail, sportier, sounds
+higher and revs up faster than the Buggy. The motor of the axles hums while they turn; the
+lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
+
+The tyres screech while they slip over what they stand on, the track or an object, faster
+than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or wheels
+spinning at a launch or landing from a jump; louder and higher the faster they slip. Where they
+slip, they leave dark skid marks (`GameObjects/SkidMarks.cs`: under the wheels on both sides
+of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
+fading away after 20 seconds), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: soft
+puffs rising and thinning out, their colour a greyed haze of the level's light). The car has
+traction control: a wheel on the ground spinning faster than it rolls gets less torque, so it
+grips instead of spinning (the motors never hold the wheels back, and wheels in the air spin
+up freely); only at a launch the tyres may spin up for a moment, less the faster the car
+goes.
 The loops last a second and every part of them is a whole number of hertz, so they loop
 without a seam; they pause with the game. Things hitting each other are heard too
 (`GamePlay/ImpactSounds.cs`): from the impulse of every contact the physics solves, how much
-it changed the speed of each body; the hardest hit of a frame for the car, a metal object and a
-wooden one sounds, as loud as it was (an object lower the heavier it is), each body not again
+it changed the speed of each body; the hardest hit of a frame for the car, a metal object, a
+wooden one and a plastic one (the barrels: a dull bomp) sounds, as loud as it was (an object lower the heavier it is), each body not again
 for 0.15 s. The car's light wheels take every bump of the road, so the car is heard from a
 change of 30 physics units a second, an object from 12: about once a second over humps and
 once a step up stairs. What an object is made of is in the catalog (see

@@ -159,6 +159,11 @@ namespace TW3D.Graphics
         private VertexPositionColor[] marks;
         private int markTriangles;
         private BasicEffect markEffect;
+        //The smoke for this frame (see AddSmoke) and what draws it: soft puffs facing the camera
+        private readonly List<(Vector3 Centre, float Radius, float Opacity)> puffs = new List<(Vector3, float, float)>();
+        private readonly List<VertexPositionColorTexture> smokeVertices = new List<VertexPositionColorTexture>();
+        private readonly Texture2D smokeTexture;
+        private readonly BasicEffect smokeEffect;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
         //The corners of the screen, for the passes over the whole screen
         private readonly VertexPositionTexture[] screenQuad =
@@ -215,6 +220,8 @@ namespace TW3D.Graphics
             roughnessParameter = effect.Parameters["Roughness"];
 
             glowTexture = CreateGlowTexture(device);
+            smokeTexture = CreateSmokeTexture(device);
+            smokeEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = smokeTexture };
             glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
 
             shadowMap = new RenderTarget2D(device, ShadowMapSize, ShadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
@@ -277,6 +284,7 @@ namespace TW3D.Graphics
             this.view = view;
             this.projection = projection;
             markTriangles = 0;
+            puffs.Clear();
             eye = Matrix.Invert(view).Translation;
             frustum.Matrix = view * projection;
             items.Clear();
@@ -312,6 +320,18 @@ namespace TW3D.Graphics
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
+        }
+
+        /// <summary>
+        /// A puff of smoke (of the tyres) facing the camera, its colour taken from the light of the scene; for this frame
+        /// (see Begin).
+        /// </summary>
+        /// <param name="radius">Scene units.</param>
+        /// <param name="opacity">How much it hides what is behind it in its middle, 0..1.</param>
+        public void AddSmoke(Vector3 centre, float radius, float opacity)
+        {
+            if (opacity > 0f)
+                puffs.Add((centre, radius, opacity));
         }
 
         /// <summary>Adds a model to the scene.</summary>
@@ -406,7 +426,71 @@ namespace TW3D.Graphics
                 DrawClassic();
             else
                 DrawLit();
+            DrawSmoke();
             DrawLampGlows();
+        }
+
+        /// <summary>A white puff thinning out to its edge, a little uneven; its alpha is how thick it is.</summary>
+        private static Texture2D CreateSmokeTexture(GraphicsDevice device)
+        {
+            Color[] pixels = new Color[GlowTextureSize * GlowTextureSize];
+            float centre = (GlowTextureSize - 1) / 2f;
+            for (int y = 0; y < GlowTextureSize; y++)
+            {
+                for (int x = 0; x < GlowTextureSize; x++)
+                {
+                    float dx = (x - centre) / centre, dy = (y - centre) / centre;
+                    float distance = MathF.Sqrt(dx * dx + dy * dy);
+                    //A few soft lumps around its middle
+                    float lumps = 0.85f + 0.15f * MathF.Sin(3f * MathF.Atan2(dy, dx) + 4f * distance);
+                    float thickness = MathHelper.Clamp(1f - distance / lumps, 0f, 1f);
+                    float alpha = thickness * thickness * (3f - 2f * thickness);
+                    pixels[y * GlowTextureSize + x] = new Color(alpha, alpha, alpha, alpha);
+                }
+            }
+            Texture2D texture = new Texture2D(device, GlowTextureSize, GlowTextureSize);
+            texture.SetData(pixels);
+            return texture;
+        }
+
+        /// <summary>
+        /// Draws the puffs of smoke over the scene, the furthest first, facing the camera and hidden by what is in front
+        /// of them. Their colour is a greyed haze of the light: whitish by day, warm at sunset, dim at night.
+        /// </summary>
+        private void DrawSmoke()
+        {
+            if (puffs.Count == 0)
+                return;
+            Matrix camera = Matrix.Invert(view);
+            Vector3 right = camera.Right, up = camera.Up;
+            Vector3 tint = Classic ? new Vector3(0.75f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.6f), 0.4f);
+            puffs.Sort((a, b) => Vector3.DistanceSquared(b.Centre, eye).CompareTo(Vector3.DistanceSquared(a.Centre, eye)));
+            smokeVertices.Clear();
+            foreach ((Vector3 centre, float radius, float opacity) in puffs)
+            {
+                //Premultiplied by its alpha
+                Color colour = new Color(new Vector4(tint * opacity, opacity));
+                Vector3 x = right * radius, y = up * radius;
+                smokeVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
+                smokeVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                smokeVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+                smokeVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                smokeVertices.Add(new VertexPositionColorTexture(centre + x - y, colour, new Vector2(1f, 1f)));
+                smokeVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+            }
+
+            smokeEffect.View = view;
+            smokeEffect.Projection = projection;
+            device.BlendState = BlendState.AlphaBlend;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            device.RasterizerState = RasterizerState.CullNone;
+            device.SamplerStates[0] = SamplerState.LinearClamp;
+            smokeEffect.CurrentTechnique.Passes[0].Apply();
+            VertexPositionColorTexture[] vertices = smokeVertices.ToArray();
+            device.DrawUserPrimitives(PrimitiveType.TriangleList, vertices, 0, vertices.Length / 3);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         /// <summary>A white circle fading out to its edge; its alpha is the strength of the glow.</summary>

@@ -77,10 +77,12 @@ game and the editor:
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution, the
   models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the
-  default, or `wood`), which decides how they sound when they hit something.
+  default, `wood` or `plastic`), which decides how they sound when they hit something.
 - **cars**: the cars of the garage: the name, the model of the body, the wheels it comes
-  with, the mass of the body and the top speed (how fast the motors turn the wheels at
-  most, radians per second). All cars have the same chassis (the holders of the wheels,
+  with, the mass of the body, the top speed (how fast the motors turn the wheels at
+  most, radians per second) and its engine: how much higher it sounds (`enginePitch`,
+  octaves, 0 by default) and how fast it follows the wheels (`engineResponse`, 1 / seconds,
+  3 by default): a sporty car sounds higher and revs up faster. All cars have the same chassis (the holders of the wheels,
   `holder`), so any wheels fit any car.
 - **wheels**: the wheels of the garage: the name, the model, the friction of the tyre (its
   grip on the track, whose friction is 1) and the mass of one wheel.

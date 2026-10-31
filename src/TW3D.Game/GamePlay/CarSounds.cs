@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using TW3D.Audio;
@@ -9,17 +10,16 @@ namespace TW3D.GamePlay
     /// <summary>
     /// The sounds of the car while it is driven: the engine (two loops in step, idling and under the throttle, pitched by
     /// how fast the wheels turn, so spinning wheels rev it), the motor of the axles while they turn, the lock of the axles,
-    /// the brake grabbing the wheels of a moving car and the tyres screeching while the braked wheels slide. The loops
-    /// pause with the game.
+    /// the brake grabbing the wheels of a moving car and the tyres screeching while they slip (sliding braked or
+    /// spinning). The loops pause with the game.
     /// </summary>
     sealed class CarSounds : IDisposable
     {
-        //The pitch of the engine (octaves) with the wheels standing and turning at the top speed of the car; how fast the
-        //pitch follows them (slowly: a heavy engine), and how fast the throttle and the motor of the axles fade in and
-        //out (1 / seconds)
+        //The pitch of the engine (octaves) with the wheels standing and turning at the top speed of the car, before the
+        //car's own (CarType.EnginePitch: a sportier car revs higher, and follows the wheels faster, EngineResponse); how
+        //fast the throttle and the motor of the axles fade in and out (1 / seconds)
         private const float IdlePitch = -0.4f;
         private const float TopPitch = 0.6f;
-        private const float PitchRate = 3f;
         private const float FadeRate = 10f;
         //Under the throttle the idling loop drops to this share of its volume, the other loop taking over
         private const float IdleUnderLoad = 0.5f;
@@ -31,8 +31,8 @@ namespace TW3D.GamePlay
         //(physics units a second)
         private const float BrakeMinSpeed = 8f;
         private const float BrakeFullSpeed = 40f;
-        //The tyres screech from this speed of the car (physics units a second), at their loudest and highest from this one
-        private const float SkidMinSpeed = 5f;
+        //The tyres screech while they slip over the ground (see Car.SlippingWheels), at their loudest and highest from
+        //this speed of slipping (physics units a second)
         private const float SkidFullSpeed = 40f;
         //The axles unlocked sound higher and softer than locked
         private const float UnlockPitch = 0.4f;
@@ -42,7 +42,7 @@ namespace TW3D.GamePlay
         private readonly Car car;
         //Null without an audio device
         private readonly SoundEffectInstance idle, load, axles, skid;
-        private float pitch = IdlePitch;
+        private float pitch = float.NaN;
         private float throttle;
         private float axlesLevel;
         private float skidLevel;
@@ -61,8 +61,8 @@ namespace TW3D.GamePlay
         /// <param name="elapsed">Real seconds since the last update.</param>
         /// <param name="running">The game runs; when it is paused, the loops pause.</param>
         /// <param name="throttleHeld">How far the throttle is held, 0..1.</param>
-        /// <param name="sliding">Braked wheels slide on the ground.</param>
-        public void Update(float elapsed, bool running, float throttleHeld, bool brake, bool lockAxles, bool axlesTurning, bool sliding)
+        /// <param name="slipping">The wheels slipping on the ground (null while the game does not run).</param>
+        public void Update(float elapsed, bool running, float throttleHeld, bool brake, bool lockAxles, bool axlesTurning, List<WheelSlip> slipping)
         {
             if (!running)
             {
@@ -72,10 +72,14 @@ namespace TW3D.GamePlay
                 return;
             }
 
-            //The engine: higher as the wheels turn faster, the loop under the throttle fading in as it is held
-            float follow = 1f - MathF.Exp(-PitchRate * elapsed);
+            //The engine: higher as the wheels turn faster (rising quickly at first, slower towards the top), the loop under
+            //the throttle fading in as it is held
+            if (float.IsNaN(pitch))
+                pitch = IdlePitch + car.Type.EnginePitch;
+            float follow = 1f - MathF.Exp(-car.Type.EngineResponse * elapsed);
             float fade = 1f - MathF.Exp(-FadeRate * elapsed);
-            pitch = MathHelper.Lerp(pitch, MathHelper.Lerp(IdlePitch, TopPitch, MathHelper.Clamp(car.WheelSpin, 0f, 1f)), follow);
+            float revs = MathF.Sqrt(MathHelper.Clamp(car.WheelSpin, 0f, 1f));
+            pitch = MathHelper.Lerp(pitch, MathHelper.Lerp(IdlePitch, TopPitch, revs) + car.Type.EnginePitch, follow);
             throttle = MathHelper.Lerp(throttle, MathHelper.Clamp(throttleHeld, 0f, 1f), fade);
             Set(idle, Sound.EngineIdle, 1f - (1f - IdleUnderLoad) * throttle, pitch);
             Set(load, Sound.EngineLoad, throttle, pitch);
@@ -83,8 +87,11 @@ namespace TW3D.GamePlay
             axlesLevel = MathHelper.Lerp(axlesLevel, axlesTurning ? 1f : 0f, fade);
             Set(axles, Sound.AxleMotor, axlesLevel, MathHelper.Lerp(AxlesLowPitch, AxlesHighPitch, MathHelper.Clamp(car.AxleSpin / AxlesTopSpin, 0f, 1f)));
 
-            float skidShare = MathHelper.Clamp((car.Speed - SkidMinSpeed) / (SkidFullSpeed - SkidMinSpeed), 0f, 1f);
-            skidLevel = MathHelper.Lerp(skidLevel, sliding ? MathHelper.Lerp(0.3f, 1f, skidShare) : 0f, fade);
+            float slip = 0f;
+            foreach (WheelSlip wheel in slipping)
+                slip = Math.Max(slip, wheel.Speed);
+            float skidShare = MathHelper.Clamp(slip / SkidFullSpeed, 0f, 1f);
+            skidLevel = MathHelper.Lerp(skidLevel, slip > 0f ? MathHelper.Lerp(0.3f, 1f, skidShare) : 0f, fade);
             Set(skid, Sound.Skid, skidLevel, MathHelper.Lerp(-0.2f, 0.2f, skidShare));
 
             if (lockAxles != locked)

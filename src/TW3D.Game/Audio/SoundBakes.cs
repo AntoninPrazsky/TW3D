@@ -36,6 +36,8 @@ namespace TW3D.Audio
         ImpactMetal,
         /// <summary>A wooden object hitting something: crates.</summary>
         ImpactWood,
+        /// <summary>A plastic object hitting something: the barrels.</summary>
+        ImpactPlastic,
         /// <summary>The car hitting something or landing.</summary>
         ImpactCar
     }
@@ -77,6 +79,7 @@ namespace TW3D.Audio
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,
             Sound.ImpactWood => 0.7f,
+            Sound.ImpactPlastic => 0.7f,
             Sound.ImpactCar => 0.7f,
             _ => 0.5f
         };
@@ -92,7 +95,7 @@ namespace TW3D.Audio
         {
             Sound.GarageSwitch or Sound.AxleLock => 0.03f,
             Sound.Brake => 0.05f,
-            Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactCar => 0.08f,
+            Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactCar => 0.08f,
             _ => 0f
         };
 
@@ -118,6 +121,7 @@ namespace TW3D.Audio
                 Sound.Brake => Brake(),
                 Sound.ImpactMetal => ImpactMetal(),
                 Sound.ImpactWood => ImpactWood(),
+                Sound.ImpactPlastic => ImpactPlastic(),
                 Sound.ImpactCar => ImpactCar(),
                 _ => throw new ArgumentOutOfRangeException(nameof(sound))
             };
@@ -365,6 +369,22 @@ namespace TW3D.Audio
             Synth.AddTone(signal, 0f, 0.2f, 160f, 140f, 0.4f, 0.002f, 30f, 1f);
             Synth.AddNoise(signal, 0f, 0.012f, 1f, 0.0005f, 300f, 1100f, 1100f, 1.2f, seed: 9);
             Synth.LowPass(signal, 3200f);
+            Synth.FadeOut(signal, 0.05f);
+            return signal;
+        }
+
+        /// <summary>
+        /// Plastic hit: the dull bomp of a hollow plastic barrel, its air booming briefly and the slap of its wall; no
+        /// ringing, plastic does not ring.
+        /// </summary>
+        private static float[] ImpactPlastic()
+        {
+            float[] signal = Synth.Buffer(0.35f);
+            Synth.AddTone(signal, 0f, 0.3f, 250f, 215f, 0.6f, 0.002f, 26f, 1f, 0.6f, 0.25f);
+            Synth.AddTone(signal, 0f, 0.2f, 540f, 500f, 0.35f, 0.001f, 40f, 1f);
+            Synth.AddTone(signal, 0f, 0.25f, 125f, 110f, 0.2f, 0.003f, 20f, 1f);
+            Synth.AddNoise(signal, 0f, 0.02f, 0.9f, 0.001f, 150f, 800f, 650f, 1f, seed: 13);
+            Synth.LowPass(signal, 2500f);
             Synth.FadeOut(signal, 0.05f);
             return signal;
         }

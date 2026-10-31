@@ -14,6 +14,13 @@ using System;
 
 namespace TW3D.GameObjects
 {
+    /// <summary>A wheel slipping on what it stands on (see <see cref="Car.SlippingWheels"/>).</summary>
+    /// <param name="Wheel">Which wheel of the physics (see <see cref="Car.WheelSide"/>).</param>
+    /// <param name="Point">Where it touches the ground (physics coordinates).</param>
+    /// <param name="Ground">What it stands on: the track or an object.</param>
+    /// <param name="Speed">How fast the tyre slips over it (physics units a second).</param>
+    readonly record struct WheelSlip(int Wheel, Vector2 Point, Body Ground, float Speed);
+
     class Car : GameObject
     {
         public Body car;
@@ -29,6 +36,9 @@ namespace TW3D.GameObjects
         private Body wheel4TF;
         
         private WheelJoint springB, springF;
+
+        /// <summary>The car of the catalog this is.</summary>
+        public CarType Type { get; }
 
         /// <summary>How many wheels the physics has (each is a pair of wheels, one on each side of the car).</summary>
         public const int WheelCount = 6;
@@ -49,6 +59,17 @@ namespace TW3D.GameObjects
 
         //How fast the motors turn the wheels at most (radians per second)
         private readonly float topSpeed;
+        //The radius of the wheels (physics units) and the most torque of their motors
+        private const float WheelRadius = 1.7f;
+        private const float MotorTorque = 900f;
+        //Traction: a wheel on the ground whose tyre spins faster over it than this (physics units a second) gets less
+        //torque, none spinning faster by this much more, so that it grips instead of spinning; at a launch the tyres may
+        //spin more for a while (screeching and smoking), the more the slower the car goes, no more from this speed. The
+        //motors never hold the wheels back, and wheels in the air spin up freely.
+        private const float GripSlip = 3f;
+        private const float SlipFade = 4f;
+        private const float LaunchSlip = 35f;
+        private const float LaunchSpeed = 14f;
 
         public float acceleration;
 
@@ -78,6 +99,7 @@ namespace TW3D.GameObjects
             rearWheelModel = screenManager.Content.Load<Model>(RearWheels.Model);
             holderModel = screenManager.Content.Load<Model>("holder");
             topSpeed = Type.TopSpeed;
+            this.Type = Type;
 
             car = CreateModelBody(Type.Model, BodyType.Dynamic);
             car.Position = position;
@@ -90,9 +112,9 @@ namespace TW3D.GameObjects
             holderB.BodyType = BodyType.Dynamic;
 
             float mSpeed = 0f;
-            float mTorque = 900f;
+            float mTorque = MotorTorque;
 
-            CircleShape wheelShape = new CircleShape(1.7f, 0.8f);
+            CircleShape wheelShape = new CircleShape(WheelRadius, 0.8f);
             wheelShape.Density = 1;
 
             wheel4LB = world.CreateBody();
@@ -263,30 +285,59 @@ namespace TW3D.GameObjects
         }
 
         /// <summary>
-        /// The wheels sliding braked (they cannot turn) on the track faster than a speed (physics units a second), and the
-        /// points where they touch it (physics coordinates): where the tyres leave skid marks. Wheels on objects do not.
+        /// The wheels slipping on what they stand on (the track or an object) faster than a speed (physics units a second):
+        /// braked wheels sliding, or wheels spinning at a launch. Where the tyres screech, leave skid marks and smoke.
         /// </summary>
-        public void SlidingWheels(List<(int Wheel, Vector2 Point)> sliding, float minSpeed)
+        public void SlippingWheels(List<WheelSlip> slipping, float minSpeed)
         {
-            sliding.Clear();
-            if (!brake)
-                return;
+            slipping.Clear();
             for (int i = 0; i < wheels.Length; i++)
             {
-                if (wheels[i].LinearVelocity.Length() < minSpeed)
-                    continue;
-                for (ContactEdge edge = wheels[i].ContactList; edge != null; edge = edge.Next)
-                {
-                    if (!edge.Contact.IsTouching || edge.Other.BodyType != BodyType.Static)
-                        continue;
-                    edge.Contact.GetWorldManifold(out _, out FixedArray2<Vector2> points);
-                    sliding.Add((i, points[0]));
-                    break;
-                }
+                if (Ground(wheels[i], out Vector2 point, out Body ground, out float slip) && slip >= minSpeed)
+                    slipping.Add(new WheelSlip(i, point, ground, slip));
             }
         }
 
-        /// <summary>How far a wheel (see <see cref="SlidingWheels"/>) is from the middle of the car across the track (scene units).</summary>
+        /// <summary>
+        /// What a wheel stands on (the track or an object, not the car itself), where it touches it (physics coordinates)
+        /// and how fast the tyre moves over it there (physics units a second): 0 rolling, the speed of the car sliding
+        /// braked, more spinning.
+        /// </summary>
+        private bool Ground(Body wheel, out Vector2 point, out Body ground, out float slip)
+        {
+            for (ContactEdge edge = wheel.ContactList; edge != null; edge = edge.Next)
+            {
+                Contact contact = edge.Contact;
+                if (!contact.IsTouching || contact.FixtureA.IsSensor || contact.FixtureB.IsSensor || edge.Other.Tag == this)
+                    continue;
+                contact.GetWorldManifold(out Vector2 normal, out FixedArray2<Vector2> points);
+                point = points[0];
+                ground = edge.Other;
+                Vector2 relative = wheel.GetLinearVelocityFromWorldPoint(point) - ground.GetLinearVelocityFromWorldPoint(point);
+                slip = Math.Abs(relative.Y * normal.X - relative.X * normal.Y);
+                return true;
+            }
+            point = Vector2.Zero;
+            ground = null;
+            slip = 0f;
+            return false;
+        }
+
+        /// <summary>
+        /// Whether a wheel stands on something, and how much faster its tyre turns than it would rolling over it (physics
+        /// units a second; less than 0 turning slower).
+        /// </summary>
+        private bool Spinning(Body wheel, out float spinning)
+        {
+            spinning = 0f;
+            if (!Ground(wheel, out Vector2 point, out Body ground, out _))
+                return false;
+            Vector2 over = wheel.LinearVelocity - ground.GetLinearVelocityFromWorldPoint(point);
+            spinning = Math.Abs(wheel.AngularVelocity - ground.AngularVelocity) * WheelRadius - over.Length();
+            return true;
+        }
+
+        /// <summary>How far a wheel (see <see cref="SlippingWheels"/>) is from the middle of the car across the track (scene units).</summary>
         public float WheelSide(int wheel) => wheel < 3 ? rearSide : frontSide;
 
         /// <summary>
@@ -297,10 +348,20 @@ namespace TW3D.GameObjects
         {
             get
             {
-                float spin = Math.Abs(wheel4LB.AngularVelocity - holderB.AngularVelocity) + Math.Abs(wheel4RB.AngularVelocity - holderB.AngularVelocity)
-                    + Math.Abs(wheel4TB.AngularVelocity - holderB.AngularVelocity) + Math.Abs(wheel4LF.AngularVelocity - holderF.AngularVelocity)
-                    + Math.Abs(wheel4RF.AngularVelocity - holderF.AngularVelocity) + Math.Abs(wheel4TF.AngularVelocity - holderF.AngularVelocity);
-                return spin / 6f / topSpeed;
+                //The wheels on the ground if any (they follow the car), else all of them (spinning freely in the air)
+                float spin = 0f, grounded = 0f;
+                int touching = 0;
+                foreach (RevoluteJoint joint in wJoints)
+                {
+                    float turning = Math.Abs(joint.JointSpeed);
+                    spin += turning;
+                    if (Ground(joint.BodyB, out _, out _, out _))
+                    {
+                        grounded += turning;
+                        touching++;
+                    }
+                }
+                return (touching > 0 ? grounded / touching : spin / wJoints.Count) / topSpeed;
             }
         }
 
@@ -314,18 +375,14 @@ namespace TW3D.GameObjects
         {
             if (car.Rotation >= 2 * Math.PI || car.Rotation <= -2 * Math.PI) { car.Rotation = 0; }
 
+            float motorSpeed = Math.Sign(acceleration) * MathHelper.SmoothStep(0f, topSpeed, Math.Abs(acceleration));
+            float allowed = GripSlip + LaunchSlip * MathHelper.Clamp(1f - Speed / LaunchSpeed, 0f, 1f);
             foreach (RevoluteJoint joint in wJoints)
             {
-                joint.MotorSpeed = Math.Sign(acceleration) * MathHelper.SmoothStep(0f, topSpeed, Math.Abs(acceleration));
-                
-                if (Math.Abs(joint.MotorSpeed) < topSpeed * 0.06f)
-                {
-                    joint.MotorEnabled = false;
-                }
-                else
-                {
-                    joint.MotorEnabled = true;
-                }
+                joint.MotorSpeed = motorSpeed;
+                joint.MotorEnabled = Math.Abs(motorSpeed) >= topSpeed * 0.06f;
+                float grip = Spinning(joint.BodyB, out float spinning) ? MathHelper.Clamp(1f - (spinning - allowed) / SlipFade, 0f, 1f) : 1f;
+                joint.MaxMotorTorque = MotorTorque * grip;
             }
             
             if (holderRotation)

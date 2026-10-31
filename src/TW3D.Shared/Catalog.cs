@@ -35,7 +35,8 @@ namespace TW3D.Shared
     public enum ObjectMaterial
     {
         Metal,
-        Wood
+        Wood,
+        Plastic
     }
 
     /// <summary>A kind of dynamic object (moved by the physics simulation) with the models it can use.</summary>
@@ -52,7 +53,7 @@ namespace TW3D.Shared
         public float Restitution { get; set; }
         public List<string> Models { get; set; } = new List<string>();
 
-        /// <summary>What it is made of (how it sounds when it hits something); metal if not given.</summary>
+        /// <summary>What it is made of (how it sounds when it hits something): metal if not given, wood, plastic.</summary>
         public ObjectMaterial Material { get; set; }
 
         public static string ModelAsset(string model) => "Env/" + model;
@@ -78,6 +79,12 @@ namespace TW3D.Shared
 
         /// <summary>How fast the motors turn the wheels at most (radians per second): the top speed of the car.</summary>
         public float TopSpeed { get; set; } = 50f;
+
+        /// <summary>How much higher its engine sounds than the one baked (octaves): a sportier car revs higher.</summary>
+        public float EnginePitch { get; set; }
+
+        /// <summary>How fast its engine follows the wheels (1 / seconds): a sportier car revs up faster.</summary>
+        public float EngineResponse { get; set; } = 3f;
     }
 
     /// <summary>Wheels for the cars.</summary>

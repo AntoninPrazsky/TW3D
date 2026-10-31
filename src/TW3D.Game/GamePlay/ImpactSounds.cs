@@ -75,7 +75,12 @@ namespace TW3D.GamePlay
                     key = car;
                     break;
                 case ObjectType type:
-                    sound = type.Material == ObjectMaterial.Wood ? Sound.ImpactWood : Sound.ImpactMetal;
+                    sound = type.Material switch
+                    {
+                        ObjectMaterial.Wood => Sound.ImpactWood,
+                        ObjectMaterial.Plastic => Sound.ImpactPlastic,
+                        _ => Sound.ImpactMetal
+                    };
                     key = body;
                     break;
                 default:
@@ -101,7 +106,7 @@ namespace TW3D.GamePlay
                     quiet.Remove(key);
             }
 
-            foreach (Sound sound in new[] { Sound.ImpactCar, Sound.ImpactMetal, Sound.ImpactWood })
+            foreach (Sound sound in new[] { Sound.ImpactCar, Sound.ImpactMetal, Sound.ImpactWood, Sound.ImpactPlastic })
             {
                 float min = sound == Sound.ImpactCar ? CarMinChange : ObjectMinChange;
                 float full = sound == Sound.ImpactCar ? CarFullChange : ObjectFullChange;

@@ -62,11 +62,12 @@ namespace TW3D.GamePlay
         private CarSounds carSounds;
         private ImpactSounds impacts;
         private float throttleHeld;
-        //The marks of the tyres on the track, and the wheels sliding now (braked wheels faster than this, physics units a
-        //second)
-        private const float SlideSpeed = 5f;
+        //The marks and the smoke of the tyres, and the wheels slipping now (sliding braked or spinning faster than this
+        //over what they stand on, physics units a second)
+        private const float SlipSpeed = 8f;
         private SkidMarks skidMarks;
-        private readonly List<(int Wheel, Vector2 Point)> sliding = new List<(int, Vector2)>();
+        private TyreSmoke smoke;
+        private readonly List<WheelSlip> slipping = new List<WheelSlip>();
         //The best time before the run, and whether the run became the best one
         private float? previousBest;
         private bool record;
@@ -130,6 +131,7 @@ namespace TW3D.GamePlay
             drag = new CarDrag(world, car, camera);
             carSounds = new CarSounds(Manager.Sounds, car);
             skidMarks = new SkidMarks();
+            smoke = new TyreSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);
 
             //Loading takes a while; the game should not try to catch up with the lost time afterwards
@@ -209,11 +211,12 @@ namespace TW3D.GamePlay
                 physics.Advance(elapsed);
             if (running)
             {
-                car.SlidingWheels(sliding, SlideSpeed);
-                skidMarks.Update(realElapsed, car, sliding);
+                car.SlippingWheels(slipping, SlipSpeed);
+                skidMarks.Update(realElapsed, car, slipping);
+                smoke.Update(realElapsed, car, slipping);
                 impacts.Update(realElapsed);
             }
-            carSounds.Update(realElapsed, running, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running && sliding.Count > 0);
+            carSounds.Update(realElapsed, running, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is paused
             camera.Update(running ? elapsed : 0f, Manager.Viewport, physics.Position(car.car), physics.Rotation(car.car));
@@ -315,6 +318,7 @@ namespace TW3D.GamePlay
                 car.Draw(renderer);
             level.Draw(renderer);
             skidMarks.Draw(renderer);
+            smoke.Draw(renderer);
             renderer.End();
 
             Matrix debugProjection = camera.DebugProjection;
