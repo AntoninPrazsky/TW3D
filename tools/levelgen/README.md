@@ -17,6 +17,7 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 |---|---|
 | `lib.js` | `Track`: the road builder and helpers for decorations |
 | `summit.js` | The *summit* level |
+| `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, long stairs |
 | `side-view.ps1` | Side view of a level's road as an image (Windows PowerShell), to check that it is continuous |
 
 ## Heights

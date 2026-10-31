@@ -61,17 +61,21 @@ While driving, cards at the top of the screen teach the controls one at a time: 
 the gamepad button or stick, or the on-screen control (for the device used last), and
 what to do with it. An action stays until it is done, then a word of praise joins it; not
 done, it goes after about 20 seconds and comes back in the next run. A notice stays a few
-seconds. A lesson learnt is kept (in `TW3D/records.json` next to the settings) and not
-shown again; one not learnt yet follows the player into the later levels. The cards never
-stop the game; Options → Tutorial turns them off.
+seconds. A level shows its own lessons in every run, learnt or not. A lesson not learnt
+yet follows the player into the later levels; one learnt is kept (in `TW3D/records.json`
+next to the settings) and not shown there again. The cards never stop the game;
+Options → Tutorial turns them off.
 
 | Lesson | From level | Card (keyboard) |
 |---|---|---|
-| `drive` | 1 | → *Hold to drive* |
-| `axles` | 1 | ↑ ↓ *Hold to turn the axles* |
-| `par` | 2 | *Beat the par time for three stars* |
-| `walk` | 2 | Space *Hold to brake*, then ↑ ↓ *Now turn the axles* / *Keep braking* |
-| `lock` | 3 | Left Ctrl *Hold to lock the axles* |
+| `drive` | 1 (training1: driving) | → *Hold to drive* |
+| `par` | 1 | *Beat the par time for three stars* |
+| `axles` | 2 (training2: stairs) | ↑ ↓ *Hold to turn the axles* |
+| `lock` | 4 | Left Ctrl *Hold to lock the axles* |
+
+The third training level (training3: long stairs) has no lesson of its own. The brake has
+no lesson yet: no level needs it so far. A card can have two steps (the second one comes
+when the first is done), which a lesson of braking while turning the axles would use.
 
 A car stuck in front of an obstacle gets a hint: when the throttle has been held for 3
 seconds while the car made no progress, ↑ ↓ *Turn the axles to climb over* comes (only the

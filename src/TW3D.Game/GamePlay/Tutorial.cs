@@ -121,10 +121,10 @@ namespace TW3D.GamePlay
 
     /// <summary>
     /// The tutorial of a run of a level: cards over the level that teach the controls one at a time, after the
-    /// tutorial of BS3D. A lesson is taught from its level on; one not taught yet follows the player into the next
-    /// levels. An action stays until the player does it (then a word of praise joins it) and gives up after a while
-    /// unrecorded, to come again in the next run; a notice stays a few seconds. A lesson taught is saved and not shown
-    /// again. A hint comes whenever the player needs it (see <see cref="StuckHint"/>). The cards never stop the game.
+    /// tutorial of BS3D. A level shows its own lessons in every run, taught or not; a lesson not taught yet follows the
+    /// player into the next levels, one taught is saved and not shown there again. An action stays until the player
+    /// does it (then a word of praise joins it) and gives up after a while unrecorded; a notice stays a few seconds.
+    /// A hint comes whenever the player needs it (see <see cref="StuckHint"/>). The cards never stop the game.
     /// This class holds the lessons and their state and draws nothing (see <see cref="TutorialCard"/>).
     /// </summary>
     public sealed class Tutorial
@@ -152,18 +152,19 @@ namespace TW3D.GamePlay
         private const float StuckSpeed = 3f;
         private const float HintTime = 7f;
 
-        /// <summary>The lessons, in the order they are taught.</summary>
+        /// <summary>
+        /// The lessons, in the order they are taught. The first levels are training levels: driving (training1), stairs
+        /// (training2) and long stairs (training3, no lesson of its own: the stuck hint helps there). The brake has no
+        /// lesson yet: no level needs it so far.
+        /// </summary>
         public static readonly IReadOnlyList<Lesson> Lessons = new[]
         {
             Lesson.Action("drive", 0, "Nice!",
                 new LessonStep(CarControl.Throttle, "Hold to drive", null, a => a.Throttle, 1f, false)),
-            Lesson.Action("axles", 0, "Good!",
+            Lesson.Notice("par", 0, "Beat the par time for three stars"),
+            Lesson.Action("axles", 1, "Good!",
                 new LessonStep(CarControl.Axles, "Hold to turn the axles", null, a => a.Axles, 0.6f, false)),
-            Lesson.Notice("par", 1, "Beat the par time for three stars"),
-            Lesson.Action("walk", 1, "Great!",
-                new LessonStep(CarControl.Brake, "Hold to brake", null, a => a.Brake, 0.35f, true),
-                new LessonStep(CarControl.Axles, "Now turn the axles", "Keep braking", a => a.Brake && a.Axles, 0.35f, true)),
-            Lesson.Action("lock", 2, "Perfect!",
+            Lesson.Action("lock", 3, "Perfect!",
                 new LessonStep(CarControl.Lock, "Hold to lock the axles", null, a => a.LockAxles, 0.35f, true)),
         };
 
@@ -202,7 +203,7 @@ namespace TW3D.GamePlay
                 {
                     TutorialLever.Demo => true,
                     TutorialLever.Replay => lesson.FromLevel <= level,
-                    _ => lesson.FromLevel <= level && !taughtLessons.Contains(lesson.Key)
+                    _ => lesson.FromLevel == level || lesson.FromLevel < level && !taughtLessons.Contains(lesson.Key)
                 };
                 if (due)
                     queue.Enqueue(lesson);
