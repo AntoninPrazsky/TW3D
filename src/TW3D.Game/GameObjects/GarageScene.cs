@@ -66,6 +66,9 @@ namespace TW3D.GameObjects
         private const float WheelsTime = 0.8f;
         //The shadows reach across the hall (world units)
         private const float ShadowDistance = 10f;
+        //The floor under the car on the lift and the middles of its axles follow the car at this rate (1 / seconds):
+        //other wheels (larger, or wider) raise the car on the lift and move the view of the wheels smoothly, not at once
+        private const float FollowRate = 8f;
 
         /// <summary>Distance of the cars of the row (world units): the car in front of the lift stands behind the camera of the menu.</summary>
         public const float Spacing = 4f;
@@ -82,6 +85,10 @@ namespace TW3D.GameObjects
         //How far the camera has come to the wheels of each axle (0–1)
         private float frontWheels, rearWheels;
         private float time;
+        //The bottom of the wheels of the car on the lift and the middles of its axles, following the car (see FollowRate);
+        //null until the first update
+        private float? floor;
+        private Vector3? frontCentre, rearCentre;
 
         public GarageScene(ScreenManager manager, GameSettings settings)
         {
@@ -145,15 +152,22 @@ namespace TW3D.GameObjects
             float step = elapsed / WheelsTime;
             frontWheels = MathHelper.Clamp(frontWheels + (View == CarView.FrontWheels ? step : -step), 0f, 1f);
             rearWheels = MathHelper.Clamp(rearWheels + (View == CarView.RearWheels ? step : -step), 0f, 1f);
+
+            Car selected = Preview(cars[Selected]);
+            float follow = 1f - MathF.Exp(-FollowRate * elapsed);
+            floor = MathHelper.Lerp(floor ?? selected.WheelsBottom, selected.WheelsBottom, follow);
+            frontCentre = Vector3.Lerp(frontCentre ?? selected.WheelsCentre(true, true), selected.WheelsCentre(true, true), follow);
+            rearCentre = Vector3.Lerp(rearCentre ?? selected.WheelsCentre(false, true), selected.WheelsCentre(false, true), follow);
         }
 
         /// <summary>
         /// Where the camera looks at the wheels of an axle of the car on the lift from: from its side turned to the
         /// camera of the garage screen (towards -z), turned towards the end of the car the axle is at.
         /// </summary>
-        private (Vector3 Eye, Vector3 Target) WheelsView(Car car, bool front)
+        /// <param name="centre">The middle of the axle's wheels (see Car.WheelsCentre), before the car is turned.</param>
+        private (Vector3 Eye, Vector3 Target) WheelsView(Vector3 centre, bool front)
         {
-            Vector3 target = Vector3.Transform(car.WheelsCentre(front, true), Turned);
+            Vector3 target = Vector3.Transform(centre, Turned);
             float angle = MathHelper.ToRadians((front ? WheelsAngle : -WheelsAngle) + WheelsSweep * MathF.Sin(time * GarageSweepRate));
             float pitch = MathHelper.ToRadians(WheelsPitch);
             return (target + WheelsDistance * new Vector3(MathF.Sin(angle) * MathF.Cos(pitch), MathF.Sin(pitch), -MathF.Cos(angle) * MathF.Cos(pitch)), target);
@@ -166,29 +180,30 @@ namespace TW3D.GameObjects
 
             //The garage stands on the floor where the wheels of the cars stand, its lift under the car on it
             Car selected = Preview(cars[Selected]);
+            float wheelsBottom = floor ?? selected.WheelsBottom;
             Matrix garageWorld = Matrix.CreateTranslation(-LiftCentre) * Matrix.CreateRotationY(MathHelper.PiOver2)
-                * Matrix.CreateScale(ModelScale) * Matrix.CreateTranslation(0f, selected.WheelsBottom, 0f);
+                * Matrix.CreateScale(ModelScale) * Matrix.CreateTranslation(0f, wheelsBottom, 0f);
 
             //The camera: between the view of the menu and the view of the car on the lift
             Vector3 menuEye = Vector3.Transform(MenuEye, garageWorld);
             Vector3 menuTarget = Vector3.Transform(MenuEye + Vector3.Normalize(MenuDirection) * MenuLook, garageWorld);
             menuEye = Vector3.Transform(menuEye - menuTarget, Matrix.CreateRotationY(MenuDrift * MathF.Sin(time * MenuDriftRate))) + menuTarget;
 
-            Vector3 carTarget = new Vector3(0f, (selected.WheelsBottom + 0.3f) / 2f, 0f);
+            Vector3 carTarget = new Vector3(0f, (wheelsBottom + 0.3f) / 2f, 0f);
             float sweep = MathHelper.ToRadians(GarageCorner + GarageSweep * MathF.Sin(time * GarageSweepRate));
             float pitch = MathHelper.ToRadians(GaragePitch);
             Vector3 carEye = carTarget + GarageDistance * new Vector3(MathF.Sin(sweep) * MathF.Cos(pitch), MathF.Sin(pitch), -MathF.Cos(sweep) * MathF.Cos(pitch));
             Vector3 garageEye = carEye, garageTarget = carTarget;
             if (frontWheels > 0f)
             {
-                (Vector3 eye, Vector3 target) wheels = WheelsView(selected, true);
+                (Vector3 eye, Vector3 target) wheels = WheelsView(frontCentre ?? selected.WheelsCentre(true, true), true);
                 float blend = MathHelper.SmoothStep(0f, 1f, frontWheels);
                 garageEye = Vector3.Lerp(garageEye, wheels.eye, blend);
                 garageTarget = Vector3.Lerp(garageTarget, wheels.target, blend);
             }
             if (rearWheels > 0f)
             {
-                (Vector3 eye, Vector3 target) wheels = WheelsView(selected, false);
+                (Vector3 eye, Vector3 target) wheels = WheelsView(rearCentre ?? selected.WheelsCentre(false, true), false);
                 float blend = MathHelper.SmoothStep(0f, 1f, rearWheels);
                 garageEye = Vector3.Lerp(garageEye, wheels.eye, blend);
                 garageTarget = Vector3.Lerp(garageTarget, wheels.target, blend);
