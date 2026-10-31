@@ -33,7 +33,7 @@ namespace TW3D.GameObjects
             Rise = 0.12f,
             Drag = 2.5f,
             Opacity = 0.65f,
-            Tint = new Vector3(0.8f, 0.9f, 1.15f)
+            Tint = new Vector3(0.8f, 0.85f, 1f)
         };
         private readonly Vector3[] ends = new Vector3[2];
         private float load, burst, pressed, owed;
