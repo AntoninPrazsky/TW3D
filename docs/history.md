@@ -27,12 +27,6 @@
 
 ## Roadmap
 
-Issues found during the migration, roughly in order of importance:
-
-1. **Sources of the other content:** the images and fonts are still only
-   precompiled `.xnb` files.
-2. **Editor:** default folder `C:\levels`, Windows-only dependencies (WinForms
-   dialogs, `keybd_event` for Caps Lock) and controls spread over two windows.
-   A possible replacement: UI directly in the editor window (e.g. ImGui.NET).
-3. **Automated tests and CI**, e.g. tests of the level format and builds via
-   GitHub Actions.
+The plans are kept as [GitHub issues](https://github.com/AntoninPrazsky/TW3D/issues);
+what has to be done before the first release is in the
+[First release](https://github.com/AntoninPrazsky/TW3D/milestone/1) milestone.
