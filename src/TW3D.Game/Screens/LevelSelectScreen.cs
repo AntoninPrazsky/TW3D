@@ -11,6 +11,8 @@ namespace TW3D.Screens
     /// <summary>
     /// A grid of level preview images below the title. As many columns as fit the screen are used;
     /// when the levels do not fit vertically, the list scrolls and a scroll bar appears on its left.
+    /// Back, on the left of the title, returns to the main menu (as Esc, the gamepad Back button and the back
+    /// gesture of a phone do): a touch screen has no other way back.
     /// </summary>
     public sealed class LevelSelectScreen : Screen
     {
@@ -29,6 +31,9 @@ namespace TW3D.Screens
         private const float TitleSlide = 140f;
         //Screen pixels the pressed pointer has to move to start scrolling instead of clicking
         private const float DragThreshold = 10f;
+        //Font scale of Back (as in the garage) and the extra area around it that reacts to the pointer, in reference pixels
+        private const float BackScale = 0.8f;
+        private const float BackPadding = 20f;
 
         private static readonly RasterizerState ScissorRasterizer = new RasterizerState { CullMode = CullMode.None, ScissorTestEnable = true };
 
@@ -55,6 +60,7 @@ namespace TW3D.Screens
         private float arrowDownY;
         private float sliderTop;
         private float sliderBottom;
+        private Rectangle back, backText;
 
         //Scroll position in reference pixels, so it does not depend on the screen size
         private float scroll;
@@ -128,6 +134,13 @@ namespace TW3D.Screens
             sliderTop = arrowUpY + arrowHeight / 2f + gap + sliderHeight / 2f;
             sliderBottom = arrowDownY - arrowHeight / 2f - gap - sliderHeight / 2f;
 
+            //Back on the left of the title, centred on its height
+            Vector2 backSize = Manager.Fonts.Menu.MeasureString("Back") * BackScale * uiScale;
+            float titleHeight = MainMenuScreen.TitleHeight(Manager);
+            backText = new Rectangle(safe.Left, (int)(safe.Top + (titleHeight - backSize.Y) / 2f), (int)backSize.X, (int)backSize.Y);
+            back = backText;
+            back.Inflate((int)(BackPadding * uiScale), (int)(BackPadding * uiScale));
+
             //The screen may have been resized
             ScrollTo(scroll);
         }
@@ -183,8 +196,14 @@ namespace TW3D.Screens
             Vector2 pointer = input.PointerPosition;
 
             int hovered = LevelAt(pointer);
-            if (hovered >= 0 || input.Mouse.Position != input.PreviousMouse.Position)
+            if (hovered >= 0 || input.MouseMoved)
                 focusedLevel = hovered;
+
+            if (input.PointerPressed && back.Contains(pointer))
+            {
+                Close();
+                return;
+            }
 
             if (input.PointerPressed)
             {
@@ -302,7 +321,10 @@ namespace TW3D.Screens
                 DrawScrollBarButton(batch, arrowTexture, arrowDownY, true, drag == Drag.ArrowDown || ScrollBarButtonBounds(arrowTexture, arrowDownY).Contains(pointer), slide, alpha);
                 DrawScrollBarButton(batch, sliderTexture, SliderY, false, drag == Drag.Slider || ScrollBarButtonBounds(sliderTexture, SliderY).Contains(pointer), slide, alpha);
             }
-            MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
+            float titleSlide = SlideAmount * TitleSlide * uiScale;
+            MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - titleSlide, alpha);
+            Color backColor = back.Contains(Manager.Input.PointerPosition) && HasFocus ? MainMenuScreen.Yellow : Color.White;
+            Manager.DrawShadowedText(Manager.Fonts.Menu, "Back", new Vector2(backText.X, backText.Y - titleSlide), backColor * alpha, Color.Black * alpha, BackScale * uiScale);
             if (levels.Count == 0)
                 DrawCenteredText(batch, "No levels found", new Rectangle(0, (int)listTop, viewport.Width, (int)(listBottom - listTop) / 2), 0.6f * uiScale, alpha);
             batch.End();

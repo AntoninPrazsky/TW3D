@@ -44,7 +44,7 @@ namespace TW3D.Screens
         /// <summary>The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys).</summary>
         public void FollowMouse(InputState input)
         {
-            if (input.Mouse.Position != input.PreviousMouse.Position)
+            if (input.MouseMoved)
                 Focused = ItemAt(input.PointerPosition);
         }
 

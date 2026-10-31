@@ -97,7 +97,7 @@ namespace TW3D.Screens
 
             //The mouse focuses the item under it when it moves (a mouse at rest does not take the focus from the keys)
             Item hovered = ItemAt(input.PointerPosition);
-            if (input.Mouse.Position != input.PreviousMouse.Position)
+            if (input.MouseMoved)
                 focused = hovered;
 
             if (input.UpPressed || input.LeftPressed)

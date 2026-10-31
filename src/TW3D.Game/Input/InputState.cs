@@ -69,6 +69,8 @@ namespace TW3D.Input
 
         private readonly List<Pointer> pointers = new List<Pointer>();
         private int mousePointerId = FirstMousePointerId;
+        //The mouse on the screen in the last update; null before the first one
+        private Point? mouseOnScreen;
 
         //The back gesture or button of the phone, reported by the Android activity (from another thread)
         private static int systemBackRequested;
@@ -92,6 +94,12 @@ namespace TW3D.Input
         /// <summary>The first pointer was released in this frame.</summary>
         public bool PointerReleased { get; private set; }
 
+        /// <summary>
+        /// The mouse moved since the last frame. It is followed on the screen, not in the window, so a window moved or
+        /// resized under a resting cursor (e.g. maximized at the start) does not move it, nor does the first frame.
+        /// </summary>
+        public bool MouseMoved { get; private set; }
+
         /// <summary>Mouse wheel movement since the last frame (120 per notch, positive = away from the user).</summary>
         public int WheelDelta { get; private set; }
 
@@ -114,8 +122,9 @@ namespace TW3D.Input
             Interlocked.Exchange(ref systemBackRequested, 1);
         }
 
+        /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
         /// <param name="active">The game has the focus; the devices are noted only then (a gamepad is read without it too).</param>
-        public void Update(bool active)
+        public void Update(Point windowOrigin, bool active)
         {
             PreviousKeyboard = Keyboard;
             PreviousMouse = Mouse;
@@ -124,6 +133,10 @@ namespace TW3D.Input
             Keyboard = Microsoft.Xna.Framework.Input.Keyboard.GetState();
             Mouse = Microsoft.Xna.Framework.Input.Mouse.GetState();
             GamePad = Microsoft.Xna.Framework.Input.GamePad.GetState(PlayerIndex.One);
+
+            Point mouse = Mouse.Position + windowOrigin;
+            MouseMoved = mouseOnScreen.HasValue && mouse != mouseOnScreen.Value;
+            mouseOnScreen = mouse;
 
             WheelDelta = Mouse.ScrollWheelValue - PreviousMouse.ScrollWheelValue;
             SystemBackPressed = Interlocked.Exchange(ref systemBackRequested, 0) != 0;
