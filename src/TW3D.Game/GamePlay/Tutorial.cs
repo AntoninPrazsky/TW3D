@@ -57,23 +57,31 @@ namespace TW3D.GamePlay
     }
 
     /// <summary>
-    /// A lesson of the tutorial: an action (one or two steps, done when the player does them) or a notice to read.
+    /// A lesson of the tutorial: an action (one or two steps, done when the player does them), a notice to read, or a
+    /// hint (an action shown when the player needs it, never saved).
     /// </summary>
     public sealed class Lesson
     {
-        private Lesson(string key, int fromLevel, string caption, string praise, LessonStep[] steps)
+        private Lesson(string key, int fromLevel, string caption, string praise, LessonStep[] steps, bool isHint = false)
         {
             Key = key;
             FromLevel = fromLevel;
             Caption = caption;
             Praise = praise;
             Steps = steps;
+            IsHint = isHint;
         }
 
         /// <summary>An action of one or two steps; the praise joins the card when it is done.</summary>
         public static Lesson Action(string key, int fromLevel, string praise, params LessonStep[] steps)
         {
             return new Lesson(key, fromLevel, null, praise, steps);
+        }
+
+        /// <summary>A hint: an action of one step, shown whenever it is due, on any level.</summary>
+        public static Lesson Hint(string key, string praise, LessonStep step)
+        {
+            return new Lesson(key, 0, null, praise, new[] { step }, true);
         }
 
         /// <summary>A notice, read in a few seconds.</summary>
@@ -96,6 +104,9 @@ namespace TW3D.GamePlay
         public IReadOnlyList<LessonStep> Steps { get; }
 
         public bool IsNotice => Steps.Count == 0;
+
+        /// <summary>Shown when it is due, not taught once (see <see cref="Tutorial.StuckHint"/>).</summary>
+        public bool IsHint { get; }
     }
 
     /// <summary>The tutorial's levers for development (see Program).</summary>
@@ -113,7 +124,7 @@ namespace TW3D.GamePlay
     /// tutorial of BS3D. A lesson is taught from its level on; one not taught yet follows the player into the next
     /// levels. An action stays until the player does it (then a word of praise joins it) and gives up after a while
     /// unrecorded, to come again in the next run; a notice stays a few seconds. A lesson taught is saved and not shown
-    /// again. The cards never stop the game.
+    /// again. A hint comes whenever the player needs it (see <see cref="StuckHint"/>). The cards never stop the game.
     /// This class holds the lessons and their state and draws nothing (see <see cref="TutorialCard"/>).
     /// </summary>
     public sealed class Tutorial
@@ -135,6 +146,11 @@ namespace TW3D.GamePlay
         private const float StepBackTime = 0.5f;
         //In the demo, every step is done after this long
         private const float DemoStepTime = 2f;
+        //The stuck hint comes when the throttle has been held this long while the car made no progress (went slower
+        //than this, physics units a second); unheeded, it goes after this long
+        private const float StuckTime = 3f;
+        private const float StuckSpeed = 3f;
+        private const float HintTime = 7f;
 
         /// <summary>The lessons, in the order they are taught.</summary>
         public static readonly IReadOnlyList<Lesson> Lessons = new[]
@@ -151,6 +167,14 @@ namespace TW3D.GamePlay
                 new LessonStep(CarControl.Lock, "Hold to lock the axles", null, a => a.LockAxles, 0.35f, true)),
         };
 
+        /// <summary>
+        /// The hint for a car stuck in front of an obstacle with the throttle held, after BS3D's precise-aim hint: it
+        /// counts only the time the throttle is held while the car makes no progress, so a player who stops to think is
+        /// not nagged, and turning the axles starts the count again.
+        /// </summary>
+        public static readonly Lesson StuckHint = Lesson.Hint("stuck", "That's it!",
+            new LessonStep(CarControl.Axles, "Turn the axles to climb over", null, a => a.Axles, 0.6f, false));
+
         /// <summary>Set once at the start by the command line (see Program).</summary>
         public static TutorialLever Lever { get; set; }
 
@@ -163,6 +187,8 @@ namespace TW3D.GamePlay
         private float held;
         private float released;
         private bool leaving;
+        //Seconds the throttle has been held while the car made no progress
+        private float stuck;
 
         /// <param name="level">The position of the level in the level select (0 = the first one).</param>
         /// <param name="taughtLessons">The keys of the lessons taught before.</param>
@@ -181,6 +207,8 @@ namespace TW3D.GamePlay
                 if (due)
                     queue.Enqueue(lesson);
             }
+            if (Lever == TutorialLever.Demo)
+                queue.Enqueue(StuckHint);
         }
 
         /// <summary>The lesson of the card shown; null when there is none.</summary>
@@ -204,18 +232,31 @@ namespace TW3D.GamePlay
         /// <summary>Moves the tutorial on.</summary>
         /// <param name="elapsed">Real seconds since the last update.</param>
         /// <param name="racing">The run is on: before the start no card comes, at the finish the card goes at once.</param>
-        public void Update(float elapsed, bool racing, DriveActions actions)
+        /// <param name="carSpeed">The speed of the car forward (physics units a second).</param>
+        public void Update(float elapsed, bool racing, DriveActions actions, float carSpeed)
         {
             if (!racing)
             {
                 Lesson = null;
+                stuck = 0f;
                 return;
             }
+
+            if (actions.Axles || carSpeed >= StuckSpeed)
+                stuck = 0f;
+            else if (actions.Throttle)
+                stuck += elapsed;
 
             if (Lesson == null)
             {
                 wait -= elapsed;
-                if (wait <= 0f && queue.Count > 0)
+                //A hint due comes first, as soon as no card is up
+                if (stuck >= StuckTime)
+                {
+                    stuck = 0f;
+                    Show(StuckHint);
+                }
+                else if (wait <= 0f && queue.Count > 0)
                     Show(queue.Dequeue());
                 return;
             }
@@ -230,6 +271,9 @@ namespace TW3D.GamePlay
                 Leaving += elapsed / LeaveTime;
                 if (Leaving >= 1f)
                 {
+                    //A hint counts again from when it is gone, so a player still stuck has a while without it
+                    if (Lesson.IsHint)
+                        stuck = 0f;
                     Lesson = null;
                     wait = CardGap;
                 }
@@ -255,7 +299,7 @@ namespace TW3D.GamePlay
             }
 
             Practise(elapsed, actions);
-            if (!PraiseAge.HasValue && Age >= ActionTimeout)
+            if (!PraiseAge.HasValue && Age >= (Lesson.IsHint ? HintTime : ActionTimeout))
                 Leave();
         }
 
@@ -319,7 +363,7 @@ namespace TW3D.GamePlay
 
         private void Teach()
         {
-            if (Lever == TutorialLever.None)
+            if (Lever == TutorialLever.None && !Lesson.IsHint)
                 taught(Lesson.Key);
         }
 

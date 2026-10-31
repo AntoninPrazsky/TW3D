@@ -72,6 +72,11 @@ stop the game; Options → Tutorial turns them off.
 | `walk` | 2 | Space *Hold to brake*, then ↑ ↓ *Now turn the axles* / *Keep braking* |
 | `lock` | 3 | Left Ctrl *Hold to lock the axles* |
 
+A car stuck in front of an obstacle gets a hint: when the throttle has been held for 3
+seconds while the car made no progress, ↑ ↓ *Turn the axles to climb over* comes (only the
+time with the throttle held counts, and turning the axles starts the count again). The
+hint is never saved: it goes after 7 seconds and comes again whenever it is due.
+
 The levels are counted in the order of the level select. The lessons and their state are
 in `GamePlay/Tutorial.cs`, the card is drawn by `GamePlay/TutorialCard.cs`; the design
 follows the tutorial of BS3D.

@@ -143,7 +143,8 @@ namespace TW3D.GamePlay
                 : new DriveInput(Vector2.Zero, race.State == RaceState.Countdown, false);
             Drive(drive, elapsed * GameSpeed);
             tutorial?.Update(elapsed, race.State == RaceState.Racing,
-                new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage));
+                new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage),
+                car.car.LinearVelocity.X);
 
             //A run in which the car was dragged by hand does not count
             if (drag.Update(input, controls, Manager.Viewport) && race.State != RaceState.Finished)
