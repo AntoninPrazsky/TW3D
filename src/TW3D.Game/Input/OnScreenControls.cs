@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -6,10 +7,14 @@ namespace TW3D.Input
 {
     /// <summary>
     /// Virtual joystick (bottom left), the brake and axle lock buttons (bottom right) and the pause button
-    /// (top right) operated by touch or by the mouse.
+    /// (top right) operated by touch or by the mouse. They are shown while the player uses touch or the mouse,
+    /// and fade out for the keyboard or a gamepad (they still work then, and using them brings them back).
     /// </summary>
     public sealed class OnScreenControls
     {
+        //How long the controls take to fade in or out (seconds)
+        private const float FadeTime = 0.3f;
+
         //Size of the controls at the 1920×1080 reference resolution (the joystick is then 180 px wide)
         private const float ReferenceScale = 1.125f;
         //Distance from the screen edges and between the buttons, in reference pixels
@@ -45,6 +50,9 @@ namespace TW3D.Input
         private int? joystickPointerId;
         private Vector2 stickOffset;
 
+        //0 hidden .. 1 shown; null until the first update, which shows or hides them at once
+        private float? visibility;
+
         /// <summary>Joystick deflection, both axes in the range -1..1, Y pointing up.</summary>
         public Vector2 Stick { get; private set; }
 
@@ -66,9 +74,15 @@ namespace TW3D.Input
         }
 
         /// <param name="controlsScale">Scale of the controls (see <see cref="Screens.ScreenManager.ControlsScale"/>).</param>
-        public void Update(InputState input, Viewport viewport, float controlsScale)
+        /// <param name="elapsed">Real seconds since the last update.</param>
+        public void Update(InputState input, Viewport viewport, float controlsScale, float elapsed)
         {
             Layout(viewport, controlsScale);
+
+            float shown = input.LastDevice == InputDevice.Touch || input.LastDevice == InputDevice.Mouse ? 1f : 0f;
+            visibility = visibility.HasValue
+                ? MathHelper.Clamp(visibility.Value + MathF.Sign(shown - visibility.Value) * elapsed / FadeTime, 0f, 1f)
+                : shown;
 
             UpdateJoystick(input);
 
@@ -176,9 +190,13 @@ namespace TW3D.Input
             return new Rectangle((int)(center.X - width / 2f), (int)(center.Y - height / 2f), width, height);
         }
 
-        /// <summary>Draws the controls; must be called between SpriteBatch.Begin and End.</summary>
+        /// <summary>Draws the controls (as far as they are shown); must be called between SpriteBatch.Begin and End.</summary>
         public void Draw(SpriteBatch batch, float alpha)
         {
+            alpha *= visibility ?? 0f;
+            if (alpha <= 0f)
+                return;
+
             Vector2 socketOrigin = new Vector2(socketTexture.Width, socketTexture.Height) / 2f;
             Vector2 stickOrigin = new Vector2(stickTexture.Width, stickTexture.Height) / 2f;
             batch.Draw(socketTexture, joystickCenter, null, Color.White * alpha, 0f, socketOrigin, scale, SpriteEffects.None, 0f);

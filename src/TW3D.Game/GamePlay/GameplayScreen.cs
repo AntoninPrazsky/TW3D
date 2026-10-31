@@ -120,7 +120,7 @@ namespace TW3D.GamePlay
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
-            controls.Update(input, Manager.Viewport, Manager.ControlsScale);
+            controls.Update(input, Manager.Viewport, Manager.ControlsScale, elapsed);
             if (input.BackPressed || input.KeyPressed(Keys.P) || controls.PausePressed)
             {
                 Pause();

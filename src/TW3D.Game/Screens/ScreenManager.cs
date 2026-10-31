@@ -109,7 +109,7 @@ namespace TW3D.Screens
 
         public override void Update(GameTime gameTime)
         {
-            Input.Update();
+            Input.Update(Game.Window.ClientBounds.Location);
 
             //Every screen below a screen that is not a popup is covered;
             //the topmost screen that is not closing gets the focus

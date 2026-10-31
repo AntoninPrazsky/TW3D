@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Xna.Framework;
@@ -36,6 +37,15 @@ namespace TW3D.Input
         public bool IsDown => Phase != PointerPhase.Released;
     }
 
+    /// <summary>A kind of input device, see <see cref="InputState.LastDevice"/>.</summary>
+    public enum InputDevice
+    {
+        Keyboard,
+        Mouse,
+        Touch,
+        GamePad
+    }
+
     /// <summary>
     /// The state of all input devices in the current frame, together with the previous frame
     /// for detecting presses and releases.
@@ -46,9 +56,16 @@ namespace TW3D.Input
     {
         //Mouse pointer ids are kept apart from touch ids
         private const int FirstMousePointerId = 1000000;
+        //How far the mouse has to move (in pixels) to count as being used
+        private const int MouseMoveThreshold = 8;
+
+        //Every gamepad button, including the sticks and the triggers pushed in a direction
+        private static readonly Buttons[] AllButtons = Enum.GetValues<Buttons>();
 
         private readonly List<Pointer> pointers = new List<Pointer>();
         private int mousePointerId = FirstMousePointerId;
+        //Where the mouse was when it was last used (or first seen), to tell whether it has moved since
+        private Point? mouseRest;
 
         //The back gesture or button of the phone, reported by the Android activity (from another thread)
         private static int systemBackRequested;
@@ -79,6 +96,17 @@ namespace TW3D.Input
         public bool SystemBackPressed { get; private set; }
 
         /// <summary>
+        /// The device the player used last: a key pressed, the mouse moved or clicked, the screen touched, or a
+        /// gamepad button, stick or trigger pushed. A phone starts with touch, a computer with the keyboard.
+        /// </summary>
+        public InputDevice LastDevice { get; private set; } =
+#if ANDROID
+            InputDevice.Touch;
+#else
+            InputDevice.Keyboard;
+#endif
+
+        /// <summary>
         /// Reports the back gesture or button of the system. Since Android 16 the system no longer sends it as a key,
         /// the activity receives it by a callback and passes it on here.
         /// </summary>
@@ -87,7 +115,8 @@ namespace TW3D.Input
             Interlocked.Exchange(ref systemBackRequested, 1);
         }
 
-        public void Update()
+        /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
+        public void Update(Point windowOrigin)
         {
             PreviousKeyboard = Keyboard;
             PreviousMouse = Mouse;
@@ -111,6 +140,8 @@ namespace TW3D.Input
                 }
             }
 
+            NoteDevice(pointers.Count > 0, windowOrigin);
+
             if (pointers.Count == 0)
                 AddMousePointer();
 
@@ -127,6 +158,42 @@ namespace TW3D.Input
                 PointerPressed = false;
                 PointerReleased = false;
             }
+        }
+
+        /// <param name="touched">Something touches the screen.</param>
+        /// <param name="windowOrigin">Where the window's client area is on the screen.</param>
+        private void NoteDevice(bool touched, Point windowOrigin)
+        {
+            //The mouse on the screen, not in the window: moving the window under it is no use of the mouse
+            Point mouse = Mouse.Position + windowOrigin;
+            mouseRest ??= mouse;
+            Point moved = mouse - mouseRest.Value;
+
+            if (Keyboard.GetPressedKeyCount() > 0 && Keyboard != PreviousKeyboard)
+                LastDevice = InputDevice.Keyboard;
+            else if (GamePadUsed())
+                LastDevice = InputDevice.GamePad;
+            else if (touched)
+                LastDevice = InputDevice.Touch;
+            else if (Math.Abs(moved.X) + Math.Abs(moved.Y) > MouseMoveThreshold || WheelDelta != 0
+                || Mouse.LeftButton == ButtonState.Pressed && PreviousMouse.LeftButton == ButtonState.Released
+                || Mouse.RightButton == ButtonState.Pressed && PreviousMouse.RightButton == ButtonState.Released)
+                LastDevice = InputDevice.Mouse;
+
+            //The mouse counts from where it was last used, so that slow movements add up; a platform may move it with a
+            //finger too, which is no use of the mouse
+            if (LastDevice == InputDevice.Mouse || touched)
+                mouseRest = mouse;
+        }
+
+        private bool GamePadUsed()
+        {
+            if (!GamePad.IsConnected)
+                return false;
+            foreach (Buttons button in AllButtons)
+                if (ButtonPressed(button))
+                    return true;
+            return false;
         }
 
         private void AddMousePointer()

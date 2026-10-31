@@ -39,7 +39,9 @@ user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
 ## Driving
 
 The keyboard, the on-screen controls (operated by the mouse or by
-touch) and a gamepad all work at the same time.
+touch) and a gamepad all work at the same time. The on-screen controls are shown while
+the mouse or touch is used, and fade out when the keyboard or a gamepad is (a phone
+starts with them shown, a computer with them hidden).
 
 | Key | On screen / gamepad | Action |
 |---|---|---|
