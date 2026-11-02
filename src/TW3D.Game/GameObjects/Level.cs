@@ -105,7 +105,7 @@ namespace TW3D.GameObjects
         }
 
         /// <summary>Where a block of the level grid is in the physics world (see <see cref="Units"/>).</summary>
-        private static Vector2 PhysicsPosition(BlockPlacement placement)
+        internal static Vector2 PhysicsPosition(BlockPlacement placement)
         {
             return new Vector2(placement.X * Units.GridCell, placement.Y * Units.GridCell + placement.Shift * Units.ShiftStep);
         }

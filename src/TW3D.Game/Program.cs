@@ -15,6 +15,7 @@ namespace TW3D
         ///   --tutorial      shows the tutorial's lessons of each level again, taught or not, saving nothing
         ///   --tutorial demo shows every lesson in turn, each done by itself after a while (for screenshots)
         ///   --sounds folder writes the sound effects as WAV files into the folder and quits (to listen to them)
+        ///   --editor [level] opens the level editor instead of the game, with a level (a name in Content/Levels or a file)
         /// </summary>
         [STAThread]
         static void Main(string[] args)
@@ -41,7 +42,13 @@ namespace TW3D
             if (Array.IndexOf(args, "--tutorial") >= 0)
                 Tutorial.Lever = ArgumentValue(args, "--tutorial") == "demo" ? TutorialLever.Demo : TutorialLever.Replay;
 
-            using (var game = new TripleWheelGame(windowSize, ArgumentValue(args, "--level")))
+            //The level editor instead of the game; the level is a name or a file, or nothing (a new level)
+            bool editor = Array.IndexOf(args, "--editor") >= 0;
+            string editorLevel = ArgumentValue(args, "--editor");
+            if (editorLevel != null && editorLevel.StartsWith("--"))
+                editorLevel = null;
+
+            using (var game = new TripleWheelGame(windowSize, ArgumentValue(args, "--level"), editor, editorLevel))
                 game.Run();
         }
 

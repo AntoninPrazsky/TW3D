@@ -45,6 +45,9 @@ namespace TW3D.Screens
         /// <summary>1×1 white texture for drawing rectangles.</summary>
         public Texture2D Pixel { get; private set; }
 
+        /// <summary>The circles under the fingers and the pressed mouse are drawn (the level editor turns them off).</summary>
+        public bool PointersVisible { get; set; } = true;
+
         public Viewport Viewport => GraphicsDevice.Viewport;
 
         /// <summary>
@@ -187,7 +190,7 @@ namespace TW3D.Screens
             Vector2 origin = new Vector2(pointerTexture.Width, pointerTexture.Height) / 2f;
             SpriteBatch.Begin();
             foreach (Pointer pointer in Input.Pointers)
-                if (pointer.IsDown)
+                if (PointersVisible && pointer.IsDown)
                     SpriteBatch.Draw(pointerTexture, pointer.Position, null, Color.White, 0f, origin, UiScale, SpriteEffects.None, 0f);
             SpriteBatch.End();
         }

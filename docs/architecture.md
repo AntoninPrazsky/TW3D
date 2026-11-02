@@ -12,7 +12,7 @@ physics bodies.
 |---|---|
 | `src/TW3D.Game/` | The game (`TW3D.exe`) |
 | `src/TW3D.Android/` | The game for Android phones, built from the code of `src/TW3D.Game` (see [Building](building.md#android)) |
-| `src/TW3D.LevelEditor/` | Level editor (`LevelEditor.exe`), Windows only |
+| `src/TW3D.LevelEditor/` | The old level editor (`LevelEditor.exe`), Windows only; being replaced by the editor in the game (`src/TW3D.Game/Editor/`, see [Levels](levels.md#level-editor)) |
 | `src/TW3D.Shared/` | Library shared by the game, the editor and the tools: the catalog of blocks and objects, the level file format, the collision shapes and the units of the coordinates (`Units`: the models, the physics world and the scene) |
 | `content/` | Shared game content: 3D models (`.obj` + `.mtl`, built by the content pipeline `Content.mgcb`), precompiled textures and fonts (`.xnb`), the catalog (`catalog.json`), the collision shapes of the models (`collision.json`, generated) and levels (`Levels/*.json`). Built and copied to the build output as `Content/`. See [Game content](content.md). |
 | `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](../art/wings/README.md) |
@@ -36,6 +36,7 @@ physics bodies.
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input (with the device used last) and the on-screen controls |
 | `Audio/` | The sound effects: `Synth` (the arithmetic of tones, noise, filters and reverb), `SoundBakes` (the recipes), `GameSounds` (played by the screens) |
+| `Editor/` | The level editor (`--editor`): `EditorScreen` (the screen with its menus, status bar and windows), `EditorCamera` (the free camera driven by the mouse), `LevelView` (the level drawn without physics), `ImGuiRenderer` (Dear ImGui drawn by MonoGame, from the `ImGui.NET` package). Left out of the Android build. |
 
 ## Frames and physics steps
 

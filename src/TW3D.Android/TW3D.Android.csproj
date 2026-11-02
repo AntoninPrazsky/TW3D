@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\TW3D.Game\**\*.cs" Exclude="..\TW3D.Game\Program.cs;..\TW3D.Game\bin\**;..\TW3D.Game\obj\**" LinkBase="Game" />
+    <Compile Include="..\TW3D.Game\**\*.cs" Exclude="..\TW3D.Game\Program.cs;..\TW3D.Game\Editor\**;..\TW3D.Game\bin\**;..\TW3D.Game\obj\**" LinkBase="Game" />
   </ItemGroup>
 
   <ItemGroup>

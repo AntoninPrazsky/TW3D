@@ -17,8 +17,8 @@ and Android phones.
 With the [.NET SDK 10](https://dotnet.microsoft.com/download) or newer:
 
 ```sh
-dotnet run --project src/TW3D.Game          # the game
-dotnet run --project src/TW3D.LevelEditor   # the level editor (Windows only)
+dotnet run --project src/TW3D.Game                # the game
+dotnet run --project src/TW3D.Game -- --editor    # the level editor (being built, see docs/levels.md)
 ```
 
 | Key | Action |
@@ -50,4 +50,8 @@ under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
 (© Ian Qvist) and Box2D (© Erin Catto).
 
 The glyphs of keys and buttons come from **PromptFont** (© Yukari Hafner), licensed
-under the [SIL Open Font License 1.1](content/Fonts/PromptFont-OFL.txt).
+under the [SIL Open Font License 1.1](content/Fonts/PromptFont-OFL.txt). The level editor
+is drawn by **Dear ImGui** through the [ImGui.NET](https://github.com/ImGuiNET/ImGui.NET)
+package (MIT) and uses the **DejaVu Sans** font
+([its license](content/Fonts/DejaVuSans-LICENSE.txt): Bitstream Vera, with the DejaVu
+changes in the public domain).

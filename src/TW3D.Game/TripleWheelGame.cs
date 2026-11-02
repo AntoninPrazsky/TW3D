@@ -5,6 +5,9 @@ using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.Audio;
+#if !ANDROID
+using TW3D.Editor;
+#endif
 using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Screens;
@@ -30,6 +33,9 @@ namespace TW3D
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
         private readonly string startLevel;
+        //The level editor instead of the game (--editor), and the level it opens (null for a new one)
+        private readonly bool editor;
+        private readonly string editorLevel;
         private readonly GameSettings settings = GameSettings.Load();
         //The 3D garage behind the menus
         private BackgroundScreen background;
@@ -44,11 +50,15 @@ namespace TW3D
 
         /// <param name="windowSize">Size of the window; null = by the settings (full screen, or a maximized window).</param>
         /// <param name="startLevel">Level to start directly, skipping the menu; null = start with the menu.</param>
-        public TripleWheelGame(Point? windowSize = null, string startLevel = null)
+        /// <param name="editor">Open the level editor instead of the game, in a window (not on Android).</param>
+        /// <param name="editorLevel">The level the editor opens: a level name or a level file; null = a new level.</param>
+        public TripleWheelGame(Point? windowSize = null, string startLevel = null, bool editor = false, string editorLevel = null)
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             this.startLevel = startLevel;
+            this.editor = editor;
+            this.editorLevel = editorLevel;
 
             //One update and one frame per refresh of the monitor (e.g. 75 per second on a 75 Hz monitor);
             //the physics simulation keeps its own fixed time step (see PhysicsClock)
@@ -96,7 +106,8 @@ namespace TW3D
         private void SetDisplayMode()
         {
             DisplayMode display = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
-            bool fullScreen = settings.FullScreen && !windowSize.HasValue;
+            //The editor runs in a window, whatever the settings say
+            bool fullScreen = settings.FullScreen && !windowSize.HasValue && !editor;
             Point size = fullScreen ? new Point(display.Width, display.Height)
                 : windowSize ?? new Point(display.Width * 3 / 4, display.Height * 3 / 4);
 
@@ -164,6 +175,12 @@ namespace TW3D
             GameSounds.Volume = settings.SoundVolume;
 #if !ANDROID
             MaximizeWindow();
+            if (editor)
+            {
+                //The editor alone, without the menus; leaving it quits
+                screens.Add(new EditorScreen(settings, editorLevel));
+                return;
+            }
 #endif
 
             MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");

@@ -2,6 +2,23 @@
 
 ## Level editor
 
+A new editor, driven by the mouse with a user interface of
+[Dear ImGui](https://github.com/ocornut/imgui), is being built into the game
+([issue #20](https://github.com/AntoninPrazsky/TW3D/issues/20) has the plan and the controls):
+
+```sh
+dotnet run --project src/TW3D.Game -- --editor          # a new level
+dotnet run --project src/TW3D.Game -- --editor lock     # a level of content/Levels, or a level file
+```
+
+So far it shows the level as the game draws it, with a camera driven by the mouse (the
+middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
+by the keys of the old editor (W/S/A/D and Q/E fly, the numeric keypad turns, Home frames
+the level), the layer being edited (Tab, Right Shift, Right Ctrl), the mood (M) and the
+lighting (F9, F10, F11); F1 lists the controls. Editing comes with the next issues.
+
+### The old editor
+
 ```sh
 dotnet run --project src/TW3D.LevelEditor
 dotnet run --project src/TW3D.LevelEditor -- --level content/Levels/lock.json
