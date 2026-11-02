@@ -15,7 +15,8 @@ namespace TW3D.Editor
     /// button erases the same way (a stroke is one step of undo, and it goes on wherever the cursor gets to), the right
     /// button picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it. The arrows move the cursor (the
     /// camera follows), Space places, Delete erases, PageUp / PageDown shift, F toggles the finish, comma and period
-    /// choose the previous / next block of the catalog, Ctrl+Z / Ctrl+Y undo and redo. What is done and what the
+    /// choose the previous / next block of the catalog; <see cref="Undo"/> and <see cref="Redo"/> (Ctrl+Z / Ctrl+Y, given
+    /// by the screen) take a step of the document back and forth. What is done and what the
     /// document refuses is reported to the screen for its status bar.
     /// </summary>
     sealed class BlockTool
@@ -74,20 +75,16 @@ namespace TW3D.Editor
         /// <summary>A stroke of the mouse (painting or erasing) is going on: the cursor follows the mouse wherever it is.</summary>
         public bool InStroke => stroke != Stroke.None;
 
-        /// <summary>The keys of the old editor and the undo keys; called when the interface does not want the keyboard.</summary>
+        /// <summary>
+        /// The keys of the old editor; called when the interface does not want the keyboard. With Ctrl held the keys are
+        /// shortcuts of the screen's menus (Ctrl+Z, Ctrl+S...), which the screen handles even while a text field has the
+        /// keyboard, so they are left alone here.
+        /// </summary>
         /// <param name="layer">The active layer.</param>
         public void HandleKeys(InputState input, Layer layer)
         {
-            bool shift = input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
             if (input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl))
-            {
-                //Ctrl+Shift+Z redoes as in the editors of today, Ctrl+Y as in Windows
-                if (input.KeyPressed(Keys.Z) && !shift)
-                    Undo();
-                if (input.KeyPressed(Keys.Y) || input.KeyPressed(Keys.Z) && shift)
-                    Redo();
                 return;
-            }
 
             //Physics y grows downward, so Up on the screen is y - 1
             Point step = Point.Zero;

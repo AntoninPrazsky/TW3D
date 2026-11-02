@@ -7,12 +7,33 @@ A new editor, driven by the mouse with a user interface of
 ([issue #20](https://github.com/AntoninPrazsky/TW3D/issues/20) has the plan and the controls):
 
 ```sh
-dotnet run --project src/TW3D.Game -- --editor          # a new level
+dotnet run --project src/TW3D.Game -- --editor          # the level edited last, or a new level
 dotnet run --project src/TW3D.Game -- --editor lock     # a level of content/Levels, or a level file
+dotnet run --project src/TW3D.Game -- --editor --levels ../scratch-levels   # another levels folder
 ```
 
-A Debug build of the game also has it in the main menu (*Level editor*, a new level; Esc
-returns to the menu).
+A Debug build of the game also has it in the main menu (*Level editor*, the level edited
+last or a new level; Esc returns to the menu).
+
+The editor opens and saves levels in the levels folder: `content/Levels` of the repository
+(found above the program, where `TW3D.slnx` is), so that the levels of the game are edited
+in place; `--levels <folder>` gives another folder, and a game that is not in a repository
+uses `%LOCALAPPDATA%/TW3D/Levels`. The File menu has New (Ctrl+N, a level with the start
+block only), Open (Ctrl+O: the levels of the folder with their order, mood, number of blocks
+and preview, and a field for any level file, also an old `.lev`), Open recent (the last 8
+levels opened or saved), Save (Ctrl+S) and Save as (Ctrl+Shift+S, a name in the folder; an
+existing file is replaced only when confirmed). A new level and an old `.lev` file are saved
+through Save as, as `.json`. New, Open, Esc and the close button of the window ask "Save
+changes?" while the level has unsaved changes (Enter saves, D drops them, Esc cancels). The
+title of the window shows the name of the level with `*` while it has unsaved changes, the
+status bar the file (its tooltip the full path and the levels folder) and the problems found
+when saving. The editor remembers the recent levels and the last level with its camera in
+`%LOCALAPPDATA%/TW3D/editor.json`; started without a level, it opens the last one again
+where it was left. A level saved into `content/Levels` of the repository is also copied to
+`Content/Levels` of the build output, so that the level select and the game see it at once,
+without a rebuild. Opening a level that a script of `tools/levelgen` generates (see below)
+puts a warning in the status bar: running the script again overwrites the changes made in the
+editor.
 
 So far it shows the level as the game draws it, with a camera driven by the mouse (the
 middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
@@ -28,7 +49,8 @@ step); a painted stroke is one step. The lighting is switched by F9, F10, F11; F
 the controls. The Palette window shows every block of the catalog as a turning 3D preview,
 in the groups of the [catalog page](catalog/catalog.html) and searchable by name, and a
 click makes it the chosen block (its Objects tab chooses the dynamic object to place, for
-the Object tool to come). Files, selection and the test drive come with the next issues.
+the Object tool to come). Selection, dynamic objects and the test drive come with the next
+issues.
 
 ### The old editor
 
@@ -50,7 +72,8 @@ The editor draws the level the same way as the game: F9 switches to the lighting
 2016 version, F10 the shadows, and M the mood of the level, which is saved with it.
 
 A new level saved to `content/Levels/` appears in the level select automatically (after
-a rebuild, which copies it to the build output). Its preview image is
+a rebuild, which copies it to the build output; the new editor copies the levels it saves
+there at once, so they appear without a rebuild). Its preview image is
 `content/Levels/levimgs/<name>.png` (700 × 394, a screenshot of the track without the car:
 press H while driving; built by the content pipeline: add a `/build` line for it at the end
 of `content/Content.mgcb`); a level without one is shown

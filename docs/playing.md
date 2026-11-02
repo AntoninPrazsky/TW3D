@@ -12,7 +12,8 @@ gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back gesture or
 button of a phone) goes back; in the main menu it quits the game.
 
 A Debug build of the game has a *Level editor* item in the main menu, which opens the
-[level editor](levels.md#level-editor) on a new level (Esc returns to the menu); a Release
+[level editor](levels.md#level-editor) on the level edited last, or a new level (Esc returns
+to the menu, asking first when there are unsaved changes); a Release
 build opens the editor only with the `--editor` argument.
 
 ## Garage

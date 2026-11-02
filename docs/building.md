@@ -34,7 +34,8 @@ Game arguments for development:
 | `--tutorial` | Shows the tutorial's lessons of each level again, learnt or not, saving nothing |
 | `--tutorial demo` | Shows every lesson of the tutorial in turn on any level, each done by itself after two seconds (for screenshots), saving nothing |
 | `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them |
-| `--editor [<level>]` | Opens the new level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name (`lock`) or a level file, or with a new level |
+| `--editor [<level>]` | Opens the new level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
+| `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
 
 The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
 the game has not been tested there yet. The old level editor runs on Windows only;

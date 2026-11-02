@@ -32,6 +32,10 @@
     <!-- The document of the level editor: the level being edited, with undo and redo -->
     <Compile Include="..\..\src\TW3D.Game\Editor\Layer.cs" Link="Game\Layer.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\EditedLevel.cs" Link="Game\EditedLevel.cs" />
+    <!-- The files of the editor: the levels folder, the remembered settings, the action waiting for "Save changes?" -->
+    <Compile Include="..\..\src\TW3D.Game\Editor\LevelFolder.cs" Link="Game\LevelFolder.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Editor\EditorSettings.cs" Link="Game\EditorSettings.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Editor\PendingAction.cs" Link="Game\PendingAction.cs" />
   </ItemGroup>
 
   <ItemGroup>

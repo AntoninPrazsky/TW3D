@@ -33,9 +33,11 @@ namespace TW3D
         private readonly GraphicsDeviceManager graphics;
         private readonly ScreenManager screens;
         private readonly string startLevel;
-        //The level editor instead of the game (--editor), and the level it opens (null for a new one)
+        //The level editor instead of the game (--editor), the level it opens (null for the last one) and its levels
+        //folder (--levels; null for the default one)
         private readonly bool editor;
         private readonly string editorLevel;
+        private readonly string editorLevels;
         private readonly GameSettings settings = GameSettings.Load();
         //The 3D garage behind the menus
         private BackgroundScreen background;
@@ -51,14 +53,17 @@ namespace TW3D
         /// <param name="windowSize">Size of the window; null = by the settings (full screen, or a maximized window).</param>
         /// <param name="startLevel">Level to start directly, skipping the menu; null = start with the menu.</param>
         /// <param name="editor">Open the level editor instead of the game, in a window (not on Android).</param>
-        /// <param name="editorLevel">The level the editor opens: a level name or a level file; null = a new level.</param>
-        public TripleWheelGame(Point? windowSize = null, string startLevel = null, bool editor = false, string editorLevel = null)
+        /// <param name="editorLevel">The level the editor opens: a level name or a level file; null = the last level edited.</param>
+        /// <param name="editorLevels">The levels folder of the editor; null = content/Levels of the repository (see Editor/LevelFolder).</param>
+        public TripleWheelGame(Point? windowSize = null, string startLevel = null, bool editor = false, string editorLevel = null,
+            string editorLevels = null)
         {
             graphics = new GraphicsDeviceManager(this);
             Content.RootDirectory = "Content";
             this.startLevel = startLevel;
             this.editor = editor;
             this.editorLevel = editorLevel;
+            this.editorLevels = editorLevels;
 
             //One update and one frame per refresh of the monitor (e.g. 75 per second on a 75 Hz monitor);
             //the physics simulation keeps its own fixed time step (see PhysicsClock)
@@ -178,7 +183,7 @@ namespace TW3D
             if (editor)
             {
                 //The editor alone, without the menus; leaving it quits
-                screens.Add(new EditorScreen(settings, editorLevel, standalone: true));
+                screens.Add(new EditorScreen(settings, editorLevel, standalone: true, editorLevels));
                 return;
             }
 #endif
@@ -196,7 +201,7 @@ namespace TW3D
 #if DEBUG && !ANDROID
             //A Debug build has the level editor in the menu too (the sixth place, in the top right corner), for
             //development; a Release build opens it only by --editor
-            menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false)));
+            menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false, editorLevels)));
 #endif
 
             background = new BackgroundScreen(settings);

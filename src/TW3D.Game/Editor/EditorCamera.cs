@@ -122,17 +122,23 @@ namespace TW3D.Editor
             Distance = DefaultDistance;
         }
 
-        /// <summary>The keys of the old editor: W/S/A/D and Q/E fly the camera, the numeric keypad turns it.</summary>
+        /// <summary>
+        /// The keys of the old editor: W/S/A/D and Q/E fly the camera, the numeric keypad turns it. With Ctrl held the
+        /// letters are shortcuts (Ctrl+S saves), not flying.
+        /// </summary>
         /// <param name="elapsed">Elapsed seconds.</param>
         public void HandleKeys(InputState input, float elapsed)
         {
             Vector3 move = Vector3.Zero;
-            if (input.IsKeyDown(Keys.W)) move += Ahead;
-            if (input.IsKeyDown(Keys.S)) move -= Ahead;
-            if (input.IsKeyDown(Keys.D)) move += Right;
-            if (input.IsKeyDown(Keys.A)) move -= Right;
-            if (input.IsKeyDown(Keys.Q)) move += Vector3.Up;
-            if (input.IsKeyDown(Keys.E)) move -= Vector3.Up;
+            if (!input.IsKeyDown(Keys.LeftControl) && !input.IsKeyDown(Keys.RightControl))
+            {
+                if (input.IsKeyDown(Keys.W)) move += Ahead;
+                if (input.IsKeyDown(Keys.S)) move -= Ahead;
+                if (input.IsKeyDown(Keys.D)) move += Right;
+                if (input.IsKeyDown(Keys.A)) move -= Right;
+                if (input.IsKeyDown(Keys.Q)) move += Vector3.Up;
+                if (input.IsKeyDown(Keys.E)) move -= Vector3.Up;
+            }
             if (move != Vector3.Zero)
                 Target += move * FlySpeed * Distance * elapsed;
 
