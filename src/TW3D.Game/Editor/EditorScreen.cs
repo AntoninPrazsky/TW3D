@@ -26,8 +26,9 @@ namespace TW3D.Editor
     /// <summary>
     /// The level editor: the level being edited drawn as in the game, seen by a free camera (<see cref="EditorCamera"/>),
     /// with the user interface of Dear ImGui over it (the menu bar, the status bar and the windows). Opened by
-    /// <c>--editor [level]</c>, alone on the screen stack; leaving it quits. The scene gets the mouse and the keys only
-    /// when the interface does not want them (the cursor over a window, a text field being typed in).
+    /// <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
+    /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
+    /// them (the cursor over a window, a text field being typed in).
     /// </summary>
     public sealed class EditorScreen : Screen
     {
@@ -50,6 +51,10 @@ namespace TW3D.Editor
 
         private readonly GameSettings settings;
         private readonly string levelArgument;
+        //Opened from the command line, alone: leaving quits the game; otherwise leaving goes back to the menu
+        private readonly bool standalone;
+        //The title of the window before the editor, put back when it leaves
+        private string previousTitle;
 
         private LevelAssets assets;
         private SceneRenderer renderer;
@@ -71,10 +76,12 @@ namespace TW3D.Editor
         private string message = "";
 
         /// <param name="level">A level name (a file in Content/Levels without the extension) or a level file; null = a new level.</param>
-        public EditorScreen(GameSettings settings, string level)
+        /// <param name="standalone">The editor is alone (opened by --editor): leaving it quits the game instead of going back to the menu.</param>
+        public EditorScreen(GameSettings settings, string level, bool standalone)
         {
             this.settings = settings;
             levelArgument = level;
+            this.standalone = standalone;
             FadeInTime = TimeSpan.Zero;
             FadeOutTime = TimeSpan.Zero;
             IsOpaque = true;
@@ -86,6 +93,7 @@ namespace TW3D.Editor
         {
             ShowImmediately();
             Manager.PointersVisible = false;
+            previousTitle = Manager.Game.Window.Title;
 
             assets = LevelAssets.Load(Manager.Content);
             renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
@@ -105,6 +113,7 @@ namespace TW3D.Editor
         {
             imgui.Dispose();
             Manager.PointersVisible = true;
+            Manager.Game.Window.Title = previousTitle;
         }
 
         /// <summary>Opens a level by its name or file; null, or a level that is not found, gives a new level.</summary>
@@ -159,9 +168,13 @@ namespace TW3D.Editor
                 camera.Reset();
         }
 
+        /// <summary>Leaves the editor: quits the game when the editor is alone, otherwise goes back to the menu.</summary>
         private void Leave()
         {
-            Manager.Game.Exit();
+            if (standalone)
+                Manager.Game.Exit();
+            else
+                Close();
         }
 
         private void CycleMood()
@@ -283,7 +296,7 @@ namespace TW3D.Editor
                 ImGui.MenuItem("Save", "Ctrl+S", false, false);
                 ImGui.MenuItem("Save as...", "Ctrl+Shift+S", false, false);
                 ImGui.Separator();
-                if (ImGui.MenuItem("Exit", "Esc"))
+                if (ImGui.MenuItem(standalone ? "Exit" : "Back to the menu", "Esc"))
                     Leave();
                 ImGui.EndMenu();
             }

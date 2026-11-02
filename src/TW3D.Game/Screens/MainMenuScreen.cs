@@ -6,9 +6,10 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The main menu: the game title at the top, two items in the middle of the left and right half
-    /// and a row of items at the bottom. Items are positioned relative to the screen edges and scaled
-    /// with the user interface, so the layout works on any aspect ratio.
+    /// The main menu: the game title at the top, two items in the middle of the left and right half,
+    /// a row of items at the bottom and a place in the top right corner beside the title (the level editor
+    /// of a Debug build). Items are positioned relative to the screen edges and scaled with the user
+    /// interface, so the layout works on any aspect ratio.
     /// </summary>
     public sealed class MainMenuScreen : Screen
     {
@@ -18,11 +19,15 @@ namespace TW3D.Screens
             MiddleRight,
             BottomLeft,
             BottomCenter,
-            BottomRight
+            BottomRight,
+            TopRight
         }
 
         //The items take these places in the order they are added
-        private static readonly Placement[] Places = { Placement.MiddleLeft, Placement.MiddleRight, Placement.BottomLeft, Placement.BottomCenter, Placement.BottomRight };
+        private static readonly Placement[] Places =
+        {
+            Placement.MiddleLeft, Placement.MiddleRight, Placement.BottomLeft, Placement.BottomCenter, Placement.BottomRight, Placement.TopRight
+        };
 
         //Font scale of the title at the reference resolution
         private const float TitleScale = 1.3f;
@@ -87,6 +92,8 @@ namespace TW3D.Screens
             float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float bottomRowY = safe.Bottom - lineHeight / 2f;
+            //The top right place is level with the middle of the title
+            float topRowY = safe.Top + TitleHeight(Manager) / 2f;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
             for (int i = 0; i < items.Count; i++)
@@ -99,6 +106,7 @@ namespace TW3D.Screens
                     case Placement.MiddleRight: center = new Vector2(viewport.Width * 0.8f, viewport.Height / 2f); break;
                     case Placement.BottomLeft: center = new Vector2(safe.Left + size.X / 2f, bottomRowY); break;
                     case Placement.BottomCenter: center = new Vector2(viewport.Width / 2f, bottomRowY); break;
+                    case Placement.TopRight: center = new Vector2(safe.Right - size.X / 2f, topRowY); break;
                     default: center = new Vector2(safe.Right - size.X / 2f, bottomRowY); break;
                 }
                 items[i].Place(new Rectangle((int)(center.X - size.X / 2f), (int)(center.Y - lineHeight / 2f), (int)size.X, (int)lineHeight), padding);

@@ -11,6 +11,10 @@ Mouse (click, wheel and dragging in the level select), arrow keys and Enter, a
 gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back gesture or
 button of a phone) goes back; in the main menu it quits the game.
 
+A Debug build of the game has a *Level editor* item in the main menu, which opens the
+[level editor](levels.md#level-editor) on a new level (Esc returns to the menu); a Release
+build opens the editor only with the `--editor` argument.
+
 ## Garage
 
 The cars to choose from, one at a time; dragging the car sideways (with a

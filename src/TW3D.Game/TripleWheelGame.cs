@@ -178,7 +178,7 @@ namespace TW3D
             if (editor)
             {
                 //The editor alone, without the menus; leaving it quits
-                screens.Add(new EditorScreen(settings, editorLevel));
+                screens.Add(new EditorScreen(settings, editorLevel, standalone: true));
                 return;
             }
 #endif
@@ -193,6 +193,11 @@ namespace TW3D
             menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, ApplyDisplayMode)));
 #endif
             menu.AddItem("Exit", Exit);
+#if DEBUG && !ANDROID
+            //A Debug build has the level editor in the menu too (the sixth place, in the top right corner), for
+            //development; a Release build opens it only by --editor
+            menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false)));
+#endif
 
             background = new BackgroundScreen(settings);
             screens.Add(background);

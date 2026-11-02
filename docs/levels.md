@@ -11,6 +11,9 @@ dotnet run --project src/TW3D.Game -- --editor          # a new level
 dotnet run --project src/TW3D.Game -- --editor lock     # a level of content/Levels, or a level file
 ```
 
+A Debug build of the game also has it in the main menu (*Level editor*, a new level; Esc
+returns to the menu).
+
 So far it shows the level as the game draws it, with a camera driven by the mouse (the
 middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
 by the keys of the old editor (W/S/A/D and Q/E fly, the numeric keypad turns, Home frames
