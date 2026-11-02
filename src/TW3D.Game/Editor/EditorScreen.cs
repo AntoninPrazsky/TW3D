@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using ImGuiNET;
@@ -10,17 +11,17 @@ using TW3D.Graphics;
 using TW3D.Input;
 using TW3D.Screens;
 using TW3D.Shared;
-using Vector2 = Microsoft.Xna.Framework.Vector2;
 using Vector3 = Microsoft.Xna.Framework.Vector3;
 
 namespace TW3D.Editor
 {
     /// <summary>
-    /// The level editor: the level being edited drawn as in the game, seen by a free camera (<see cref="EditorCamera"/>),
-    /// with the user interface of Dear ImGui over it (the menu bar, the status bar and the windows). Opened by
-    /// <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
-    /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
-    /// them (the cursor over a window, a text field being typed in).
+    /// The level editor: the level being edited (an <see cref="EditedLevel"/>, the document with undo) drawn as in the
+    /// game, seen by a free camera (<see cref="EditorCamera"/>), edited with the <see cref="BlockTool"/> whose cursor
+    /// the <see cref="EditorMarkers"/> show, with the user interface of Dear ImGui over it (the menu bar, the status bar
+    /// and the windows). Opened by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the
+    /// main menu of a Debug build (leaving it goes back to the menu). The scene gets the mouse and the keys only when
+    /// the interface does not want them (the cursor over a window, a text field being typed in).
     /// </summary>
     public sealed class EditorScreen : Screen
     {
@@ -38,8 +39,7 @@ namespace TW3D.Editor
         private const float GameCameraDistance = 4.5f;
         //How far from the camera the shadows reach, at least (see SceneRenderer.ShadowDistance)
         private const float MinShadowDistance = 40f;
-        //The block a new level starts with, at the start cell [0, 0], where the car starts
-        private const string StartBlock = "a1";
+        private const string TitlePrefix = "Level Editor - ";
 
         private readonly GameSettings settings;
         private readonly string levelArgument;
@@ -53,19 +53,20 @@ namespace TW3D.Editor
         private Model sky;
         private EditorCamera camera;
         private LevelView view;
-        private LevelData level;
-        //The file of the level; null for a new one
-        private string levelFile;
+        private EditedLevel level;
+        private BlockTool tool;
+        private EditorMarkers markers;
         private ImGuiRenderer imgui;
         private ImGuiStyle defaultStyle;
         private int fontSize;
         private bool showPalette = true, showHelp, showDemo;
         private Layer layer = Layer.Middle;
-        //The cell of the active layer under the cursor; null while the cursor is over the interface, out of the window
-        //or off the plane
-        private Point? cursorCell;
+        //The title of the window says the level has unsaved changes; the title is set again when that changes
+        private bool titleDirty;
         //What the status bar says about the last thing done
         private string message = "";
+        //The window had no focus: the click that brings it back is not an edit
+        private bool focusReturning;
 
         /// <param name="level">A level name (a file in Content/Levels without the extension) or a level file; null = a new level.</param>
         /// <param name="standalone">The editor is alone (opened by --editor): leaving it quits the game instead of going back to the menu.</param>
@@ -79,7 +80,7 @@ namespace TW3D.Editor
             IsOpaque = true;
         }
 
-        private string LevelName => levelFile != null ? Path.GetFileNameWithoutExtension(levelFile) : "new level";
+        private string LevelName => level.File != null ? Path.GetFileNameWithoutExtension(level.File) : "new level";
 
         public override unsafe void LoadContent()
         {
@@ -93,6 +94,8 @@ namespace TW3D.Editor
             sky = Manager.Content.Load<Model>("Env/sky");
             camera = new EditorCamera();
             view = new LevelView(assets);
+            tool = new BlockTool(camera, note => message = note);
+            markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
             imgui = new ImGuiRenderer(Manager.Game, LayoutFile);
             ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DockingEnable;
@@ -103,6 +106,7 @@ namespace TW3D.Editor
 
         public override void UnloadContent()
         {
+            tool.EndStroke();
             imgui.Dispose();
             Manager.PointersVisible = true;
             Manager.Game.Window.Title = previousTitle;
@@ -119,35 +123,36 @@ namespace TW3D.Editor
             {
                 try
                 {
-                    level = LevelFile.Load(file);
-                    levelFile = Path.GetFullPath(file);
-                    var problems = level.Validate(assets.Catalog);
-                    message = problems.Count == 0 ? "Opened " + Path.GetFileName(file) + "." : problems.Count + " problems in the level: " + problems[0];
+                    level = new EditedLevel(assets.Catalog, LevelFile.Load(file), Path.GetFullPath(file));
+                    List<LevelProblem> problems = level.Problems();
+                    message = problems.Count == 0 ? "Opened " + Path.GetFileName(file) + "."
+                        : problems.Count == 1 ? "1 problem in the level: " + problems[0]
+                        : problems.Count + " problems in the level: " + problems[0];
                 }
                 catch (Exception e) when (e is IOException || e is InvalidDataException || e is System.Text.Json.JsonException)
                 {
                     message = "Could not read " + file + ": " + e.Message;
-                    New();
+                    level = EditedLevel.New(assets.Catalog);
                 }
             }
             else
             {
                 if (argument != null)
                     message = "Level " + argument + " was not found; a new level.";
-                New();
+                level = EditedLevel.New(assets.Catalog);
             }
 
-            view.Data = level;
-            Manager.Game.Window.Title = "Level Editor - " + LevelName;
+            view.Level = level;
+            tool.Level = level;
+            SetTitle();
             FrameLevel();
         }
 
-        /// <summary>A new level: the start block at the start cell.</summary>
-        private void New()
+        /// <summary>The title of the window: the name of the level, with a star while it has unsaved changes.</summary>
+        private void SetTitle()
         {
-            level = new LevelData();
-            level.Middle.Add(new BlockPlacement { Block = StartBlock, X = 0, Y = 0 });
-            levelFile = null;
+            titleDirty = level.IsDirty;
+            Manager.Game.Window.Title = TitlePrefix + LevelName + (titleDirty ? "*" : "");
         }
 
         /// <summary>The camera sees the whole level.</summary>
@@ -171,7 +176,17 @@ namespace TW3D.Editor
 
         private void CycleMood()
         {
-            level.Mood = (LevelMood)(((int)level.Mood + 1) % 3);
+            level.SetMood((LevelMood)(((int)level.Mood + 1) % 3));
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            //Without the focus the screen gets no input, so it would not see the button go up: a stroke ends here
+            if (!HasFocus)
+            {
+                tool.EndStroke();
+                focusReturning = true;
+            }
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -205,23 +220,18 @@ namespace TW3D.Editor
                 if (input.KeyPressed(Keys.RightControl))
                     layer = layer == Layer.Front ? Layer.Middle : Layer.Front;
                 camera.HandleKeys(input, elapsed);
+                tool.HandleKeys(input, layer);
             }
 
+            //The camera has the mouse first: its drags take precedence over the tool, and Ctrl + the wheel is the tool's
             Viewport viewport = Manager.Viewport;
-            camera.HandleMouse(input, viewport, mouseFree);
-            cursorCell = mouseFree && viewport.Bounds.Contains(input.Mouse.Position) ? CellUnderCursor(input, viewport) : null;
-        }
+            bool control = input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl);
+            camera.HandleMouse(input, viewport, mouseFree, !control);
+            tool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
+            focusReturning = false;
 
-        /// <summary>The cell of the active layer under the mouse cursor.</summary>
-        private Point? CellUnderCursor(InputState input, Viewport viewport)
-        {
-            camera.Update(viewport);
-            Vector3? hit = EditorCamera.HitPlane(camera.PickRay(new Vector2(input.Mouse.X, input.Mouse.Y), viewport), LevelView.SceneDepth(layer));
-            if (!hit.HasValue)
-                return null;
-            //A physics point (x, y) is drawn at (-x, -y) scaled, and a cell is a grid cell of physics units (see Units)
-            float cell = Units.GridCell * Units.PhysicsToScene;
-            return new Point((int)Math.Round(-hit.Value.X / cell), (int)Math.Round(-hit.Value.Y / cell));
+            if (level.IsDirty != titleDirty)
+                SetTitle();
         }
 
         public override void Draw(GameTime gameTime)
@@ -236,6 +246,7 @@ namespace TW3D.Editor
             renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
             view.Draw(renderer);
             renderer.End();
+            markers.Draw(camera.View, camera.Projection, layer, tool.Cursor, level.Finish);
 
             UpdateFont();
             imgui.BeforeLayout(gameTime);
@@ -294,8 +305,10 @@ namespace TW3D.Editor
             }
             if (ImGui.BeginMenu("Edit"))
             {
-                ImGui.MenuItem("Undo", "Ctrl+Z", false, false);
-                ImGui.MenuItem("Redo", "Ctrl+Y", false, false);
+                if (ImGui.MenuItem(level.CanUndo ? "Undo " + level.UndoName : "Undo", "Ctrl+Z", false, level.CanUndo))
+                    tool.Undo();
+                if (ImGui.MenuItem(level.CanRedo ? "Redo " + level.RedoName : "Redo", "Ctrl+Y", false, level.CanRedo))
+                    tool.Redo();
                 ImGui.EndMenu();
             }
             if (ImGui.BeginMenu("View"))
@@ -327,7 +340,7 @@ namespace TW3D.Editor
                 {
                     foreach (LevelMood mood in Enum.GetValues<LevelMood>())
                         if (ImGui.MenuItem(mood.ToString(), mood == LevelMood.Day ? "M" : null, level.Mood == mood))
-                            level.Mood = mood;
+                            level.SetMood(mood);
                     ImGui.EndMenu();
                 }
                 ImGui.EndMenu();
@@ -372,13 +385,15 @@ namespace TW3D.Editor
             ImGui.Begin("Status bar", flags);
             ImGui.PopStyleVar(2);
 
-            ImGui.Text(cursorCell.HasValue ? $"Cell: {cursorCell.Value.X}, {cursorCell.Value.Y}" : "Cell: -");
+            ImGui.Text($"Cell: {tool.Cursor.X}, {tool.Cursor.Y}");
             Separate();
             ImGui.Text("Layer: " + layer);
             Separate();
             ImGui.Text("Tool: Place");
             Separate();
-            ImGui.Text(levelFile != null ? Path.GetFileName(levelFile) : LevelName);
+            ImGui.Text($"Block: {tool.Block}, shift {tool.Shift}");
+            Separate();
+            ImGui.Text((level.File != null ? Path.GetFileName(level.File) : LevelName) + (level.IsDirty ? "*" : ""));
             if (message.Length > 0)
             {
                 Separate();
@@ -411,27 +426,37 @@ namespace TW3D.Editor
             ImGui.SetNextWindowSize(new System.Numerics.Vector2(540f, 560f) * scale, ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Controls", ref showHelp))
             {
-                ImGui.SeparatorText("Camera");
+                ImGui.SeparatorText("Mouse");
                 HelpRows(new[]
                 {
+                    ("Left button", "Place the chosen block in the cell under the cursor; dragging paints"),
+                    ("Left Shift + left button", "Erase the block under the cursor; dragging erases"),
+                    ("Right button", "Pick: the block under the cursor becomes the chosen block, with its shift"),
+                    ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)"),
                     ("Middle button drag", "Pan along the track"),
                     ("Wheel", "Zoom towards the cursor"),
-                    ("Alt + left drag", "Orbit around the point under the cursor"),
-                    ("W / S / A / D, Q / E", "Fly along the track, up and down"),
-                    ("Numeric keypad 4 / 6, 8 / 2", "Turn the camera"),
-                    ("Home", "Frame the whole level")
+                    ("Alt + left drag", "Orbit around the point under the cursor")
                 });
-                ImGui.SeparatorText("Level");
+                ImGui.SeparatorText("Keys");
                 HelpRows(new[]
                 {
+                    ("Arrows", "Move the cursor cell (the camera follows)"),
+                    ("Space / Delete", "Place the chosen block / erase the block at the cursor cell"),
+                    ("PageUp / PageDown", "Shift the block at the cursor cell up / down (the chosen shift follows)"),
+                    ("F", "The block at the cursor cell is the finish of the level, or stops being it"),
+                    (", / .", "The previous / next block of the catalog becomes the chosen block"),
+                    ("Ctrl+Z / Ctrl+Y", "Undo / redo"),
                     ("Tab", "The next layer; Right Shift / Right Ctrl toggle the back / front layer"),
                     ("M", "The mood of the level: day, sunset, night"),
+                    ("W / S / A / D, Q / E", "Fly the camera along the track, up and down"),
+                    ("Numeric keypad 4 / 6, 8 / 2", "Turn the camera"),
+                    ("Home", "Frame the whole level"),
                     ("F9 / F10 / F11", "Lighting of 2016 / shadows / ambient occlusion"),
                     ("F1", "This window"),
                     ("Esc", "Leave the editor")
                 });
                 ImGui.Spacing();
-                ImGui.TextWrapped("Placing blocks with the mouse, the palette, selection, files and the test drive come with the next issues of the editor (GitHub issue #20).");
+                ImGui.TextWrapped("The palette, selection, dynamic objects, files and the test drive come with the next issues of the editor (GitHub issue #20).");
             }
             ImGui.End();
         }

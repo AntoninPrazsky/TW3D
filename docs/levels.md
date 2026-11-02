@@ -17,8 +17,15 @@ returns to the menu).
 So far it shows the level as the game draws it, with a camera driven by the mouse (the
 middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
 by the keys of the old editor (W/S/A/D and Q/E fly, the numeric keypad turns, Home frames
-the level), the layer being edited (Tab, Right Shift, Right Ctrl), the mood (M) and the
-lighting (F9, F10, F11); F1 lists the controls. Editing comes with the next issues.
+the level). Blocks are edited in the active layer (Tab, Right Shift and Right Ctrl choose
+it): the left button places the chosen block in the cell under the cursor and dragging
+paints, Left Shift + the left button erases, the right button picks the block under the
+cursor as the chosen one, Ctrl + the wheel shifts it up or down. The keys of the old
+editor do the same: the arrows move the cursor cell, Space places, Delete erases,
+PageUp / PageDown shift, F marks the finish, comma and period choose the block, M the
+mood. Every change can be undone (Ctrl+Z, Ctrl+Y and the Edit menu, which names the
+step); a painted stroke is one step. The lighting is switched by F9, F10, F11; F1 lists
+the controls. The palette, files, selection and the test drive come with the next issues.
 
 ### The old editor
 

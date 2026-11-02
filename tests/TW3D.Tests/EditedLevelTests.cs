@@ -635,5 +635,40 @@ namespace TW3D.Tests
             Assert.Equal("[3, -1]", new Cell(3, -1).ToString());
             Assert.Equal(new Cell(1, -1), Cell.Of(22.5f, -30f));
         }
+
+        [Fact]
+        public void ALineToTheSameCellPassesNoCell()
+        {
+            Assert.Empty(new Cell(2, 3).LineTo(new Cell(2, 3)));
+        }
+
+        [Fact]
+        public void ALineAlongARowPassesEveryCellButTheFirst()
+        {
+            Assert.Equal(new[] { new Cell(1, 0), new Cell(2, 0), new Cell(3, 0) }, new Cell(0, 0).LineTo(new Cell(3, 0)));
+            Assert.Equal(new[] { new Cell(-1, 5), new Cell(-2, 5) }, new Cell(0, 5).LineTo(new Cell(-2, 5)));
+        }
+
+        [Fact]
+        public void ALineAlongAColumnPassesEveryCellButTheFirst()
+        {
+            Assert.Equal(new[] { new Cell(0, -1), new Cell(0, -2), new Cell(0, -3) }, new Cell(0, 0).LineTo(new Cell(0, -3)));
+            Assert.Equal(new[] { new Cell(4, 2), new Cell(4, 3) }, new Cell(4, 1).LineTo(new Cell(4, 3)));
+        }
+
+        [Fact]
+        public void ADiagonalLineSkipsNoCellAlongItsLongerAxis()
+        {
+            Assert.Equal(new[] { new Cell(1, 1), new Cell(2, 1), new Cell(3, 2), new Cell(4, 2) }, new Cell(0, 0).LineTo(new Cell(4, 2)));
+            Assert.Equal(new[] { new Cell(1, -1), new Cell(2, -2) }, new Cell(0, 0).LineTo(new Cell(2, -2)));
+        }
+
+        [Fact]
+        public void ASteepLineSkipsNoCellAlongItsLongerAxis()
+        {
+            //The longer axis is y here, so x is the one rounded
+            Assert.Equal(new[] { new Cell(0, 1), new Cell(1, 2), new Cell(1, 3) }, new Cell(0, 0).LineTo(new Cell(1, 3)));
+            Assert.Equal(new[] { new Cell(-1, -1), new Cell(-1, -2), new Cell(-2, -3), new Cell(-2, -4) }, new Cell(0, 0).LineTo(new Cell(-2, -4)));
+        }
     }
 }

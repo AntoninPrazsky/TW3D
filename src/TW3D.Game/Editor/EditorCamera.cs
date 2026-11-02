@@ -48,6 +48,9 @@ namespace TW3D.Editor
 
         private Drag drag;
 
+        /// <summary>The mouse is dragging the camera (panning or orbiting): the buttons are the camera's until it ends.</summary>
+        public bool IsDragging => drag != Drag.None;
+
         /// <summary>The point the camera looks at (scene units).</summary>
         public Vector3 Target { get; set; }
 
@@ -146,7 +149,8 @@ namespace TW3D.Editor
         /// cursor gets to.
         /// </summary>
         /// <param name="free">The cursor is over the scene, not over the user interface.</param>
-        public void HandleMouse(InputState input, Viewport viewport, bool free)
+        /// <param name="zoom">The wheel is the camera's; false while a tool uses it (Ctrl + the wheel shifts a block).</param>
+        public void HandleMouse(InputState input, Viewport viewport, bool free, bool zoom)
         {
             MouseState mouse = input.Mouse, previous = input.PreviousMouse;
             Vector2 position = new Vector2(mouse.X, mouse.Y);
@@ -181,7 +185,7 @@ namespace TW3D.Editor
                     break;
             }
 
-            if (free && input.WheelDelta != 0)
+            if (free && zoom && input.WheelDelta != 0)
                 Zoom(input.WheelDelta / WheelNotch, HitPlane(PickRay(position, viewport), 0f));
         }
 

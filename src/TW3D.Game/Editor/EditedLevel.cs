@@ -15,6 +15,22 @@ namespace TW3D.Editor
             return new Cell((int)Math.Round(x / Units.GridCell), (int)Math.Round(y / Units.GridCell));
         }
 
+        /// <summary>
+        /// The cells a stroke of the mouse passes from this cell to another one, in order, this cell left out and the
+        /// other one included: the mouse may cross several cells between two frames, and a stroke must not skip them.
+        /// </summary>
+        public IEnumerable<Cell> LineTo(Cell to)
+        {
+            int dx = to.X - X, dy = to.Y - Y;
+            int steps = Math.Max(Math.Abs(dx), Math.Abs(dy));
+            for (int i = 1; i <= steps; i++)
+            {
+                yield return new Cell(
+                    X + (int)Math.Round(dx * (double)i / steps, MidpointRounding.AwayFromZero),
+                    Y + (int)Math.Round(dy * (double)i / steps, MidpointRounding.AwayFromZero));
+            }
+        }
+
         /// <summary>The cell as the level files and the messages write it, e.g. "[3, -1]".</summary>
         public override string ToString() => $"[{X}, {Y}]";
     }
