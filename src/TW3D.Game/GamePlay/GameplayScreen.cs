@@ -205,6 +205,9 @@ namespace TW3D.GamePlay
             debugView?.Dispose();
             carSounds?.Dispose();
             impacts?.Dispose();
+            //Every level and every restart makes its own renderer, with a shadow map and render targets of the size of the
+            //screen: they are freed with the screen, not left for the finalizer (a test drive of the editor is started often)
+            renderer?.Dispose();
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)

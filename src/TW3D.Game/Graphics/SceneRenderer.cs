@@ -28,7 +28,7 @@ namespace TW3D.Graphics
     /// around them, and light the scene as spot lights in that colour; each lamp is a mesh of its own, its light
     /// and its glow are at its middle.
     /// </remarks>
-    public sealed class SceneRenderer
+    public sealed class SceneRenderer : IDisposable
     {
         //Strength of the sun's highlight relative to the specular colour of a material
         private const float SpecularStrength = 0.6f;
@@ -393,6 +393,23 @@ namespace TW3D.Graphics
         {
             background = model;
             backgroundWorld = world;
+        }
+
+        /// <summary>
+        /// Frees the textures, render targets and effects the renderer made itself. The effects of the content manager
+        /// (Scene, Occlusion) are shared by all renderers and stay.
+        /// </summary>
+        public void Dispose()
+        {
+            shadowMap.Dispose();
+            normalDepthMap?.Dispose();
+            occlusionMap?.Dispose();
+            blurredOcclusionMap?.Dispose();
+            smokeTexture.Dispose();
+            glowTexture.Dispose();
+            smokeEffect.Dispose();
+            glowEffect.Dispose();
+            markEffect?.Dispose();
         }
 
         /// <summary>Draws the frame.</summary>

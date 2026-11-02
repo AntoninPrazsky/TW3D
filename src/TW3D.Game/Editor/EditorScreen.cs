@@ -134,6 +134,7 @@ namespace TW3D.Editor
             tool.EndStroke();
             session.Dispose();
             previews.Dispose();
+            renderer.Dispose();
             imgui.Dispose();
             Manager.PointersVisible = true;
             Manager.Game.Window.Title = previousTitle;
