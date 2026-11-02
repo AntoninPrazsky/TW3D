@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using TW3D.GameObjects;
+using TW3D.GamePlay;
 using TW3D.Graphics;
 using TW3D.Input;
 using TW3D.Screens;
@@ -21,7 +23,8 @@ namespace TW3D.Editor
     /// <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to them and draws them in
     /// their order. Opened by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu
     /// of a Debug build (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface
-    /// does not want them (the cursor over a window, a text field being typed in) and no dialog is open.
+    /// does not want them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the
+    /// level in the game: a test drive of the <see cref="GameplayScreen"/> covers the editor, which waits under it as it is.
     /// </summary>
     public sealed class EditorScreen : Screen
     {
@@ -67,12 +70,17 @@ namespace TW3D.Editor
         private Layer layer = Layer.Middle;
         //What the status bar says about the last thing done
         private string message = "";
-        //The window had no focus: the click that brings it back is not an edit
+        //The window or the screen had no focus (another window, a test drive): the click that brings it back is not an edit
         private bool focusReturning;
         //A dialog was open in the last frame: the keys held when it closed answered it (D of Don't save would fly the
-        //camera), so the scene gets no keys until they are released
+        //camera), so the scene gets no keys until they are released; so do the keys held when the focus comes back (the
+        //arrows that drove the car of a test drive would move the cursor)
         private bool dialogWasOpen;
-        private Keys[] dialogKeys = Array.Empty<Keys>();
+        private Keys[] heldKeys = Array.Empty<Keys>();
+        //A test drive covers the editor; the cell the menu asked to start one from, started with the next input, not in
+        //the middle of drawing the interface
+        private bool driving;
+        private Cell? driveRequested;
 
         /// <param name="level">A level name (a file of the levels folder without the extension) or a level file; null = the last level, or a new one.</param>
         /// <param name="standalone">The editor is alone (opened by --editor): leaving it quits the game instead of going back to the menu.</param>
@@ -157,8 +165,64 @@ namespace TW3D.Editor
         /// <summary>The game is closing (the close button of the window, or the editor's own exit): the session decides whether it may.</summary>
         private void OnExiting(object sender, ExitingEventArgs e)
         {
-            if (!session.LetExit())
-                e.Cancel = true;
+            if (session.LetExit())
+                return;
+            e.Cancel = true;
+            //The editor asks "Save changes?" in its own interface, which a test drive covers
+            if (driving)
+                CloseTestDrive();
+        }
+
+        /// <summary>
+        /// Drives the level being edited in the game from a cell (F5: the start cell, Shift+F5: the cursor cell), with the
+        /// car of the garage. The level goes in memory, nothing is saved; a level the game cannot build is refused, and
+        /// what would spoil the drive is said in the status bar, where it is still read when the editor is back.
+        /// </summary>
+        private void TestDrive(Cell start)
+        {
+            tool.EndStroke();
+            LevelData data = Level.ToData();
+            List<string> problems = data.Validate(assets.Catalog);
+            if (problems.Count > 0)
+            {
+                message = "The level cannot be driven: " + problems[0];
+                return;
+            }
+            List<string> warnings = new List<string>();
+            if (data.FinishBlock == null)
+                warnings.Add("A test drive without a finish: the run has no end.");
+            if (Level.BlockAt(Layer.Middle, start) == null)
+                warnings.Add($"There is no block at {start}, where the car starts: it falls.");
+            message = warnings.Count > 0 ? string.Join(" ", warnings) : $"Test drive from {start}.";
+
+            driving = true;
+            //The game shows where the mouse is pressed; the editor does not, it has its cursor
+            Manager.PointersVisible = true;
+            Manager.Add(GameplayScreen.TestDrive(data, start.X, start.Y, settings, TestDriveEnded));
+        }
+
+        /// <summary>The test drive closed (or was closed): the editor is back as it was.</summary>
+        private void TestDriveEnded()
+        {
+            driving = false;
+            Manager.PointersVisible = false;
+            //The button that chose Back to editor may still be down, over a button of the palette or the menu bar, and
+            //the interface did not see the frames of the drive
+            imgui.ResyncInput();
+        }
+
+        /// <summary>Closes the test drive with its pause menu or results: the editor is seen again.</summary>
+        private void CloseTestDrive()
+        {
+            bool above = false;
+            foreach (Screen screen in Manager.Screens)
+            {
+                if (above)
+                    screen.Close();
+                else if (screen == this)
+                    above = true;
+            }
+            TestDriveEnded();
         }
 
         /// <summary>The camera sees the whole level.</summary>
@@ -193,12 +257,25 @@ namespace TW3D.Editor
             {
                 tool.EndStroke();
                 focusReturning = true;
+                driveRequested = null;
             }
             session.UpdateTitle();
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
         {
+            //A drive the Level menu asked for starts before the keys of this frame, which would change the level after
+            //the drive took it
+            if (driveRequested.HasValue)
+            {
+                Cell start = driveRequested.Value;
+                driveRequested = null;
+                if (!session.IsDialogOpen)
+                {
+                    TestDrive(start);
+                    return;
+                }
+            }
             //A dialog has the keys and the mouse; the key that closes it is not seen again here, as it was pressed before
             if (session.IsDialogOpen)
             {
@@ -206,28 +283,33 @@ namespace TW3D.Editor
                 dialogWasOpen = true;
                 return;
             }
-            if (dialogWasOpen)
+            if (dialogWasOpen || focusReturning)
             {
                 dialogWasOpen = false;
-                dialogKeys = input.Keyboard.GetPressedKeys();
+                heldKeys = input.Keyboard.GetPressedKeys();
             }
-            bool dialogKeysHeld = Array.Exists(dialogKeys, key => input.IsKeyDown(key));
-            if (!dialogKeysHeld)
-                dialogKeys = Array.Empty<Keys>();
+            bool keysHeld = Array.Exists(heldKeys, key => input.IsKeyDown(key));
+            if (!keysHeld)
+                heldKeys = Array.Empty<Keys>();
 
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
             ImGuiIOPtr io = ImGui.GetIO();
-            bool keysFree = !io.WantCaptureKeyboard && !dialogKeysHeld;
+            bool keysFree = !io.WantCaptureKeyboard && !keysHeld;
             bool mouseFree = !io.WantCaptureMouse;
             bool control = input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl);
             bool shift = input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
 
             //The shortcuts of the menus work while a text field of a window has the keyboard too
-            if (control && !dialogKeysHeld)
+            if (control && !keysHeld)
                 HandleShortcuts(input, shift);
 
             if (keysFree && !session.IsDialogOpen)
             {
+                if (input.KeyPressed(Keys.F5))
+                {
+                    TestDrive(shift ? tool.Cursor : new Cell(0, 0));
+                    return;
+                }
                 if (input.KeyPressed(Keys.Escape))
                     session.Guard(Leave);
                 if (input.KeyPressed(Keys.F1))
@@ -411,6 +493,11 @@ namespace TW3D.Editor
                             Level.SetMood(mood);
                     ImGui.EndMenu();
                 }
+                ImGui.Separator();
+                if (ImGui.MenuItem("Test drive", "F5"))
+                    driveRequested = new Cell(0, 0);
+                if (ImGui.MenuItem("Test drive from the cursor", "Shift+F5"))
+                    driveRequested = tool.Cursor;
                 ImGui.EndMenu();
             }
             if (ImGui.BeginMenu("Help"))

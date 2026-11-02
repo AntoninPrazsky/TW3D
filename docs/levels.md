@@ -49,8 +49,12 @@ step); a painted stroke is one step. The lighting is switched by F9, F10, F11; F
 the controls. The Palette window shows every block of the catalog as a turning 3D preview,
 in the groups of the [catalog page](catalog/catalog.html) and searchable by name, and a
 click makes it the chosen block (its Objects tab chooses the dynamic object to place, for
-the Object tool to come). Selection, dynamic objects and the test drive come with the next
-issues.
+the Object tool to come). F5 drives the level in the game at once, from the start cell,
+with the car and the wheels chosen in the garage (Shift+F5 from the cursor cell): the level
+goes in memory, nothing is saved and no record is kept, and Esc, the pause menu or the
+results bring the editor back as it was, with its camera and undo history. A level without
+a finish or without a block at the start can still be driven (the status bar warns); one
+the game cannot build is refused. Selection and dynamic objects come with the next issues.
 
 ### The old editor
 

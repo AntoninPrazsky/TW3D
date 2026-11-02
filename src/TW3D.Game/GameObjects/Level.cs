@@ -33,8 +33,9 @@ namespace TW3D.GameObjects
     }
 
     /// <summary>
-    /// A level built from its file (see <see cref="LevelFile"/>): the track blocks of the middle layer, which the car
-    /// drives on, the decoration blocks of the back and front layers behind and in front of it, and the dynamic objects.
+    /// A level built from its data (its file, see <see cref="LevelFile"/>, or the level editor's): the track blocks of
+    /// the middle layer, which the car drives on, the decoration blocks of the back and front layers behind and in front
+    /// of it, and the dynamic objects.
     /// </summary>
     class Level : GameObject
     {
@@ -65,6 +66,14 @@ namespace TW3D.GameObjects
 
         /// <param name="fileName">Name of the level file in Content/Levels, without the extension.</param>
         public Level(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, LevelAssets assets, Vector2 position, string fileName)
+            : this(world, screenManager, camera, physics, assets, position, Read(fileName), fileName)
+        {
+        }
+
+        /// <param name="data">The level, from its file or from the level editor (a test drive).</param>
+        /// <param name="name">What the message about the problems of the level calls it.</param>
+        /// <exception cref="InvalidDataException">The level is not valid (see <see cref="LevelData.Validate"/>).</exception>
+        public Level(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, LevelAssets assets, Vector2 position, LevelData data, string name)
         {
             this.world = world;
             this.screenManager = screenManager;
@@ -72,14 +81,9 @@ namespace TW3D.GameObjects
             this.physics = physics;
             this.position = position;
 
-            //File system access for MonoGame (works on all platforms)
-            LevelData data;
-            using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + fileName + LevelFile.Extension))
-                data = LevelFile.Load(stream);
-
             List<string> problems = data.Validate(assets.Catalog);
             if (problems.Count > 0)
-                throw new InvalidDataException("Level \"" + fileName + "\" is not valid:\n" + string.Join("\n", problems));
+                throw new InvalidDataException("Level \"" + name + "\" is not valid:\n" + string.Join("\n", problems));
 
             Mood = data.Mood;
             Par = RaceScore.Par(data);
@@ -102,6 +106,14 @@ namespace TW3D.GameObjects
             foreach (ObjectPlacement placement in data.Objects)
                 objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
                     assets.Catalog.FindObject(placement.Type), placement.Model, assets));
+        }
+
+        /// <summary>Reads a level file of Content/Levels (the name without the extension).</summary>
+        private static LevelData Read(string fileName)
+        {
+            //File system access for MonoGame (works on all platforms)
+            using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + fileName + LevelFile.Extension))
+                return LevelFile.Load(stream);
         }
 
         /// <summary>Where a block of the level grid is in the physics world (see <see cref="Units"/>).</summary>

@@ -10,7 +10,8 @@ namespace TW3D.Screens
     /// <summary>
     /// The results of a level, over the level at its finish: the stars, the time, the score and the best time in the
     /// middle, along the bottom the level select, the level again and the next level. Esc (Back) goes to the level
-    /// select. A run lost (the car fell off the level) gets them too, titled Game over: no stars, no time.
+    /// select. A run lost (the car fell off the level) gets them too, titled Game over: no stars, no time. A test drive
+    /// of the level editor leaves them for the editor instead of the level select.
     /// </summary>
     public sealed class ResultsScreen : ListMenuScreen
     {
@@ -30,7 +31,7 @@ namespace TW3D.Screens
         private readonly string[] lines;
         private readonly string note;
         private readonly bool noteHighlighted;
-        private Action levelSelect;
+        private Action leave;
         private readonly bool record;
         //Seconds since the results came, the stars rung so far and whether the record has rung
         private float age;
@@ -44,8 +45,10 @@ namespace TW3D.Screens
         /// <param name="counted">The run counts (the car was not moved by hand).</param>
         /// <param name="nextLevel">Starts the next level; null if this is the last one.</param>
         /// <param name="restart">Starts the level again.</param>
-        /// <param name="levelSelect">Leaves the level for the level select.</param>
-        public ResultsScreen(float time, float par, float? previousBest, bool record, bool counted, Action nextLevel, Action restart, Action levelSelect)
+        /// <param name="leave">Leaves the level for the level select (or the level editor: see <paramref name="leaveText"/>).</param>
+        /// <param name="leaveText">The button of <paramref name="leave"/>.</param>
+        public ResultsScreen(float time, float par, float? previousBest, bool record, bool counted, Action nextLevel, Action restart, Action leave,
+            string leaveText = "Level select")
             : base("Finish")
         {
             IsPopup = true;
@@ -70,15 +73,16 @@ namespace TW3D.Screens
             else if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
 
-            AddButtons(nextLevel, restart, levelSelect);
+            AddButtons(nextLevel, restart, leave, leaveText);
         }
 
         /// <summary>The results of a run lost: the car fell off the level, so there are no stars and no time.</summary>
         /// <param name="previousBest">The best time of the level; null if it was not finished before.</param>
         /// <param name="nextLevel">Starts the next level; null if this is the last one.</param>
         /// <param name="restart">Starts the level again.</param>
-        /// <param name="levelSelect">Leaves the level for the level select.</param>
-        public ResultsScreen(float? previousBest, Action nextLevel, Action restart, Action levelSelect)
+        /// <param name="leave">Leaves the level for the level select (or the level editor: see <paramref name="leaveText"/>).</param>
+        /// <param name="leaveText">The button of <paramref name="leave"/>.</param>
+        public ResultsScreen(float? previousBest, Action nextLevel, Action restart, Action leave, string leaveText = "Level select")
             : base("Game over")
         {
             IsPopup = true;
@@ -89,14 +93,14 @@ namespace TW3D.Screens
             lines = new[] { "Fell off the track" };
             if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
-            AddButtons(nextLevel, restart, levelSelect);
+            AddButtons(nextLevel, restart, leave, leaveText);
         }
 
-        private void AddButtons(Action nextLevel, Action restart, Action levelSelect)
+        private void AddButtons(Action nextLevel, Action restart, Action leave, string leaveText)
         {
-            this.levelSelect = levelSelect;
+            this.leave = leave;
             //From left to right: back, again, on
-            AddItem(new MenuItem { Text = () => "Level select", Activate = () => Leave(levelSelect) });
+            AddItem(new MenuItem { Text = () => leaveText, Activate = () => Leave(leave) });
             AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });
             if (nextLevel != null)
                 AddItem(new MenuItem { Text = () => "Next level", Activate = () => Leave(nextLevel) });
@@ -126,7 +130,7 @@ namespace TW3D.Screens
             if (input.BackPressed)
             {
                 Manager.Sounds.Play(Sound.MenuBack);
-                Leave(levelSelect);
+                Leave(leave);
             }
             else
                 base.HandleInput(input, gameTime);

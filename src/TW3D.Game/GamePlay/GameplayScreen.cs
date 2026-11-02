@@ -20,6 +20,8 @@ namespace TW3D.GamePlay
     /// tutorial, the pause menu and the keys for development. A run of the level (see <see cref="Race"/>) starts with
     /// a countdown, the car held still; the time runs from the start until the car reaches the finish block of the
     /// level, then the car brakes and the results follow. A car fallen off the level loses the run: game over.
+    /// A test drive of the level editor (see <see cref="TestDrive"/>) plays the level being edited, from any cell, with no
+    /// tutorial, no records and no next level; it leaves for the editor, which waits under it as it was.
     /// </summary>
     public sealed class GameplayScreen : Screen
     {
@@ -35,11 +37,21 @@ namespace TW3D.GamePlay
 
         //Where the car starts (physics units): on the road at the cell [0, 0] of the level
         private static readonly Vector2 CarStart = new Vector2(-1.6f, -7f);
+        //What the message about the problems of a level from the editor calls it
+        private const string TestDriveName = "test drive";
+        //The item of the pause menu and the button of the results that end a test drive
+        private const string BackToEditorText = "Back to editor";
 
+        //The name of the level, the records and the levels of the level select; null in a test drive
         private readonly string levelName;
         private readonly GameSettings settings;
         private readonly GameRecords records;
         private readonly IReadOnlyList<string> levels;
+        //A test drive: the level being edited, the cell the car starts at and what brings the editor back; the level is
+        //null in the game
+        private readonly LevelData testLevel;
+        private readonly int startX, startY;
+        private readonly Action back;
 
         private World world;
         private PhysicsClock physics;
@@ -90,6 +102,45 @@ namespace TW3D.GamePlay
             IsOpaque = true;
         }
 
+        private GameplayScreen(LevelData level, int startX, int startY, GameSettings settings, Action back)
+        {
+            testLevel = level;
+            this.startX = startX;
+            this.startY = startY;
+            this.settings = settings;
+            this.back = back;
+            //The editor waits under this screen as it was: it is back the moment the test drive closes
+            FadeInTime = TimeSpan.FromSeconds(0.25);
+            FadeOutTime = TimeSpan.Zero;
+            IsOpaque = true;
+        }
+
+        /// <summary>
+        /// A test drive of the level editor: the level being edited, in memory, with the car and the wheels of the garage,
+        /// starting at a cell. Nothing of the game's own is touched (no tutorial, no records); the pause menu and the
+        /// results offer Restart and Back to editor, Esc goes back at once.
+        /// </summary>
+        /// <param name="level">The level being edited; it must be valid (see <see cref="LevelData.Validate"/>).</param>
+        /// <param name="startX">The cell the car starts at; [0, 0] is the start of the level.</param>
+        /// <param name="back">Brings the editor back; called as the test drive closes for the editor (not when it restarts).</param>
+        public static GameplayScreen TestDrive(LevelData level, int startX, int startY, GameSettings settings, Action back)
+        {
+            return new GameplayScreen(level, startX, startY, settings, back);
+        }
+
+        /// <summary>
+        /// Where the car starts at a cell (physics units): as at the start of the level, moved by the cell and down by the
+        /// shift of the block of the middle layer there (the later one of two in a cell, as the editor shows it).
+        /// </summary>
+        private static Vector2 StartAt(LevelData level, int x, int y)
+        {
+            int shift = 0;
+            foreach (BlockPlacement placement in level.Middle)
+                if (placement.X == x && placement.Y == y)
+                    shift = placement.Shift;
+            return CarStart + new Vector2(x * Units.GridCell, y * Units.GridCell + shift * Units.ShiftStep);
+        }
+
         public override void LoadContent()
         {
             LevelAssets assets = LevelAssets.Load(Manager.Content);
@@ -108,13 +159,19 @@ namespace TW3D.GamePlay
             renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
             settings.Apply(renderer);
 
-            level = new Level(world, Manager, camera, physics, assets, Vector2.Zero, levelName);
+            level = testLevel != null
+                ? new Level(world, Manager, camera, physics, assets, Vector2.Zero, testLevel, TestDriveName)
+                : new Level(world, Manager, camera, physics, assets, Vector2.Zero, levelName);
             renderer.Lighting = Lighting.For(level.Mood);
             sky = new Sky(Manager, camera);
             Catalog catalog = assets.Catalog;
             CarType carType = catalog.FindCar(settings.Car);
             CarWheels wheels = settings.WheelsOf(carType);
-            car = new Car(world, Manager, camera, physics, CarStart, carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
+            Vector2 carStart = testLevel != null ? StartAt(testLevel, startX, startY) : CarStart;
+            car = new Car(world, Manager, camera, physics, carStart, carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
+            //A test drive may start anywhere in the level, and the camera would fly there from the origin
+            if (testLevel != null)
+                camera.JumpTo(carStart);
             race = new Race(level.Par, level.HasFinish);
 
             debugView = new DebugView(world)
@@ -130,7 +187,7 @@ namespace TW3D.GamePlay
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
             developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood);
-            if (settings.Tutorial || Tutorial.Lever != TutorialLever.None)
+            if (testLevel == null && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
             carSounds = new CarSounds(Manager.Sounds, car);
@@ -155,6 +212,11 @@ namespace TW3D.GamePlay
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
 
             controls.Update(input, Manager.Viewport, Manager.ControlsScale, elapsed);
+            if (testLevel != null && input.BackPressed)
+            {
+                BackToEditor();
+                return;
+            }
             if (input.BackPressed || input.KeyPressed(Keys.P) || controls.PausePressed)
             {
                 Pause();
@@ -273,6 +335,8 @@ namespace TW3D.GamePlay
         {
             Manager.Sounds.Play(Sound.Finish);
             car.acceleration = 0f;
+            if (records == null)
+                return;
             previousBest = records.BestTime(levelName);
             record = !race.Assisted && records.Add(levelName, race.Time);
         }
@@ -282,16 +346,24 @@ namespace TW3D.GamePlay
         {
             Manager.Sounds.Play(Sound.GameOver);
             car.acceleration = 0f;
-            previousBest = records.BestTime(levelName);
+            if (records != null)
+                previousBest = records.BestTime(levelName);
         }
 
         private void ShowResults()
         {
-            string next = NextLevel();
-            Action nextLevel = next != null ? () => Start(next) : null;
-            results = race.State == RaceState.Lost
-                ? new ResultsScreen(previousBest, nextLevel, Restart, Close)
-                : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close);
+            if (testLevel != null)
+                results = race.State == RaceState.Lost
+                    ? new ResultsScreen(previousBest, null, Restart, BackToEditor, BackToEditorText)
+                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, null, Restart, BackToEditor, BackToEditorText);
+            else
+            {
+                string next = NextLevel();
+                Action nextLevel = next != null ? () => Start(next) : null;
+                results = race.State == RaceState.Lost
+                    ? new ResultsScreen(previousBest, nextLevel, Restart, Close)
+                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close);
+            }
             Manager.Add(results);
         }
 
@@ -301,13 +373,29 @@ namespace TW3D.GamePlay
         /// </summary>
         private void Pause()
         {
-            Manager.Add(new PauseScreen(Restart, Close, ExitToMainMenu));
+            if (testLevel != null)
+                Manager.Add(new PauseScreen(Restart, BackToEditor, null, BackToEditorText));
+            else
+                Manager.Add(new PauseScreen(Restart, Close, ExitToMainMenu));
         }
 
-        /// <summary>The level from the start: a new game screen in place of this one.</summary>
+        /// <summary>The level from the start: a new game screen in place of this one (a test drive of the same level from the same cell).</summary>
         private void Restart()
         {
-            Start(levelName);
+            if (testLevel != null)
+            {
+                Manager.Add(TestDrive(testLevel, startX, startY, settings, back));
+                Close();
+            }
+            else
+                Start(levelName);
+        }
+
+        /// <summary>Ends a test drive: the editor under it is back.</summary>
+        private void BackToEditor()
+        {
+            back();
+            Close();
         }
 
         /// <summary>Another level in place of this one.</summary>

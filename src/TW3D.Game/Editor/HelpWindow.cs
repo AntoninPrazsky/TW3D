@@ -30,6 +30,8 @@ namespace TW3D.Editor
             ("Ctrl+O", "Open a level of the levels folder or any level file"),
             ("Ctrl+S", "Save the level (a new level asks for a name)"),
             ("Ctrl+Shift+S", "Save the level under a new name in the levels folder"),
+            ("F5", "Test drive: the level in the game from the start, with the car of the garage; Esc comes back"),
+            ("Shift+F5", "Test drive from the cursor cell"),
             ("Tab", "The next layer; Right Shift / Right Ctrl toggle the back / front layer"),
             ("M", "The mood of the level: day, sunset, night"),
             ("W / S / A / D, Q / E", "Fly the camera along the track, up and down"),
@@ -52,7 +54,7 @@ namespace TW3D.Editor
                 ImGui.SeparatorText("Keys");
                 Rows(KeyRows);
                 ImGui.Spacing();
-                ImGui.TextWrapped("Selection, dynamic objects and the test drive come with the next issues of the editor (GitHub issue #20).");
+                ImGui.TextWrapped("Selection and dynamic objects come with the next issues of the editor (GitHub issue #20).");
             }
             ImGui.End();
         }

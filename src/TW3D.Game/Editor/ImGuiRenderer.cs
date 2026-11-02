@@ -39,6 +39,8 @@ namespace TW3D.Editor
 
         //Mouse wheel units of MonoGame per notch
         private const float WheelDelta = 120f;
+        //The mouse buttons ImGui knows: left, right, middle and the two side buttons
+        private const int MouseButtons = 5;
 
         //The modifier keys ImGui gets as its modifiers (either side) and as keys of their own
         private static readonly (Keys Key, ImGuiKey ImGuiKey)[] ModifierKeys =
@@ -66,6 +68,8 @@ namespace TW3D.Editor
         private DynamicIndexBuffer indexBuffer;
         private int vertexBufferSize, indexBufferSize;
         private int scrollWheelValue, horizontalScrollWheelValue;
+        //The mouse buttons held since ResyncInput: ImGui sees them up until they are released
+        private readonly bool[] heldButtons = new bool[MouseButtons];
         private bool disposed;
 
         static unsafe ImGuiRenderer()
@@ -167,6 +171,20 @@ namespace TW3D.Editor
             ImGui.NewFrame();
         }
 
+        /// <summary>
+        /// Takes up the input again after frames ImGui did not see (the interface was not drawn): the mouse buttons down
+        /// now were pressed for something else, so ImGui sees them up until they are released, and the wheel turned in
+        /// the meantime is not a scroll.
+        /// </summary>
+        public void ResyncInput()
+        {
+            MouseState mouse = Mouse.GetState();
+            for (int button = 0; button < MouseButtons; button++)
+                heldButtons[button] = IsDown(mouse, button);
+            scrollWheelValue = mouse.ScrollWheelValue;
+            horizontalScrollWheelValue = mouse.HorizontalScrollWheelValue;
+        }
+
         /// <summary>Ends a frame of the interface and draws it.</summary>
         public void AfterLayout()
         {
@@ -181,14 +199,13 @@ namespace TW3D.Editor
 
             MouseState mouse = Mouse.GetState();
             KeyboardState keyboard = Keyboard.GetState();
+            for (int button = 0; button < MouseButtons; button++)
+                heldButtons[button] &= IsDown(mouse, button);
             if (game.IsActive)
             {
                 io.AddMousePosEvent(mouse.X, mouse.Y);
-                io.AddMouseButtonEvent(0, mouse.LeftButton == ButtonState.Pressed);
-                io.AddMouseButtonEvent(1, mouse.RightButton == ButtonState.Pressed);
-                io.AddMouseButtonEvent(2, mouse.MiddleButton == ButtonState.Pressed);
-                io.AddMouseButtonEvent(3, mouse.XButton1 == ButtonState.Pressed);
-                io.AddMouseButtonEvent(4, mouse.XButton2 == ButtonState.Pressed);
+                for (int button = 0; button < MouseButtons; button++)
+                    io.AddMouseButtonEvent(button, IsDown(mouse, button) && !heldButtons[button]);
                 io.AddMouseWheelEvent((mouse.HorizontalScrollWheelValue - horizontalScrollWheelValue) / WheelDelta,
                     (mouse.ScrollWheelValue - scrollWheelValue) / WheelDelta);
             }
@@ -223,6 +240,20 @@ namespace TW3D.Editor
                 if (imGuiKey != ImGuiKey.None)
                     io.AddKeyEvent(imGuiKey, keyboard.IsKeyDown(key));
             }
+        }
+
+        /// <summary>Whether a mouse button of ImGui (0 left, 1 right, 2 middle, 3 and 4 the side buttons) is down.</summary>
+        private static bool IsDown(MouseState mouse, int button)
+        {
+            ButtonState state = button switch
+            {
+                0 => mouse.LeftButton,
+                1 => mouse.RightButton,
+                2 => mouse.MiddleButton,
+                3 => mouse.XButton1,
+                _ => mouse.XButton2
+            };
+            return state == ButtonState.Pressed;
         }
 
         /// <summary>

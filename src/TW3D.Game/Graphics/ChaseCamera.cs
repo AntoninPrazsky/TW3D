@@ -76,6 +76,17 @@ namespace TW3D.Graphics
             Zoom = 1f;
         }
 
+        /// <summary>
+        /// Puts the camera at its target at once, as if it had caught up with it: a level started far from where the
+        /// camera is (a test drive of the level editor from any cell) does not fly the camera in.
+        /// </summary>
+        /// <param name="targetPosition">Position of the followed object in physics units.</param>
+        public void JumpTo(Vector2 targetPosition)
+        {
+            Focus = targetPosition;
+            Position = targetPosition + panOffset;
+        }
+
         /// <summary>Moves the camera after the followed object; call once per frame.</summary>
         /// <param name="targetPosition">Position of the followed object in physics units.</param>
         /// <param name="targetRotation">Rotation of the followed object in radians.</param>

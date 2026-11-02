@@ -7,7 +7,8 @@ namespace TW3D.Screens
 {
     /// <summary>
     /// The pause menu over a level, which stands still while the menu is open.
-    /// Esc, P or the back button close it again, like Resume.
+    /// Esc, P or the back button close it again, like Resume. A test drive of the level editor leaves it for the editor,
+    /// with no main menu.
     /// </summary>
     public sealed class PauseScreen : ListMenuScreen
     {
@@ -15,9 +16,10 @@ namespace TW3D.Screens
         private const float Dimming = 0.55f;
 
         /// <param name="restart">Starts the level again.</param>
-        /// <param name="levelSelect">Leaves the level for the level select.</param>
-        /// <param name="mainMenu">Leaves the level for the main menu.</param>
-        public PauseScreen(Action restart, Action levelSelect, Action mainMenu)
+        /// <param name="leave">Leaves the level for the level select (or the level editor: see <paramref name="leaveText"/>).</param>
+        /// <param name="mainMenu">Leaves the level for the main menu; null leaves the item out.</param>
+        /// <param name="leaveText">The item of <paramref name="leave"/>.</param>
+        public PauseScreen(Action restart, Action leave, Action mainMenu, string leaveText = "Level select")
             : base("Paused")
         {
             IsPopup = true;
@@ -26,8 +28,9 @@ namespace TW3D.Screens
 
             AddItem(new MenuItem { Text = () => "Resume", Activate = Close });
             AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });
-            AddItem(new MenuItem { Text = () => "Level select", Activate = () => Leave(levelSelect) });
-            AddItem(new MenuItem { Text = () => "Main menu", Activate = () => Leave(mainMenu) });
+            AddItem(new MenuItem { Text = () => leaveText, Activate = () => Leave(leave) });
+            if (mainMenu != null)
+                AddItem(new MenuItem { Text = () => "Main menu", Activate = () => Leave(mainMenu) });
         }
 
         private void Leave(Action action)
