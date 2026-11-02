@@ -15,14 +15,6 @@ using Vector3 = Microsoft.Xna.Framework.Vector3;
 
 namespace TW3D.Editor
 {
-    /// <summary>The layers of a level; the editor edits one at a time.</summary>
-    enum Layer
-    {
-        Back,
-        Middle,
-        Front
-    }
-
     /// <summary>
     /// The level editor: the level being edited drawn as in the game, seen by a free camera (<see cref="EditorCamera"/>),
     /// with the user interface of Dear ImGui over it (the menu bar, the status bar and the windows). Opened by

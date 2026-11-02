@@ -29,6 +29,9 @@
     <Compile Include="..\..\src\TW3D.Game\Input\CarControl.cs" Link="Game\CarControl.cs" />
     <Compile Include="..\..\src\TW3D.Game\Audio\Synth.cs" Link="Game\Synth.cs" />
     <Compile Include="..\..\src\TW3D.Game\Audio\SoundBakes.cs" Link="Game\SoundBakes.cs" />
+    <!-- The document of the level editor: the level being edited, with undo and redo -->
+    <Compile Include="..\..\src\TW3D.Game\Editor\Layer.cs" Link="Game\Layer.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Editor\EditedLevel.cs" Link="Game\EditedLevel.cs" />
   </ItemGroup>
 
   <ItemGroup>
