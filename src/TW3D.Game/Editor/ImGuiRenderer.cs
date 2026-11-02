@@ -225,13 +225,16 @@ namespace TW3D.Editor
             }
         }
 
-        /// <summary>The key of ImGui for a key of MonoGame; None for keys ImGui has no use for (and the modifiers, sent apart).</summary>
+        /// <summary>
+        /// The key of ImGui for a key of MonoGame; None for keys ImGui has no use for (and the modifiers, sent apart).
+        /// Tab is kept from ImGui: it is the key of the layer in the editor, and ImGui would move the focus into a text
+        /// field with it whenever one of its windows has the focus, taking the keys that follow.
+        /// </summary>
         private static ImGuiKey Map(Keys key)
         {
             return key switch
             {
                 Keys.Back => ImGuiKey.Backspace,
-                Keys.Tab => ImGuiKey.Tab,
                 Keys.Enter => ImGuiKey.Enter,
                 Keys.CapsLock => ImGuiKey.CapsLock,
                 Keys.Escape => ImGuiKey.Escape,

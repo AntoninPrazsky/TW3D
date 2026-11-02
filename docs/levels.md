@@ -25,7 +25,10 @@ editor do the same: the arrows move the cursor cell, Space places, Delete erases
 PageUp / PageDown shift, F marks the finish, comma and period choose the block, M the
 mood. Every change can be undone (Ctrl+Z, Ctrl+Y and the Edit menu, which names the
 step); a painted stroke is one step. The lighting is switched by F9, F10, F11; F1 lists
-the controls. The palette, files, selection and the test drive come with the next issues.
+the controls. The Palette window shows every block of the catalog as a turning 3D preview,
+in the groups of the [catalog page](catalog/catalog.html) and searchable by name, and a
+click makes it the chosen block (its Objects tab chooses the dynamic object to place, for
+the Object tool to come). Files, selection and the test drive come with the next issues.
 
 ### The old editor
 

@@ -275,8 +275,23 @@ namespace TW3D.Editor
                 return;
             int index = blocks.FindIndex(type => type.Name == Block);
             index = ((index + direction) % blocks.Count + blocks.Count) % blocks.Count;
-            Block = blocks[index].Name;
-            report(blocks[index].Collision ? $"Chosen block: {Block}." : $"Chosen block: {Block} (decoration, back or front layer only).");
+            Choose(blocks[index]);
+        }
+
+        /// <summary>A block of the catalog, by its name, becomes the chosen one (the palette chooses so); a name the catalog does not know is refused.</summary>
+        public void Choose(string block)
+        {
+            BlockType type = level.Catalog.FindBlock(block);
+            if (type == null)
+                report($"The catalog has no block {block}.");
+            else
+                Choose(type);
+        }
+
+        private void Choose(BlockType type)
+        {
+            Block = type.Name;
+            report(type.Collision ? $"Chosen block: {Block}." : $"Chosen block: {Block} (decoration, back or front layer only).");
         }
 
         /// <summary>Takes back the last step of the document and says which.</summary>

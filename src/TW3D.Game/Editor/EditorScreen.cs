@@ -19,9 +19,10 @@ namespace TW3D.Editor
     /// The level editor: the level being edited (an <see cref="EditedLevel"/>, the document with undo) drawn as in the
     /// game, seen by a free camera (<see cref="EditorCamera"/>), edited with the <see cref="BlockTool"/> whose cursor
     /// the <see cref="EditorMarkers"/> show, with the user interface of Dear ImGui over it (the menu bar, the status bar
-    /// and the windows). Opened by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the
-    /// main menu of a Debug build (leaving it goes back to the menu). The scene gets the mouse and the keys only when
-    /// the interface does not want them (the cursor over a window, a text field being typed in).
+    /// and the windows: the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the help). Opened by
+    /// <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
+    /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
+    /// them (the cursor over a window, a text field being typed in).
     /// </summary>
     public sealed class EditorScreen : Screen
     {
@@ -57,8 +58,12 @@ namespace TW3D.Editor
         private BlockTool tool;
         private EditorMarkers markers;
         private ImGuiRenderer imgui;
+        private BlockPreviews previews;
+        private PaletteWindow palette;
         private ImGuiStyle defaultStyle;
         private int fontSize;
+        //The size of a preview of the palette in pixels, scaled with the window
+        private int previewSize;
         private bool showPalette = true, showHelp, showDemo;
         private Layer layer = Layer.Middle;
         //The title of the window says the level has unsaved changes; the title is set again when that changes
@@ -100,6 +105,8 @@ namespace TW3D.Editor
             imgui = new ImGuiRenderer(Manager.Game, LayoutFile);
             ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DockingEnable;
             defaultStyle = *ImGui.GetStyle().NativePtr;
+            previews = new BlockPreviews(Manager.GraphicsDevice, assets, imgui);
+            palette = new PaletteWindow(previews, assets.Catalog);
 
             Open(levelArgument);
         }
@@ -107,6 +114,7 @@ namespace TW3D.Editor
         public override void UnloadContent()
         {
             tool.EndStroke();
+            previews.Dispose();
             imgui.Dispose();
             Manager.PointersVisible = true;
             Manager.Game.Window.Title = previousTitle;
@@ -236,6 +244,12 @@ namespace TW3D.Editor
 
         public override void Draw(GameTime gameTime)
         {
+            //The previews of the palette are drawn first: switching render targets may discard the screen, and the
+            //scene, drawn after them, covers it anyway
+            previewSize = Math.Max(16, (int)Math.Round(BlockPreviews.ReferenceCellSize * Manager.UiScale));
+            if (showPalette && palette.NeedsPreviews)
+                previews.Draw(previewSize, (float)gameTime.ElapsedGameTime.TotalSeconds);
+
             Viewport viewport = Manager.Viewport;
             camera.Update(viewport);
 
@@ -392,6 +406,11 @@ namespace TW3D.Editor
             ImGui.Text("Tool: Place");
             Separate();
             ImGui.Text($"Block: {tool.Block}, shift {tool.Shift}");
+            if (palette.Object != null)
+            {
+                Separate();
+                ImGui.Text($"Object: {palette.Object.Type} {palette.Object.Model}");
+            }
             Separate();
             ImGui.Text((level.File != null ? Path.GetFileName(level.File) : LevelName) + (level.IsDirty ? "*" : ""));
             if (message.Length > 0)
@@ -412,12 +431,7 @@ namespace TW3D.Editor
 
         private void DrawPalette(ImGuiViewportPtr viewport)
         {
-            float scale = ImGui.GetFontSize() / FontSize;
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(320f, 480f) * scale, ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowPos(new System.Numerics.Vector2(viewport.WorkPos.X + viewport.WorkSize.X - 340f * scale, viewport.WorkPos.Y + 20f * scale), ImGuiCond.FirstUseEver);
-            if (ImGui.Begin("Palette", ref showPalette))
-                ImGui.TextWrapped("The blocks of the catalog, as turning 3D previews, come here (issue #24).");
-            ImGui.End();
+            palette.Draw(ref showPalette, viewport, tool, layer, previewSize, ImGui.GetFontSize() / FontSize);
         }
 
         private void DrawHelp()
@@ -435,7 +449,8 @@ namespace TW3D.Editor
                     ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)"),
                     ("Middle button drag", "Pan along the track"),
                     ("Wheel", "Zoom towards the cursor"),
-                    ("Alt + left drag", "Orbit around the point under the cursor")
+                    ("Alt + left drag", "Orbit around the point under the cursor"),
+                    ("Palette", "Click a preview to choose the block; the Objects tab chooses the object to place (coming)")
                 });
                 ImGui.SeparatorText("Keys");
                 HelpRows(new[]
@@ -456,7 +471,7 @@ namespace TW3D.Editor
                     ("Esc", "Leave the editor")
                 });
                 ImGui.Spacing();
-                ImGui.TextWrapped("The palette, selection, dynamic objects, files and the test drive come with the next issues of the editor (GitHub issue #20).");
+                ImGui.TextWrapped("Selection, dynamic objects, files and the test drive come with the next issues of the editor (GitHub issue #20).");
             }
             ImGui.End();
         }
