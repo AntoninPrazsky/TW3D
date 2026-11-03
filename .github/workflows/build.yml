@@ -53,12 +53,53 @@ jobs:
       # a model, the catalog or a level script changed without its output fails here. (The summit level is left
       # out: its file has the same blocks as the script makes, but its decorations in another order and with
       # their heights written otherwise.)
+      #
+      # The code of the shaders for DesktopGL (content/Effects/DesktopGL), which the content build writes on Windows for
+      # the builds elsewhere, belongs here too: a shader changed without it fails, and the code this build wrote is
+      # attached to the run (the artifact effects-desktopgl) to be committed.
       - name: Generated files are up to date
         shell: bash
         run: |
           dotnet run --project tools/CollisionGen -c Release --no-build -- content
           for script in tools/levelgen/training*.js; do node "$script"; done
-          git diff --exit-code -- content
+          git add --intent-to-add -- content
+          git diff --exit-code --stat -- content
+
+      - name: Upload the code of the shaders
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: effects-desktopgl
+          path: content/Effects/DesktopGL/
+
+  # The game on Linux ARM64, as on a Raspberry Pi 5: the build takes the code of the shaders compiled on Windows
+  # (content/Effects/DesktopGL) and fails when a shader changed without it, and a Windows-only API used by the game
+  # fails here before it fails on a Pi.
+  linux-arm64:
+    runs-on: ubuntu-24.04-arm
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v5
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('**/*.csproj', 'Directory.Packages.props', '.config/dotnet-tools.json') }}
+          restore-keys: nuget-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Build (Release)
+        run: dotnet build TW3D.slnx -c Release
+
+      - name: Test
+        run: dotnet test TW3D.slnx -c Release --no-build
 
   android:
     runs-on: windows-latest
