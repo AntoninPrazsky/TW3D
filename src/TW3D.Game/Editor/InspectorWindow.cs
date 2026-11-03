@@ -19,6 +19,8 @@ namespace TW3D.Editor
         private const float MinWidth = 300f;
         private const float Height = 210f;
         private const float Top = PaletteWindow.DefaultMargin * 2f + PaletteWindow.DefaultHeight;
+        /// <summary>Where the window first ends (pixels on a 1920 × 1080 window): the Level window appears under it.</summary>
+        public const float DefaultBottom = Top + Height;
         //The step of the buttons of the position fields, and with Ctrl, in physics units
         private const float PositionStep = 0.1f;
         private const float PositionFastStep = 1f;

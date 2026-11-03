@@ -70,6 +70,12 @@ namespace TW3D.Editor
         private EditedLevel gapLevel;
         private int gapVersion = -1;
 
+        /// <summary>The grid around the cursor is drawn (View menu).</summary>
+        public bool ShowGrid { get; set; } = true;
+
+        /// <summary>The red bars at the gaps of the road are drawn (View menu).</summary>
+        public bool ShowGaps { get; set; } = true;
+
         public EditorMarkers(GraphicsDevice device, ContentManager content)
         {
             this.device = device;
@@ -115,7 +121,7 @@ namespace TW3D.Editor
         /// <param name="finish">The finish block of the level; null when it has none.</param>
         public void Draw(Matrix view, Matrix projection, Layer layer, Cell? cursor, PlacedBlock finish)
         {
-            if (cursor.HasValue)
+            if (cursor.HasValue && ShowGrid)
                 DrawGrid(view, projection, layer, cursor.Value);
 
             SetSolidStates();
@@ -132,6 +138,8 @@ namespace TW3D.Editor
         /// </summary>
         public void DrawGaps(Matrix view, Matrix projection, EditedLevel level)
         {
+            if (!ShowGaps)
+                return;
             if (level != gapLevel || level.Version != gapVersion)
                 BuildGapBars(level);
             if (gapBarVertices == 0)

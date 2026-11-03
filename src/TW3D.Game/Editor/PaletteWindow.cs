@@ -48,7 +48,7 @@ namespace TW3D.Editor
         //The window first appears wide enough for this many previews side by side
         private const int DefaultColumns = 3;
         /// <summary>The height and the margin from the edge of the work area (pixels on a 1920 × 1080 window) the window first appears with.</summary>
-        public const float DefaultHeight = 600f, DefaultMargin = 20f;
+        public const float DefaultHeight = 450f, DefaultMargin = 20f;
         private const uint SearchLength = 32;
 
         /// <summary>A preview shown in a group: the block, or the model of an object type.</summary>

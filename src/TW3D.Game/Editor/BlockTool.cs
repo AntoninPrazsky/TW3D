@@ -331,7 +331,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>The next (1) or the previous (-1) block of the catalog becomes the chosen one, around its ends.</summary>
-        private void ChooseBlock(int direction)
+        public void ChooseBlock(int direction)
         {
             List<BlockType> blocks = level.Catalog.Blocks;
             if (blocks.Count == 0)

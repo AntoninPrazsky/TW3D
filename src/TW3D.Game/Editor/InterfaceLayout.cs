@@ -53,6 +53,22 @@ namespace TW3D.Editor
         }
 
         /// <summary>
+        /// Where a window first appears: under the Inspector, as wide as the column of the palette, as high as the room
+        /// down to the status bar is, within limits. Used until the window has a place of its own in the layout file.
+        /// </summary>
+        /// <param name="minHeight">The least high the window first is, pixels on a 1920 × 1080 window.</param>
+        /// <param name="maxHeight">The highest the window first is, in the same pixels.</param>
+        public static void PlaceBelowInspector(ImGuiViewportPtr viewport, float scale, float width, float statusHeight, float minHeight, float maxHeight)
+        {
+            float margin = PaletteWindow.DefaultMargin * scale;
+            float top = viewport.WorkPos.Y + InspectorWindow.DefaultBottom * scale + margin / 2f;
+            float room = viewport.WorkPos.Y + viewport.WorkSize.Y - statusHeight - margin / 2f - top;
+            float height = Math.Clamp(room, minHeight * scale, maxHeight * scale);
+            ImGui.SetNextWindowSize(new Vector2(width, height), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowPos(new Vector2(viewport.WorkPos.X + viewport.WorkSize.X - width - margin, top), ImGuiCond.FirstUseEver);
+        }
+
+        /// <summary>
         /// A dock space over the whole work area between the menu bar and the status bar: the windows can be docked to its
         /// edges, and the scene shows through its middle, where the mouse is the scene's.
         /// </summary>

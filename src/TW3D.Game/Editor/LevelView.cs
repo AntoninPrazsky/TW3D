@@ -33,6 +33,28 @@ namespace TW3D.Editor
         /// <summary>The level drawn.</summary>
         public EditedLevel Level { get; set; }
 
+        /// <summary>The back layer, the front layer and the dynamic objects are drawn (View menu); the middle layer always is.</summary>
+        public bool ShowBack { get; set; } = true;
+
+        /// <summary>The front layer is drawn.</summary>
+        public bool ShowFront { get; set; } = true;
+
+        /// <summary>The dynamic objects are drawn.</summary>
+        public bool ShowObjects { get; set; } = true;
+
+        /// <summary>
+        /// Why the tool cannot edit what it works on now, in the words of the status bar: the layer it works on or the
+        /// objects are hidden. Null when what it works on is seen. The Object tool works on the objects, the others on a layer.
+        /// </summary>
+        public string HiddenNote(EditorTool tool, Layer layer)
+        {
+            if (tool == EditorTool.Object)
+                return ShowObjects ? null : "The objects are hidden.";
+            if (layer == Layer.Back && !ShowBack)
+                return "The back layer is hidden.";
+            return layer == Layer.Front && !ShowFront ? "The front layer is hidden." : null;
+        }
+
         /// <summary>The depth of a layer in physics units (the back layer is behind the middle one, the front in front of it).</summary>
         public static float Depth(Layer layer)
         {
@@ -73,9 +95,13 @@ namespace TW3D.Editor
         {
             if (Level == null)
                 return;
-            DrawLayer(renderer, Layer.Back);
+            if (ShowBack)
+                DrawLayer(renderer, Layer.Back);
             DrawLayer(renderer, Layer.Middle);
-            DrawLayer(renderer, Layer.Front);
+            if (ShowFront)
+                DrawLayer(renderer, Layer.Front);
+            if (!ShowObjects)
+                return;
             IReadOnlyList<PlacedObject> objects = Level.Objects;
             for (int i = 0; i < objects.Count; i++)
             {

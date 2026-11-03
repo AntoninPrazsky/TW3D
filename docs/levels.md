@@ -104,6 +104,26 @@ level from being played); a gap left on purpose is marked, not refused. The Insp
 the surface heights of the road block at the cursor cell and the number of gaps of the
 level.
 
+The Level window (View > Level, under the Inspector at first) is everything about the level
+that is not a block. It shows the name of the level (the full path as a tooltip) and edits
+the mood (Day, Sunset or Night, at once; M still cycles it), the position in the level select
+(the checkbox *In the level select*, and the number; levels without one come after the
+others, sorted by name) and the par time (the checkbox *Par time* and the seconds; while the
+level has none, the window says what the game estimates, "estimated: 10.0 s"). Each edit is
+one step of undo, saved with the level. It counts the blocks of each layer and the objects and
+gives the cells the level spans. Below are the problems that stop the level from being
+played (no finish, no block at the start, an object over nothing...) and, apart from them,
+the gaps of the road, folded away when there are more than ten; clicking a line with a place points the
+camera at it (the distance is kept, but no greater than a readable one; a problem of the
+whole level, like the missing finish, has none and is plain text). The status
+bar counts them after the file name ("1 problem", "12 gaps"). The lists follow the level as
+it is edited, and Ctrl+Z takes a fix back.
+
+The View menu hides the back layer, the front layer and the objects (they are not drawn, and
+cannot be edited while hidden: the status bar says "The back layer is hidden." when a key or
+a click or an Edit menu command would change them), the grid around the cursor and the red bars of the gaps; the
+lighting keeps its keys F9, F10 and F11. Nothing hidden is saved or affects the test drive.
+
 ### The old editor
 
 ```sh

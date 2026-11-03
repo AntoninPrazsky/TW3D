@@ -44,11 +44,18 @@ namespace TW3D.Editor
             ("Esc", "Clear the selection (a second Esc leaves the editor)")
         };
 
+        private static readonly (string Keys, string Action)[] WindowRows =
+        {
+            ("Palette", "Click a block to choose it (Place), an object of the Objects tab to choose it (Object)"),
+            ("Inspector", "The block at the cursor cell, the selected blocks, or the selected object with its position to type"),
+            ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there"),
+            ("Controls", "This window (F1)"),
+            ("View menu", "Shows or hides each window, the back and front layers (which cannot be edited while hidden), the objects, the grid and the gap markers")
+        };
+
         private static readonly (string Keys, string Action)[] CommonRows =
         {
             ("B / V / O", "The Place tool (blocks) / the Select tool (many blocks) / the Object tool (dynamic objects); View > Tool lists them"),
-            ("Palette", "Click a block to choose it (Place), an object of the Objects tab to choose it (Object)"),
-            ("Inspector", "The block at the cursor cell, the selected blocks, or the selected object with its position to type"),
             ("Middle button drag", "Pan along the track"),
             ("Wheel", "Zoom towards the cursor"),
             ("Alt + left drag", "Orbit around the point under the cursor"),
@@ -82,6 +89,8 @@ namespace TW3D.Editor
                 Rows(SelectRows);
                 ImGui.SeparatorText("Object tool (O): dynamic objects");
                 Rows(ObjectRows);
+                ImGui.SeparatorText("Windows");
+                Rows(WindowRows);
                 ImGui.SeparatorText("All tools");
                 Rows(CommonRows);
             }

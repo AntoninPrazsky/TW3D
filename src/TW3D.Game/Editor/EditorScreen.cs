@@ -21,7 +21,8 @@ namespace TW3D.Editor
     /// B, V and O choose) whose cursor and highlights the <see cref="EditorMarkers"/> show, with the user interface of
     /// Dear ImGui over it (the menu bar with its <see cref="EditorMenus"/>, the <see cref="StatusBar"/> and the windows:
     /// the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the <see cref="InspectorWindow"/>, the
-    /// <see cref="HelpWindow"/>, the <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
+    /// <see cref="LevelWindow"/> with the <see cref="LevelReport"/> of its problems, the <see cref="HelpWindow"/>, the
+    /// <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
     /// by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
     /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
     /// them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the level in the
@@ -61,14 +62,19 @@ namespace TW3D.Editor
         private BlockPreviews previews;
         private PaletteWindow palette;
         private readonly InspectorWindow inspector = new InspectorWindow();
+        private readonly LevelWindow levelWindow = new LevelWindow();
+        private readonly LevelReport levelReport = new LevelReport();
+        private HiddenLayerGuard hiddenGuard;
         private LevelSession session;
         private InterfaceLayout layout;
         //The size of a preview of the palette in pixels, scaled with the window
         private int previewSize;
-        private bool showPalette = true, showInspector = true, showHelp, showDemo;
+        private bool showPalette = true, showInspector = true, showLevel = true, showHelp, showDemo;
         private Layer layer = Layer.Middle;
         //What the status bar says about the last thing done
         private string message = "";
+        //Tells the status bar; one delegate for the tools and the menus, which would make one every frame
+        private Action<string> report;
         //The window or the screen had no focus (another window, a test drive): the click that brings it back is not an edit
         private bool focusReturning;
         //A dialog was open in the last frame: the keys held when it closed answered it (D of Don't save would fly the
@@ -111,10 +117,11 @@ namespace TW3D.Editor
             sky = Manager.Content.Load<Model>("Env/sky");
             camera = new EditorCamera();
             view = new LevelView(assets);
-            Action<string> report = note => message = note;
+            report = note => message = note;
             placeTool = new BlockTool(camera, report);
             objectTool = new ObjectTool(camera, placeTool, assets, report);
             selectTool = new SelectTool(camera, placeTool, report);
+            hiddenGuard = new HiddenLayerGuard(placeTool, report);
             markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
             imgui = new ImGuiRenderer(Manager.Game, LayoutFile);
@@ -361,7 +368,8 @@ namespace TW3D.Editor
                     SetTool(EditorTool.Place);
                 camera.HandleKeys(input, elapsed);
                 //The Select tool has its Ctrl shortcuts (A, C, X, V) itself: they must not reach a text field of a window
-                ActiveTool.HandleKeys(input, layer);
+                if (!hiddenGuard.HandleKeys(input, activeTool, view.HiddenNote(activeTool, layer)))
+                    ActiveTool.HandleKeys(input, layer);
             }
             if (session.IsDialogOpen)
                 return;
@@ -369,7 +377,8 @@ namespace TW3D.Editor
             //The camera has the mouse first: its drags take precedence over the tool, and Ctrl + the wheel is the tool's
             Viewport viewport = Manager.Viewport;
             camera.HandleMouse(input, viewport, mouseFree, !control);
-            ActiveTool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
+            if (!hiddenGuard.HandleMouse(input, ActiveTool, activeTool, viewport, layer, mouseFree && !focusReturning, view.HiddenNote(activeTool, layer)))
+                ActiveTool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
             focusReturning = false;
         }
 
@@ -442,9 +451,9 @@ namespace TW3D.Editor
             //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on the middle plane for objects
             markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Object ? Layer.Middle : layer, placeTool.Cursor, Level.Finish);
             markers.DrawGaps(camera.View, camera.Projection, Level);
-            if (activeTool == EditorTool.Select)
+            if (activeTool == EditorTool.Select && view.HiddenNote(activeTool, layer) == null)
                 selectTool.Draw(markers, camera.View, camera.Projection);
-            if (activeTool == EditorTool.Object)
+            if (activeTool == EditorTool.Object && view.ShowObjects)
                 markers.DrawObjects(camera.View, camera.Projection, objectTool.Bounds(objectTool.Hovered), objectTool.Bounds(objectTool.Selected));
 
             layout.Update(Manager.UiScale);
@@ -459,13 +468,16 @@ namespace TW3D.Editor
             float statusHeight = ImGui.GetFrameHeightWithSpacing();
             float scale = InterfaceLayout.Scale;
 
+            levelReport.Update(Level);
             DrawMenuBar();
             InterfaceLayout.DrawDockSpace(viewport, statusHeight);
-            StatusBar.Draw(viewport, statusHeight, placeTool, activeTool, layer, objectTool.Chosen, session, message);
+            StatusBar.Draw(viewport, statusHeight, placeTool, activeTool, layer, objectTool.Chosen, session, levelReport, message);
             if (showPalette)
                 palette.Draw(ref showPalette, viewport, placeTool, objectTool, layer, previewSize, scale);
             if (showInspector)
                 inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, selectTool, layer);
+            if (showLevel)
+                levelWindow.Draw(ref showLevel, viewport, levelReport, camera, scale, palette.DefaultWidth, statusHeight);
             if (showHelp)
                 HelpWindow.Draw(ref showHelp, scale);
             if (showDemo)
@@ -500,8 +512,9 @@ namespace TW3D.Editor
                     session.Guard(Leave);
                 ImGui.EndMenu();
             }
-            EditorMenus.DrawEdit(Level, placeTool, selectTool, activeTool);
-            EditorMenus.DrawView(renderer, activeTool, SetTool, ref layer, FrameLevel, ref showPalette, ref showInspector, ref showDemo);
+            EditorMenus.DrawEdit(Level, placeTool, selectTool, activeTool, view.HiddenNote(activeTool, layer), report);
+            EditorMenus.DrawView(renderer, view, markers, activeTool, SetTool, ref layer, FrameLevel, ref showPalette, ref showInspector, ref showLevel,
+                ref showDemo);
             if (ImGui.BeginMenu("Level"))
             {
                 if (ImGui.BeginMenu("Mood"))

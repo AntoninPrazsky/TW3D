@@ -33,6 +33,7 @@
     <Compile Include="..\..\src\TW3D.Game\Editor\Layer.cs" Link="Game\Layer.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\EditedLevel.cs" Link="Game\EditedLevel.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\RoadGap.cs" Link="Game\RoadGap.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Editor\LevelReport.cs" Link="Game\LevelReport.cs" />
     <!-- The files of the editor: the levels folder, the remembered settings, the action waiting for "Save changes?" -->
     <Compile Include="..\..\src\TW3D.Game\Editor\LevelFolder.cs" Link="Game\LevelFolder.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\EditorSettings.cs" Link="Game\EditorSettings.cs" />

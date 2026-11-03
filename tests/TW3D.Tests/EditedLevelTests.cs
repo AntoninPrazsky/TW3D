@@ -558,6 +558,7 @@ namespace TW3D.Tests
             LevelProblem problem = Assert.Single(level.Problems());
             Assert.Equal("The level has no finish.", problem.Message);
             Assert.Null(problem.Cell);
+            Assert.False(problem.IsRoadGap);
         }
 
         [Fact]
@@ -1105,6 +1106,7 @@ namespace TW3D.Tests
             Assert.Equal("The road has a gap between [3, -1] and [4, 0]: the surfaces differ by 8 steps.", problem.Message);
             Assert.Equal(Layer.Middle, problem.Layer);
             Assert.Equal(new Cell(3, -1), problem.Cell);
+            Assert.True(problem.IsRoadGap);
         }
 
         [Fact]

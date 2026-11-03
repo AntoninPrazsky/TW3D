@@ -126,6 +126,12 @@ namespace TW3D.Editor
         public float? X { get; }
         public float? Y { get; }
 
+        /// <summary>
+        /// The problem is a gap in the road (see <see cref="EditedLevel.RoadGaps"/>), which may be left on purpose: the
+        /// editor lists it apart from the problems that stop the level from being played.
+        /// </summary>
+        public bool IsRoadGap { get; init; }
+
         /// <summary>The message.</summary>
         public override string ToString() => Message;
     }
@@ -707,7 +713,7 @@ namespace TW3D.Editor
             {
                 problems.Add(new LevelProblem(
                     $"The road has a gap between {gap.A.Cell} and {gap.B.Cell}: the surfaces differ by {gap.Steps} step{(gap.Steps == 1 ? "" : "s")}.",
-                    Layer.Middle, gap.A.Cell));
+                    Layer.Middle, gap.A.Cell) { IsRoadGap = true });
             }
             return problems;
         }

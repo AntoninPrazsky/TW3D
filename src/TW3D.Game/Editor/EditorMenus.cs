@@ -7,12 +7,15 @@ namespace TW3D.Editor
     /// <summary>
     /// The Edit and View menus of the editor's menu bar, which the screen only has to place: undo and redo, the
     /// clipboard and the selection commands of the <see cref="SelectTool"/> (enabled while that tool is active and the
-    /// selection or the clipboard allows), the lighting, the tool, the layer and the windows.
+    /// selection or the clipboard allows), the lighting, what is drawn (the layers, the objects, the grid, the gap
+    /// markers), the tool, the layer and the windows.
     /// </summary>
     static class EditorMenus
     {
         /// <summary>The Edit menu: undo and redo with the name of the step, and the commands of the Select tool.</summary>
-        public static void DrawEdit(EditedLevel level, BlockTool placeTool, SelectTool selectTool, EditorTool activeTool)
+        /// <param name="hidden">Why the active tool cannot edit (see <see cref="LevelView.HiddenNote"/>); null when it can.</param>
+        /// <param name="report">Gets what is said to the user, for the status bar.</param>
+        public static void DrawEdit(EditedLevel level, BlockTool placeTool, SelectTool selectTool, EditorTool activeTool, string hidden, Action<string> report)
         {
             if (!ImGui.BeginMenu("Edit"))
                 return;
@@ -24,23 +27,34 @@ namespace TW3D.Editor
             bool selecting = activeTool == EditorTool.Select;
             bool selected = selecting && selectTool.Selection.Count > 0;
             if (ImGui.MenuItem("Cut", "Ctrl+X", false, selected))
-                selectTool.Cut();
+                Edit(hidden, report, selectTool.Cut);
             if (ImGui.MenuItem("Copy", "Ctrl+C", false, selected))
                 selectTool.Copy();
             if (ImGui.MenuItem("Paste", "Ctrl+V", false, selecting && selectTool.ClipboardCount > 0))
-                selectTool.Paste();
+                Edit(hidden, report, selectTool.Paste);
             if (ImGui.MenuItem("Select all", "Ctrl+A", false, selecting))
-                selectTool.SelectAll();
+                Edit(hidden, report, selectTool.SelectAll);
             if (ImGui.MenuItem("Mirror", "H", false, selected))
-                selectTool.Mirror();
+                Edit(hidden, report, selectTool.Mirror);
             ImGui.EndMenu();
         }
 
-        /// <summary>The View menu: the lighting, the tool and the layer, framing the level, the windows.</summary>
+        /// <summary>A command that changes the layer or the selection in it: not done in a hidden layer, which says why instead.</summary>
+        private static void Edit(string hidden, Action<string> report, Action command)
+        {
+            if (hidden != null)
+                report(hidden);
+            else
+                command();
+        }
+
+        /// <summary>The View menu: the lighting, what is drawn, the tool and the layer, framing the level, the windows.</summary>
+        /// <param name="view">The level drawn, whose back layer, front layer and objects can be hidden.</param>
+        /// <param name="markers">The markers drawn over it, whose grid and gap bars can be hidden.</param>
         /// <param name="setTool">Makes a tool the active one.</param>
         /// <param name="frameLevel">Points the camera at the whole level.</param>
-        public static void DrawView(SceneRenderer renderer, EditorTool activeTool, Action<EditorTool> setTool, ref Layer layer, Action frameLevel,
-            ref bool showPalette, ref bool showInspector, ref bool showDemo)
+        public static void DrawView(SceneRenderer renderer, LevelView view, EditorMarkers markers, EditorTool activeTool, Action<EditorTool> setTool,
+            ref Layer layer, Action frameLevel, ref bool showPalette, ref bool showInspector, ref bool showLevel, ref bool showDemo)
         {
             if (!ImGui.BeginMenu("View"))
                 return;
@@ -50,6 +64,18 @@ namespace TW3D.Editor
                 renderer.Shadows = !renderer.Shadows;
             if (ImGui.MenuItem("Ambient occlusion", "F11", renderer.AmbientOcclusion))
                 renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+            ImGui.Separator();
+            //A hidden layer is not drawn and cannot be edited (see HiddenLayerGuard)
+            if (ImGui.MenuItem("Back layer", null, view.ShowBack))
+                view.ShowBack = !view.ShowBack;
+            if (ImGui.MenuItem("Front layer", null, view.ShowFront))
+                view.ShowFront = !view.ShowFront;
+            if (ImGui.MenuItem("Objects", null, view.ShowObjects))
+                view.ShowObjects = !view.ShowObjects;
+            if (ImGui.MenuItem("Grid", null, markers.ShowGrid))
+                markers.ShowGrid = !markers.ShowGrid;
+            if (ImGui.MenuItem("Gap markers", null, markers.ShowGaps))
+                markers.ShowGaps = !markers.ShowGaps;
             ImGui.Separator();
             if (ImGui.BeginMenu("Tool"))
             {
@@ -70,6 +96,7 @@ namespace TW3D.Editor
             ImGui.Separator();
             ImGui.MenuItem("Palette", null, ref showPalette);
             ImGui.MenuItem("Inspector", null, ref showInspector);
+            ImGui.MenuItem("Level", null, ref showLevel);
             ImGui.MenuItem("ImGui demo window", null, ref showDemo);
             ImGui.EndMenu();
         }
