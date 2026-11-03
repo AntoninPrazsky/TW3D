@@ -39,9 +39,9 @@ So far it shows the level as the game draws it, with a camera driven by the mous
 middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
 by the keys of the old editor (W/S/A/D and Q/E fly, the numeric keypad turns, Home frames
 the level). The level is edited with the active tool: B makes the Place tool active
-(blocks), O the Object tool (dynamic objects); View > Tool lists them, and the status bar
-names the active one. With the Place tool, blocks are edited in the active layer (Tab,
-Right Shift and Right Ctrl choose it): the left button places the chosen block in the cell
+(blocks), V the Select tool (many blocks), O the Object tool (dynamic objects); View >
+Tool lists them, and the status bar names the active one. With the Place tool, blocks are
+edited in the active layer (Tab, Right Shift and Right Ctrl, pressed alone, choose it): the left button places the chosen block in the cell
 under the cursor and dragging paints, Left Shift + the left button erases, the right button
 picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it up or down.
 The keys of the old editor do the same: the arrows move the cursor cell, Space places,
@@ -70,7 +70,16 @@ with the car and the wheels chosen in the garage (Shift+F5 from the cursor cell)
 goes in memory, nothing is saved and no record is kept, and Esc, the pause menu or the
 results bring the editor back as it was, with its camera and undo history. A level without
 a finish or without a block at the start can still be driven (the status bar warns); one
-the game cannot build is refused. The Select tool for blocks comes with the next issues.
+the game cannot build is refused. With the Select tool (V) many blocks of the active layer
+are worked on at once: a click selects a block (Ctrl adds or removes it), a drag from an
+empty cell draws a rectangle that selects the blocks in it, a drag of a selected block moves
+the selection by whole cells, Ctrl+A selects the layer, and Space adds the block at the
+cursor cell. The arrows move the selection (Ctrl + the arrows only the cursor cell), Delete
+erases it, PageUp / PageDown shift it, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste it (the
+leftmost of the copied blocks, the lowest of those if several, goes to the cursor cell), and
+H mirrors it left to right, swapping every block for its mirrored variant where the catalog
+has one (`b2` and `b2f`, `s1` and `s1f`...), so that a climb becomes a descent. Each of
+these is one step of undo.
 
 ### The old editor
 

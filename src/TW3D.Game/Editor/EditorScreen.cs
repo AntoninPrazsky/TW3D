@@ -17,11 +17,11 @@ namespace TW3D.Editor
     /// The level editor: the level being edited (an <see cref="EditedLevel"/>, the document with undo, which the
     /// <see cref="LevelSession"/> opens, saves and guards with "Save changes?") drawn as in the game, seen by a free camera
     /// (<see cref="EditorCamera"/>), edited with the active tool (the <see cref="BlockTool"/> places blocks, the
-    /// <see cref="ObjectTool"/> the dynamic objects; B and O choose) whose cursor and highlights the
-    /// <see cref="EditorMarkers"/> show, with the user interface of Dear ImGui over it (the menu bar, the
-    /// <see cref="StatusBar"/> and the windows: the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the
-    /// <see cref="InspectorWindow"/>, the <see cref="HelpWindow"/>, the <see cref="FileDialogs"/> of the session). The
-    /// screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
+    /// <see cref="SelectTool"/> works on many of them at once, the <see cref="ObjectTool"/> places the dynamic objects;
+    /// B, V and O choose) whose cursor and highlights the <see cref="EditorMarkers"/> show, with the user interface of
+    /// Dear ImGui over it (the menu bar with its <see cref="EditorMenus"/>, the <see cref="StatusBar"/> and the windows:
+    /// the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the <see cref="InspectorWindow"/>, the
+    /// <see cref="HelpWindow"/>, the <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
     /// by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
     /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
     /// them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the level in the
@@ -39,9 +39,6 @@ namespace TW3D.Editor
         private const float GameCameraDistance = 4.5f;
         //How far from the camera the shadows reach, at least (see SceneRenderer.ShadowDistance)
         private const float MinShadowDistance = 40f;
-        //The keys of the tools by the EditorTool enum (the View > Tool menu shows them); V is kept for the Select tool
-        private static readonly Keys[] ToolKeys = { Keys.B, Keys.O };
-
         private readonly GameSettings settings;
         private readonly string levelArgument;
         private readonly string levelsArgument;
@@ -57,6 +54,7 @@ namespace TW3D.Editor
         private LevelView view;
         private BlockTool placeTool;
         private ObjectTool objectTool;
+        private SelectTool selectTool;
         private EditorTool activeTool = EditorTool.Place;
         private EditorMarkers markers;
         private ImGuiRenderer imgui;
@@ -78,6 +76,8 @@ namespace TW3D.Editor
         //arrows that drove the car of a test drive would move the cursor)
         private bool dialogWasOpen;
         private Keys[] heldKeys = Array.Empty<Keys>();
+        //Right Ctrl went down and nothing else has happened since (see RightControlTapped)
+        private bool rightControlAlone;
         //A test drive covers the editor; the cell the menu asked to start one from, started with the next input, not in
         //the middle of drawing the interface
         private bool driving;
@@ -114,6 +114,7 @@ namespace TW3D.Editor
             Action<string> report = note => message = note;
             placeTool = new BlockTool(camera, report);
             objectTool = new ObjectTool(camera, placeTool, assets, report);
+            selectTool = new SelectTool(camera, placeTool, report);
             markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
             imgui = new ImGuiRenderer(Manager.Game, LayoutFile);
@@ -148,6 +149,7 @@ namespace TW3D.Editor
             view.Level = opened;
             placeTool.Level = opened;
             objectTool.Level = opened;
+            selectTool.Level = opened;
             if (saved != null)
             {
                 camera.Target = new Vector3(saved.TargetX, saved.TargetY, saved.TargetZ);
@@ -238,6 +240,7 @@ namespace TW3D.Editor
         private IEditorTool ActiveTool => activeTool switch
         {
             EditorTool.Object => objectTool,
+            EditorTool.Select => selectTool,
             _ => placeTool
         };
 
@@ -256,6 +259,7 @@ namespace TW3D.Editor
         {
             placeTool.EndStroke();
             objectTool.EndStroke();
+            selectTool.EndStroke();
         }
 
         private void CycleMood()
@@ -273,6 +277,8 @@ namespace TW3D.Editor
                 driveRequested = null;
             }
             session.UpdateTitle();
+            //The selection is of the layer it was made in, whichever way the layer was switched
+            selectTool.Sync(layer);
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -343,15 +349,16 @@ namespace TW3D.Editor
                     layer = (Layer)(((int)layer + 1) % 3);
                 if (input.KeyPressed(Keys.RightShift))
                     layer = layer == Layer.Back ? Layer.Middle : Layer.Back;
-                if (input.KeyPressed(Keys.RightControl))
+                if (RightControlTapped(input))
                     layer = layer == Layer.Front ? Layer.Middle : Layer.Front;
-                for (int i = 0; i < ToolKeys.Length; i++)
-                    if (!control && input.KeyPressed(ToolKeys[i]))
+                for (int i = 0; i < EditorToolKeys.ByTool.Length; i++)
+                    if (!control && input.KeyPressed(EditorToolKeys.ByTool[i]))
                         SetTool((EditorTool)i);
                 //Comma and period choose a block, which is for the Place tool: it becomes active and gets the key
                 if (input.KeyPressed(Keys.OemComma) || input.KeyPressed(Keys.OemPeriod))
                     SetTool(EditorTool.Place);
                 camera.HandleKeys(input, elapsed);
+                //The Select tool has its Ctrl shortcuts (A, C, X, V) itself: they must not reach a text field of a window
                 ActiveTool.HandleKeys(input, layer);
             }
             if (session.IsDialogOpen)
@@ -362,6 +369,26 @@ namespace TW3D.Editor
             camera.HandleMouse(input, viewport, mouseFree, !control);
             ActiveTool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
             focusReturning = false;
+        }
+
+        /// <summary>
+        /// Right Ctrl was let go without anything done while it was held. It is a Ctrl for the shortcuts and the clicks
+        /// too (Ctrl+V, Ctrl + click), which must not switch the layer under them.
+        /// </summary>
+        private bool RightControlTapped(InputState input)
+        {
+            if (input.IsKeyDown(Keys.RightControl))
+            {
+                if (input.KeyPressed(Keys.RightControl))
+                    rightControlAlone = true;
+                if (input.Keyboard.GetPressedKeys().Length > 1 || input.WheelDelta != 0 || input.Mouse.LeftButton == ButtonState.Pressed
+                    || input.Mouse.RightButton == ButtonState.Pressed || input.Mouse.MiddleButton == ButtonState.Pressed)
+                    rightControlAlone = false;
+                return false;
+            }
+            bool tapped = rightControlAlone && input.PreviousKeyboard.IsKeyDown(Keys.RightControl);
+            rightControlAlone = false;
+            return tapped;
         }
 
         /// <summary>Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S of the File menu and Ctrl+Z, Ctrl+Y (Ctrl+Shift+Z) of the Edit menu.</summary>
@@ -379,10 +406,17 @@ namespace TW3D.Editor
                     session.Save();
             }
             //Ctrl+Shift+Z redoes as in the editors of today, Ctrl+Y as in Windows
+            //A drag of a tool ends first, so that the step it makes is the one taken back, not one made after it
             else if (input.KeyPressed(Keys.Z) && !shift)
+            {
+                EndStrokes();
                 placeTool.Undo();
+            }
             else if (input.KeyPressed(Keys.Y) || input.KeyPressed(Keys.Z) && shift)
+            {
+                EndStrokes();
                 placeTool.Redo();
+            }
         }
 
         public override void Draw(GameTime gameTime)
@@ -403,8 +437,10 @@ namespace TW3D.Editor
             renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
             view.Draw(renderer);
             renderer.End();
-            //The cursor cell of the Place tool is the Object tool's too (Space adds there), on the middle plane
-            markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Place ? layer : Layer.Middle, placeTool.Cursor, Level.Finish);
+            //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on the middle plane for objects
+            markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Object ? Layer.Middle : layer, placeTool.Cursor, Level.Finish);
+            if (activeTool == EditorTool.Select)
+                selectTool.Draw(markers, camera.View, camera.Projection);
             if (activeTool == EditorTool.Object)
                 markers.DrawObjects(camera.View, camera.Projection, objectTool.Bounds(objectTool.Hovered), objectTool.Bounds(objectTool.Selected));
 
@@ -426,7 +462,7 @@ namespace TW3D.Editor
             if (showPalette)
                 palette.Draw(ref showPalette, viewport, placeTool, objectTool, layer, previewSize, scale);
             if (showInspector)
-                inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, layer);
+                inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, selectTool, layer);
             if (showHelp)
                 HelpWindow.Draw(ref showHelp, scale);
             if (showDemo)
@@ -461,45 +497,8 @@ namespace TW3D.Editor
                     session.Guard(Leave);
                 ImGui.EndMenu();
             }
-            if (ImGui.BeginMenu("Edit"))
-            {
-                if (ImGui.MenuItem(Level.CanUndo ? "Undo " + Level.UndoName : "Undo", "Ctrl+Z", false, Level.CanUndo))
-                    placeTool.Undo();
-                if (ImGui.MenuItem(Level.CanRedo ? "Redo " + Level.RedoName : "Redo", "Ctrl+Y", false, Level.CanRedo))
-                    placeTool.Redo();
-                ImGui.EndMenu();
-            }
-            if (ImGui.BeginMenu("View"))
-            {
-                if (ImGui.MenuItem("Lighting of 2016", "F9", renderer.Classic))
-                    renderer.Classic = !renderer.Classic;
-                if (ImGui.MenuItem("Shadows", "F10", renderer.Shadows))
-                    renderer.Shadows = !renderer.Shadows;
-                if (ImGui.MenuItem("Ambient occlusion", "F11", renderer.AmbientOcclusion))
-                    renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
-                ImGui.Separator();
-                if (ImGui.BeginMenu("Tool"))
-                {
-                    for (int i = 0; i < ToolKeys.Length; i++)
-                        if (ImGui.MenuItem(((EditorTool)i).ToString(), ToolKeys[i].ToString(), activeTool == (EditorTool)i))
-                            SetTool((EditorTool)i);
-                    ImGui.EndMenu();
-                }
-                if (ImGui.BeginMenu("Layer"))
-                {
-                    foreach (Layer candidate in Enum.GetValues<Layer>())
-                        if (ImGui.MenuItem(candidate.ToString(), null, layer == candidate))
-                            layer = candidate;
-                    ImGui.EndMenu();
-                }
-                if (ImGui.MenuItem("Frame the level", "Home"))
-                    FrameLevel();
-                ImGui.Separator();
-                ImGui.MenuItem("Palette", null, ref showPalette);
-                ImGui.MenuItem("Inspector", null, ref showInspector);
-                ImGui.MenuItem("ImGui demo window", null, ref showDemo);
-                ImGui.EndMenu();
-            }
+            EditorMenus.DrawEdit(Level, placeTool, selectTool, activeTool);
+            EditorMenus.DrawView(renderer, activeTool, SetTool, ref layer, FrameLevel, ref showPalette, ref showInspector, ref showDemo);
             if (ImGui.BeginMenu("Level"))
             {
                 if (ImGui.BeginMenu("Mood"))

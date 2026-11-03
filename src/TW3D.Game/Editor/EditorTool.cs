@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using TW3D.Input;
 
 namespace TW3D.Editor
@@ -10,7 +11,17 @@ namespace TW3D.Editor
         Place,
 
         /// <summary>The dynamic objects of the middle plane (<see cref="ObjectTool"/>).</summary>
-        Object
+        Object,
+
+        /// <summary>Many blocks of the active layer at once: selecting, moving, copying, mirroring (<see cref="SelectTool"/>).</summary>
+        Select
+    }
+
+    /// <summary>The keys that choose the tools.</summary>
+    static class EditorToolKeys
+    {
+        /// <summary>The key of each tool by the <see cref="EditorTool"/> enum; the View > Tool menu shows them, the screen reads them.</summary>
+        public static readonly Keys[] ByTool = { Keys.B, Keys.O, Keys.V };
     }
 
     /// <summary>What the screen asks of the active tool: the keys and the mouse of the scene, Esc, and the end of a drag.</summary>

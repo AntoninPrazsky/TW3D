@@ -10,7 +10,8 @@ namespace TW3D.Editor
     /// cell of the active layer (its name, cell, shift and whether it is the finish); with the Object tool the selected
     /// object, whose type and model it shows, its position as two fields (an edit is applied as one step of undo when it
     /// is finished, to the object it was begun on) and a button that removes it; while none is selected, the hovered one
-    /// only to read.
+    /// only to read; with the Select tool how many blocks are selected and the cells they span, with buttons that mirror
+    /// and delete them.
     /// </summary>
     sealed class InspectorWindow
     {
@@ -37,11 +38,12 @@ namespace TW3D.Editor
         /// <param name="tool">The active tool.</param>
         /// <param name="placeTool">The Place tool, whose cursor cell the Inspector shows the block of.</param>
         /// <param name="objectTool">The Object tool, whose selected (else hovered) object the Inspector shows.</param>
+        /// <param name="selectTool">The Select tool, whose selected blocks the Inspector counts.</param>
         /// <param name="layer">The active layer, whose block the Place tool shows.</param>
         /// <param name="scale">The scale of the interface (1 on a 1920 × 1080 window).</param>
         /// <param name="paletteWidth">The width the palette first appears with: the Inspector appears under it as wide.</param>
         public void Draw(ref bool open, ImGuiViewportPtr viewport, float scale, float paletteWidth, EditorTool tool, BlockTool placeTool,
-            ObjectTool objectTool, Layer layer)
+            ObjectTool objectTool, SelectTool selectTool, Layer layer)
         {
             float width = Math.Max(paletteWidth, MinWidth * scale);
             ImGui.SetNextWindowSize(new Vector2(width, Height * scale), ImGuiCond.FirstUseEver);
@@ -51,6 +53,8 @@ namespace TW3D.Editor
             {
                 if (tool == EditorTool.Object)
                     DrawObject(objectTool);
+                else if (tool == EditorTool.Select)
+                    DrawSelection(selectTool, layer);
                 else
                     DrawBlock(placeTool, layer);
             }
@@ -71,6 +75,26 @@ namespace TW3D.Editor
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");
+        }
+
+        private static void DrawSelection(SelectTool selectTool, Layer layer)
+        {
+            int count = selectTool.Selection.Count;
+            if (!selectTool.Bounds(out Cell min, out Cell max))
+                ImGui.TextDisabled("No blocks selected");
+            else
+            {
+                ImGui.Text(SelectTool.Blocks(count) + " selected");
+                ImGui.Text($"Cells: {min} to {max} ({layer} layer)");
+            }
+            ImGui.Text(selectTool.ClipboardCount == 0 ? "Clipboard: empty" : "Clipboard: " + SelectTool.Blocks(selectTool.ClipboardCount));
+            ImGui.BeginDisabled(count == 0);
+            if (ImGui.Button("Mirror"))
+                selectTool.Mirror();
+            ImGui.SameLine();
+            if (ImGui.Button("Delete"))
+                selectTool.Delete();
+            ImGui.EndDisabled();
         }
 
         private void DrawObject(ObjectTool objectTool)

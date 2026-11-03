@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -12,8 +14,9 @@ namespace TW3D.Editor
     /// the plane of the active layer and a thin grid of a few cells around it so that the cells are seen (while the
     /// Place tool is active), tinted copies of the selector marking the finish block and the start cell [0, 0] of the
     /// middle layer, and tinted copies scaled around the bounding spheres of the hovered and the selected dynamic
-    /// object (while the Object tool is active). The selector is drawn with BasicEffect and the lighting of 2016, as
-    /// the old editor drew it.
+    /// object (while the Object tool is active), and tinted selectors at the selected blocks, the cells a drag would
+    /// move them to and the rectangle being dragged (while the Select tool is active). The selector is drawn with
+    /// BasicEffect and the lighting of 2016, as the old editor drew it.
     /// </summary>
     sealed class EditorMarkers
     {
@@ -30,6 +33,14 @@ namespace TW3D.Editor
         private static readonly Vector3 HoverTint = new Vector3(0.85f, 0.85f, 0.85f);
         private static readonly Vector3 SelectedTint = new Vector3(1f, 0.3f, 0.75f);
         private const float HoverScale = 1.12f;
+        //The selected blocks, and the cells a drag moves them to (smaller and paler), orange against the finish yellow
+        private static readonly Vector3 BlockTint = new Vector3(1f, 0.45f, 0.05f);
+        private static readonly Vector3 GhostTint = new Vector3(1f, 0.75f, 0.45f);
+        private const float BlockScale = 0.95f;
+        private const float GhostScale = 0.8f;
+        //The rectangle of a drag: the outer line and one a little inside it, so that it is seen from afar
+        private static readonly Color RectangleColor = new Color(255, 140, 30);
+        private const float RectangleInset = 0.07f;
         //Markers glow a little, so that they are seen in the night too
         private const float MarkerGlow = 0.35f;
         private static readonly Cell StartCell = new Cell(0, 0);
@@ -43,6 +54,8 @@ namespace TW3D.Editor
         //The lines of the grid around the origin: moved to the cursor by the world matrix
         private readonly VertexPositionColor[] grid;
         private readonly int gridLines;
+        //The two rectangles of a drag, as lines: refilled for every draw
+        private readonly VertexPositionColor[] rectangle = new VertexPositionColor[16];
 
         public EditorMarkers(GraphicsDevice device, ContentManager content)
         {
@@ -113,6 +126,57 @@ namespace TW3D.Editor
                 DrawSelector(view, projection, selected.Value.Center, selected.Value.Radius * 2f / LevelView.CellSize, SelectedTint);
             if (hovered.HasValue)
                 DrawSelector(view, projection, hovered.Value.Center, hovered.Value.Radius * 2f / LevelView.CellSize * HoverScale, HoverTint);
+        }
+
+        /// <summary>Marks blocks of a layer by selectors, moved by whole cells; the shift of a block lifts its marker with it.</summary>
+        /// <param name="dx">The move in cells, for the marks of where a drag would put the blocks.</param>
+        /// <param name="ghost">The marks are of the cells a drag would move the blocks to, not of the blocks.</param>
+        public void DrawBlocks(Matrix view, Matrix projection, Layer layer, IReadOnlyList<PlacedBlock> blocks, int dx, int dy, bool ghost)
+        {
+            if (blocks.Count == 0)
+                return;
+            SetSolidStates();
+            Vector2 move = new Vector2(dx, dy) * Units.GridCell;
+            for (int i = 0; i < blocks.Count; i++)
+                DrawSelector(view, projection, LevelView.ScenePosition(layer, LevelView.PhysicsPosition(blocks[i]) + move),
+                    ghost ? GhostScale : BlockScale, ghost ? GhostTint : BlockTint);
+        }
+
+        /// <summary>Draws the rectangle of cells between two cells of a layer as unlit lines on the plane of the layer.</summary>
+        public void DrawRectangle(Matrix view, Matrix projection, Layer layer, Cell from, Cell to)
+        {
+            Vector3 a = LevelView.ScenePosition(layer, from), b = LevelView.ScenePosition(layer, to);
+            float half = LevelView.CellSize / 2f;
+            //Scene x and y run against the cell numbers, so the corners are the smaller and the larger of the two
+            float left = Math.Min(a.X, b.X) - half, right = Math.Max(a.X, b.X) + half;
+            float bottom = Math.Min(a.Y, b.Y) - half, top = Math.Max(a.Y, b.Y) + half;
+            float inset = LevelView.CellSize * RectangleInset;
+            int index = 0;
+            for (int ring = 0; ring < 2; ring++)
+            {
+                float margin = ring * inset;
+                Vector3 lowerLeft = new Vector3(left + margin, bottom + margin, a.Z), lowerRight = new Vector3(right - margin, bottom + margin, a.Z);
+                Vector3 upperRight = new Vector3(right - margin, top - margin, a.Z), upperLeft = new Vector3(left + margin, top - margin, a.Z);
+                rectangle[index++] = new VertexPositionColor(lowerLeft, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(lowerRight, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(lowerRight, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(upperRight, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(upperRight, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(upperLeft, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(upperLeft, RectangleColor);
+                rectangle[index++] = new VertexPositionColor(lowerLeft, RectangleColor);
+            }
+            device.BlendState = BlendState.AlphaBlend;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            device.RasterizerState = RasterizerState.CullNone;
+            lineEffect.World = Matrix.Identity;
+            lineEffect.View = view;
+            lineEffect.Projection = projection;
+            foreach (EffectPass pass in lineEffect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                device.DrawUserPrimitives(PrimitiveType.LineList, rectangle, 0, rectangle.Length / 2);
+            }
         }
 
         private void SetSolidStates()

@@ -344,6 +344,53 @@ namespace TW3D.Editor
         }
 
         /// <summary>
+        /// Moves blocks of a layer by whole cells as one step: every block keeps its identity, its place in the file, its
+        /// shift and its finish flag. A block of the layer in a cell they move to, that is not among them, is erased first
+        /// (in the same step, so that undo puts it back in its place). Nothing is recorded for no blocks and for no move;
+        /// a block that is not in the layer is left out. True when a step was recorded.
+        /// </summary>
+        public bool MoveBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks, int dx, int dy)
+        {
+            if (dx == 0 && dy == 0)
+                return false;
+            List<PlacedBlock> moved = InLayer(layer, blocks);
+            return Relocate("Move", layer, moved,
+                moved.Select(block => new Cell(block.Cell.X + dx, block.Cell.Y + dy)).ToList(),
+                moved.Select(block => block.Name).ToList());
+        }
+
+        /// <summary>
+        /// Flips blocks of a layer left to right around the middle column of them, as one step: a block at x goes to
+        /// minX + maxX - x (minX and maxX are those of the blocks), and gets its mirrored variant where the catalog has
+        /// one (<see cref="MirrorName"/>), so that a climb becomes a descent. Identity, place in the file, shift and
+        /// finish flag are kept; a block of the layer in a cell they move to, that is not among them, is erased first.
+        /// Nothing is recorded for no blocks and for blocks that stay as they are (a single block in the middle column
+        /// that has no mirrored variant). True when a step was recorded.
+        /// </summary>
+        public bool MirrorBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks)
+        {
+            List<PlacedBlock> mirrored = InLayer(layer, blocks);
+            if (mirrored.Count == 0)
+                return false;
+            int sum = mirrored.Min(block => block.Cell.X) + mirrored.Max(block => block.Cell.X);
+            return Relocate("Mirror", layer, mirrored,
+                mirrored.Select(block => new Cell(sum - block.Cell.X, block.Cell.Y)).ToList(),
+                mirrored.Select(block => MirrorName(catalog, block.Name)).ToList());
+        }
+
+        /// <summary>
+        /// The block a mirrored block becomes: the name without its "f" where that is a block of the catalog (b2f gives
+        /// b2), the name with an "f" where that is one (b2 gives b2f); a block without a mirrored variant keeps its name
+        /// (kea1f: there is no kea1). Mirroring twice gives the block back.
+        /// </summary>
+        public static string MirrorName(Catalog catalog, string name)
+        {
+            if (name.EndsWith("f", StringComparison.Ordinal) && catalog.FindBlock(name.Substring(0, name.Length - 1)) != null)
+                return name.Substring(0, name.Length - 1);
+            return catalog.FindBlock(name + "f") != null ? name + "f" : name;
+        }
+
+        /// <summary>
         /// Makes the block at a cell the only finish of the level; the only finish itself stops being one (the level
         /// has none then). Refused, with the reason, outside the middle layer and in an empty cell; null when done.
         /// </summary>
@@ -546,6 +593,59 @@ namespace TW3D.Editor
         private static string Position(PlacedObject obj)
         {
             return string.Format(CultureInfo.InvariantCulture, "[{0}, {1}]", obj.X, obj.Y);
+        }
+
+        /// <summary>The blocks that are in the layer, once each, in the given order.</summary>
+        private List<PlacedBlock> InLayer(Layer layer, IReadOnlyList<PlacedBlock> blocks)
+        {
+            HashSet<PlacedBlock> present = new HashSet<PlacedBlock>(layers[(int)layer]);
+            HashSet<PlacedBlock> seen = new HashSet<PlacedBlock>();
+            List<PlacedBlock> result = new List<PlacedBlock>();
+            foreach (PlacedBlock block in blocks)
+                if (present.Contains(block) && seen.Add(block))
+                    result.Add(block);
+            return result;
+        }
+
+        /// <summary>
+        /// Puts blocks into new cells and under new names as one step. The blocks of the layer that are in the cells
+        /// the blocks leave for, and not among them, are erased first; a block that stays in its cell displaces nobody
+        /// (the other block of a cell with two stays with it). True when a step was recorded: none is when nothing
+        /// would change.
+        /// </summary>
+        private bool Relocate(string name, Layer layer, List<PlacedBlock> blocks, List<Cell> cells, List<string> names)
+        {
+            HashSet<Cell> entered = new HashSet<Cell>();
+            bool changes = false;
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                if (cells[i] != blocks[i].Cell)
+                    entered.Add(cells[i]);
+                changes |= cells[i] != blocks[i].Cell || names[i] != blocks[i].Name;
+            }
+            if (!changes)
+                return false;
+
+            HashSet<PlacedBlock> own = new HashSet<PlacedBlock>(blocks);
+            List<PlacedBlock> displaced = layers[(int)layer].Where(block => entered.Contains(block.Cell) && !own.Contains(block)).ToList();
+            List<Cell> oldCells = blocks.Select(block => block.Cell).ToList();
+            List<string> oldNames = blocks.Select(block => block.Name).ToList();
+            using (BeginCompound(name))
+            {
+                foreach (PlacedBlock block in displaced)
+                    Erase(layer, block);
+                Record(name, () => Relocated(blocks, cells, names), () => Relocated(blocks, oldCells, oldNames));
+            }
+            return true;
+        }
+
+        private static void Relocated(List<PlacedBlock> blocks, List<Cell> cells, List<string> names)
+        {
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                blocks[i].Cell = cells[i];
+                blocks[i].Name = names[i];
+            }
         }
 
         private int IndexAt(Layer layer, Cell cell)

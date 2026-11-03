@@ -152,8 +152,8 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The arrows pressed as a step of one: Up on the screen is y - 1, as physics y grows downward. The Object tool
-        /// steps with them too.
+        /// The arrows pressed as a step of one: Up on the screen is y - 1, as physics y grows downward. The Object and
+        /// Select tools step with them too.
         /// </summary>
         public static Point ArrowStep(InputState input)
         {
@@ -166,8 +166,8 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The cursor goes to the cell of a layer under the mouse, which the Object tool's cursor does too. The cursor the
-        /// arrows moved stays until the mouse moves; a button, though, acts under the mouse even when only the camera
+        /// The cursor goes to the cell of a layer under the mouse, which the Object and Select tools' cursor does too. The
+        /// cursor the arrows moved stays until the mouse moves; a button, though, acts under the mouse even when only the camera
         /// moved the scene under it (the keys fly it, Home frames the level).
         /// </summary>
         /// <param name="overScene">The cursor is over the scene, not over the user interface.</param>
@@ -190,8 +190,8 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The arrows move the cursor by cells (the Object tool's too, while no object is selected); the camera moves
-        /// with it, so that it stays in view.
+        /// The arrows move the cursor by cells (the Object and Select tools' too, while nothing is selected); the camera
+        /// moves with it, so that it stays in view.
         /// </summary>
         public void MoveCursor(Point step)
         {

@@ -670,5 +670,322 @@ namespace TW3D.Tests
             Assert.Equal(new[] { new Cell(0, 1), new Cell(1, 2), new Cell(1, 3) }, new Cell(0, 0).LineTo(new Cell(1, 3)));
             Assert.Equal(new[] { new Cell(-1, -1), new Cell(-1, -2), new Cell(-2, -3), new Cell(-2, -4) }, new Cell(0, 0).LineTo(new Cell(-2, -4)));
         }
+
+        /// <summary>A new level with the hill b2, b2, c2f, a1 at [1..4, 0] after the start block.</summary>
+        private static EditedLevel Hill()
+        {
+            EditedLevel level = EditedLevel.New(Catalog);
+            string[] names = { "b2", "b2", "c2f", "a1" };
+            for (int i = 0; i < names.Length; i++)
+                Assert.Null(level.Place(Layer.Middle, new Cell(i + 1, 0), names[i], 0));
+            return level;
+        }
+
+        /// <summary>A level of the middle layer made of the blocks given as (name, x), all at y = 0, in that order.</summary>
+        private static EditedLevel Row((string Name, int X)[] blocks)
+        {
+            LevelData data = new LevelData();
+            foreach ((string name, int x) in blocks)
+                data.Middle.Add(new BlockPlacement { Block = name, X = x, Y = 0 });
+            return new EditedLevel(Catalog, data, null);
+        }
+
+        private static List<PlacedBlock> Between(EditedLevel level, int fromX, int toX)
+        {
+            return level.Blocks(Layer.Middle).Where(block => block.Cell.X >= fromX && block.Cell.X <= toX).ToList();
+        }
+
+        [Fact]
+        public void MoveBlocksMovesThemKeepingIdentityOrderShiftAndFinish()
+        {
+            EditedLevel level = Hill();
+            Assert.True(level.Shift(Layer.Middle, new Cell(2, 0), 3));
+            Assert.Null(level.SetFinish(Layer.Middle, new Cell(4, 0)));
+            List<PlacedBlock> selection = Between(level, 2, 4);
+            List<PlacedBlock> before = level.Blocks(Layer.Middle).ToList();
+
+            Assert.True(level.MoveBlocks(Layer.Middle, selection, 0, -2));
+
+            Assert.Equal(before, level.Blocks(Layer.Middle));
+            Assert.Equal(new Cell(2, -2), selection[0].Cell);
+            Assert.Equal(3, selection[0].Shift);
+            Assert.Equal(new Cell(4, -2), selection[2].Cell);
+            Assert.True(selection[2].Finish);
+            Assert.Equal(new Cell(1, 0), before[1].Cell);
+            Assert.Equal("Move", level.UndoName);
+        }
+
+        [Fact]
+        public void MoveBlocksErasesWhatIsUnderTheTargetsAndUndoPutsItBackInPlace()
+        {
+            EditedLevel level = Hill();
+            string json = Json(level);
+            List<PlacedBlock> selection = Between(level, 0, 1);
+            PlacedBlock under = level.BlockAt(Layer.Middle, new Cell(2, 0));
+
+            level.MoveBlocks(Layer.Middle, selection, 1, 0);
+
+            Assert.DoesNotContain(under, level.Blocks(Layer.Middle));
+            Assert.Equal(4, level.Blocks(Layer.Middle).Count);
+            Assert.Equal(new Cell(1, 0), selection[0].Cell);
+            //The block moved onto the cell of another one that moves on is not erased with the ones under the targets
+            Assert.Same(selection[1], level.BlockAt(Layer.Middle, new Cell(2, 0)));
+
+            level.Undo();
+            Assert.Equal(json, Json(level));
+            Assert.Same(under, level.Blocks(Layer.Middle)[2]);
+            level.Redo();
+            Assert.DoesNotContain(under, level.Blocks(Layer.Middle));
+            level.Undo();
+            Assert.Equal(json, Json(level));
+        }
+
+        [Fact]
+        public void MoveBlocksOntoACellWithABaseAndAGateErasesBoth()
+        {
+            EditedLevel level = Row(new[] { ("a1", 0), ("a1", 3), ("sg", 3), ("b1", 2) });
+            string json = Json(level);
+            List<PlacedBlock> selection = new List<PlacedBlock> { level.Blocks(Layer.Middle)[3] };
+
+            level.MoveBlocks(Layer.Middle, selection, 1, 0);
+
+            Assert.Equal(2, level.Blocks(Layer.Middle).Count);
+            Assert.Same(selection[0], level.BlockAt(Layer.Middle, new Cell(3, 0)));
+            level.Undo();
+            Assert.Equal(json, Json(level));
+            Assert.Equal("sg", level.BlockAt(Layer.Middle, new Cell(3, 0)).Name);
+        }
+
+        [Fact]
+        public void MoveBlocksOfBothBlocksOfACellKeepsThemTogether()
+        {
+            EditedLevel level = Row(new[] { ("a1", 0), ("sg", 0) });
+            List<PlacedBlock> both = level.Blocks(Layer.Middle).ToList();
+
+            level.MoveBlocks(Layer.Middle, both, 2, 1);
+
+            Assert.All(both, block => Assert.Equal(new Cell(2, 1), block.Cell));
+            Assert.Equal(2, level.Blocks(Layer.Middle).Count);
+            level.Undo();
+            Assert.All(both, block => Assert.Equal(new Cell(0, 0), block.Cell));
+        }
+
+        [Fact]
+        public void MoveBlocksLeavesOutBlocksThatAreNotInTheLayer()
+        {
+            EditedLevel level = Hill();
+            int version = level.Version;
+            level.MoveBlocks(Layer.Back, Between(level, 1, 2), 1, 0);
+            level.MoveBlocks(Layer.Middle, new[] { new PlacedBlock(new Cell(9, 9), "a1", 0, false) }, 1, 0);
+            Assert.Equal(version, level.Version);
+            Assert.Equal("Place a1", level.UndoName);
+        }
+
+        [Fact]
+        public void MoveBlocksWithNoBlocksOrNoMoveRecordsNothing()
+        {
+            EditedLevel level = Hill();
+            string json = Json(level);
+            int version = level.Version;
+            string undo = level.UndoName;
+
+            //The result tells whether a step was recorded, so that the editor does not claim a move that was not made
+            Assert.False(level.MoveBlocks(Layer.Middle, new List<PlacedBlock>(), 1, 0));
+            Assert.False(level.MoveBlocks(Layer.Middle, Between(level, 1, 4), 0, 0));
+            Assert.False(level.MoveBlocks(Layer.Middle, new[] { new PlacedBlock(new Cell(9, 9), "a1", 0, false) }, 1, 0));
+
+            Assert.Equal(version, level.Version);
+            Assert.Equal(undo, level.UndoName);
+            Assert.Equal(json, Json(level));
+        }
+
+        [Fact]
+        public void MirrorBlocksTurnsAHillIntoADescentInMirroredOrderAndNames()
+        {
+            EditedLevel level = Hill();
+            string json = Json(level);
+            List<PlacedBlock> selection = Between(level, 1, 4);
+
+            level.MirrorBlocks(Layer.Middle, selection);
+
+            //b2, b2, c2f, a1 at 1..4 become a1, c2, b2f, b2f at 1..4: the same blocks, in the same places of the file
+            string[] expected = { "a1", "c2", "b2f", "b2f" };
+            for (int x = 1; x <= 4; x++)
+                Assert.Equal(expected[x - 1], level.BlockAt(Layer.Middle, new Cell(x, 0)).Name);
+            Assert.Same(selection[3], level.BlockAt(Layer.Middle, new Cell(1, 0)));
+            Assert.Equal(new Cell(4, 0), selection[0].Cell);
+            Assert.Equal("Mirror", level.UndoName);
+
+            level.Undo();
+            Assert.Equal(json, Json(level));
+            level.Redo();
+            level.MirrorBlocks(Layer.Middle, selection);
+            Assert.Equal(json, Json(level));
+        }
+
+        [Fact]
+        public void MirrorBlocksKeepsShiftFinishAndTheNameOfABlockWithoutAMirror()
+        {
+            EditedLevel level = Hill();
+            Assert.Null(level.Place(Layer.Middle, new Cell(5, 0), "lo", 0));
+            Assert.Null(level.SetFinish(Layer.Middle, new Cell(1, 0)));
+            Assert.True(level.Shift(Layer.Middle, new Cell(5, 0), -2));
+            List<PlacedBlock> selection = Between(level, 1, 5);
+
+            level.MirrorBlocks(Layer.Middle, selection);
+
+            PlacedBlock lo = level.BlockAt(Layer.Middle, new Cell(1, 0));
+            Assert.Equal("lo", lo.Name);
+            Assert.Equal(-2, lo.Shift);
+            Assert.True(selection[0].Finish);
+            Assert.Equal(new Cell(5, 0), selection[0].Cell);
+        }
+
+        [Fact]
+        public void MirrorBlocksOfOneBlockRenamesItWhereItIs()
+        {
+            EditedLevel level = Hill();
+            PlacedBlock block = level.BlockAt(Layer.Middle, new Cell(1, 0));
+
+            level.MirrorBlocks(Layer.Middle, new[] { block });
+
+            Assert.Equal("b2f", block.Name);
+            Assert.Equal(new Cell(1, 0), block.Cell);
+        }
+
+        [Fact]
+        public void MirrorBlocksErasesWhatIsUnderTheTargetsAndUndoPutsItBack()
+        {
+            //The gate sg is in the cell [1, 0] with a1
+            EditedLevel level = Row(new[] { ("b1", 0), ("a1", 1), ("sg", 1), ("a1", 2), ("c1", 3), ("a1", 4), ("a1", 5) });
+            string json = Json(level);
+            IReadOnlyList<PlacedBlock> blocks = level.Blocks(Layer.Middle);
+
+            //The ends swap (x' = 0 + 5 - x); the cells between are not targets, so nothing is erased
+            PlacedBlock first = blocks[0], last = blocks[6];
+            level.MirrorBlocks(Layer.Middle, new[] { first, last });
+            Assert.Equal(7, blocks.Count);
+            Assert.Equal("b1f", first.Name);
+            Assert.Equal(new Cell(5, 0), first.Cell);
+            Assert.Equal(new Cell(0, 0), last.Cell);
+            level.Undo();
+            Assert.Equal(json, Json(level));
+
+            //The a1 at [1, 0] and the c1 at [3, 0] swap; the gate in [1, 0] is not among them and is erased
+            PlacedBlock left = blocks[1], right = blocks[4];
+            level.MirrorBlocks(Layer.Middle, new[] { left, right });
+            Assert.Equal(6, blocks.Count);
+            Assert.Same(right, level.BlockAt(Layer.Middle, new Cell(1, 0)));
+            Assert.Equal("c1f", right.Name);
+            level.Undo();
+            Assert.Equal(json, Json(level));
+            Assert.Equal("sg", level.Blocks(Layer.Middle)[2].Name);
+        }
+
+        [Fact]
+        public void MirrorBlocksOfABlockInTheMiddleColumnKeepsItsCompanion()
+        {
+            EditedLevel level = Row(new[] { ("b1", 0), ("sg", 0), ("a1", 1) });
+            PlacedBlock middle = level.Blocks(Layer.Middle)[0];
+
+            Assert.True(level.MirrorBlocks(Layer.Middle, new[] { middle }));
+
+            //A block that stays in its cell displaces nobody
+            Assert.Equal(3, level.Blocks(Layer.Middle).Count);
+            Assert.Equal("b1f", level.Blocks(Layer.Middle)[0].Name);
+        }
+
+        [Fact]
+        public void MirrorBlocksWithNoBlocksOrBlocksThatStayRecordsNothing()
+        {
+            EditedLevel level = Hill();
+            int version = level.Version;
+            Assert.False(level.MirrorBlocks(Layer.Middle, new List<PlacedBlock>()));
+            //A block with no mirrored variant alone stays as it is, and the result says that no step was recorded
+            Assert.False(level.MirrorBlocks(Layer.Middle, new[] { level.BlockAt(Layer.Middle, new Cell(4, 0)) }));
+            Assert.Equal(version, level.Version);
+        }
+
+        [Fact]
+        public void MoveAndMirrorInsideACompoundAreOneStep()
+        {
+            EditedLevel level = Hill();
+            string json = Json(level);
+            List<PlacedBlock> selection = Between(level, 1, 4);
+            using (level.BeginCompound("Both"))
+            {
+                level.MoveBlocks(Layer.Middle, selection, 3, 0);
+                level.MirrorBlocks(Layer.Middle, selection);
+            }
+            Assert.Equal("Both", level.UndoName);
+            level.Undo();
+            Assert.Equal(json, Json(level));
+        }
+
+        [Theory]
+        [MemberData(nameof(ShippedLevels))]
+        public void MovingAndMirroringTheWholeMiddleLayerOfAShippedLevelCanBeUndone(string level)
+        {
+            EditedLevel edited = Load(level);
+            List<PlacedBlock> all = edited.Blocks(Layer.Middle).ToList();
+            int first = all[0].Cell.X;
+
+            edited.MoveBlocks(Layer.Middle, all, 1, 0);
+            Assert.Equal(first + 1, all[0].Cell.X);
+            Assert.NotEqual(FileText(level), Json(edited));
+            edited.Undo();
+            Assert.Equal(FileText(level), Json(edited));
+            Assert.False(edited.IsDirty);
+
+            edited.MirrorBlocks(Layer.Middle, all);
+            edited.Undo();
+            Assert.Equal(FileText(level), Json(edited));
+            //The layer mirrored twice is the layer
+            edited.MirrorBlocks(Layer.Middle, all);
+            edited.MirrorBlocks(Layer.Middle, all);
+            Assert.Equal(FileText(level), Json(edited));
+        }
+
+        [Fact]
+        public void MirrorNameSwapsEveryBlockWithItsFVariant()
+        {
+            (string Plain, string Mirrored)[] pairs =
+            {
+                ("b1", "b1f"), ("c1", "c1f"), ("d1", "d1f"), ("s1", "s1f"), ("bl2", "bl2f"), ("bl2s", "bl2sf"), ("b4", "b4f")
+            };
+            foreach ((string plain, string mirrored) in pairs)
+            {
+                Assert.Equal(mirrored, EditedLevel.MirrorName(Catalog, plain));
+                Assert.Equal(plain, EditedLevel.MirrorName(Catalog, mirrored));
+            }
+
+            //Every block of the catalog that ends in f and whose stem is a block is one of a pair
+            int found = 0;
+            foreach (BlockType block in Catalog.Blocks.Where(block => block.Name.EndsWith("f", StringComparison.Ordinal)))
+            {
+                string stem = block.Name.Substring(0, block.Name.Length - 1);
+                if (Catalog.FindBlock(stem) == null)
+                    continue;
+                found++;
+                Assert.Equal(stem, EditedLevel.MirrorName(Catalog, block.Name));
+                Assert.Equal(block.Name, EditedLevel.MirrorName(Catalog, stem));
+            }
+            Assert.True(found >= pairs.Length);
+        }
+
+        [Fact]
+        public void MirrorNameKeepsABlockWithoutAMirroredVariant()
+        {
+            Assert.Equal("kea1f", EditedLevel.MirrorName(Catalog, "kea1f"));
+            Assert.Equal("lo", EditedLevel.MirrorName(Catalog, "lo"));
+            Assert.Equal("nothing", EditedLevel.MirrorName(Catalog, "nothing"));
+        }
+
+        [Fact]
+        public void MirrorNameTwiceGivesTheBlockBack()
+        {
+            foreach (BlockType block in Catalog.Blocks)
+                Assert.Equal(block.Name, EditedLevel.MirrorName(Catalog, EditedLevel.MirrorName(Catalog, block.Name)));
+        }
     }
 }
