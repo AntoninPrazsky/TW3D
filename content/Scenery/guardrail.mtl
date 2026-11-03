@@ -1,0 +1,11 @@
+# Materials of guardrail; Pm and Pr: metal and roughness (tools/ContentPipeline)
+
+newmtl steel
+Kd 0.4000 0.4000 0.4000
+d 1.0000
+Ks 0.6000 0.6000 0.6000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.35
+illum 2

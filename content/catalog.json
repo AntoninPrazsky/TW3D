@@ -74,7 +74,11 @@
     { "name": "Traffic cone", "model": "cone" },
     { "name": "Street lamp", "model": "lamp" },
     { "name": "Utility pole", "model": "pole" },
-    { "name": "Metal fence", "model": "fence" }
+    { "name": "Metal fence", "model": "fence" },
+    { "name": "Guardrail", "model": "guardrail" },
+    { "name": "Thick guardrail", "model": "guardrail2" },
+    { "name": "Posts with a chain", "model": "chain" },
+    { "name": "Judges' stand", "model": "stand" }
   ],
   "cars": [
     { "name": "Buggy", "model": "car", "wheel": "wheel", "mass": 200, "topSpeed": 50, "exhaust": [ 4.28, -0.72, 0.45 ] },

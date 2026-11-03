@@ -55,10 +55,14 @@
 /build:Garage/window.obj
 
 # Scenery: static props beside the track, without physics (tools/garagegen/scenery.py)
+/build:Scenery/chain.obj
 /build:Scenery/cone.obj
 /build:Scenery/fence.obj
+/build:Scenery/guardrail.obj
+/build:Scenery/guardrail2.obj
 /build:Scenery/lamp.obj
 /build:Scenery/pole.obj
+/build:Scenery/stand.obj
 
 # Track blocks
 /build:Levels/mod/a1.obj

@@ -47,18 +47,28 @@ and to the wheels of the axle being chosen.
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
 level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
-through them. They are the props the owner released on OpenGameArt in 2016: the traffic cone
-(`cone`), the street lamp (`lamp`), the utility pole (`pole`) and the metal fence (`fence`).
+through them. The first four are the props the owner released on OpenGameArt in 2016: the
+traffic cone (`cone`), the street lamp (`lamp`), the utility pole (`pole`) and the metal fence
+(`fence`); the other four the owner made for the game in March 2018: the guardrail
+(`guardrail`), the thick guardrail with red and white stripes (`guardrail2`), the posts with a
+chain (`chain`) and the judges' stand (`stand`), a two-storey building with a terrace for the
+start or the finish.
+
 `tools/garagegen/scenery.py` (Python 3 with NumPy) builds them from their Wings 3D files in
 `art/wings/Scenery/`, with smooth normals by the hard edges of Wings, at the scale of the
-blocks: the cone is 1.6 model units high (the car is 2.4), the lamp 8, the pole 20 (over two
-cells), and a piece of the fence is half a cell long (4.5), so that two pieces end to end
-fill a cell. The foot of every prop is at the origin of its model, and the long side of the
-fence runs along x, along the road. The lamp and the fence were textured with photos of rust,
-which are not in the repository; their faces get the colours the textures had there, by
-rules in the script (the rim of the lamp's roof, the door at its foot and the steel spikes of
-the fence have their own). Run the script after changing the `.wings` files or the script and
-commit its output.
+blocks: the cone is 1.6 model units high (the car is 2.4), the lamp 8, the judges' stand 12,
+the pole 20 (over two cells); a guardrail is a cell long (9), so that the pieces in a row along
+a straight road join, and a piece of the fence and of the chain half a cell (4.5), two pieces
+to a cell. The foot of every prop is at the origin of its model, and the long side of the
+fence, the chain and the guardrails runs along x, along the road; the rails of the guardrails
+and the terrace of the stand face the camera (-z), so that behind the road they face the road.
+The lamp and the fence were textured with photos of rust, which are not in the repository;
+their faces get the colours the textures had there, by rules in the script (the rim of the
+lamp's roof, the door at its foot and the steel spikes of the fence have their own). The chain
+was modelled link by link (some 3400 faces); the script puts a tube of red and white pieces
+along the curve it hangs in instead, which looks the same from the camera of the game and
+leaves the posts with a chain 835 faces. Run the script after changing the `.wings` files or
+the script and commit its output.
 
 ## Precompiled content
 

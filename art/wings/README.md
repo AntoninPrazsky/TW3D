@@ -50,10 +50,11 @@ own sky there.
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in
 `content/`.
 
-`Scenery/` holds the props beside the track (see [the scenery](../../docs/content.md#scenery)),
-which the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
-owner's model archive, with OBJ and 3DS exports and renders). `tools/garagegen/scenery.py`
-builds `content/Scenery/` from them. Their textures (photos of rust) are not here: the game
+`Scenery/` holds the props beside the track (see [the scenery](../../docs/content.md#scenery)):
+the four the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
+owner's model archive, with OBJ and 3DS exports and renders), and the four made for the game in
+March 2018 (`TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/`). `tools/garagegen/scenery.py`
+builds `content/Scenery/` from them. The textures of the lamp and the fence (photos of rust) are not here: the game
 draws the props in the colours the textures had.
 
 | File | Original file |
@@ -62,3 +63,7 @@ draws the props in the colours the textures had.
 | `Scenery/lamp.wings` | `StreetLamp/StreetLamp.wings` (textured by `lamp.png`) |
 | `Scenery/pole.wings` | `UtilityPole/UtilityPole.wings` |
 | `Scenery/fence.wings` | `MetalFence/fence.wings` (textured by `fence.png`) |
+| `Scenery/guardrail.wings` | `TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/barrier.wings` |
+| `Scenery/guardrail2.wings` | `…/3-2018/barrier_thick.wings` |
+| `Scenery/chain.wings` | `…/3-2018/chains.wings` |
+| `Scenery/stand.wings` | `…/3-2018/judges_stand_final.wings` (`judges_stand.wings` there is an older version) |

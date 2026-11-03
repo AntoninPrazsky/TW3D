@@ -80,8 +80,9 @@ move it by a physics unit (Ctrl + the arrows by a tenth), or move the cursor cel
 nothing is selected, and Esc clears the selection (a second Esc leaves the editor).
 
 The **Scenery tool** edits the props of the scenery: traffic cones, street lamps, utility
-poles and metal fences that stand beside the track and have no physics (the car drives
-through them). A prop stands at a depth: negative behind the road, positive in front of it;
+poles, fences, guardrails, posts with a chain and a judges' stand, which stand beside the
+track and have no physics (the car drives through them). A guardrail is a cell long, so that
+Space at the cells of a straight road puts a continuous one along it. A prop stands at a depth: negative behind the road, positive in front of it;
 the road reaches 11.25 physics units to either side and the back and front layers the next
 22.5. New props go to the chosen depth (-10 at first: on the road, behind where the car
 drives), and the cursor cell and its grid are on its plane. The left button adds the chosen
