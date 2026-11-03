@@ -9,10 +9,10 @@ namespace TW3D.Editor
     /// <summary>
     /// The Palette window of the editor: the blocks of the catalog as the turning previews of the
     /// <see cref="BlockPreviews"/>, in the groups (the families of the blocks) of the catalog page docs/catalog/catalog.html
-    /// as collapsing headers, found by a search box; a click makes one the chosen block of the <see cref="BlockTool"/>.
-    /// Decorations (blocks without a collision shape) are disabled while the middle layer is active, as the document
-    /// refuses them there. A second tab shows the models of the dynamic objects by their type; a click chooses the
-    /// object to place (<see cref="Object"/>, for the Object tool).
+    /// as collapsing headers, found by a search box; a click makes one the chosen block of the <see cref="BlockTool"/>
+    /// and the Place tool the active one. Decorations (blocks without a collision shape) are disabled while the middle
+    /// layer is active, as the document refuses them there. A second tab shows the models of the dynamic objects by
+    /// their type; a click makes one the chosen object of the <see cref="ObjectTool"/> and that tool the active one.
     /// </summary>
     sealed class PaletteWindow
     {
@@ -47,6 +47,8 @@ namespace TW3D.Editor
         private const float BorderThickness = 2f;
         //The window first appears wide enough for this many previews side by side
         private const int DefaultColumns = 3;
+        /// <summary>The height and the margin from the edge of the work area (pixels on a 1920 × 1080 window) the window first appears with.</summary>
+        public const float DefaultHeight = 600f, DefaultMargin = 20f;
         private const uint SearchLength = 32;
 
         /// <summary>A preview shown in a group: the block, or the model of an object type.</summary>
@@ -69,15 +71,18 @@ namespace TW3D.Editor
         }
 
         private readonly BlockPreviews previews;
+        private readonly Action<EditorTool> activate;
         private readonly List<Group> blockGroups = new List<Group>();
         private readonly List<Group> objectGroups = new List<Group>();
         private string search = "";
         //The border of the chosen preview in pixels, scaled with the interface
         private float borderThickness = BorderThickness;
 
-        public PaletteWindow(BlockPreviews previews, Catalog catalog)
+        /// <param name="activate">Makes a tool the active one: the tool of what a click chose.</param>
+        public PaletteWindow(BlockPreviews previews, Catalog catalog, Action<EditorTool> activate)
         {
             this.previews = previews;
+            this.activate = activate;
             HashSet<string> grouped = new HashSet<string>();
             foreach ((string name, string[] blocks) in Families)
             {
@@ -120,23 +125,25 @@ namespace TW3D.Editor
         /// </summary>
         public bool NeedsPreviews { get; private set; } = true;
 
-        /// <summary>The dynamic object chosen in the Objects tab; null until one is chosen.</summary>
-        public ChosenObject Object { get; private set; }
+        /// <summary>The width the window first appears with (pixels), for the Inspector to appear under it as wide.</summary>
+        public float DefaultWidth { get; private set; }
 
         /// <summary>Lays the window out; called every frame while it is shown.</summary>
         /// <param name="open">False after the window was closed by its button.</param>
         /// <param name="tool">The Place tool, whose chosen block a click sets.</param>
+        /// <param name="objectTool">The Object tool, whose chosen object a click sets.</param>
         /// <param name="layer">The active layer: decorations are disabled in the middle one.</param>
         /// <param name="cellSize">The size of a preview in pixels.</param>
         /// <param name="scale">The scale of the interface (1 on a 1920 × 1080 window).</param>
-        public void Draw(ref bool open, ImGuiViewportPtr viewport, BlockTool tool, Layer layer, int cellSize, float scale)
+        public void Draw(ref bool open, ImGuiViewportPtr viewport, BlockTool tool, ObjectTool objectTool, Layer layer, int cellSize, float scale)
         {
             ImGuiStylePtr style = ImGui.GetStyle();
             float buttonWidth = cellSize + style.FramePadding.X * 2f;
             float width = DefaultColumns * buttonWidth + (DefaultColumns - 1) * style.ItemSpacing.X + style.WindowPadding.X * 2f + style.ScrollbarSize;
             borderThickness = BorderThickness * scale;
-            ImGui.SetNextWindowSize(new Vector2(width, 600f * scale), ImGuiCond.FirstUseEver);
-            ImGui.SetNextWindowPos(new Vector2(viewport.WorkPos.X + viewport.WorkSize.X - width - 20f * scale, viewport.WorkPos.Y + 20f * scale), ImGuiCond.FirstUseEver);
+            DefaultWidth = width;
+            ImGui.SetNextWindowSize(new Vector2(width, DefaultHeight * scale), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowPos(new Vector2(viewport.WorkPos.X + viewport.WorkSize.X - width - DefaultMargin * scale, viewport.WorkPos.Y + DefaultMargin * scale), ImGuiCond.FirstUseEver);
 
             int hovered = -1;
             NeedsPreviews = ImGui.Begin("Palette", ref open);
@@ -149,7 +156,7 @@ namespace TW3D.Editor
                 }
                 if (ImGui.BeginTabItem("Objects"))
                 {
-                    DrawObjects(cellSize, buttonWidth, ref hovered);
+                    DrawObjects(objectTool, cellSize, buttonWidth, ref hovered);
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();
@@ -180,7 +187,10 @@ namespace TW3D.Editor
                     if (disabled)
                         ImGui.BeginDisabled();
                     if (Button(entry, cellSize, entry.Block.Name == tool.Block))
+                    {
                         tool.Choose(entry.Block.Name);
+                        activate(EditorTool.Place);
+                    }
                     if (disabled)
                         ImGui.EndDisabled();
                     if (ImGui.IsItemHovered(ImGuiHoveredFlags.AllowWhenDisabled))
@@ -192,8 +202,9 @@ namespace TW3D.Editor
             }
         }
 
-        private void DrawObjects(int cellSize, float buttonWidth, ref int hovered)
+        private void DrawObjects(ObjectTool objectTool, int cellSize, float buttonWidth, ref int hovered)
         {
+            ChosenObject chosenObject = objectTool.Chosen;
             foreach (Group group in objectGroups)
             {
                 if (!ImGui.CollapsingHeader(group.Name, ImGuiTreeNodeFlags.DefaultOpen))
@@ -203,9 +214,12 @@ namespace TW3D.Editor
                 foreach (Entry entry in group.Entries)
                 {
                     Wrap(ref first, buttonWidth, right);
-                    bool chosen = Object != null && Object.Type == entry.Type && Object.Model == entry.Model;
+                    bool chosen = chosenObject != null && chosenObject.Type == entry.Type && chosenObject.Model == entry.Model;
                     if (Button(entry, cellSize, chosen))
-                        Object = new ChosenObject(entry.Type, entry.Model);
+                    {
+                        objectTool.Choose(entry.Type, entry.Model);
+                        activate(EditorTool.Object);
+                    }
                     if (ImGui.IsItemHovered())
                     {
                         hovered = entry.Preview;

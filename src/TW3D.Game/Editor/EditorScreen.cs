@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
@@ -17,21 +16,19 @@ namespace TW3D.Editor
     /// <summary>
     /// The level editor: the level being edited (an <see cref="EditedLevel"/>, the document with undo, which the
     /// <see cref="LevelSession"/> opens, saves and guards with "Save changes?") drawn as in the game, seen by a free camera
-    /// (<see cref="EditorCamera"/>), edited with the <see cref="BlockTool"/> whose cursor the <see cref="EditorMarkers"/>
-    /// show, with the user interface of Dear ImGui over it (the menu bar, the <see cref="StatusBar"/> and the windows: the
-    /// <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the <see cref="HelpWindow"/>, the
-    /// <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to them and draws them in
-    /// their order. Opened by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu
-    /// of a Debug build (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface
-    /// does not want them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the
-    /// level in the game: a test drive of the <see cref="GameplayScreen"/> covers the editor, which waits under it as it is.
+    /// (<see cref="EditorCamera"/>), edited with the active tool (the <see cref="BlockTool"/> places blocks, the
+    /// <see cref="ObjectTool"/> the dynamic objects; B and O choose) whose cursor and highlights the
+    /// <see cref="EditorMarkers"/> show, with the user interface of Dear ImGui over it (the menu bar, the
+    /// <see cref="StatusBar"/> and the windows: the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the
+    /// <see cref="InspectorWindow"/>, the <see cref="HelpWindow"/>, the <see cref="FileDialogs"/> of the session). The
+    /// screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
+    /// by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
+    /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
+    /// them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the level in the
+    /// game: a test drive of the <see cref="GameplayScreen"/> covers the editor, which waits under it as it is.
     /// </summary>
     public sealed class EditorScreen : Screen
     {
-        //The font of the interface (DejaVu Sans, approved by the FSF; its licence is content/Fonts/DejaVuSans-LICENSE.txt) and its size in pixels
-        //on a 1920 × 1080 window, scaled with the window
-        private const string FontFile = "Fonts/DejaVuSans.ttf";
-        private const float FontSize = 17f;
         //Where ImGui keeps the positions and sizes of its windows
         private static readonly string LayoutFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TW3D", "editor-layout.ini");
@@ -42,6 +39,8 @@ namespace TW3D.Editor
         private const float GameCameraDistance = 4.5f;
         //How far from the camera the shadows reach, at least (see SceneRenderer.ShadowDistance)
         private const float MinShadowDistance = 40f;
+        //The keys of the tools by the EditorTool enum (the View > Tool menu shows them); V is kept for the Select tool
+        private static readonly Keys[] ToolKeys = { Keys.B, Keys.O };
 
         private readonly GameSettings settings;
         private readonly string levelArgument;
@@ -56,17 +55,19 @@ namespace TW3D.Editor
         private Model sky;
         private EditorCamera camera;
         private LevelView view;
-        private BlockTool tool;
+        private BlockTool placeTool;
+        private ObjectTool objectTool;
+        private EditorTool activeTool = EditorTool.Place;
         private EditorMarkers markers;
         private ImGuiRenderer imgui;
         private BlockPreviews previews;
         private PaletteWindow palette;
+        private readonly InspectorWindow inspector = new InspectorWindow();
         private LevelSession session;
-        private ImGuiStyle defaultStyle;
-        private int fontSize;
+        private InterfaceLayout layout;
         //The size of a preview of the palette in pixels, scaled with the window
         private int previewSize;
-        private bool showPalette = true, showHelp, showDemo;
+        private bool showPalette = true, showInspector = true, showHelp, showDemo;
         private Layer layer = Layer.Middle;
         //What the status bar says about the last thing done
         private string message = "";
@@ -98,7 +99,7 @@ namespace TW3D.Editor
 
         private EditedLevel Level => session.Level;
 
-        public override unsafe void LoadContent()
+        public override void LoadContent()
         {
             ShowImmediately();
             Manager.PointersVisible = false;
@@ -111,17 +112,18 @@ namespace TW3D.Editor
             camera = new EditorCamera();
             view = new LevelView(assets);
             Action<string> report = note => message = note;
-            tool = new BlockTool(camera, report);
+            placeTool = new BlockTool(camera, report);
+            objectTool = new ObjectTool(camera, placeTool, assets, report);
             markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
             imgui = new ImGuiRenderer(Manager.Game, LayoutFile);
             ImGui.GetIO().ConfigFlags |= ImGuiConfigFlags.DockingEnable;
-            defaultStyle = *ImGui.GetStyle().NativePtr;
+            layout = new InterfaceLayout(imgui, Manager.Content.RootDirectory);
             previews = new BlockPreviews(Manager.GraphicsDevice, assets, imgui);
-            palette = new PaletteWindow(previews, assets.Catalog);
+            palette = new PaletteWindow(previews, assets.Catalog, SetTool);
 
             session = new LevelSession(Manager.Game, Manager.GraphicsDevice, imgui, assets.Catalog, levelsArgument,
-                CaptureCamera, tool.EndStroke, Show, report);
+                CaptureCamera, EndStrokes, Show, report);
             //The close button of the window asks too when there are unsaved changes
             Manager.Game.Exiting += OnExiting;
 
@@ -131,7 +133,7 @@ namespace TW3D.Editor
         public override void UnloadContent()
         {
             Manager.Game.Exiting -= OnExiting;
-            tool.EndStroke();
+            EndStrokes();
             session.Dispose();
             previews.Dispose();
             renderer.Dispose();
@@ -144,7 +146,8 @@ namespace TW3D.Editor
         private void Show(EditedLevel opened, CameraView saved)
         {
             view.Level = opened;
-            tool.Level = opened;
+            placeTool.Level = opened;
+            objectTool.Level = opened;
             if (saved != null)
             {
                 camera.Target = new Vector3(saved.TargetX, saved.TargetY, saved.TargetZ);
@@ -174,32 +177,17 @@ namespace TW3D.Editor
                 CloseTestDrive();
         }
 
-        /// <summary>
-        /// Drives the level being edited in the game from a cell (F5: the start cell, Shift+F5: the cursor cell), with the
-        /// car of the garage. The level goes in memory, nothing is saved; a level the game cannot build is refused, and
-        /// what would spoil the drive is said in the status bar, where it is still read when the editor is back.
-        /// </summary>
+        /// <summary>Drives the level being edited in the game from a cell (see <see cref="TestDriveStart"/>); a level the game cannot build is refused.</summary>
         private void TestDrive(Cell start)
         {
-            tool.EndStroke();
-            LevelData data = Level.ToData();
-            List<string> problems = data.Validate(assets.Catalog);
-            if (problems.Count > 0)
-            {
-                message = "The level cannot be driven: " + problems[0];
+            EndStrokes();
+            GameplayScreen drive = TestDriveStart.Create(Level, assets.Catalog, start, settings, TestDriveEnded, out message);
+            if (drive == null)
                 return;
-            }
-            List<string> warnings = new List<string>();
-            if (data.FinishBlock == null)
-                warnings.Add("A test drive without a finish: the run has no end.");
-            if (Level.BlockAt(Layer.Middle, start) == null)
-                warnings.Add($"There is no block at {start}, where the car starts: it falls.");
-            message = warnings.Count > 0 ? string.Join(" ", warnings) : $"Test drive from {start}.";
-
             driving = true;
             //The game shows where the mouse is pressed; the editor does not, it has its cursor
             Manager.PointersVisible = true;
-            Manager.Add(GameplayScreen.TestDrive(data, start.X, start.Y, settings, TestDriveEnded));
+            Manager.Add(drive);
         }
 
         /// <summary>The test drive closed (or was closed): the editor is back as it was.</summary>
@@ -246,6 +234,30 @@ namespace TW3D.Editor
                 Close();
         }
 
+        /// <summary>The tool that gets the keys and the mouse of the scene.</summary>
+        private IEditorTool ActiveTool => activeTool switch
+        {
+            EditorTool.Object => objectTool,
+            _ => placeTool
+        };
+
+        /// <summary>Makes a tool the active one (its key, the View > Tool menu, a choice in the palette); a drag of the other ends.</summary>
+        private void SetTool(EditorTool value)
+        {
+            //The key of the active tool pressed in the middle of a drag leaves it going
+            if (value == activeTool)
+                return;
+            EndStrokes();
+            activeTool = value;
+        }
+
+        /// <summary>Ends a drag of any tool, closing its step of undo: before the level is saved, dropped or driven, and when the focus goes.</summary>
+        private void EndStrokes()
+        {
+            placeTool.EndStroke();
+            objectTool.EndStroke();
+        }
+
         private void CycleMood()
         {
             Level.SetMood((LevelMood)(((int)Level.Mood + 1) % 3));
@@ -256,7 +268,7 @@ namespace TW3D.Editor
             //Without the focus the screen gets no input, so it would not see the button go up: a stroke ends here
             if (!HasFocus)
             {
-                tool.EndStroke();
+                EndStrokes();
                 focusReturning = true;
                 driveRequested = null;
             }
@@ -280,7 +292,7 @@ namespace TW3D.Editor
             //A dialog has the keys and the mouse; the key that closes it is not seen again here, as it was pressed before
             if (session.IsDialogOpen)
             {
-                tool.EndStroke();
+                EndStrokes();
                 dialogWasOpen = true;
                 return;
             }
@@ -308,10 +320,11 @@ namespace TW3D.Editor
             {
                 if (input.KeyPressed(Keys.F5))
                 {
-                    TestDrive(shift ? tool.Cursor : new Cell(0, 0));
+                    TestDrive(shift ? placeTool.Cursor : new Cell(0, 0));
                     return;
                 }
-                if (input.KeyPressed(Keys.Escape))
+                //Esc drops the selection of the tool first, and leaves only when there is none
+                if (input.KeyPressed(Keys.Escape) && !ActiveTool.Cancel())
                     session.Guard(Leave);
                 if (input.KeyPressed(Keys.F1))
                     showHelp = !showHelp;
@@ -332,8 +345,14 @@ namespace TW3D.Editor
                     layer = layer == Layer.Back ? Layer.Middle : Layer.Back;
                 if (input.KeyPressed(Keys.RightControl))
                     layer = layer == Layer.Front ? Layer.Middle : Layer.Front;
+                for (int i = 0; i < ToolKeys.Length; i++)
+                    if (!control && input.KeyPressed(ToolKeys[i]))
+                        SetTool((EditorTool)i);
+                //Comma and period choose a block, which is for the Place tool: it becomes active and gets the key
+                if (input.KeyPressed(Keys.OemComma) || input.KeyPressed(Keys.OemPeriod))
+                    SetTool(EditorTool.Place);
                 camera.HandleKeys(input, elapsed);
-                tool.HandleKeys(input, layer);
+                ActiveTool.HandleKeys(input, layer);
             }
             if (session.IsDialogOpen)
                 return;
@@ -341,7 +360,7 @@ namespace TW3D.Editor
             //The camera has the mouse first: its drags take precedence over the tool, and Ctrl + the wheel is the tool's
             Viewport viewport = Manager.Viewport;
             camera.HandleMouse(input, viewport, mouseFree, !control);
-            tool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
+            ActiveTool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
             focusReturning = false;
         }
 
@@ -361,9 +380,9 @@ namespace TW3D.Editor
             }
             //Ctrl+Shift+Z redoes as in the editors of today, Ctrl+Y as in Windows
             else if (input.KeyPressed(Keys.Z) && !shift)
-                tool.Undo();
+                placeTool.Undo();
             else if (input.KeyPressed(Keys.Y) || input.KeyPressed(Keys.Z) && shift)
-                tool.Redo();
+                placeTool.Redo();
         }
 
         public override void Draw(GameTime gameTime)
@@ -384,42 +403,30 @@ namespace TW3D.Editor
             renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
             view.Draw(renderer);
             renderer.End();
-            markers.Draw(camera.View, camera.Projection, layer, tool.Cursor, Level.Finish);
+            //The cursor cell of the Place tool is the Object tool's too (Space adds there), on the middle plane
+            markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Place ? layer : Layer.Middle, placeTool.Cursor, Level.Finish);
+            if (activeTool == EditorTool.Object)
+                markers.DrawObjects(camera.View, camera.Projection, objectTool.Bounds(objectTool.Hovered), objectTool.Bounds(objectTool.Selected));
 
-            UpdateFont();
+            layout.Update(Manager.UiScale);
             imgui.BeforeLayout(gameTime);
             DrawInterface();
             imgui.AfterLayout();
-        }
-
-        /// <summary>The font and the sizes of the interface follow the size of the window.</summary>
-        private unsafe void UpdateFont()
-        {
-            int size = Math.Max(8, (int)Math.Round(FontSize * Manager.UiScale));
-            if (size == fontSize)
-                return;
-            fontSize = size;
-            imgui.LoadFont(Path.Combine(AppContext.BaseDirectory, Manager.Content.RootDirectory, FontFile), size);
-
-            ImGuiStylePtr style = ImGui.GetStyle();
-            *style.NativePtr = defaultStyle;
-            ImGui.StyleColorsDark();
-            style.WindowRounding = 4f;
-            style.FrameRounding = 3f;
-            style.ScaleAllSizes(size / FontSize);
         }
 
         private void DrawInterface()
         {
             ImGuiViewportPtr viewport = ImGui.GetMainViewport();
             float statusHeight = ImGui.GetFrameHeightWithSpacing();
-            float scale = ImGui.GetFontSize() / FontSize;
+            float scale = InterfaceLayout.Scale;
 
             DrawMenuBar();
-            DrawDockSpace(viewport, statusHeight);
-            StatusBar.Draw(viewport, statusHeight, tool, layer, palette.Object, session, message);
+            InterfaceLayout.DrawDockSpace(viewport, statusHeight);
+            StatusBar.Draw(viewport, statusHeight, placeTool, activeTool, layer, objectTool.Chosen, session, message);
             if (showPalette)
-                palette.Draw(ref showPalette, viewport, tool, layer, previewSize, scale);
+                palette.Draw(ref showPalette, viewport, placeTool, objectTool, layer, previewSize, scale);
+            if (showInspector)
+                inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, layer);
             if (showHelp)
                 HelpWindow.Draw(ref showHelp, scale);
             if (showDemo)
@@ -457,9 +464,9 @@ namespace TW3D.Editor
             if (ImGui.BeginMenu("Edit"))
             {
                 if (ImGui.MenuItem(Level.CanUndo ? "Undo " + Level.UndoName : "Undo", "Ctrl+Z", false, Level.CanUndo))
-                    tool.Undo();
+                    placeTool.Undo();
                 if (ImGui.MenuItem(Level.CanRedo ? "Redo " + Level.RedoName : "Redo", "Ctrl+Y", false, Level.CanRedo))
-                    tool.Redo();
+                    placeTool.Redo();
                 ImGui.EndMenu();
             }
             if (ImGui.BeginMenu("View"))
@@ -471,6 +478,13 @@ namespace TW3D.Editor
                 if (ImGui.MenuItem("Ambient occlusion", "F11", renderer.AmbientOcclusion))
                     renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
                 ImGui.Separator();
+                if (ImGui.BeginMenu("Tool"))
+                {
+                    for (int i = 0; i < ToolKeys.Length; i++)
+                        if (ImGui.MenuItem(((EditorTool)i).ToString(), ToolKeys[i].ToString(), activeTool == (EditorTool)i))
+                            SetTool((EditorTool)i);
+                    ImGui.EndMenu();
+                }
                 if (ImGui.BeginMenu("Layer"))
                 {
                     foreach (Layer candidate in Enum.GetValues<Layer>())
@@ -482,6 +496,7 @@ namespace TW3D.Editor
                     FrameLevel();
                 ImGui.Separator();
                 ImGui.MenuItem("Palette", null, ref showPalette);
+                ImGui.MenuItem("Inspector", null, ref showInspector);
                 ImGui.MenuItem("ImGui demo window", null, ref showDemo);
                 ImGui.EndMenu();
             }
@@ -498,7 +513,7 @@ namespace TW3D.Editor
                 if (ImGui.MenuItem("Test drive", "F5"))
                     driveRequested = new Cell(0, 0);
                 if (ImGui.MenuItem("Test drive from the cursor", "Shift+F5"))
-                    driveRequested = tool.Cursor;
+                    driveRequested = placeTool.Cursor;
                 ImGui.EndMenu();
             }
             if (ImGui.BeginMenu("Help"))
@@ -507,27 +522,6 @@ namespace TW3D.Editor
                 ImGui.EndMenu();
             }
             ImGui.EndMainMenuBar();
-        }
-
-        /// <summary>
-        /// A dock space over the whole work area between the menu bar and the status bar: the windows can be docked to its
-        /// edges, and the scene shows through its middle, where the mouse is the scene's.
-        /// </summary>
-        private static void DrawDockSpace(ImGuiViewportPtr viewport, float statusHeight)
-        {
-            ImGui.SetNextWindowPos(viewport.WorkPos);
-            ImGui.SetNextWindowSize(new System.Numerics.Vector2(viewport.WorkSize.X, viewport.WorkSize.Y - statusHeight));
-            ImGui.SetNextWindowViewport(viewport.ID);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 0f);
-            ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, System.Numerics.Vector2.Zero);
-            const ImGuiWindowFlags flags = ImGuiWindowFlags.NoDocking | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoCollapse
-                | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoNavFocus
-                | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings;
-            ImGui.Begin("Editor dock space", flags);
-            ImGui.PopStyleVar(3);
-            ImGui.DockSpace(ImGui.GetID("EditorDockSpace"), System.Numerics.Vector2.Zero, ImGuiDockNodeFlags.PassthruCentralNode);
-            ImGui.End();
         }
     }
 }

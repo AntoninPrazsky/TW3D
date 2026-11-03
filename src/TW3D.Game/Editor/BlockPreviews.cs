@@ -84,13 +84,7 @@ namespace TW3D.Editor
         {
             Preview preview = new Preview { Model = model, BoneTransforms = new Matrix[model.Bones.Count] };
             model.CopyAbsoluteBoneTransformsTo(preview.BoneTransforms);
-            bool first = true;
-            foreach (ModelMesh mesh in model.Meshes)
-            {
-                BoundingSphere bounds = mesh.BoundingSphere.Transform(preview.BoneTransforms[mesh.ParentBone.Index]);
-                preview.Bounds = first ? bounds : BoundingSphere.CreateMerged(preview.Bounds, bounds);
-                first = false;
-            }
+            preview.Bounds = ModelBounds.Of(model, preview.BoneTransforms);
             if (preview.Bounds.Radius <= 0f)
                 preview.Bounds.Radius = Units.BlockModelSize / 2f;
             return preview;

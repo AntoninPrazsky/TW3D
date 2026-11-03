@@ -9,9 +9,11 @@ namespace TW3D.Editor
     /// <summary>
     /// The helpers drawn over the scene of the editor, after the renderer has drawn the level, with the depth buffer on
     /// so that they sit in the scene: the selector of 2016 (Levels/selector, a green wire cube) at the cursor cell on
-    /// the plane of the active layer, a thin grid of a few cells around it so that the cells are seen, and tinted
-    /// copies of the selector marking the finish block and the start cell [0, 0] of the middle layer. The selector is
-    /// drawn with BasicEffect and the lighting of 2016, as the old editor drew it.
+    /// the plane of the active layer and a thin grid of a few cells around it so that the cells are seen (while the
+    /// Place tool is active), tinted copies of the selector marking the finish block and the start cell [0, 0] of the
+    /// middle layer, and tinted copies scaled around the bounding spheres of the hovered and the selected dynamic
+    /// object (while the Object tool is active). The selector is drawn with BasicEffect and the lighting of 2016, as
+    /// the old editor drew it.
     /// </summary>
     sealed class EditorMarkers
     {
@@ -23,6 +25,11 @@ namespace TW3D.Editor
         private const float MarkerScale = 0.9f;
         private static readonly Vector3 FinishTint = new Vector3(1f, 0.85f, 0f);
         private static readonly Vector3 StartTint = new Vector3(0.2f, 0.6f, 1f);
+        //The hovered and the selected object; the hovered one is marked a little larger, so that both marks are seen
+        //on an object that is both
+        private static readonly Vector3 HoverTint = new Vector3(0.85f, 0.85f, 0.85f);
+        private static readonly Vector3 SelectedTint = new Vector3(1f, 0.3f, 0.75f);
+        private const float HoverScale = 1.12f;
         //Markers glow a little, so that they are seen in the night too
         private const float MarkerGlow = 0.35f;
         private static readonly Cell StartCell = new Cell(0, 0);
@@ -76,20 +83,44 @@ namespace TW3D.Editor
             }
         }
 
-        /// <summary>Draws the grid and the selector at the cursor cell of the active layer, and the markers of the finish and the start.</summary>
+        /// <summary>Draws the markers of the finish and the start, and the grid and the selector at the cursor cell of a layer.</summary>
+        /// <param name="layer">The layer of the cursor: the active layer for the Place tool, the middle one for the Object tool.</param>
+        /// <param name="cursor">The cursor cell; null for no grid and no selector.</param>
         /// <param name="finish">The finish block of the level; null when it has none.</param>
-        public void Draw(Matrix view, Matrix projection, Layer layer, Cell cursor, PlacedBlock finish)
+        public void Draw(Matrix view, Matrix projection, Layer layer, Cell? cursor, PlacedBlock finish)
         {
-            DrawGrid(view, projection, layer, cursor);
+            if (cursor.HasValue)
+                DrawGrid(view, projection, layer, cursor.Value);
 
+            SetSolidStates();
+            if (finish != null)
+                DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, finish.Cell), MarkerScale, FinishTint);
+            DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, StartCell), MarkerScale, StartTint);
+            if (cursor.HasValue)
+                DrawSelector(view, projection, LevelView.ScenePosition(layer, cursor.Value), 1f, null);
+        }
+
+        /// <summary>Marks the hovered and the selected dynamic object by selectors as large as their bounding spheres.</summary>
+        /// <param name="hovered">The bounding sphere of the hovered object in the scene; null for none.</param>
+        /// <param name="selected">The bounding sphere of the selected object in the scene; null for none.</param>
+        public void DrawObjects(Matrix view, Matrix projection, BoundingSphere? hovered, BoundingSphere? selected)
+        {
+            if (!hovered.HasValue && !selected.HasValue)
+                return;
+            SetSolidStates();
+            //The selector is a cube as large as a cell: scaled so that its side is the diameter of the sphere
+            if (selected.HasValue)
+                DrawSelector(view, projection, selected.Value.Center, selected.Value.Radius * 2f / LevelView.CellSize, SelectedTint);
+            if (hovered.HasValue)
+                DrawSelector(view, projection, hovered.Value.Center, hovered.Value.Radius * 2f / LevelView.CellSize * HoverScale, HoverTint);
+        }
+
+        private void SetSolidStates()
+        {
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
             device.SamplerStates[0] = SamplerState.LinearWrap;
-            if (finish != null)
-                DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, finish.Cell), MarkerScale, FinishTint);
-            DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, StartCell), MarkerScale, StartTint);
-            DrawSelector(view, projection, LevelView.ScenePosition(layer, cursor), 1f, null);
         }
 
         /// <summary>Unlit lines on the plane of the layer, mixed over the scene, not hiding what is behind them.</summary>

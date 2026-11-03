@@ -38,23 +38,39 @@ editor.
 So far it shows the level as the game draws it, with a camera driven by the mouse (the
 middle button pans, the wheel zooms towards the cursor, Alt + the left button orbits) and
 by the keys of the old editor (W/S/A/D and Q/E fly, the numeric keypad turns, Home frames
-the level). Blocks are edited in the active layer (Tab, Right Shift and Right Ctrl choose
-it): the left button places the chosen block in the cell under the cursor and dragging
-paints, Left Shift + the left button erases, the right button picks the block under the
-cursor as the chosen one, Ctrl + the wheel shifts it up or down. The keys of the old
-editor do the same: the arrows move the cursor cell, Space places, Delete erases,
-PageUp / PageDown shift, F marks the finish, comma and period choose the block, M the
-mood. Every change can be undone (Ctrl+Z, Ctrl+Y and the Edit menu, which names the
-step); a painted stroke is one step. The lighting is switched by F9, F10, F11; F1 lists
-the controls. The Palette window shows every block of the catalog as a turning 3D preview,
-in the groups of the [catalog page](catalog/catalog.html) and searchable by name, and a
-click makes it the chosen block (its Objects tab chooses the dynamic object to place, for
-the Object tool to come). F5 drives the level in the game at once, from the start cell,
+the level). The level is edited with the active tool: B makes the Place tool active
+(blocks), O the Object tool (dynamic objects); View > Tool lists them, and the status bar
+names the active one. With the Place tool, blocks are edited in the active layer (Tab,
+Right Shift and Right Ctrl choose it): the left button places the chosen block in the cell
+under the cursor and dragging paints, Left Shift + the left button erases, the right button
+picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it up or down.
+The keys of the old editor do the same: the arrows move the cursor cell, Space places,
+Delete erases, PageUp / PageDown shift, F marks the finish, comma and period choose the
+block, M the mood. With the Object tool, dynamic objects (boxes, bars, ramps...) are edited
+on the plane of the middle layer, where they always are: the left button adds the chosen
+object at the point under the cursor (rounded to a tenth of a physics unit) and selects it,
+or selects the object under the cursor, and dragging moves it; Left Shift + the left button
+removes the object under the cursor, the right button picks its type and model as the
+chosen object. Space adds the chosen object at the top of the cursor cell, so that it drops
+onto the block there (the cursor cell is drawn with the Object tool too, and follows the
+mouse; two objects are never put in one place), Delete removes the selected object, the arrows move it by a physics
+unit (Ctrl + the arrows by a tenth), or move the cursor cell while nothing is selected, and
+Esc clears the selection (a second Esc leaves the editor). Every change can be undone
+(Ctrl+Z, Ctrl+Y and the Edit menu, which names the step); a painted stroke and a drag of an
+object are one step each. The lighting is switched by F9, F10, F11; F1 lists the controls.
+The Palette window shows every block of the catalog as a turning 3D preview, in the groups
+of the [catalog page](catalog/catalog.html) and searchable by name, and a click makes it the
+chosen block and the Place tool active; its Objects tab shows the models of the dynamic
+objects, and a click makes one the chosen object and the Object tool active. The Inspector
+window shows what the active tool works on: the block at the cursor cell of the active
+layer (its name, cell, shift and finish), or the selected object with its type, model and position,
+which can be typed (each edit one step of undo, applied to the object it was begun on), and a
+button that removes it (an object only under the cursor is shown to read). F5 drives the level in the game at once, from the start cell,
 with the car and the wheels chosen in the garage (Shift+F5 from the cursor cell): the level
 goes in memory, nothing is saved and no record is kept, and Esc, the pause menu or the
 results bring the editor back as it was, with its camera and undo history. A level without
 a finish or without a block at the start can still be driven (the status bar warns); one
-the game cannot build is refused. Selection and dynamic objects come with the next issues.
+the game cannot build is refused. The Select tool for blocks comes with the next issues.
 
 ### The old editor
 

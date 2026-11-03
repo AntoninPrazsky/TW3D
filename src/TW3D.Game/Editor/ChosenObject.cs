@@ -1,6 +1,6 @@
 namespace TW3D.Editor
 {
-    /// <summary>The dynamic object chosen in the palette, the one the Object tool will place: its type and the model of the type.</summary>
+    /// <summary>The dynamic object chosen in the palette or picked, the one the Object tool places: its type and the model of the type.</summary>
     sealed class ChosenObject
     {
         public ChosenObject(string type, string model)

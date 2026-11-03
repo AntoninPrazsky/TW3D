@@ -3,28 +3,41 @@ using ImGuiNET;
 
 namespace TW3D.Editor
 {
-    /// <summary>The Controls window of the editor (F1): what the mouse and the keys do, in two tables.</summary>
+    /// <summary>The Controls window of the editor (F1): what the mouse and the keys do, in tables by the tool and for all of them.</summary>
     static class HelpWindow
     {
-        private static readonly (string Keys, string Action)[] MouseRows =
+        private static readonly (string Keys, string Action)[] PlaceRows =
         {
             ("Left button", "Place the chosen block in the cell under the cursor; dragging paints"),
             ("Left Shift + left button", "Erase the block under the cursor; dragging erases"),
             ("Right button", "Pick: the block under the cursor becomes the chosen block, with its shift"),
             ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)"),
-            ("Middle button drag", "Pan along the track"),
-            ("Wheel", "Zoom towards the cursor"),
-            ("Alt + left drag", "Orbit around the point under the cursor"),
-            ("Palette", "Click a preview to choose the block; the Objects tab chooses the object to place (coming)")
-        };
-
-        private static readonly (string Keys, string Action)[] KeyRows =
-        {
             ("Arrows", "Move the cursor cell (the camera follows)"),
             ("Space / Delete", "Place the chosen block / erase the block at the cursor cell"),
             ("PageUp / PageDown", "Shift the block at the cursor cell up / down (the chosen shift follows)"),
             ("F", "The block at the cursor cell is the finish of the level, or stops being it"),
-            (", / .", "The previous / next block of the catalog becomes the chosen block"),
+            (", / .", "The previous / next block of the catalog becomes the chosen block (and Place the active tool)")
+        };
+
+        private static readonly (string Keys, string Action)[] ObjectRows =
+        {
+            ("Left button", "Add the chosen object at the point under the cursor, or select the object there; dragging moves it"),
+            ("Left Shift + left button", "Remove the object under the cursor"),
+            ("Right button", "Pick: the object under the cursor becomes the chosen object"),
+            ("Space", "Add the chosen object at the top of the cursor cell (it follows the mouse): it drops onto the block there"),
+            ("Delete", "Remove the selected object"),
+            ("Arrows / Ctrl + arrows", "Move the selected object by 1 / 0.1 physics unit; without a selection the cursor cell"),
+            ("Esc", "Clear the selection (a second Esc leaves the editor)")
+        };
+
+        private static readonly (string Keys, string Action)[] CommonRows =
+        {
+            ("B / O", "The Place tool (blocks) / the Object tool (dynamic objects); View > Tool lists them"),
+            ("Palette", "Click a block to choose it (Place), an object of the Objects tab to choose it (Object)"),
+            ("Inspector", "The block at the cursor cell, or the selected object with its position to type"),
+            ("Middle button drag", "Pan along the track"),
+            ("Wheel", "Zoom towards the cursor"),
+            ("Alt + left drag", "Orbit around the point under the cursor"),
             ("Ctrl+Z / Ctrl+Y", "Undo / redo"),
             ("Ctrl+N", "A new level (asks to save unsaved changes)"),
             ("Ctrl+O", "Open a level of the levels folder or any level file"),
@@ -46,15 +59,17 @@ namespace TW3D.Editor
         /// <param name="scale">The scale of the interface (the font size against the size it was designed for).</param>
         public static void Draw(ref bool open, float scale)
         {
-            ImGui.SetNextWindowSize(new Vector2(540f, 560f) * scale, ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize(new Vector2(560f, 620f) * scale, ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Controls", ref open))
             {
-                ImGui.SeparatorText("Mouse");
-                Rows(MouseRows);
-                ImGui.SeparatorText("Keys");
-                Rows(KeyRows);
+                ImGui.SeparatorText("Place tool (B): blocks");
+                Rows(PlaceRows);
+                ImGui.SeparatorText("Object tool (O): dynamic objects");
+                Rows(ObjectRows);
+                ImGui.SeparatorText("All tools");
+                Rows(CommonRows);
                 ImGui.Spacing();
-                ImGui.TextWrapped("Selection and dynamic objects come with the next issues of the editor (GitHub issue #20).");
+                ImGui.TextWrapped("The Select tool (V: selecting, moving, copying and mirroring blocks) comes with the next issues of the editor (GitHub issue #20).");
             }
             ImGui.End();
         }

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Numerics;
 using ImGuiNET;
@@ -5,18 +6,21 @@ using ImGuiNET;
 namespace TW3D.Editor
 {
     /// <summary>
-    /// The status bar of the editor along the bottom of the window: the cursor cell, the layer, the tool with its block
-    /// and the object chosen in the palette, the level's file with its folder as a tooltip, the warning about the level
+    /// The status bar of the editor along the bottom of the window: the cursor cell, the layer, the active tool, the
+    /// chosen block and the chosen object, the level's file with its folder as a tooltip, the warning about the level
     /// and what was done last. It keeps nothing; the screen gives it what it shows every frame.
     /// </summary>
     static class StatusBar
     {
         private static readonly Vector4 WarningColor = new Vector4(1f, 0.8f, 0.3f, 1f);
+        //The names of the tools by the EditorTool enum, made once instead of in every frame
+        private static readonly string[] ToolNames = Enum.GetNames<EditorTool>();
 
         /// <param name="height">The height of the bar, the space the dock space leaves for it.</param>
-        /// <param name="chosenObject">The object chosen in the palette; null for none.</param>
+        /// <param name="activeTool">The tool that gets the mouse and the keys.</param>
+        /// <param name="chosenObject">The object chosen in the palette or picked; null for none.</param>
         /// <param name="message">What the status bar says about the last thing done; empty for nothing.</param>
-        public static void Draw(ImGuiViewportPtr viewport, float height, BlockTool tool, Layer layer, ChosenObject chosenObject,
+        public static void Draw(ImGuiViewportPtr viewport, float height, BlockTool tool, EditorTool activeTool, Layer layer, ChosenObject chosenObject,
             LevelSession session, string message)
         {
             ImGui.SetNextWindowPos(new Vector2(viewport.WorkPos.X, viewport.WorkPos.Y + viewport.WorkSize.Y - height));
@@ -32,7 +36,7 @@ namespace TW3D.Editor
             Separate();
             ImGui.Text("Layer: " + layer);
             Separate();
-            ImGui.Text("Tool: Place");
+            ImGui.Text("Tool: " + ToolNames[(int)activeTool]);
             Separate();
             ImGui.Text($"Block: {tool.Block}, shift {tool.Shift}");
             if (chosenObject != null)

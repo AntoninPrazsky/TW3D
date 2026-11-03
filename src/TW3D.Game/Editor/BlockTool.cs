@@ -19,7 +19,7 @@ namespace TW3D.Editor
     /// by the screen) take a step of the document back and forth. What is done and what the
     /// document refuses is reported to the screen for its status bar.
     /// </summary>
-    sealed class BlockTool
+    sealed class BlockTool : IEditorTool
     {
         //The block chosen at the start, the one a new level starts with
         private const string DefaultBlock = "a1";
@@ -86,12 +86,7 @@ namespace TW3D.Editor
             if (input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl))
                 return;
 
-            //Physics y grows downward, so Up on the screen is y - 1
-            Point step = Point.Zero;
-            if (input.KeyPressed(Keys.Right)) step.X++;
-            if (input.KeyPressed(Keys.Left)) step.X--;
-            if (input.KeyPressed(Keys.Up)) step.Y--;
-            if (input.KeyPressed(Keys.Down)) step.Y++;
+            Point step = ArrowStep(input);
             if (step != Point.Zero)
                 MoveCursor(step);
 
@@ -124,14 +119,7 @@ namespace TW3D.Editor
             bool overScene = free && viewport.Bounds.Contains(mouse.Position);
             bool leftPressed = mouse.LeftButton == ButtonState.Pressed && previous.LeftButton == ButtonState.Released;
             bool rightPressed = mouse.RightButton == ButtonState.Pressed && previous.RightButton == ButtonState.Released;
-            //The cursor the arrows moved stays until the mouse moves; a button, though, acts under the mouse even when
-            //only the camera moved the scene under it (the keys fly it, Home frames the level)
-            if (input.MouseMoved && (overScene || InStroke) || overScene && (leftPressed || rightPressed))
-            {
-                Cell? cell = CellUnder(mouse, viewport, InStroke ? strokeLayer : layer);
-                if (cell.HasValue)
-                    Cursor = cell.Value;
-            }
+            FollowMouse(input, viewport, layer, overScene, leftPressed || rightPressed);
 
             if (InStroke)
             {
@@ -163,6 +151,36 @@ namespace TW3D.Editor
                 ShiftBlock(layer, -input.WheelDelta / WheelNotch);
         }
 
+        /// <summary>
+        /// The arrows pressed as a step of one: Up on the screen is y - 1, as physics y grows downward. The Object tool
+        /// steps with them too.
+        /// </summary>
+        public static Point ArrowStep(InputState input)
+        {
+            Point step = Point.Zero;
+            if (input.KeyPressed(Keys.Right)) step.X++;
+            if (input.KeyPressed(Keys.Left)) step.X--;
+            if (input.KeyPressed(Keys.Up)) step.Y--;
+            if (input.KeyPressed(Keys.Down)) step.Y++;
+            return step;
+        }
+
+        /// <summary>
+        /// The cursor goes to the cell of a layer under the mouse, which the Object tool's cursor does too. The cursor the
+        /// arrows moved stays until the mouse moves; a button, though, acts under the mouse even when only the camera
+        /// moved the scene under it (the keys fly it, Home frames the level).
+        /// </summary>
+        /// <param name="overScene">The cursor is over the scene, not over the user interface.</param>
+        /// <param name="pressed">A button went down in this frame.</param>
+        public void FollowMouse(InputState input, Viewport viewport, Layer layer, bool overScene, bool pressed)
+        {
+            if (!(input.MouseMoved && (overScene || InStroke) || overScene && pressed))
+                return;
+            Cell? cell = CellUnder(input.Mouse, viewport, InStroke ? strokeLayer : layer);
+            if (cell.HasValue)
+                Cursor = cell.Value;
+        }
+
         /// <summary>The cell of a layer under the mouse; null when the mouse points off the plane of the layer.</summary>
         private Cell? CellUnder(MouseState mouse, Viewport viewport, Layer layer)
         {
@@ -171,8 +189,11 @@ namespace TW3D.Editor
             return hit.HasValue ? LevelView.CellAt(hit.Value) : null;
         }
 
-        /// <summary>The arrows move the cursor by cells; the camera moves with it, so that it stays in view.</summary>
-        private void MoveCursor(Point step)
+        /// <summary>
+        /// The arrows move the cursor by cells (the Object tool's too, while no object is selected); the camera moves
+        /// with it, so that it stays in view.
+        /// </summary>
+        public void MoveCursor(Point step)
         {
             Cell from = Cursor;
             Cursor = new Cell(from.X + step.X, from.Y + step.Y);
@@ -196,6 +217,9 @@ namespace TW3D.Editor
             else
                 Erase(strokeLayer, cell, false);
         }
+
+        /// <summary>The tool holds nothing for Esc to drop: Esc leaves the editor.</summary>
+        public bool Cancel() => false;
 
         /// <summary>Ends the stroke of the mouse, closing its step of undo; nothing when there is none.</summary>
         public void EndStroke()
