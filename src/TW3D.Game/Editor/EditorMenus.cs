@@ -62,7 +62,7 @@ namespace TW3D.Editor
                 renderer.Classic = !renderer.Classic;
             if (ImGui.MenuItem("Shadows", "F10", renderer.Shadows))
                 renderer.Shadows = !renderer.Shadows;
-            if (ImGui.MenuItem("Ambient occlusion", "F11", renderer.AmbientOcclusion))
+            if (ImGui.MenuItem("Ambient occlusion", "Shift+F10", renderer.AmbientOcclusion))
                 renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
             ImGui.Separator();
             //A hidden layer is not drawn and cannot be edited (see HiddenLayerGuard)

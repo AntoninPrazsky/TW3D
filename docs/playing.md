@@ -34,8 +34,8 @@ opens in the web browser (clicked, or chosen by the keys and Enter).
 
 ## Options
 
-Full screen or a window (on a desktop; the window opens maximized and
-can be resized), the look of the game (new, or classic: as the 2016 version looked),
+Full screen or a window (on a desktop, also F11 anywhere in the game; the window opens
+maximized and can be resized), the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion, the frame rate (frames per second in the top left
 corner), the tutorial and the volume of the sound (in tenths; Enter turns it up, round to
 off, left and right turn it down and up). A window was the cure when the game stuttered in
@@ -178,7 +178,7 @@ While driving:
 | Home | Reset the camera |
 | F9 | The lighting of the 2016 version, for comparison |
 | F10 | Shadows on / off |
-| F11 | Ambient occlusion on / off |
+| Shift+F10 | Ambient occlusion on / off |
 | M | Switches the mood of the level (day, sunset, night) to try it; the level file stays as it is |
 | F12 | Frames per second on / off (also in Options) |
 | H | The track alone: the car, the time, the tutorial and the on-screen controls hidden (for the previews of the levels) |

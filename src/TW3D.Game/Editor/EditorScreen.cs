@@ -357,10 +357,14 @@ namespace TW3D.Editor
                     showHelp = !showHelp;
                 if (input.KeyPressed(Keys.F9))
                     renderer.Classic = !renderer.Classic;
+                //F10 the shadows, Shift+F10 the ambient occlusion; F11 is the game's (full screen or a window)
                 if (input.KeyPressed(Keys.F10))
-                    renderer.Shadows = !renderer.Shadows;
-                if (input.KeyPressed(Keys.F11))
-                    renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+                {
+                    if (shift)
+                        renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+                    else
+                        renderer.Shadows = !renderer.Shadows;
+                }
                 if (input.KeyPressed(Keys.M))
                     CycleMood();
                 if (input.KeyPressed(Keys.R) && !control)

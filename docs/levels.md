@@ -42,8 +42,8 @@ front layer, the objects and the scenery (they are not drawn and cannot be edite
 status bar says "The back layer is hidden." when a key, a click or a command of the Edit
 menu would change them), the grid around the cursor cell and the red bars of the road gaps;
 nothing hidden is saved or affects the test drive. The lighting is switched by F9 (the
-lighting of 2016), F10 (shadows) and F11 (ambient occlusion), as in the game, and M changes
-the mood of the level.
+lighting of 2016), F10 (shadows) and Shift+F10 (ambient occlusion), as in the game, M changes
+the mood of the level, and F11 switches between full screen and a window.
 
 The menu bar has the File, Edit, View, Level and Help menus. The status bar along the bottom
 shows the cursor cell, the layer, the active tool, the chosen block and object (and the

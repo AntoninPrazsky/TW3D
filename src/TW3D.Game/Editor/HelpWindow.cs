@@ -129,7 +129,8 @@ namespace TW3D.Editor
             ("Q / E", "Fly the camera up / down"),
             ("Numeric keypad 4 / 6, 8 / 2", "Turn the camera"),
             ("Home", "Frame the whole level"),
-            ("F9 / F10 / F11", "Lighting of 2016 / shadows / ambient occlusion"),
+            ("F9 / F10 / Shift+F10", "Lighting of 2016 / shadows / ambient occlusion"),
+            ("F11", "Full screen / window"),
             ("F1", "This window")
         };
 

@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
 using TW3D.Audio;
 #if !ANDROID
 using TW3D.Editor;
@@ -48,6 +49,10 @@ namespace TW3D
 #if !ANDROID
         //The window size given on the command line (a window always, whatever the settings say)
         private readonly Point? windowSize;
+#if !ANDROID
+        //The game is in full screen now (F11 and the Options menu switch it)
+        private bool fullScreen;
+#endif
 #endif
 
         /// <param name="windowSize">Size of the window; null = by the settings (full screen, or a maximized window).</param>
@@ -84,6 +89,8 @@ namespace TW3D
             IsMouseVisible = true;
 
             this.windowSize = windowSize;
+            //The editor and a window of a given size start in a window, whatever the settings say
+            fullScreen = settings.FullScreen && !windowSize.HasValue && !editor;
             SetDisplayMode();
             //The user interface adapts to any window size
             Window.ClientSizeChanged += OnClientSizeChanged;
@@ -100,8 +107,8 @@ namespace TW3D
 
 #if !ANDROID
         /// <summary>
-        /// Full screen or a window, by the settings (a window if its size was given on the command line).
-        /// The window can be resized; it opens maximized.
+        /// Full screen or a window, as <see cref="fullScreen"/> says (at the start by the settings, a window if its size
+        /// was given on the command line). The window can be resized; it opens maximized.
         /// </summary>
         /// <remarks>
         /// Full screen is a borderless window of the size of the screen (same as the 2016 desktop version).
@@ -111,8 +118,6 @@ namespace TW3D
         private void SetDisplayMode()
         {
             DisplayMode display = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
-            //The editor runs in a window, whatever the settings say
-            bool fullScreen = settings.FullScreen && !windowSize.HasValue && !editor;
             Point size = fullScreen ? new Point(display.Width, display.Height)
                 : windowSize ?? new Point(display.Width * 3 / 4, display.Height * 3 / 4);
 
@@ -126,6 +131,28 @@ namespace TW3D
         /// <summary>Switches between full screen and the window, after a change in the Options menu.</summary>
         private void ApplyDisplayMode()
         {
+            fullScreen = settings.FullScreen;
+            SetDisplayMode();
+            graphics.ApplyChanges();
+            MaximizeWindow();
+        }
+
+        /// <summary>
+        /// F11 switches between full screen and the window anywhere, as the Options menu does; the settings remember it,
+        /// but for the editor alone (--editor), which starts in a window anyway.
+        /// </summary>
+        protected override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+            //The input of this frame was read by the screens, which update in base.Update
+            if (!screens.Input.KeyPressed(Keys.F11))
+                return;
+            if (!editor)
+            {
+                settings.FullScreen = !fullScreen;
+                settings.Save();
+            }
+            fullScreen = !fullScreen;
             SetDisplayMode();
             graphics.ApplyChanges();
             MaximizeWindow();

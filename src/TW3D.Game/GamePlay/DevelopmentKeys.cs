@@ -9,7 +9,7 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// The keys for development while driving (see docs/playing.md): the physics debug view (F1–F8, or the gamepad Start
-    /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9–F11) and the mood of the level (M)
+    /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9, F10, Shift+F10) and the mood of the level (M)
     /// to compare them, the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home), and the
     /// track alone (H: the car and everything over the level hidden, for the previews of the levels in the level
     /// select). They change only the level being played; the Options menu sets the look for good.
@@ -64,10 +64,14 @@ namespace TW3D.GamePlay
 
             if (input.KeyPressed(Keys.F9))
                 renderer.Classic = !renderer.Classic;
+            //F10 the shadows, Shift+F10 the ambient occlusion (F11 is the game's: full screen or a window)
             if (input.KeyPressed(Keys.F10))
-                renderer.Shadows = !renderer.Shadows;
-            if (input.KeyPressed(Keys.F11))
-                renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+            {
+                if (input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift))
+                    renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
+                else
+                    renderer.Shadows = !renderer.Shadows;
+            }
 
             if (input.KeyPressed(Keys.H))
                 TrackOnly = !TrackOnly;
