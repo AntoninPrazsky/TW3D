@@ -7,8 +7,8 @@ namespace TW3D.Editor
     /// <summary>
     /// The Edit and View menus of the editor's menu bar, which the screen only has to place: undo and redo, the
     /// clipboard and the selection commands of the <see cref="SelectTool"/> (enabled while that tool is active and the
-    /// selection or the clipboard allows), the lighting, what is drawn (the layers, the objects, the grid, the gap
-    /// markers), the tool, the layer and the windows.
+    /// selection or the clipboard allows), the lighting, what is drawn (the layers, the objects, the scenery, the grid,
+    /// the gap markers), the tool, the layer and the windows.
     /// </summary>
     static class EditorMenus
     {
@@ -25,7 +25,7 @@ namespace TW3D.Editor
                 placeTool.Redo();
             ImGui.Separator();
             bool selecting = activeTool == EditorTool.Select;
-            bool selected = selecting && selectTool.Selection.Count > 0;
+            bool selected = selecting && selectTool.Any;
             if (ImGui.MenuItem("Cut", "Ctrl+X", false, selected))
                 Edit(hidden, report, selectTool.Cut);
             if (ImGui.MenuItem("Copy", "Ctrl+C", false, selected))
@@ -49,7 +49,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>The View menu: the lighting, what is drawn, the tool and the layer, framing the level, the windows.</summary>
-        /// <param name="view">The level drawn, whose back layer, front layer and objects can be hidden.</param>
+        /// <param name="view">The level drawn, whose back layer, front layer, objects and scenery can be hidden.</param>
         /// <param name="markers">The markers drawn over it, whose grid and gap bars can be hidden.</param>
         /// <param name="setTool">Makes a tool the active one.</param>
         /// <param name="frameLevel">Points the camera at the whole level.</param>
@@ -72,6 +72,8 @@ namespace TW3D.Editor
                 view.ShowFront = !view.ShowFront;
             if (ImGui.MenuItem("Objects", null, view.ShowObjects))
                 view.ShowObjects = !view.ShowObjects;
+            if (ImGui.MenuItem("Scenery", null, view.ShowScenery))
+                view.ShowScenery = !view.ShowScenery;
             if (ImGui.MenuItem("Grid", null, markers.ShowGrid))
                 markers.ShowGrid = !markers.ShowGrid;
             if (ImGui.MenuItem("Gap markers", null, markers.ShowGaps))

@@ -39,6 +39,8 @@ class Track {
     this.back = [];
     this.front = [];
     this.objects = [];
+    // Props beside the track, without physics (written only when there are some)
+    this.scenery = [];
     // The light of the level: "day" (default), "sunset" or "night"
     this.mood = "day";
     // The par time in seconds (the time a good run takes); null = estimated by the game
@@ -92,6 +94,18 @@ class Track {
 
   obj(type, model, x, y) {
     this.objects.push({ type, model, x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
+    return this;
+  }
+
+  /**
+   * A prop of the scenery (a model of the catalog's "scenery" list): its foot at x, y in physics units, at the depth z
+   * (negative behind the road, positive in front of it; the road reaches 11.25 to either side), turned by quarter turns.
+   */
+  prop(model, x, y, z, turn = 0) {
+    const round = v => Math.round(v * 100) / 100;
+    const prop = { model, x: round(x), y: round(y), z: round(z) };
+    if (turn % 4 !== 0) prop.turn = ((turn % 4) + 4) % 4;
+    this.scenery.push(prop);
     return this;
   }
 
@@ -195,7 +209,9 @@ class Track {
     return "{\n  \"format\": 1,\n" + (order != null ? `  "order": ${order},\n` : "")
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + (this.par != null ? `  "par": ${this.par},\n` : "")
-      + list("middle", this.middle) + list("back", this.back) + list("front", this.front) + list("objects", this.objects, true) + "}\n";
+      + list("middle", this.middle) + list("back", this.back) + list("front", this.front)
+      + list("objects", this.objects, this.scenery.length === 0)
+      + (this.scenery.length ? list("scenery", this.scenery, true) : "") + "}\n";
   }
 
   save(path, order) {

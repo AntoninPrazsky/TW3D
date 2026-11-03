@@ -88,6 +88,46 @@ namespace TW3D.Editor
     }
 
     /// <summary>
+    /// A prop of the scenery of the edited level. The document alone moves and turns it, so that undo can put it back.
+    /// </summary>
+    sealed class PlacedScenery
+    {
+        /// <param name="model">The model of the prop in the catalog.</param>
+        /// <param name="turn">Quarter turns about the vertical axis.</param>
+        public PlacedScenery(string model, float x, float y, float z, int turn)
+        {
+            Model = model;
+            X = x;
+            Y = y;
+            Z = z;
+            Turn = turn;
+        }
+
+        /// <summary>The model of the prop in the catalog.</summary>
+        public string Model { get; }
+
+        /// <summary>Where its foot stands, in physics units.</summary>
+        public float X { get; internal set; }
+        public float Y { get; internal set; }
+
+        /// <summary>The depth in physics units: negative behind the road, positive in front of it.</summary>
+        public float Z { get; internal set; }
+
+        /// <summary>Quarter turns about the vertical axis, 0 to 3 (a file may hold another number, which is a problem).</summary>
+        public int Turn { get; internal set; }
+
+        /// <summary>
+        /// The layer the prop belongs to, by its depth: the one whose cells it stands in (the road of the middle layer
+        /// reaches half a cell to either side, the back and front layers the next cell), or the nearest one beyond them.
+        /// The Select tool works on the props of a layer with its blocks.
+        /// </summary>
+        public Layer Layer => Z < -Units.GridCell / 2f ? Layer.Back : Z > Units.GridCell / 2f ? Layer.Front : Layer.Middle;
+
+        /// <summary>The cell of the layer its foot is in.</summary>
+        public Cell Cell => Cell.Of(X, Y);
+    }
+
+    /// <summary>
     /// Something wrong with the edited level, and where it is, so that the screen can show the place: a block has a
     /// layer and a cell, an object a position, a problem of the whole level neither.
     /// </summary>
@@ -137,11 +177,12 @@ namespace TW3D.Editor
     }
 
     /// <summary>
-    /// The level being edited, as a document: three layers of blocks, the dynamic objects, the mood, the order and the
-    /// par, built from a <see cref="LevelData"/> and written back to one. Every change is a command that can be undone
-    /// and redone; commands that can break the level refuse with a reason instead. The blocks keep the order of the
-    /// file they were read in (new ones are appended, a block put back by undo goes to its old place), so that a level
-    /// saved unchanged, or changed and undone, is written exactly as it was read.
+    /// The level being edited, as a document: three layers of blocks, the dynamic objects, the props of the scenery, the
+    /// mood, the order and the par, built from a <see cref="LevelData"/> and written back to one. Every change is a
+    /// command that can be undone and redone; commands that can break the level refuse with a reason instead. The blocks
+    /// keep the order of the file they were read in (new ones are appended, a block put back by undo goes to its old
+    /// place), and so do the objects and the props, so that a level saved unchanged, or changed and undone, is written
+    /// exactly as it was read.
     /// </summary>
     sealed class EditedLevel
     {
@@ -156,6 +197,7 @@ namespace TW3D.Editor
         //The blocks of each layer, indexed by the Layer enum, in the order of the file
         private readonly List<PlacedBlock>[] layers = new List<PlacedBlock>[3];
         private readonly List<PlacedObject> objects = new List<PlacedObject>();
+        private readonly List<PlacedScenery> scenery = new List<PlacedScenery>();
         private LevelMood mood;
         private int? order;
         private float? par;
@@ -186,6 +228,8 @@ namespace TW3D.Editor
             layers[(int)Layer.Middle] = data.Middle.Select(Convert).ToList();
             layers[(int)Layer.Front] = data.Front.Select(Convert).ToList();
             objects.AddRange(data.Objects.Select(placement => new PlacedObject(placement.Type, placement.Model, placement.X, placement.Y)));
+            if (data.Scenery != null)
+                scenery.AddRange(data.Scenery.Select(placement => new PlacedScenery(placement.Model, placement.X, placement.Y, placement.Z, placement.Turn)));
         }
 
         /// <summary>A new level, not in any file: the start block at the start cell, where the car starts.</summary>
@@ -213,6 +257,9 @@ namespace TW3D.Editor
 
         /// <summary>The dynamic objects, in the order of the file.</summary>
         public IReadOnlyList<PlacedObject> Objects => objects;
+
+        /// <summary>The props of the scenery, in the order of the file.</summary>
+        public IReadOnlyList<PlacedScenery> Scenery => scenery;
 
         /// <summary>The finish block of the level; null when it has none.</summary>
         public PlacedBlock Finish => layers[(int)Layer.Middle].FirstOrDefault(block => block.Finish);
@@ -400,6 +447,7 @@ namespace TW3D.Editor
             data.Middle.AddRange(layers[(int)Layer.Middle].Select(Convert));
             data.Front.AddRange(layers[(int)Layer.Front].Select(Convert));
             data.Objects.AddRange(objects.Select(obj => new ObjectPlacement { Type = obj.Type, Model = obj.Model, X = obj.X, Y = obj.Y }));
+            data.Scenery.AddRange(scenery.Select(prop => new SceneryPlacement { Model = prop.Model, X = prop.X, Y = prop.Y, Z = prop.Z, Turn = prop.Turn }));
             return data;
         }
 
@@ -518,7 +566,19 @@ namespace TW3D.Editor
             List<PlacedBlock> mirrored = InLayer(layer, blocks);
             if (mirrored.Count == 0)
                 return false;
-            int sum = mirrored.Min(block => block.Cell.X) + mirrored.Max(block => block.Cell.X);
+            return MirrorBlocks(layer, mirrored, mirrored.Min(block => block.Cell.X) + mirrored.Max(block => block.Cell.X));
+        }
+
+        /// <summary>
+        /// <see cref="MirrorBlocks(Layer, IReadOnlyList{PlacedBlock})"/> around a given axis half way between two columns
+        /// (the Select tool mirrors the blocks and the props of the scenery around one): a block at x goes to sum - x.
+        /// </summary>
+        /// <param name="sum">The sum of the columns of the leftmost and the rightmost cell.</param>
+        public bool MirrorBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks, int sum)
+        {
+            List<PlacedBlock> mirrored = InLayer(layer, blocks);
+            if (mirrored.Count == 0)
+                return false;
             return Relocate("Mirror", layer, mirrored,
                 mirrored.Select(block => new Cell(sum - block.Cell.X, block.Cell.Y)).ToList(),
                 mirrored.Select(block => MirrorName(catalog, block.Name)).ToList());
@@ -623,6 +683,75 @@ namespace TW3D.Editor
         }
 
         /// <summary>
+        /// Adds a prop of the scenery after the others, its foot at a position and depth in physics units; the turn is
+        /// taken in quarter turns of a whole turn (5 is 1, -1 is 3). Refused, with the reason, for a model the catalog does
+        /// not have; null when done.
+        /// </summary>
+        public string AddScenery(string model, float x, float y, float z, int turn)
+        {
+            SceneryType type = catalog.FindScenery(model);
+            if (type == null)
+                return $"The catalog has no scenery {model}.";
+
+            PlacedScenery added = new PlacedScenery(model, x, y, z, WholeTurn(turn));
+            int index = scenery.Count;
+            Record("Add " + type.Name, () => scenery.Insert(index, added), () => scenery.RemoveAt(index));
+            return null;
+        }
+
+        /// <summary>Moves a prop of the scenery to a position and depth in physics units; nothing is recorded when it is there already.</summary>
+        public void MoveScenery(PlacedScenery prop, float x, float y, float z)
+        {
+            float oldX = prop.X, oldY = prop.Y, oldZ = prop.Z;
+            if (x == oldX && y == oldY && z == oldZ)
+                return;
+            Record("Move " + SceneryName(prop),
+                () => Move(prop, x, y, z),
+                () => Move(prop, oldX, oldY, oldZ));
+        }
+
+        /// <summary>
+        /// Turns a prop of the scenery to a number of quarter turns, taken of a whole turn; nothing is recorded when it is
+        /// turned so already.
+        /// </summary>
+        public void TurnScenery(PlacedScenery prop, int turn)
+        {
+            int oldTurn = prop.Turn, newTurn = WholeTurn(turn);
+            if (newTurn == oldTurn)
+                return;
+            Record("Turn " + SceneryName(prop), () => prop.Turn = newTurn, () => prop.Turn = oldTurn);
+        }
+
+        /// <summary>Removes a prop of the scenery; undo puts it back in its place.</summary>
+        public void RemoveScenery(PlacedScenery prop)
+        {
+            int index = scenery.IndexOf(prop);
+            if (index < 0)
+                return;
+            Record("Remove " + SceneryName(prop), () => scenery.RemoveAt(index), () => scenery.Insert(index, prop));
+        }
+
+        /// <summary>
+        /// Flips props of the scenery left to right as one step, around the middle of two columns of cells, the way
+        /// <see cref="MirrorBlocks(Layer, IReadOnlyList{PlacedBlock}, int)"/> flips the blocks with them: a prop at x goes to
+        /// sum × a cell - x, and its turn t becomes 2 - t, so that a prop that looks the same from the front and from
+        /// behind (all of them) stands as its mirror image would. Nothing is recorded for no props, and for props that
+        /// stay as they are; a prop that is not in the level is left out. True when a step was recorded.
+        /// </summary>
+        /// <param name="sum">The sum of the columns of the leftmost and the rightmost cell: the axis is half way between them.</param>
+        public bool MirrorScenery(IReadOnlyList<PlacedScenery> props, int sum)
+        {
+            List<PlacedScenery> mirrored = props.Where(prop => scenery.Contains(prop)).Distinct().ToList();
+            List<(float X, int Turn)> before = mirrored.Select(prop => (prop.X, prop.Turn)).ToList();
+            //Two decimals, as the files keep them (a float does not hold the difference exactly)
+            List<(float X, int Turn)> after = mirrored.Select(prop => (MathF.Round(sum * Units.GridCell - prop.X, 2), WholeTurn(2 - prop.Turn))).ToList();
+            if (before.SequenceEqual(after))
+                return false;
+            Record("Mirror", () => Mirrored(mirrored, after), () => Mirrored(mirrored, before));
+            return true;
+        }
+
+        /// <summary>
         /// Every command until the returned object is disposed is one step of undo, with the name: a painted stroke,
         /// a moved selection. Compounds nest, flattened into the outermost one; a compound with no command records
         /// nothing, and a command refused inside one does not abort it.
@@ -696,6 +825,13 @@ namespace TW3D.Editor
                     problems.Add(new LevelProblem($"Unknown object type \"{obj.Type}\" at {Position(obj)}.", obj.X, obj.Y));
                 else if (!type.Models.Contains(obj.Model))
                     problems.Add(new LevelProblem($"Object type \"{obj.Type}\" has no model \"{obj.Model}\" (at {Position(obj)}).", obj.X, obj.Y));
+            }
+            foreach (PlacedScenery prop in scenery)
+            {
+                if (catalog.FindScenery(prop.Model) == null)
+                    problems.Add(new LevelProblem($"Unknown scenery \"{prop.Model}\" at {Position(prop)}.", prop.X, prop.Y));
+                if (prop.Turn < 0 || prop.Turn > 3)
+                    problems.Add(new LevelProblem($"Scenery \"{prop.Model}\" at {Position(prop)} has turn {prop.Turn}; a turn is 0 to 3 quarter turns.", prop.X, prop.Y));
             }
 
             if (Finish == null)
@@ -794,6 +930,18 @@ namespace TW3D.Editor
             return string.Format(CultureInfo.InvariantCulture, "[{0}, {1}]", obj.X, obj.Y);
         }
 
+        /// <summary>The position and the depth of a prop as the messages write them, with a decimal point whatever the culture.</summary>
+        private static string Position(PlacedScenery prop)
+        {
+            return string.Format(CultureInfo.InvariantCulture, "[{0}, {1}, {2}]", prop.X, prop.Y, prop.Z);
+        }
+
+        /// <summary>The name of a prop in the catalog (its model, for one the catalog does not have), for the names of the steps.</summary>
+        private string SceneryName(PlacedScenery prop) => catalog.FindScenery(prop.Model)?.Name ?? prop.Model;
+
+        /// <summary>A number of quarter turns as 0 to 3: what is left of the whole turns.</summary>
+        public static int WholeTurn(int turn) => (turn % 4 + 4) % 4;
+
         /// <summary>The blocks that are in the layer, once each, in the given order.</summary>
         private List<PlacedBlock> InLayer(Layer layer, IReadOnlyList<PlacedBlock> blocks)
         {
@@ -869,6 +1017,22 @@ namespace TW3D.Editor
         {
             obj.X = x;
             obj.Y = y;
+        }
+
+        private static void Move(PlacedScenery prop, float x, float y, float z)
+        {
+            prop.X = x;
+            prop.Y = y;
+            prop.Z = z;
+        }
+
+        private static void Mirrored(List<PlacedScenery> props, List<(float X, int Turn)> places)
+        {
+            for (int i = 0; i < props.Count; i++)
+            {
+                props[i].X = places[i].X;
+                props[i].Turn = places[i].Turn;
+            }
         }
 
         private static PlacedBlock Convert(BlockPlacement placement)

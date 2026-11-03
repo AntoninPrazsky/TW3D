@@ -10,8 +10,10 @@ namespace TW3D.Editor
     /// cell of the active layer (its name, cell, shift and whether it is the finish); with the Object tool the selected
     /// object, whose type and model it shows, its position as two fields (an edit is applied as one step of undo when it
     /// is finished, to the object it was begun on) and a button that removes it; while none is selected, the hovered one
-    /// only to read; with the Select tool how many blocks are selected and the cells they span, with buttons that mirror
-    /// and delete them.
+    /// only to read; with the Select tool how many blocks and props are selected and the cells they span, with buttons that
+    /// mirror and delete them; with the Scenery tool the selected prop, its position and depth as fields and its turn as
+    /// buttons, and a button that removes it (the hovered one only to read), or while none is selected the depth and the
+    /// turn new props get.
     /// </summary>
     sealed class InspectorWindow
     {
@@ -25,15 +27,22 @@ namespace TW3D.Editor
         private const float PositionStep = 0.1f;
         private const float PositionFastStep = 1f;
 
-        /// <summary>A position field: it shows the object until it is edited, then keeps the edit and the object it is for.</summary>
+        //The turns of a prop as the buttons name them
+        private static readonly string[] TurnLabels = { "0°", "90°", "180°", "270°" };
+
+        /// <summary>
+        /// A position field: it shows the object (or prop) until it is edited, then keeps the edit and the object it is
+        /// for; null for the depth new props get.
+        /// </summary>
         private sealed class PositionEdit
         {
             public float Value;
             public bool Active;
-            public PlacedObject Target;
+            public object Target;
         }
 
         private readonly PositionEdit editX = new PositionEdit(), editY = new PositionEdit();
+        private readonly PositionEdit propX = new PositionEdit(), propY = new PositionEdit(), propZ = new PositionEdit(), chosenDepth = new PositionEdit();
 
         /// <summary>Lays the window out; called every frame while it is shown.</summary>
         /// <param name="open">False after the window was closed by its button.</param>
@@ -41,11 +50,12 @@ namespace TW3D.Editor
         /// <param name="placeTool">The Place tool, whose cursor cell the Inspector shows the block of.</param>
         /// <param name="objectTool">The Object tool, whose selected (else hovered) object the Inspector shows.</param>
         /// <param name="selectTool">The Select tool, whose selected blocks the Inspector counts.</param>
+        /// <param name="sceneryTool">The Scenery tool, whose selected (else hovered) prop the Inspector shows.</param>
         /// <param name="layer">The active layer, whose block the Place tool shows.</param>
         /// <param name="scale">The scale of the interface (1 on a 1920 × 1080 window).</param>
         /// <param name="paletteWidth">The width the palette first appears with: the Inspector appears under it as wide.</param>
         public void Draw(ref bool open, ImGuiViewportPtr viewport, float scale, float paletteWidth, EditorTool tool, BlockTool placeTool,
-            ObjectTool objectTool, SelectTool selectTool, Layer layer)
+            ObjectTool objectTool, SelectTool selectTool, SceneryTool sceneryTool, Layer layer)
         {
             float width = Math.Max(paletteWidth, MinWidth * scale);
             ImGui.SetNextWindowSize(new Vector2(width, Height * scale), ImGuiCond.FirstUseEver);
@@ -57,6 +67,8 @@ namespace TW3D.Editor
                     DrawObject(objectTool);
                 else if (tool == EditorTool.Select)
                     DrawSelection(selectTool, layer);
+                else if (tool == EditorTool.Scenery)
+                    DrawScenery(sceneryTool);
                 else
                     DrawBlock(placeTool, layer);
             }
@@ -87,16 +99,15 @@ namespace TW3D.Editor
 
         private static void DrawSelection(SelectTool selectTool, Layer layer)
         {
-            int count = selectTool.Selection.Count;
             if (!selectTool.Bounds(out Cell min, out Cell max))
-                ImGui.TextDisabled("No blocks selected");
+                ImGui.TextDisabled("Nothing selected");
             else
             {
-                ImGui.Text(SelectTool.Blocks(count) + " selected");
+                ImGui.Text(SelectTool.Items(selectTool.Selection.Count, selectTool.SelectedProps.Count) + " selected");
                 ImGui.Text($"Cells: {min} to {max} ({layer} layer)");
             }
-            ImGui.Text(selectTool.ClipboardCount == 0 ? "Clipboard: empty" : "Clipboard: " + SelectTool.Blocks(selectTool.ClipboardCount));
-            ImGui.BeginDisabled(count == 0);
+            ImGui.Text(selectTool.ClipboardCount == 0 ? "Clipboard: empty" : "Clipboard: " + selectTool.ClipboardText);
+            ImGui.BeginDisabled(!selectTool.Any);
             if (ImGui.Button("Mirror"))
                 selectTool.Mirror();
             ImGui.SameLine();
@@ -134,16 +145,88 @@ namespace TW3D.Editor
             //A click in the scene may finish an edit and select another object in the same frame: the edit is for the
             //object it was begun on
             if (PositionField("X", selected, selected.X, editX))
-                MoveEdited(objectTool, editX.Target, editX.Value, null);
+                MoveEdited(objectTool, editX.Target as PlacedObject, editX.Value, null);
             if (PositionField("Y", selected, selected.Y, editY))
-                MoveEdited(objectTool, editY.Target, null, editY.Value);
+                MoveEdited(objectTool, editY.Target as PlacedObject, null, editY.Value);
             if (ImGui.Button("Remove"))
                 objectTool.Remove(selected);
         }
 
+        private void DrawScenery(SceneryTool sceneryTool)
+        {
+            PlacedScenery selected = sceneryTool.Selected;
+            if (selected == null)
+            {
+                propX.Active = propY.Active = propZ.Active = false;
+                PlacedScenery hovered = sceneryTool.Hovered;
+                if (hovered != null)
+                {
+                    //The mouse leaves the scene for the fields, so the hovered prop is only shown: a click selects it
+                    ImGui.TextDisabled("Prop under the mouse");
+                    ImGui.Separator();
+                    ImGui.Text($"Prop: {sceneryTool.Name(hovered)} ({hovered.Model})");
+                    ImGui.Text($"X: {Number(hovered.X)}, Y: {Number(hovered.Y)}");
+                    ImGui.Text($"Depth: {Number(hovered.Z)} ({hovered.Layer.ToString().ToLowerInvariant()} layer)");
+                    ImGui.Text("Turn: " + SceneryTool.Turns(hovered.Turn));
+                    ImGui.TextDisabled("Click it to select it.");
+                    return;
+                }
+                ImGui.TextDisabled("No prop selected");
+                ImGui.Separator();
+                ImGui.Text("New props: " + (sceneryTool.Chosen?.Name ?? "none"));
+                if (PositionField("Depth", null, sceneryTool.Depth, chosenDepth))
+                    sceneryTool.SetDepth(chosenDepth.Value);
+                int chosenTurn = TurnButtons(sceneryTool.Turn);
+                if (chosenTurn >= 0)
+                    sceneryTool.SetTurn(chosenTurn);
+                ImGui.TextDisabled("Depth: behind the road < 0 < in front of it");
+                return;
+            }
+            chosenDepth.Active = false;
+            ImGui.Text("Selected prop");
+            ImGui.Separator();
+            ImGui.Text($"Prop: {sceneryTool.Name(selected)} ({selected.Model})");
+            //A click in the scene may finish an edit and select another prop in the same frame: the edit is for the prop
+            //it was begun on
+            if (PositionField("X", selected, selected.X, propX))
+                MoveEdited(sceneryTool, propX.Target as PlacedScenery, propX.Value, null, null);
+            if (PositionField("Y", selected, selected.Y, propY))
+                MoveEdited(sceneryTool, propY.Target as PlacedScenery, null, propY.Value, null);
+            if (PositionField("Depth", selected, selected.Z, propZ))
+                MoveEdited(sceneryTool, propZ.Target as PlacedScenery, null, null, propZ.Value);
+            int turn = TurnButtons(selected.Turn);
+            if (turn >= 0)
+                sceneryTool.TurnTo(selected, turn);
+            ImGui.TextDisabled($"Stands in the {selected.Layer.ToString().ToLowerInvariant()} layer");
+            if (ImGui.Button("Remove"))
+                sceneryTool.Remove(selected);
+        }
+
+        /// <summary>The turns of a prop as a row of buttons, the current one marked.</summary>
+        /// <returns>The turn clicked; -1 for none.</returns>
+        private static int TurnButtons(int current)
+        {
+            int clicked = -1;
+            ImGui.Text("Turn:");
+            for (int i = 0; i < TurnLabels.Length; i++)
+            {
+                ImGui.SameLine();
+                if (ImGui.RadioButton(TurnLabels[i], current == i) && current != i)
+                    clicked = i;
+            }
+            return clicked;
+        }
+
+        /// <summary>Moves the prop an edit was begun on, if it is still in the level; the other coordinates stay as they are.</summary>
+        private static void MoveEdited(SceneryTool sceneryTool, PlacedScenery target, float? x, float? y, float? z)
+        {
+            if (target != null && sceneryTool.Contains(target))
+                sceneryTool.MoveTo(target, x ?? target.X, y ?? target.Y, z ?? target.Z);
+        }
+
         /// <summary>A field of the position: it shows the value until it is edited, and keeps the edit until it is finished.</summary>
         /// <returns>The edit was finished (Enter, a click elsewhere, a step button released): the value is to be applied.</returns>
-        private static bool PositionField(string label, PlacedObject obj, float value, PositionEdit edit)
+        private static bool PositionField(string label, object obj, float value, PositionEdit edit)
         {
             if (!edit.Active)
             {

@@ -43,6 +43,23 @@ row along its axis in the order of the catalog (the next ones behind it). The me
 into the garage as the picture of 2016 did; the garage screen moves the camera to the car,
 and to the wheels of the axle being chosen.
 
+## Scenery
+
+The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
+level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
+through them. They are the props the owner released on OpenGameArt in 2016: the traffic cone
+(`cone`), the street lamp (`lamp`), the utility pole (`pole`) and the metal fence (`fence`).
+`tools/garagegen/scenery.py` (Python 3 with NumPy) builds them from their Wings 3D files in
+`art/wings/Scenery/`, with smooth normals by the hard edges of Wings, at the scale of the
+blocks: the cone is 1.6 model units high (the car is 2.4), the lamp 8, the pole 20 (over two
+cells), and a piece of the fence is half a cell long (4.5), so that two pieces end to end
+fill a cell. The foot of every prop is at the origin of its model, and the long side of the
+fence runs along x, along the road. The lamp and the fence were textured with photos of rust,
+which are not in the repository; their faces get the colours the textures had there, by
+rules in the script (the rim of the lamp's roof, the door at its foot and the steel spikes of
+the fence have their own). Run the script after changing the `.wings` files or the script and
+commit its output.
+
 ## Precompiled content
 
 The other files are still the precompiled `.xnb` files from XNA 4.0, without
@@ -68,8 +85,8 @@ builds the changed model and generates its collision shape again (commit
 
 ## Catalog
 
-`content/catalog.json` lists everything the levels are built from, for both the
-game and the editor:
+`content/catalog.json` lists everything the levels are built from, and the cars, for both
+the game and the editor:
 
 - **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
   collision shape (`collision`). Only blocks with a collision shape can be in the
@@ -85,6 +102,9 @@ game and the editor:
   `model`: the collision shape of the model), size, friction, mass, restitution, the
   models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the
   default, `wood` or `plastic`), which decides how they sound when they hit something.
+- **scenery**: the props beside the track: the name shown in the editor and the model
+  (`Scenery/<model>`), by which the levels name the prop. They have no physics, so no
+  collision shape.
 - **cars**: the cars of the garage: the name, the model of the body, the wheels it comes
   with, the mass of the body, the top speed (how fast the motors turn the wheels at
   most, radians per second) and its engine: how much higher it sounds (`enginePitch`,
@@ -96,8 +116,8 @@ game and the editor:
 - **wheels**: the wheels of the garage: the name, the model, the friction of the tyre (its
   grip on the track, whose friction is 1) and the mass of one wheel.
 
-A new block, object, car or wheel only needs its model in `content/` (and a `/build` line
-in `content/Content.mgcb`) and an entry in the catalog.
+A new block, object, prop, car or wheel only needs its model in `content/` (and a `/build`
+line in `content/Content.mgcb`) and an entry in the catalog.
 
 Pictures of the blocks and objects are in `docs/catalog/`: open
 [`catalog.html`](catalog/catalog.html) in a browser.

@@ -11,11 +11,12 @@ namespace TW3D.Editor
     /// <summary>
     /// The helpers drawn over the scene of the editor, after the renderer has drawn the level, with the depth buffer on
     /// so that they sit in the scene: the selector of 2016 (Levels/selector, a green wire cube) at the cursor cell on
-    /// the plane of the active layer and a thin grid of a few cells around it so that the cells are seen (while the
-    /// Place tool is active), tinted copies of the selector marking the finish block and the start cell [0, 0] of the
-    /// middle layer, and tinted copies scaled around the bounding spheres of the hovered and the selected dynamic
-    /// object (while the Object tool is active), and tinted selectors at the selected blocks, the cells a drag would
-    /// move them to and the rectangle being dragged (while the Select tool is active), and red bars at the gaps of the
+    /// the plane of the active layer (of the chosen depth for the Scenery tool) and a thin grid of a few cells around it
+    /// so that the cells are seen, tinted copies of the selector marking the finish block and the start cell [0, 0] of
+    /// the middle layer, and tinted copies scaled around the bounding spheres of the hovered and the selected dynamic
+    /// object or prop of the scenery (while the Object or the Scenery tool is active), and tinted selectors at the
+    /// selected blocks and props, the cells a drag would move them to and the rectangle being dragged (while the Select
+    /// tool is active), and red bars at the gaps of the
     /// road (the edges where the surfaces of two road blocks differ in height). The selector is drawn with
     /// BasicEffect and the lighting of 2016, as the editor of 2016 drew it.
     /// </summary>
@@ -115,21 +116,32 @@ namespace TW3D.Editor
             }
         }
 
-        /// <summary>Draws the markers of the finish and the start, and the grid and the selector at the cursor cell of a layer.</summary>
-        /// <param name="layer">The layer of the cursor: the active layer for the Place tool, the middle one for the Object tool.</param>
+        /// <summary>Draws the markers of the finish and the start, and the grid and the selector at the cursor cell on a plane.</summary>
+        /// <param name="depth">
+        /// The depth of the plane of the cursor in physics units: of the active layer for the Place and Select tools, of
+        /// the middle one for the Object tool, the chosen depth for the Scenery tool (see <see cref="LevelView.Depth"/>).
+        /// </param>
         /// <param name="cursor">The cursor cell; null for no grid and no selector.</param>
         /// <param name="finish">The finish block of the level; null when it has none.</param>
-        public void Draw(Matrix view, Matrix projection, Layer layer, Cell? cursor, PlacedBlock finish)
+        public void Draw(Matrix view, Matrix projection, float depth, Cell? cursor, PlacedBlock finish)
         {
             if (cursor.HasValue && ShowGrid)
-                DrawGrid(view, projection, layer, cursor.Value);
+                DrawGrid(view, projection, depth, cursor.Value);
 
             SetSolidStates();
             if (finish != null)
                 DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, finish.Cell), MarkerScale, FinishTint);
             DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, StartCell), MarkerScale, StartTint);
             if (cursor.HasValue)
-                DrawSelector(view, projection, LevelView.ScenePosition(layer, cursor.Value), 1f, null);
+                DrawSelector(view, projection, CellOnPlane(depth, cursor.Value), 1f, null);
+        }
+
+        /// <summary>The middle of a cell on the plane of a depth (physics units) in the scene.</summary>
+        private static Vector3 CellOnPlane(float depth, Cell cell)
+        {
+            Vector3 position = LevelView.ScenePosition(Layer.Middle, cell);
+            position.Z = LevelView.SceneDepth(depth);
+            return position;
         }
 
         /// <summary>
@@ -188,7 +200,7 @@ namespace TW3D.Editor
             gapBarVertices = index;
         }
 
-        /// <summary>Marks the hovered and the selected dynamic object by selectors as large as their bounding spheres.</summary>
+        /// <summary>Marks the hovered and the selected dynamic object (or prop) by selectors as large as their bounding spheres.</summary>
         /// <param name="hovered">The bounding sphere of the hovered object in the scene; null for none.</param>
         /// <param name="selected">The bounding sphere of the selected object in the scene; null for none.</param>
         public void DrawObjects(Matrix view, Matrix projection, BoundingSphere? hovered, BoundingSphere? selected)
@@ -215,6 +227,22 @@ namespace TW3D.Editor
             for (int i = 0; i < blocks.Count; i++)
                 DrawSelector(view, projection, LevelView.ScenePosition(layer, LevelView.PhysicsPosition(blocks[i]) + move),
                     ghost ? GhostScale : BlockScale, ghost ? GhostTint : BlockTint);
+        }
+
+        /// <summary>
+        /// Marks props of the scenery selected with blocks by selectors as large as their bounding spheres, in the colour
+        /// of the selected blocks, moved by whole cells (for the marks of where a drag would put them).
+        /// </summary>
+        /// <param name="ghost">The marks are of where a drag would move the props, not of the props.</param>
+        public void DrawProps(Matrix view, Matrix projection, IReadOnlyList<BoundingSphere> spheres, int dx, int dy, bool ghost)
+        {
+            if (spheres.Count == 0)
+                return;
+            SetSolidStates();
+            Vector3 move = LevelView.ScenePosition(Layer.Middle, new Cell(dx, dy)) - LevelView.ScenePosition(Layer.Middle, new Cell(0, 0));
+            for (int i = 0; i < spheres.Count; i++)
+                DrawSelector(view, projection, spheres[i].Center + move, spheres[i].Radius * 2f / LevelView.CellSize * (ghost ? GhostScale : BlockScale),
+                    ghost ? GhostTint : BlockTint);
         }
 
         /// <summary>Draws the rectangle of cells between two cells of a layer as unlit lines on the plane of the layer.</summary>
@@ -262,13 +290,13 @@ namespace TW3D.Editor
             device.SamplerStates[0] = SamplerState.LinearWrap;
         }
 
-        /// <summary>Unlit lines on the plane of the layer, mixed over the scene, not hiding what is behind them.</summary>
-        private void DrawGrid(Matrix view, Matrix projection, Layer layer, Cell cursor)
+        /// <summary>Unlit lines on the plane of the cursor, mixed over the scene, not hiding what is behind them.</summary>
+        private void DrawGrid(Matrix view, Matrix projection, float depth, Cell cursor)
         {
             device.BlendState = BlendState.AlphaBlend;
             device.DepthStencilState = DepthStencilState.DepthRead;
             device.RasterizerState = RasterizerState.CullNone;
-            lineEffect.World = Matrix.CreateTranslation(LevelView.ScenePosition(layer, cursor));
+            lineEffect.World = Matrix.CreateTranslation(CellOnPlane(depth, cursor));
             lineEffect.View = view;
             lineEffect.Projection = projection;
             foreach (EffectPass pass in lineEffect.CurrentTechnique.Passes)

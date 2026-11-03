@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text.Json.Serialization;
 
@@ -36,6 +37,30 @@ namespace TW3D.Shared
         public float Y { get; set; }
     }
 
+    /// <summary>A prop of the scenery: it stands beside the track, without physics.</summary>
+    public sealed class SceneryPlacement
+    {
+        /// <summary>A quarter turn is this many radians; <see cref="Turn"/> counts them.</summary>
+        public const float QuarterTurn = (float)(System.Math.PI / 2);
+
+        /// <summary>The model of the prop in the catalog (see <see cref="SceneryType.Model"/>).</summary>
+        public string Model { get; set; }
+
+        /// <summary>Where its foot stands in physics units, as the position of a dynamic object (y grows downward).</summary>
+        public float X { get; set; }
+        public float Y { get; set; }
+
+        /// <summary>
+        /// The depth in physics units: negative behind the road, positive in front of it. The road of the middle layer
+        /// reaches half a cell (11.25) to either side; the back and front layers stand one cell (22.5) away from it.
+        /// </summary>
+        public float Z { get; set; }
+
+        /// <summary>Quarter turns about the vertical axis, 0 to 3: a fence along the road turned once runs across it.</summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public int Turn { get; set; }
+    }
+
     /// <summary>The light of a level.</summary>
     public enum LevelMood
     {
@@ -45,8 +70,9 @@ namespace TW3D.Shared
     }
 
     /// <summary>
-    /// A level: track blocks in three layers and dynamic objects.
-    /// Only the middle layer takes part in the physics simulation; the back and front layers are decoration.
+    /// A level: track blocks in three layers, dynamic objects and scenery.
+    /// Only the middle layer takes part in the physics simulation; the back and front layers are decoration, and so is
+    /// the scenery.
     /// </summary>
     public sealed class LevelData
     {
@@ -78,6 +104,9 @@ namespace TW3D.Shared
         public List<BlockPlacement> Back { get; set; } = new List<BlockPlacement>();
         public List<BlockPlacement> Front { get; set; } = new List<BlockPlacement>();
         public List<ObjectPlacement> Objects { get; set; } = new List<ObjectPlacement>();
+
+        /// <summary>The props beside the track (optional in the file: a level without them leaves the list out).</summary>
+        public List<SceneryPlacement> Scenery { get; set; } = new List<SceneryPlacement>();
 
         /// <summary>Checks the level against the catalog and returns a description of every problem found.</summary>
         public List<string> Validate(Catalog catalog)
@@ -113,6 +142,15 @@ namespace TW3D.Shared
                     problems.Add($"Unknown object type \"{placement.Type}\" at [{placement.X}, {placement.Y}].");
                 else if (!type.Models.Contains(placement.Model))
                     problems.Add($"Object type \"{placement.Type}\" has no model \"{placement.Model}\" (at [{placement.X}, {placement.Y}]).");
+            }
+
+            foreach (SceneryPlacement placement in Scenery)
+            {
+                string at = string.Create(CultureInfo.InvariantCulture, $"[{placement.X}, {placement.Y}, {placement.Z}]");
+                if (catalog.FindScenery(placement.Model) == null)
+                    problems.Add($"Unknown scenery \"{placement.Model}\" at {at}.");
+                if (placement.Turn < 0 || placement.Turn > 3)
+                    problems.Add($"Scenery \"{placement.Model}\" at {at} has turn {placement.Turn}; a turn is 0 to 3 quarter turns.");
             }
 
             return problems;

@@ -1,0 +1,19 @@
+# Materials of cone; Pm and Pr: metal and roughness (tools/ContentPipeline)
+
+newmtl orange
+Kd 1.0000 0.2800 0.0000
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.5
+illum 2
+
+newmtl white
+Kd 1.0000 1.0000 1.0000
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.5
+illum 2

@@ -12,7 +12,9 @@ namespace TW3D.Editor
     /// as collapsing headers, found by a search box; a click makes one the chosen block of the <see cref="BlockTool"/>
     /// and the Place tool the active one. Decorations (blocks without a collision shape) are disabled while the middle
     /// layer is active, as the document refuses them there. A second tab shows the models of the dynamic objects by
-    /// their type; a click makes one the chosen object of the <see cref="ObjectTool"/> and that tool the active one.
+    /// their type; a click makes one the chosen object of the <see cref="ObjectTool"/> and that tool the active one. A
+    /// third tab shows the props of the scenery; a click makes one the chosen prop of the <see cref="SceneryTool"/> and
+    /// that tool the active one.
     /// </summary>
     sealed class PaletteWindow
     {
@@ -51,12 +53,13 @@ namespace TW3D.Editor
         public const float DefaultHeight = 450f, DefaultMargin = 20f;
         private const uint SearchLength = 32;
 
-        /// <summary>A preview shown in a group: the block, or the model of an object type.</summary>
+        /// <summary>A preview shown in a group: the block, the model of an object type, or a prop of the scenery.</summary>
         private sealed class Entry
         {
             public int Preview;
             public BlockType Block;
             public string Type, Model;
+            public SceneryType Prop;
             //What the tooltip says: the name of the block, "type: model" of an object; also the id of the button, unique
             //in its tab as it names the type of a model that two types share
             public string Label;
@@ -74,6 +77,7 @@ namespace TW3D.Editor
         private readonly Action<EditorTool> activate;
         private readonly List<Group> blockGroups = new List<Group>();
         private readonly List<Group> objectGroups = new List<Group>();
+        private readonly List<Entry> sceneryEntries = new List<Entry>();
         private string search = "";
         //The border of the chosen preview in pixels, scaled with the interface
         private float borderThickness = BorderThickness;
@@ -112,6 +116,9 @@ namespace TW3D.Editor
                     group.Entries.Add(new Entry { Preview = previews.ObjectModelIndex(model), Type = type.Type, Model = model, Label = type.Type + ": " + model });
                 objectGroups.Add(group);
             }
+
+            foreach (SceneryType prop in catalog.Scenery)
+                sceneryEntries.Add(new Entry { Preview = previews.SceneryIndex(prop.Model), Prop = prop, Label = prop.Name });
         }
 
         private Entry BlockEntry(BlockType type)
@@ -132,10 +139,12 @@ namespace TW3D.Editor
         /// <param name="open">False after the window was closed by its button.</param>
         /// <param name="tool">The Place tool, whose chosen block a click sets.</param>
         /// <param name="objectTool">The Object tool, whose chosen object a click sets.</param>
+        /// <param name="sceneryTool">The Scenery tool, whose chosen prop a click sets.</param>
         /// <param name="layer">The active layer: decorations are disabled in the middle one.</param>
         /// <param name="cellSize">The size of a preview in pixels.</param>
         /// <param name="scale">The scale of the interface (1 on a 1920 × 1080 window).</param>
-        public void Draw(ref bool open, ImGuiViewportPtr viewport, BlockTool tool, ObjectTool objectTool, Layer layer, int cellSize, float scale)
+        public void Draw(ref bool open, ImGuiViewportPtr viewport, BlockTool tool, ObjectTool objectTool, SceneryTool sceneryTool, Layer layer,
+            int cellSize, float scale)
         {
             ImGuiStylePtr style = ImGui.GetStyle();
             float buttonWidth = cellSize + style.FramePadding.X * 2f;
@@ -157,6 +166,11 @@ namespace TW3D.Editor
                 if (ImGui.BeginTabItem("Objects"))
                 {
                     DrawObjects(objectTool, cellSize, buttonWidth, ref hovered);
+                    ImGui.EndTabItem();
+                }
+                if (ImGui.BeginTabItem("Scenery"))
+                {
+                    DrawScenery(sceneryTool, cellSize, buttonWidth, ref hovered);
                     ImGui.EndTabItem();
                 }
                 ImGui.EndTabBar();
@@ -225,6 +239,27 @@ namespace TW3D.Editor
                         hovered = entry.Preview;
                         ImGui.SetTooltip(entry.Label);
                     }
+                }
+            }
+        }
+
+        private void DrawScenery(SceneryTool sceneryTool, int cellSize, float buttonWidth, ref int hovered)
+        {
+            ImGui.TextWrapped("Props beside the track, without physics.");
+            float right = ImGui.GetCursorScreenPos().X + ImGui.GetContentRegionAvail().X;
+            bool first = true;
+            foreach (Entry entry in sceneryEntries)
+            {
+                Wrap(ref first, buttonWidth, right);
+                if (Button(entry, cellSize, sceneryTool.Chosen == entry.Prop))
+                {
+                    sceneryTool.Choose(entry.Prop.Model);
+                    activate(EditorTool.Scenery);
+                }
+                if (ImGui.IsItemHovered())
+                {
+                    hovered = entry.Preview;
+                    ImGui.SetTooltip(entry.Label);
                 }
             }
         }

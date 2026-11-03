@@ -73,6 +73,23 @@ namespace TW3D.Shared
     }
 
     /// <summary>
+    /// A kind of scenery: a static prop that stands beside the track (a traffic cone, a street lamp...). It has no physics;
+    /// the car never meets it. Not to be confused with the decoration blocks of the back and front layers, nor with the
+    /// dynamic objects, which are physics bodies.
+    /// </summary>
+    public sealed class SceneryType
+    {
+        /// <summary>The name shown in the editor.</summary>
+        public string Name { get; set; }
+
+        /// <summary>Content name of the model in Scenery/ (e.g. "cone"); the levels name the prop by it.</summary>
+        public string Model { get; set; }
+
+        [JsonIgnore]
+        public string ModelAsset => "Scenery/" + Model;
+    }
+
+    /// <summary>
     /// A car to choose in the garage. All cars have the same chassis: the holders of the wheels and their places; any
     /// wheels fit any car, on each axle other ones.
     /// </summary>
@@ -123,7 +140,7 @@ namespace TW3D.Shared
     }
 
     /// <summary>
-    /// All track blocks and dynamic objects the levels are built from, and the cars and their wheels.
+    /// All track blocks, dynamic objects and scenery the levels are built from, and the cars and their wheels.
     /// Shared by the game and the level editor; stored in content/catalog.json.
     /// </summary>
     public sealed class Catalog
@@ -132,12 +149,16 @@ namespace TW3D.Shared
 
         public List<BlockType> Blocks { get; set; } = new List<BlockType>();
         public List<ObjectType> Objects { get; set; } = new List<ObjectType>();
+        public List<SceneryType> Scenery { get; set; } = new List<SceneryType>();
         public List<CarType> Cars { get; set; } = new List<CarType>();
         public List<WheelType> Wheels { get; set; } = new List<WheelType>();
 
         public BlockType FindBlock(string name) => Blocks.FirstOrDefault(block => block.Name == name);
 
         public ObjectType FindObject(string type) => Objects.FirstOrDefault(obj => obj.Type == type);
+
+        /// <summary>The scenery with the model; null for a model the catalog does not have.</summary>
+        public SceneryType FindScenery(string model) => Scenery.FirstOrDefault(prop => prop.Model == model);
 
         /// <summary>The car with the body model; the first car if there is no such car.</summary>
         public CarType FindCar(string model) => Cars.FirstOrDefault(car => car.Model == model) ?? Cars.FirstOrDefault();

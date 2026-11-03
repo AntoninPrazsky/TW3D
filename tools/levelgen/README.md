@@ -41,6 +41,7 @@ t.road("a1", "a1", "c2f", "c2", "a1");    // road blocks, one column each
 t.step(-1);                              // a step up by 2.5 units
 t.put("back", "st2", 2, -5);             // any block in any layer, by its base
 t.obj("Box", "box", 50, Track.top(0) - 3.3);
+t.prop("lamp", 45, -1.25, -12.5, 1);     // a street lamp behind the road, turned (scenery: no physics)
 for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
 t.mood = "sunset";                       // the light: "day" (default), "sunset" or "night"
 t.par = 20;                              // the par time in seconds (default: estimated by the game)
@@ -48,6 +49,10 @@ t.save("content/Levels/example.json");
 ```
 
 The car starts at x = -1.6, so the road has to be flat at height 0 around column 0.
+
+`prop(model, x, y, z, turn)` adds a prop of the scenery (no physics): its foot at `x`, `y` in
+physics units (the road of a flat block at height `h` is at `h * 2.5 - 1.25`), at the depth
+`z` (negative behind the road, positive in front of it), turned by quarter turns.
 
 Decoration helpers (back and front layers, no physics): `kerbs` (kerbs with end pieces along
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),

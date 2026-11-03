@@ -38,7 +38,7 @@ three layers, the back and front layers of decorations and the middle layer, the
 car drives on; the layer being edited is changed by Tab, Right Shift toggles the back layer
 as soon as it is pressed and Right Ctrl the front layer when tapped alone. The View menu
 hides the back layer, the
-front layer and the objects (they are not drawn and cannot be edited while hidden: the
+front layer, the objects and the scenery (they are not drawn and cannot be edited while hidden: the
 status bar says "The back layer is hidden." when a key, a click or a command of the Edit
 menu would change them), the grid around the cursor cell and the red bars of the road gaps;
 nothing hidden is saved or affects the test drive. The lighting is switched by F9 (the
@@ -46,18 +46,20 @@ lighting of 2016), F10 (shadows) and F11 (ambient occlusion), as in the game, an
 the mood of the level.
 
 The menu bar has the File, Edit, View, Level and Help menus. The status bar along the bottom
-shows the cursor cell, the layer, the active tool, the chosen block and object, the file of
+shows the cursor cell, the layer, the active tool, the chosen block and object (and the
+chosen prop with its depth and turn while the Scenery tool is active), the file of
 the level (its tooltip the full path and the levels folder; `*` while it has unsaved
 changes), how many problems and road gaps the level has, the warning about a generated
 level (below) and what was done last. The title of the window shows the name of the level
 with `*` while it has unsaved changes. Every change can be undone (Ctrl+Z, Ctrl+Y and the
-Edit menu, which names the step); a painted stroke, a drag of an object and a command on a
-selection are one step each.
+Edit menu, which names the step); a painted stroke, a drag of an object or a prop and a
+command on a selection are one step each.
 
 ### Tools
 
 The mouse and most keys go to the active tool: B makes the Place tool active (blocks), O the
-Object tool (dynamic objects) and V the Select tool (many blocks); View > Tool lists them.
+Object tool (dynamic objects), V the Select tool (many blocks) and P the Scenery tool (props
+beside the track); View > Tool lists them.
 
 The **Place tool** edits blocks in the active layer. The left button places the chosen block
 in the cell under the cursor and dragging paints, Left Shift + the left button erases, the
@@ -77,16 +79,37 @@ adds the chosen object at the top of the cursor cell, so that it drops onto the 
 move it by a physics unit (Ctrl + the arrows by a tenth), or move the cursor cell while
 nothing is selected, and Esc clears the selection (a second Esc leaves the editor).
 
-The **Select tool** works on many blocks of the active layer at once. A click selects a
-block (Ctrl adds or removes it), a drag from an empty cell draws a rectangle that selects
-the blocks in it, a drag of a selected block moves the selection by whole cells, Ctrl+A
-selects the layer, and Space adds the block at the cursor cell to the selection, or takes
-it out again. The arrows move the selection (Ctrl + the arrows only the cursor cell),
-Delete erases it, PageUp / PageDown shift it, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and
-paste it (the leftmost of the copied
-blocks, the lowest of those if several, goes to the cursor cell), and H mirrors it left to
-right, swapping every block for its mirrored variant where the catalog has one (`b2` and
-`b2f`, `s1` and `s1f`...), so that a climb becomes a descent.
+The **Scenery tool** edits the props of the scenery: traffic cones, street lamps, utility
+poles and metal fences that stand beside the track and have no physics (the car drives
+through them). A prop stands at a depth: negative behind the road, positive in front of it;
+the road reaches 11.25 physics units to either side and the back and front layers the next
+22.5. New props go to the chosen depth (-10 at first: on the road, behind where the car
+drives), and the cursor cell and its grid are on its plane. The left button adds the chosen
+prop at the point under the cursor and selects it, or selects the prop under the cursor, and
+dragging moves it on the plane of its depth; the mouse places and drags in steps of 1.25
+physics units, on which the surfaces of the flat road blocks lie, so that a prop stands on
+the road and two pieces of the fence (half a cell long each) fill a cell. Left Shift + the
+left button removes the prop under the cursor, and the right button picks its model, turn
+and depth as the chosen ones. Space adds the chosen prop in the middle of the cursor cell,
+standing on the road block there, Delete removes the selected prop, the arrows move it by
+1.25 (Ctrl + the arrows by a tenth) or move the cursor cell while nothing is selected, T
+turns it by a quarter, and PageUp / PageDown move it away from the camera / towards it;
+without a selection T and PageUp / PageDown change the turn and the depth of the props to be
+added. Esc clears the selection.
+
+The **Select tool** works on many blocks of the active layer at once, and on the props of
+the scenery that stand in the layer (by their depth; a prop is in the cell of its foot). A
+click selects a cell, its block and its props (Ctrl adds or removes them), a drag from an
+empty cell draws a rectangle that selects the blocks and the props in it, a drag of a
+selected cell moves the selection by whole cells, Ctrl+A selects the layer with its props,
+and Space adds the cell at the cursor to the selection, or takes it out again. The arrows
+move the selection (Ctrl + the arrows only the cursor cell), Delete erases it, PageUp /
+PageDown shift it, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste it (the leftmost of the
+copied cells, the lowest of those if several, goes to the cursor cell; the props keep their
+depth relative to the layer), and H mirrors it left to right, swapping every block for its
+mirrored variant where the catalog has one (`b2` and `b2f`, `s1` and `s1f`...), so that a
+climb becomes a descent, and turning the props as their mirror images. While the View menu
+hides the scenery, the props are left out of the selection.
 
 ### The windows
 
@@ -98,19 +121,23 @@ Controls window.
   the [catalog page](catalog/catalog.html) and searchable by name; a click makes the block
   the chosen one and the Place tool active. Decorations are greyed out while the middle
   layer is active. Its Objects tab shows the models of the dynamic objects, and a click
-  makes one the chosen object and the Object tool active.
+  makes one the chosen object and the Object tool active; its Scenery tab does the same for
+  the props of the scenery and the Scenery tool.
 - **Inspector** shows what the active tool works on: the block at the cursor cell of the
   active layer (its name, cell, shift and whether it is the finish, and the surface heights
   of a road block), the selected blocks (how many, and the cells they span) with buttons
-  that mirror and delete them, or the selected object with its type, model and position,
-  which can be typed (each edit one step of undo), and a button that removes it.
+  that mirror and delete them, the selected object with its type, model and position,
+  which can be typed (each edit one step of undo), and a button that removes it, or the
+  selected prop with its position and depth to type, its turn as four buttons and a button
+  that removes it (without a selection, the depth and the turn of the props to be added).
 - **Level** is everything about the level that is not a block. It shows the name of the
   level (the full path as a tooltip) and edits the mood (Day, Sunset or Night, at once), the
   position in the level select (the checkbox *In the level select*, and the number; levels
   without one come after the others, sorted by name) and the par time (the checkbox *Par
   time* and the seconds; while the level has none, the window says what the game estimates,
   "estimated: 10.0 s"). Each edit is one step of undo, saved with the level. It counts the
-  blocks of each layer and the objects and gives the cells the level spans. Below are the
+  blocks of each layer, the objects and the props of the scenery and gives the cells the
+  level spans. Below are the
   problems that stop the level from being played (no finish, no block at the start, an
   object over nothing...) and, apart from them, the gaps of the road, folded away when
   there are more than ten. Clicking a line with a place points the camera at it (the
@@ -201,6 +228,10 @@ Levels are JSON files with one block or object per line:
   "objects": [
     {"type":"Bar","model":"bar1","x":238,"y":-4},
     ...
+  ],
+  "scenery": [
+    {"model":"lamp","x":45,"y":-1.25,"z":-12.5,"turn":1},
+    ...
   ]
 }
 ```
@@ -220,6 +251,14 @@ Levels are JSON files with one block or object per line:
   block of the middle layer the finish of the level (one at most): the run ends when
   the middle of the car reaches its cell. A level without a finish has no end.
 - Objects: `x`, `y` in physics units.
+- `scenery` (optional, written only when the level has some): the props beside the track,
+  without physics. `model` is a prop of the `scenery` list of the catalog, `x`, `y` where
+  its foot stands in physics units, `z` its depth (negative behind the road, positive in
+  front of it; the road of the middle layer reaches 11.25 to either side, the back and front
+  layers stand one cell, 22.5, away from it), and `turn` (0 when left out) the quarter turns
+  about the vertical axis, 0 to 3: a fence along the road turned once runs across it. The
+  surface of a flat road block is 1.25 above the height of its profile, so a prop standing
+  on the road of the start cell has `"y": -1.25`.
 
 ## Converted and generated levels
 

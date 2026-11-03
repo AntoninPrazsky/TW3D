@@ -385,6 +385,119 @@ namespace TW3D.Tests
         }
 
         [Fact]
+        public void AnUnknownSceneryIsRefused()
+        {
+            EditedLevel level = Fresh();
+            int version = level.Version;
+            Assert.NotNull(level.AddScenery("no-such-prop", 0f, -1.25f, -10f, 0));
+            Assert.Empty(level.Scenery);
+            Assert.Equal(version, level.Version);
+        }
+
+        [Fact]
+        public void SceneryIsAddedMovedTurnedAndRemovedWithUndo()
+        {
+            EditedLevel level = Fresh();
+            Assert.Null(level.AddScenery("lamp", 10f, -1.25f, -12.5f, 0));
+            //A turn is taken of a whole turn
+            Assert.Null(level.AddScenery("cone", 20f, -1.25f, -8f, 5));
+            Assert.Equal("Add Traffic cone", level.UndoName);
+            PlacedScenery lamp = level.Scenery[0];
+            PlacedScenery cone = level.Scenery[1];
+            Assert.Equal(1, cone.Turn);
+
+            level.MoveScenery(lamp, 11f, -2.5f, -15f);
+            Assert.Equal((11f, -2.5f, -15f), (lamp.X, lamp.Y, lamp.Z));
+            int version = level.Version;
+            level.MoveScenery(lamp, 11f, -2.5f, -15f);
+            Assert.Equal(version, level.Version);
+            level.TurnScenery(lamp, -1);
+            Assert.Equal(3, lamp.Turn);
+            Assert.Equal("Turn Street lamp", level.UndoName);
+            version = level.Version;
+            level.TurnScenery(lamp, 7);
+            Assert.Equal(version, level.Version);
+
+            level.RemoveScenery(lamp);
+            Assert.Equal(new[] { cone }, level.Scenery);
+            level.Undo();
+            Assert.Equal(new[] { lamp, cone }, level.Scenery);
+            level.Undo();
+            Assert.Equal(0, lamp.Turn);
+            level.Undo();
+            Assert.Equal((10f, -1.25f, -12.5f), (lamp.X, lamp.Y, lamp.Z));
+            level.Undo();
+            Assert.Equal(new[] { lamp }, level.Scenery);
+            level.Redo();
+            Assert.Equal(new[] { lamp, cone }, level.Scenery);
+        }
+
+        [Fact]
+        public void SceneryIsSavedAndReadBack()
+        {
+            EditedLevel level = Fresh();
+            Assert.Null(level.AddScenery("fence", -5.63f, -1.25f, -10f, 1));
+            Assert.Null(level.AddScenery("pole", 30f, -1.25f, -30f, 0));
+            string json = Json(level);
+            Assert.Contains("\"scenery\": [", json);
+            Assert.Contains("{\"model\":\"fence\",\"x\":-5.63,\"y\":-1.25,\"z\":-10,\"turn\":1}", json);
+            //A turn of 0 is left out
+            Assert.Contains("{\"model\":\"pole\",\"x\":30,\"y\":-1.25,\"z\":-30}", json);
+
+            EditedLevel read = new EditedLevel(Catalog, LevelFile.Parse(json), null);
+            Assert.Equal(json, Json(read));
+            Assert.Equal(2, read.Scenery.Count);
+            Assert.DoesNotContain(read.Problems(), problem => problem.Message.Contains("scenery", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void SceneryBelongsToTheLayerItStandsIn()
+        {
+            EditedLevel level = Fresh();
+            foreach (float z in new[] { -40f, -11.3f, -11.25f, 0f, 11.25f, 11.3f, 40f })
+                Assert.Null(level.AddScenery("cone", 0f, -1.25f, z, 0));
+            Assert.Equal(new[] { Layer.Back, Layer.Back, Layer.Middle, Layer.Middle, Layer.Middle, Layer.Front, Layer.Front },
+                level.Scenery.Select(prop => prop.Layer));
+        }
+
+        [Fact]
+        public void MirroredSceneryGoesAcrossTheAxisAndTurnsAsItsMirrorImage()
+        {
+            EditedLevel level = Fresh();
+            Assert.Null(level.AddScenery("lamp", 5f, -1.25f, -12.5f, 0));
+            Assert.Null(level.AddScenery("fence", 30.3f, -1.25f, -10f, 1));
+            PlacedScenery lamp = level.Scenery[0], fence = level.Scenery[1];
+            //The axis between the columns 0 and 1: a cell's half to the right of the middle of column 0
+            Assert.True(level.MirrorScenery(level.Scenery, 1));
+            Assert.Equal((17.5f, 2), (lamp.X, lamp.Turn));
+            Assert.Equal((-7.8f, 1), (fence.X, fence.Turn));
+            Assert.Equal(-12.5f, lamp.Z);
+            Assert.Equal("Mirror", level.UndoName);
+            level.Undo();
+            Assert.Equal((5f, 0), (lamp.X, lamp.Turn));
+            Assert.Equal((30.3f, 1), (fence.X, fence.Turn));
+            //A turned fence standing on the axis stays as it is: nothing to record
+            Assert.Null(level.AddScenery("fence", 11.25f, -1.25f, -10f, 1));
+            int version = level.Version;
+            Assert.False(level.MirrorScenery(new[] { level.Scenery[2] }, 1));
+            Assert.Equal(version, level.Version);
+        }
+
+        [Fact]
+        public void BadSceneryOfAFileIsAProblem()
+        {
+            LevelData data = EditedLevel.New(Catalog).ToData();
+            data.Scenery.Add(new SceneryPlacement { Model = "no-such-prop", X = 1f, Y = 2f, Z = 3f });
+            data.Scenery.Add(new SceneryPlacement { Model = "cone", X = 1f, Y = 2f, Z = 3f, Turn = 4 });
+            EditedLevel level = new EditedLevel(Catalog, data, null);
+            List<string> messages = level.Problems().Select(problem => problem.Message).ToList();
+            Assert.Contains("Unknown scenery \"no-such-prop\" at [1, 2, 3].", messages);
+            Assert.Contains("Scenery \"cone\" at [1, 2, 3] has turn 4; a turn is 0 to 3 quarter turns.", messages);
+            //The game's check finds the same
+            Assert.Equal(2, data.Validate(Catalog).Count(problem => problem.Contains("cenery", StringComparison.Ordinal)));
+        }
+
+        [Fact]
         public void ACompoundIsUndoneAtOnce()
         {
             EditedLevel level = Fresh();

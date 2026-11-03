@@ -40,6 +40,7 @@ namespace TW3D.Tests
             Assert.Equal($"Blocks: {level.Blocks(Layer.Middle).Count} middle, {level.Blocks(Layer.Back).Count} back, {level.Blocks(Layer.Front).Count} front",
                 report.BlocksText);
             Assert.Equal("Objects: " + level.Objects.Count, report.ObjectsText);
+            Assert.Equal("Scenery: 0 props", report.SceneryText);
             Assert.True(report.HasCells);
             Assert.StartsWith("Cells: [", report.CellsText);
         }
@@ -60,6 +61,7 @@ namespace TW3D.Tests
             Assert.Equal("estimated: 10.0 s", report.EstimateText);
             Assert.Equal("Blocks: 1 middle, 0 back, 0 front", report.BlocksText);
             Assert.Equal("Objects: 0", report.ObjectsText);
+            Assert.Equal("Scenery: 0 props", report.SceneryText);
             Assert.Equal("Cells: [0, 0] to [0, 0]", report.CellsText);
         }
 

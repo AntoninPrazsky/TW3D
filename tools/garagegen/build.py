@@ -5,10 +5,8 @@ drawn as a background). Coordinates stay those of Wings (y up, the axis of the l
     python tools/garagegen/build.py
 """
 import os, sys
-from collections import defaultdict
 import numpy as np
-import wings
-from wings import vertex, edge
+from wings import read, mesh
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 SRC = os.path.join(ROOT, 'art', 'wings', 'Garage')
@@ -20,78 +18,6 @@ WEST, EAST = -13.67, 13.67      # the walls across the car's axis (the windows a
 NORTH, SOUTH = -24.0, 24.0      # the walls along it: longer than in 2015, so that cars stand in a row
 NORTH_SHIFT = NORTH - (-13.67)  # the furniture at the north wall moves with it
 BAND = (-8.33, 11.67, 1.68, 7.37)  # the opening of the windows in the west wall: z from, to, y from, to
-
-# ---- Wings objects with their faces and smooth normals
-
-def read(path):
-    term = wings.load(path)
-    shapes, materials, props = term[2]
-    mats = {}
-    for m in materials:
-        gl = dict(next((x[1] for x in m[1] if x[0] == 'opengl'), []))
-        mats[str(m[0])] = gl
-    objects = {}
-    for sh in shapes:
-        name = sh[1] if not isinstance(sh[1], list) else bytes(sh[1]).decode('utf8', 'replace')
-        objects.setdefault(name, []).append(sh[2])
-    return objects, mats
-
-def mesh(winged):
-    """Positions, faces (vertex loops counter-clockwise from outside, material) and a normal for each face corner."""
-    es = [edge(e) for e in winged[1]]
-    fs = winged[2]
-    pts = np.array([vertex(v) for v in winged[3]])
-    hard = set(winged[4]) if len(winged) > 4 and isinstance(winged[4], list) else set()
-    first = {}
-    for i, (vs, ve, lf, rf, *_) in enumerate(es):
-        first.setdefault(lf, i); first.setdefault(rf, i)
-    faces = []
-    for f in range(len(fs)):
-        if f not in first:
-            faces.append(None); continue
-        start = e = first[f]; loop = []
-        for _ in range(2000):
-            vs, ve, lf, rf, ltpr, ltsu, rtpr, rtsu = es[e]
-            if lf == f: loop.append(vs); e = ltsu
-            else: loop.append(ve); e = rtsu
-            if e == start: break
-        loop.reverse()   # Wings' order is clockwise seen from outside
-        material = 'default'
-        for item in fs[f]:
-            if isinstance(item, tuple) and item[0] == 'material': material = str(item[1])
-        faces.append((loop, material))
-    # face normals (area weighted)
-    fn = {}
-    for f, face in enumerate(faces):
-        if face is None: continue
-        P = pts[face[0]]; n = np.zeros(3)
-        for i in range(len(P)): n += np.cross(P[i], P[(i + 1) % len(P)])
-        fn[f] = n
-    # smoothing groups around each vertex: faces joined by its soft edges
-    parent = {}
-    def find(k):
-        while parent.setdefault(k, k) != k:
-            parent[k] = parent[parent[k]]; k = parent[k]
-        return k
-    for i, (vs, ve, lf, rf, *_) in enumerate(es):
-        if i in hard: continue
-        for v in (vs, ve):
-            a, b = find((v, lf)), find((v, rf))
-            if a != b: parent[a] = b
-    sums = defaultdict(lambda: np.zeros(3))
-    for f, face in enumerate(faces):
-        if face is None: continue
-        for v in face[0]: sums[find((v, f))] += fn[f]
-    corners = []
-    for f, face in enumerate(faces):
-        if face is None: continue
-        normals = []
-        for v in face[0]:
-            n = sums[find((v, f))]
-            if np.linalg.norm(n) < 1e-12 or np.dot(n, fn[f]) <= 0: n = fn[f]
-            normals.append(n / (np.linalg.norm(n) + 1e-20))
-        corners.append((face[0], face[1], normals))
-    return pts, corners
 
 # ---- output
 

@@ -17,8 +17,9 @@ namespace TW3D.Editor
     /// The level editor: the level being edited (an <see cref="EditedLevel"/>, the document with undo, which the
     /// <see cref="LevelSession"/> opens, saves and guards with "Save changes?") drawn as in the game, seen by a free camera
     /// (<see cref="EditorCamera"/>), edited with the active tool (the <see cref="BlockTool"/> places blocks, the
-    /// <see cref="SelectTool"/> works on many of them at once, the <see cref="ObjectTool"/> places the dynamic objects;
-    /// B, V and O choose) whose cursor and highlights the <see cref="EditorMarkers"/> show, with the user interface of
+    /// <see cref="SelectTool"/> works on many of them at once, the <see cref="ObjectTool"/> places the dynamic objects, the
+    /// <see cref="SceneryTool"/> the props of the scenery; B, V, O and P choose) whose cursor and highlights the
+    /// <see cref="EditorMarkers"/> show, with the user interface of
     /// Dear ImGui over it (the menu bar with its <see cref="EditorMenus"/>, the <see cref="StatusBar"/> and the windows:
     /// the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the <see cref="InspectorWindow"/>, the
     /// <see cref="LevelWindow"/> with the <see cref="LevelReport"/> of its problems, the <see cref="HelpWindow"/>, the
@@ -56,6 +57,7 @@ namespace TW3D.Editor
         private BlockTool placeTool;
         private ObjectTool objectTool;
         private SelectTool selectTool;
+        private SceneryTool sceneryTool;
         private EditorTool activeTool = EditorTool.Place;
         private EditorMarkers markers;
         private ImGuiRenderer imgui;
@@ -120,7 +122,8 @@ namespace TW3D.Editor
             report = note => message = note;
             placeTool = new BlockTool(camera, report);
             objectTool = new ObjectTool(camera, placeTool, assets, report);
-            selectTool = new SelectTool(camera, placeTool, report);
+            sceneryTool = new SceneryTool(camera, placeTool, assets, report);
+            selectTool = new SelectTool(camera, placeTool, sceneryTool.Bounds, report);
             hiddenGuard = new HiddenLayerGuard(placeTool, report);
             markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
@@ -157,6 +160,7 @@ namespace TW3D.Editor
             placeTool.Level = opened;
             objectTool.Level = opened;
             selectTool.Level = opened;
+            sceneryTool.Level = opened;
             if (saved != null)
             {
                 camera.Target = new Vector3(saved.TargetX, saved.TargetY, saved.TargetZ);
@@ -248,7 +252,19 @@ namespace TW3D.Editor
         {
             EditorTool.Object => objectTool,
             EditorTool.Select => selectTool,
+            EditorTool.Scenery => sceneryTool,
             _ => placeTool
+        };
+
+        /// <summary>
+        /// The depth of the plane the cursor cell is on (physics units): of the active layer, of the middle one for the
+        /// Object tool (the objects are there), the chosen depth for the Scenery tool.
+        /// </summary>
+        private float CursorDepth => activeTool switch
+        {
+            EditorTool.Object => 0f,
+            EditorTool.Scenery => sceneryTool.Depth,
+            _ => LevelView.Depth(layer)
         };
 
         /// <summary>Makes a tool the active one (its key, the View > Tool menu, a choice in the palette); a drag of the other ends.</summary>
@@ -267,6 +283,7 @@ namespace TW3D.Editor
             placeTool.EndStroke();
             objectTool.EndStroke();
             selectTool.EndStroke();
+            sceneryTool.EndStroke();
         }
 
         private void CycleMood()
@@ -284,8 +301,9 @@ namespace TW3D.Editor
                 driveRequested = null;
             }
             session.UpdateTitle();
-            //The selection is of the layer it was made in, whichever way the layer was switched
+            //The selection is of the layer it was made in, whichever way the layer was switched, and of what is seen
             selectTool.Sync(layer);
+            selectTool.Scenery = view.ShowScenery;
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -377,7 +395,7 @@ namespace TW3D.Editor
             //The camera has the mouse first: its drags take precedence over the tool, and Ctrl + the wheel is the tool's
             Viewport viewport = Manager.Viewport;
             camera.HandleMouse(input, viewport, mouseFree, !control);
-            if (!hiddenGuard.HandleMouse(input, ActiveTool, activeTool, viewport, layer, mouseFree && !focusReturning, view.HiddenNote(activeTool, layer)))
+            if (!hiddenGuard.HandleMouse(input, ActiveTool, activeTool, viewport, layer, mouseFree && !focusReturning, view.HiddenNote(activeTool, layer), CursorDepth))
                 ActiveTool.HandleMouse(input, viewport, layer, mouseFree && !focusReturning);
             focusReturning = false;
         }
@@ -448,13 +466,15 @@ namespace TW3D.Editor
             renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
             view.Draw(renderer);
             renderer.End();
-            //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on the middle plane for objects
-            markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Object ? Layer.Middle : layer, placeTool.Cursor, Level.Finish);
+            //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on their plane
+            markers.Draw(camera.View, camera.Projection, CursorDepth, placeTool.Cursor, Level.Finish);
             markers.DrawGaps(camera.View, camera.Projection, Level);
             if (activeTool == EditorTool.Select && view.HiddenNote(activeTool, layer) == null)
                 selectTool.Draw(markers, camera.View, camera.Projection);
             if (activeTool == EditorTool.Object && view.ShowObjects)
                 markers.DrawObjects(camera.View, camera.Projection, objectTool.Bounds(objectTool.Hovered), objectTool.Bounds(objectTool.Selected));
+            if (activeTool == EditorTool.Scenery && view.ShowScenery)
+                markers.DrawObjects(camera.View, camera.Projection, sceneryTool.Bounds(sceneryTool.Hovered), sceneryTool.Bounds(sceneryTool.Selected));
 
             layout.Update(Manager.UiScale);
             imgui.BeforeLayout(gameTime);
@@ -471,11 +491,11 @@ namespace TW3D.Editor
             levelReport.Update(Level);
             DrawMenuBar();
             InterfaceLayout.DrawDockSpace(viewport, statusHeight);
-            StatusBar.Draw(viewport, statusHeight, placeTool, activeTool, layer, objectTool.Chosen, session, levelReport, message);
+            StatusBar.Draw(viewport, statusHeight, placeTool, activeTool, layer, objectTool.Chosen, sceneryTool, session, levelReport, message);
             if (showPalette)
-                palette.Draw(ref showPalette, viewport, placeTool, objectTool, layer, previewSize, scale);
+                palette.Draw(ref showPalette, viewport, placeTool, objectTool, sceneryTool, layer, previewSize, scale);
             if (showInspector)
-                inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, selectTool, layer);
+                inspector.Draw(ref showInspector, viewport, scale, palette.DefaultWidth, activeTool, placeTool, objectTool, selectTool, sceneryTool, layer);
             if (showLevel)
                 levelWindow.Draw(ref showLevel, viewport, levelReport, camera, scale, palette.DefaultWidth, statusHeight);
             if (showHelp)

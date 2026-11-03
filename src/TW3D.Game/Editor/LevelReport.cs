@@ -8,8 +8,8 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// What the Level window and the status bar tell about the edited level besides the level's own properties: the
-    /// problems found, the gaps of the road apart from them, the estimated par time, the counts of the blocks and the
-    /// objects, the cells the level spans, and the texts of all that. The document is asked again (the problems, the
+    /// problems found, the gaps of the road apart from them, the estimated par time, the counts of the blocks, the objects
+    /// and the props of the scenery, the cells the level spans, and the texts of all that. The document is asked again (the problems, the
     /// estimate that writes the level out) only when its <see cref="EditedLevel.Version"/> or file changes, not in every
     /// frame. Without MonoGame, so that it is tested.
     /// </summary>
@@ -57,6 +57,9 @@ namespace TW3D.Editor
         /// <summary>"Objects: 18".</summary>
         public string ObjectsText { get; private set; }
 
+        /// <summary>"Scenery: 4 props", "Scenery: 1 prop".</summary>
+        public string SceneryText { get; private set; }
+
         /// <summary>"Cells: [-3, -2] to [40, 5]" or "Cells: none".</summary>
         public string CellsText { get; private set; }
 
@@ -93,6 +96,7 @@ namespace TW3D.Editor
 
             BlocksText = $"Blocks: {current.Blocks(Layer.Middle).Count} middle, {current.Blocks(Layer.Back).Count} back, {current.Blocks(Layer.Front).Count} front";
             ObjectsText = "Objects: " + current.Objects.Count;
+            SceneryText = "Scenery: " + current.Scenery.Count + (current.Scenery.Count == 1 ? " prop" : " props");
             int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
             HasCells = false;
             foreach (Layer layer in Enum.GetValues<Layer>())

@@ -13,15 +13,21 @@ namespace TW3D.Editor
         /// <summary>The dynamic objects of the middle plane (<see cref="ObjectTool"/>).</summary>
         Object,
 
-        /// <summary>Many blocks of the active layer at once: selecting, moving, copying, mirroring (<see cref="SelectTool"/>).</summary>
-        Select
+        /// <summary>
+        /// Many blocks of the active layer at once, with the props of the scenery standing in the layer: selecting, moving,
+        /// copying, mirroring (<see cref="SelectTool"/>).
+        /// </summary>
+        Select,
+
+        /// <summary>The props of the scenery beside the track, at any depth (<see cref="SceneryTool"/>).</summary>
+        Scenery
     }
 
     /// <summary>The keys that choose the tools.</summary>
     static class EditorToolKeys
     {
         /// <summary>The key of each tool by the <see cref="EditorTool"/> enum; the View > Tool menu shows them, the screen reads them.</summary>
-        public static readonly Keys[] ByTool = { Keys.B, Keys.O, Keys.V };
+        public static readonly Keys[] ByTool = { Keys.B, Keys.O, Keys.V, Keys.P };
     }
 
     /// <summary>What the screen asks of the active tool: the keys and the mouse of the scene, Esc, and the end of a drag.</summary>

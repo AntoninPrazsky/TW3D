@@ -23,3 +23,6 @@ project.lock.json
 Thumbs.db
 Desktop.ini
 .DS_Store
+
+# Python bytecode of the tools
+__pycache__/

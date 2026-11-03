@@ -35,7 +35,7 @@ namespace TW3D.GameObjects
     /// <summary>
     /// A level built from its data (its file, see <see cref="LevelFile"/>, or the level editor's): the track blocks of
     /// the middle layer, which the car drives on, the decoration blocks of the back and front layers behind and in front
-    /// of it, and the dynamic objects.
+    /// of it, the dynamic objects, and the scenery beside the track (static props without physics).
     /// </summary>
     class Level : GameObject
     {
@@ -46,6 +46,8 @@ namespace TW3D.GameObjects
         private readonly List<TrackBlock> back = new List<TrackBlock>();
         private readonly List<TrackBlock> front = new List<TrackBlock>();
         private readonly List<TrackProp> objects = new List<TrackProp>();
+        //The props of the scenery: their models and where they stand, which never changes
+        private readonly List<(Model Model, Matrix World)> scenery = new List<(Model, Matrix)>();
         //The cell of the finish block, from its corner with the least coordinates (physics units); null without a finish
         private readonly (Vector2 Min, Vector2 Max)? finishArea;
 
@@ -106,6 +108,8 @@ namespace TW3D.GameObjects
             foreach (ObjectPlacement placement in data.Objects)
                 objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
                     assets.Catalog.FindObject(placement.Type), placement.Model, assets));
+            foreach (SceneryPlacement placement in data.Scenery)
+                scenery.Add((assets.SceneryModel(placement.Model), SceneryProp.World(placement.X, placement.Y, placement.Z, placement.Turn)));
         }
 
         /// <summary>Reads a level file of Content/Levels (the name without the extension).</summary>
@@ -157,6 +161,8 @@ namespace TW3D.GameObjects
             DrawLayer(renderer, back, -LayerDepth);
             DrawLayer(renderer, middle, 0f);
             DrawLayer(renderer, front, LayerDepth);
+            foreach ((Model model, Matrix world) in scenery)
+                renderer.Add(model, world * Placement);
             foreach (TrackProp obj in objects)
                 obj.Draw(renderer);
         }

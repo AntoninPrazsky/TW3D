@@ -70,6 +70,12 @@
     { "type": "Co", "shape": "model", "friction": 0.9, "mass": 500, "restitution": 0, "models": [ "co", "co2" ] },
     { "type": "Mov", "shape": "model", "friction": 0.45, "mass": 200, "restitution": 0, "models": [ "mov1" ] }
   ],
+  "scenery": [
+    { "name": "Traffic cone", "model": "cone" },
+    { "name": "Street lamp", "model": "lamp" },
+    { "name": "Utility pole", "model": "pole" },
+    { "name": "Metal fence", "model": "fence" }
+  ],
   "cars": [
     { "name": "Buggy", "model": "car", "wheel": "wheel", "mass": 200, "topSpeed": 50, "exhaust": [ 4.28, -0.72, 0.45 ] },
     { "name": "Sand Rail", "model": "car2", "wheel": "wheel2", "mass": 150, "topSpeed": 62, "enginePitch": 0.4, "engineResponse": 6, "exhaust": [ 4.12, -0.55, 0.93 ] }

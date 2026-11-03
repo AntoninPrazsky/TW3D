@@ -1,0 +1,36 @@
+# Materials of pole; Pm and Pr: metal and roughness (tools/ContentPipeline)
+
+newmtl wood
+Kd 0.6867 0.5195 0.4316
+d 1.0000
+Ks 0.1000 0.1000 0.1000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl metal
+Kd 0.6270 0.6270 0.6270
+d 1.0000
+Ks 0.4000 0.4000 0.4000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pm 1
+Pr 0.45
+illum 2
+
+newmtl brace
+Kd 0.9734 0.9734 0.9734
+d 1.0000
+Ks 0.3000 0.3000 0.3000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+illum 2
+
+newmtl insulator
+Kd 0.4139 0.2003 0.1187
+d 1.0000
+Ks 0.4000 0.4000 0.4000
+Ke 0.0000 0.0000 0.0000
+Ns 0.3000
+Pr 0.3
+illum 2

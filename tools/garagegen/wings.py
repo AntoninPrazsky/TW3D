@@ -2,6 +2,9 @@
 faces and vertices, and the materials."""
 import struct
 import zlib
+from collections import defaultdict
+
+import numpy as np
 
 
 class Atom(str):
@@ -93,3 +96,105 @@ def edge(e):
         if isinstance(item, bytes) and len(item) >= 32:
             return struct.unpack('>8i', item[:32])
     raise ValueError('edge without a record')
+
+
+def read(path):
+    term = load(path)
+    shapes, materials, props = term[2]
+    mats = {}
+    for m in materials:
+        gl = dict(next((x[1] for x in m[1] if x[0] == 'opengl'), []))
+        mats[str(m[0])] = gl
+    objects = {}
+    for sh in shapes:
+        name = sh[1] if not isinstance(sh[1], list) else bytes(sh[1]).decode('utf8', 'replace')
+        objects.setdefault(name, []).append(sh[2])
+    return objects, mats
+
+def mesh(winged):
+    """Positions, faces (vertex loops counter-clockwise from outside, material) and a normal for each face corner."""
+    es = [edge(e) for e in winged[1]]
+    fs = winged[2]
+    pts = np.array([vertex(v) for v in winged[3]])
+    hard = set(winged[4]) if len(winged) > 4 and isinstance(winged[4], list) else set()
+    first = {}
+    for i, (vs, ve, lf, rf, *_) in enumerate(es):
+        first.setdefault(lf, i); first.setdefault(rf, i)
+    faces = []
+    for f in range(len(fs)):
+        if f not in first:
+            faces.append(None); continue
+        start = e = first[f]; loop = []
+        for _ in range(2000):
+            vs, ve, lf, rf, ltpr, ltsu, rtpr, rtsu = es[e]
+            if lf == f: loop.append(vs); e = ltsu
+            else: loop.append(ve); e = rtsu
+            if e == start: break
+        loop.reverse()   # Wings' order is clockwise seen from outside
+        material = 'default'
+        for item in fs[f]:
+            if isinstance(item, tuple) and item[0] == 'material': material = str(item[1])
+        faces.append((loop, material))
+    # face normals (area weighted)
+    fn = {}
+    for f, face in enumerate(faces):
+        if face is None: continue
+        P = pts[face[0]]; n = np.zeros(3)
+        for i in range(len(P)): n += np.cross(P[i], P[(i + 1) % len(P)])
+        fn[f] = n
+    # smoothing groups around each vertex: faces joined by its soft edges
+    parent = {}
+    def find(k):
+        while parent.setdefault(k, k) != k:
+            parent[k] = parent[parent[k]]; k = parent[k]
+        return k
+    for i, (vs, ve, lf, rf, *_) in enumerate(es):
+        if i in hard: continue
+        for v in (vs, ve):
+            a, b = find((v, lf)), find((v, rf))
+            if a != b: parent[a] = b
+    sums = defaultdict(lambda: np.zeros(3))
+    for f, face in enumerate(faces):
+        if face is None: continue
+        for v in face[0]: sums[find((v, f))] += fn[f]
+    corners = []
+    for f, face in enumerate(faces):
+        if face is None: continue
+        normals = []
+        for v in face[0]:
+            n = sums[find((v, f))]
+            if np.linalg.norm(n) < 1e-12 or np.dot(n, fn[f]) <= 0: n = fn[f]
+            normals.append(n / (np.linalg.norm(n) + 1e-20))
+        corners.append((face[0], face[1], normals))
+    return pts, corners
+
+
+def face_uvs(winged):
+    """The UV coordinates of the corners of each face, in the order of the loops of mesh(), by the index of the face;
+    None for a face without them. Wings keeps them in the edges: for its left face the UV of the start vertex
+    (uv_lt), for its right face the UV of the end vertex (uv_rt)."""
+    records = winged[1]
+    es = [edge(e) for e in records]
+    uvs = []
+    for e in records:
+        found = {}
+        for item in e:
+            if isinstance(item, tuple) and item[0] in ('uv_lt', 'uv_rt') and isinstance(item[1], bytes) and len(item[1]) >= 16:
+                found[item[0]] = struct.unpack('>2d', item[1][:16])
+        uvs.append(found)
+    first = {}
+    for i, (vs, ve, lf, rf, *_) in enumerate(es):
+        first.setdefault(lf, i); first.setdefault(rf, i)
+    result = {}
+    for f in range(len(winged[2])):
+        if f not in first:
+            continue
+        start = e = first[f]; loop = []
+        for _ in range(2000):
+            vs, ve, lf, rf, ltpr, ltsu, rtpr, rtsu = es[e]
+            if lf == f: loop.append(uvs[e].get('uv_lt')); e = ltsu
+            else: loop.append(uvs[e].get('uv_rt')); e = rtsu
+            if e == start: break
+        loop.reverse()
+        result[f] = None if any(uv is None for uv in loop) else loop
+    return result

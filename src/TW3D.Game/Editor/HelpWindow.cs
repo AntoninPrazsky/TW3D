@@ -37,23 +37,30 @@ namespace TW3D.Editor
             ("Right button", "Pick: the object under the cursor becomes the chosen object")
         };
 
+        private static readonly (string Keys, string Action)[] SceneryMouseRows =
+        {
+            ("Left button", "Add the chosen prop at the point under the cursor, on the plane of the chosen depth, or select the prop there; dragging moves it. The mouse places and drags in steps of 1.25 physics units, on which the flat road lies"),
+            ("Left Shift + left button", "Remove the prop under the cursor"),
+            ("Right button", "Pick: the prop under the cursor becomes the chosen prop, with its turn and its depth")
+        };
+
         private static readonly (string Keys, string Action)[] SelectMouseRows =
         {
-            ("Left button", "Select the block under the cursor alone; Ctrl adds it to the selection or takes it out"),
-            ("Left drag", "From a block (selecting it alone if it was not selected): moves the selection by whole cells, as one step of undo. From an empty cell, or with Ctrl: a rectangle selects the blocks of the active layer in it (Ctrl adds them)")
+            ("Left button", "Select the cell under the cursor alone: its block and the props standing in it; Ctrl adds them to the selection or takes them out"),
+            ("Left drag", "From a selected cell (or one selected alone first): moves the selection by whole cells, as one step of undo. From an empty cell, or with Ctrl: a rectangle selects the blocks of the active layer and the props in it (Ctrl adds them)")
         };
 
         private static readonly (string Keys, string Action)[] EverywhereRows =
         {
-            ("Right button", "Picks in the Place and Object tools; the Select tool does not use it"),
-            ("Left Shift", "With the left button erases (Place tool) or removes (Object tool); Right Shift only toggles the back layer"),
+            ("Right button", "Picks in the Place, Object and Scenery tools; the Select tool does not use it"),
+            ("Left Shift", "With the left button erases (Place tool) or removes (Object and Scenery tools); Right Shift only toggles the back layer"),
             ("Ctrl", "With the left button adds to the selection or takes out of it (Select tool); with the wheel shifts a block (Place tool, so it does not zoom)"),
             ("Alt", "With the left button orbits the camera instead of using the tool")
         };
 
         private static readonly (string Keys, string Action)[] ToolKeyRows =
         {
-            ("B / O / V", "The Place tool (blocks) / the Object tool (dynamic objects) / the Select tool (many blocks); View > Tool lists them and the status bar names the active one"),
+            ("B / O / V / P", "The Place tool (blocks) / the Object tool (dynamic objects) / the Select tool (many blocks) / the Scenery tool (props beside the track); View > Tool lists them and the status bar names the active one"),
             ("Tab", "The next layer: back, middle, front"),
             ("Right Shift", "Toggles the back layer as soon as it is pressed"),
             ("Right Ctrl", "Toggles the front layer when it is tapped alone (let go with nothing else done while it was held)"),
@@ -78,15 +85,25 @@ namespace TW3D.Editor
             ("Esc", "Clear the selection (a second Esc leaves the editor)")
         };
 
+        private static readonly (string Keys, string Action)[] SceneryKeyRows =
+        {
+            ("Space", "Add the chosen prop in the middle of the cursor cell, standing on the road there"),
+            ("Delete", "Remove the selected prop"),
+            ("Arrows / Ctrl + arrows", "Move the selected prop by 1.25 / 0.1 physics unit; without a selection the arrows (not Ctrl) move the cursor cell"),
+            ("T", "Turn the selected prop by a quarter; without a selection, the props to be added"),
+            ("PageUp / PageDown", "Move the selected prop away from the camera / towards it; without a selection, the depth the props are added at (the grid shows its plane)"),
+            ("Esc", "Clear the selection (a second Esc leaves the editor)")
+        };
+
         private static readonly (string Keys, string Action)[] SelectKeyRows =
         {
-            ("Ctrl+A / Esc", "Select the whole active layer / clear the selection (a second Esc leaves the editor)"),
-            ("Space", "Add the block at the cursor cell to the selection, or take it out"),
+            ("Ctrl+A / Esc", "Select the whole active layer with its props / clear the selection (a second Esc leaves the editor)"),
+            ("Space", "Add the block and the props at the cursor cell to the selection, or take them out"),
             ("Arrows / Ctrl + arrows", "Move the selection (and the cursor) by a cell; without a selection, or with Ctrl, only the cursor cell"),
             ("PageUp / PageDown", "Shift the selected blocks up / down"),
-            ("H", "Mirror the selection left to right, swapping the blocks for their f variants (b2 and b2f)"),
-            ("Delete", "Erase the selected blocks"),
-            ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) block at the cursor cell (the pasted blocks are selected; decorations are skipped in the middle layer)")
+            ("H", "Mirror the selection left to right, swapping the blocks for their f variants (b2 and b2f); the props turn as their mirror images"),
+            ("Delete", "Erase the selected blocks and props"),
+            ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) cell at the cursor cell (the pasted blocks and props are selected; decorations are skipped in the middle layer)")
         };
 
         private static readonly (string Keys, string Action)[] FileKeyRows =
@@ -118,11 +135,11 @@ namespace TW3D.Editor
 
         private static readonly (string Keys, string Action)[] WindowRows =
         {
-            ("Palette", "Every block of the catalog as a turning 3D preview, in groups, with a search box: click a block to choose it (Place tool). The Objects tab does the same for the dynamic objects (Object tool). View > Palette"),
-            ("Inspector", "What the active tool works on: the block at the cursor cell, the selected blocks, or the selected object with its position to type. View > Inspector"),
+            ("Palette", "Every block of the catalog as a turning 3D preview, in groups, with a search box: click a block to choose it (Place tool). The Objects and Scenery tabs do the same for the dynamic objects (Object tool) and the props (Scenery tool). View > Palette"),
+            ("Inspector", "What the active tool works on: the block at the cursor cell, the selected blocks and props, the selected object with its position to type, or the selected prop with its position, depth and turn (without one, the depth and the turn of the props to be added). View > Inspector"),
             ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there. View > Level"),
             ("Controls", "This window: Help > Controls or F1"),
-            ("View menu", "Also hides the back and front layers (which cannot be edited while hidden), the objects, the grid and the gap markers")
+            ("View menu", "Also hides the back and front layers (which cannot be edited while hidden), the objects, the scenery, the grid and the gap markers")
         };
 
         private static readonly (string Heading, string Text)[] Guide =
@@ -132,6 +149,7 @@ namespace TW3D.Editor
             ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
             ("Put the finish", "Put the cursor on a block of the middle layer and press F: that block is the finish, where the run ends. A level without a finish has no end, and the Level window says so."),
             ("Add objects", "Boxes, bars, ramps and the other dynamic objects are added with the Object tool (O): choose one in the Objects tab of the Palette and click where it is to be, or press Space to drop it onto the block at the cursor cell. Drag an object to move it."),
+            ("Add scenery", "Traffic cones, street lamps, utility poles and metal fences stand beside the track without physics: the car drives through them. Choose one in the Scenery tab of the Palette (the Scenery tool, P), set the depth it goes to (PageUp and PageDown, or the Inspector: negative behind the road, positive in front of it; the road reaches 11.25 to either side, the back and front layers the next 22.5) and click where it is to stand, or press Space to stand it on the road at the cursor cell. T turns it; two pieces of the fence fill a cell. The Select tool moves, copies and mirrors the props with the blocks of the layer they stand in."),
             ("Test drive", "Press F5 to drive the level at once, from the start (Shift+F5 from the cursor cell). Nothing is saved and no record is kept. Esc brings the editor back as it was, so test often."),
             ("Save", "Press Ctrl+S. A new level asks for a name; the file goes into the levels folder (content/Levels of the repository), where the game finds it: the level select shows it at once. The status bar counts the problems and the road gaps of the level when it is saved."),
             ("Set the level", "In the Level window set the mood (day, sunset or night), the position in the level select (the order) and the par time, the time a good run takes. A level without an order comes after the others in the level select, and the game estimates a par time when the level has none."),
@@ -178,6 +196,8 @@ namespace TW3D.Editor
             Rows("object mouse", ObjectMouseRows);
             Topic("Select tool (V): many blocks of the layer");
             Rows("select mouse", SelectMouseRows);
+            Topic("Scenery tool (P): props beside the track");
+            Rows("scenery mouse", SceneryMouseRows);
             Topic("Everywhere");
             Rows("everywhere", EverywhereRows);
 
@@ -190,6 +210,8 @@ namespace TW3D.Editor
             Rows("object keys", ObjectKeyRows);
             Topic("Select tool");
             Rows("select keys", SelectKeyRows);
+            Topic("Scenery tool");
+            Rows("scenery keys", SceneryKeyRows);
             Topic("Files and undo");
             Rows("file keys", FileKeyRows);
             Topic("Test drive");

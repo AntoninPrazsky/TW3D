@@ -19,6 +19,7 @@ namespace TW3D.Tests
         {
             return catalog.Blocks.Select(block => block.ModelAsset)
                 .Concat(catalog.ObjectModels.Select(ObjectType.ModelAsset))
+                .Concat(catalog.Scenery.Select(prop => prop.ModelAsset))
                 .Concat(catalog.Cars.Select(car => car.Model))
                 .Concat(catalog.Wheels.Select(wheel => wheel.Model))
                 .Append("holder");
@@ -43,6 +44,15 @@ namespace TW3D.Tests
                 .Concat(catalog.Cars.Select(car => car.Model))
                 .Append("holder");
             Assert.DoesNotContain(physical, model => shapes.Find(model) == null);
+        }
+
+        /// <summary>The levels name a prop of the scenery by its model, so no two props share one.</summary>
+        [Fact]
+        public void EveryPropOfTheSceneryHasItsOwnModelAndAName()
+        {
+            Assert.NotEmpty(catalog.Scenery);
+            Assert.Equal(catalog.Scenery.Count, catalog.Scenery.Select(prop => prop.Model).Distinct().Count());
+            Assert.All(catalog.Scenery, prop => Assert.False(string.IsNullOrWhiteSpace(prop.Name)));
         }
 
         [Fact]

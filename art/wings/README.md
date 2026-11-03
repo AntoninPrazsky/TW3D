@@ -49,3 +49,16 @@ own sky there.
 `Levels/mod/tu1.wings`, `tu2.wings` and `tu3.wings` are the whole tunnels; the game uses
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in
 `content/`.
+
+`Scenery/` holds the props beside the track (see [the scenery](../../docs/content.md#scenery)),
+which the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
+owner's model archive, with OBJ and 3DS exports and renders). `tools/garagegen/scenery.py`
+builds `content/Scenery/` from them. Their textures (photos of rust) are not here: the game
+draws the props in the colours the textures had.
+
+| File | Original file |
+|---|---|
+| `Scenery/cone.wings` | `TrafficCone/TrafficCone.wings` |
+| `Scenery/lamp.wings` | `StreetLamp/StreetLamp.wings` (textured by `lamp.png`) |
+| `Scenery/pole.wings` | `UtilityPole/UtilityPole.wings` |
+| `Scenery/fence.wings` | `MetalFence/fence.wings` (textured by `fence.png`) |

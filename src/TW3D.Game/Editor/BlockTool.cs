@@ -180,18 +180,29 @@ namespace TW3D.Editor
         /// <param name="pressed">A button went down in this frame.</param>
         public void FollowMouse(InputState input, Viewport viewport, Layer layer, bool overScene, bool pressed)
         {
+            FollowMouse(input, viewport, LevelView.SceneDepth(InStroke ? strokeLayer : layer), overScene, pressed);
+        }
+
+        /// <summary>
+        /// <see cref="FollowMouse(InputState, Viewport, Layer, bool, bool)"/> on a plane of any depth: the Scenery tool's
+        /// cursor is on the plane of its chosen depth.
+        /// </summary>
+        /// <param name="sceneDepth">The z of the plane in the scene.</param>
+        public void FollowMouse(InputState input, Viewport viewport, float sceneDepth, bool overScene, bool pressed)
+        {
             if (!(input.MouseMoved && (overScene || InStroke) || overScene && pressed))
                 return;
-            Cell? cell = CellUnder(input.Mouse, viewport, InStroke ? strokeLayer : layer);
+            Cell? cell = CellUnder(input.Mouse, viewport, sceneDepth);
             if (cell.HasValue)
                 Cursor = cell.Value;
         }
 
-        /// <summary>The cell of a layer under the mouse; null when the mouse points off the plane of the layer.</summary>
-        private Cell? CellUnder(MouseState mouse, Viewport viewport, Layer layer)
+        /// <summary>The cell of a plane under the mouse; null when the mouse points off the plane.</summary>
+        /// <param name="sceneDepth">The z of the plane in the scene.</param>
+        private Cell? CellUnder(MouseState mouse, Viewport viewport, float sceneDepth)
         {
             camera.Update(viewport);
-            Vector3? hit = EditorCamera.HitPlane(camera.PickRay(new Vector2(mouse.X, mouse.Y), viewport), LevelView.SceneDepth(layer));
+            Vector3? hit = EditorCamera.HitPlane(camera.PickRay(new Vector2(mouse.X, mouse.Y), viewport), sceneDepth);
             return hit.HasValue ? LevelView.CellAt(hit.Value) : null;
         }
 

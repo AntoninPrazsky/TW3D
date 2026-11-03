@@ -24,9 +24,14 @@ namespace TW3D.Shared
     ///   "objects": [
     ///     {"type":"Bar","model":"bar1","x":238,"y":-4},
     ///     ...
+    ///   ],
+    ///   "scenery": [
+    ///     {"model":"lamp","x":45,"y":-1.25,"z":-8.75,"turn":1},
+    ///     ...
     ///   ]
     /// }
     /// </code>
+    /// The scenery is written only when the level has some.
     /// Files in the original .lev format of the 2016 version can be read too.
     /// </summary>
     public static class LevelFile
@@ -56,6 +61,8 @@ namespace TW3D.Shared
                 throw new InvalidDataException("The level file is empty.");
             if (level.Format > LevelData.CurrentFormat)
                 throw new InvalidDataException($"The level file has format {level.Format}, but only formats up to {LevelData.CurrentFormat} are supported.");
+            //The scenery is optional: "scenery": null is a level without it
+            level.Scenery ??= new List<SceneryPlacement>();
             return level;
         }
 
@@ -120,10 +127,14 @@ namespace TW3D.Shared
                 json.Append("  \"mood\": ").Append(JsonSerializer.Serialize(level.Mood, JsonOptions.Default)).Append(",\n");
             if (level.Par.HasValue)
                 json.Append("  \"par\": ").Append(JsonSerializer.Serialize(level.Par.Value, JsonOptions.Default)).Append(",\n");
+            bool scenery = level.Scenery != null && level.Scenery.Count > 0;
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);
             AppendList(json, "front", level.Front, false);
-            AppendList(json, "objects", level.Objects, true);
+            AppendList(json, "objects", level.Objects, !scenery);
+            //Written only when the level has some, so that the levels without it stay as they were
+            if (scenery)
+                AppendList(json, "scenery", level.Scenery, true);
             json.Append("}\n");
             return json.ToString();
         }

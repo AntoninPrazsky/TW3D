@@ -12,7 +12,7 @@ namespace TW3D.Editor
     /// as a tooltip), the mood (a combo, applied at once), the position in the level select and the par time (each a
     /// checkbox that gives the level the property or takes it away, and a field applied as one step of undo when it is
     /// finished, to the level it was begun on; the par shows the estimate of the game while it has none), the counts of
-    /// the blocks and the objects and the cells they span, then the problems of the level and the gaps of the road,
+    /// the blocks, the objects and the props of the scenery and the cells they span, then the problems of the level and the gaps of the road,
     /// each a line that a click points the camera at. What it shows comes from the <see cref="LevelReport"/>, which is
     /// brought up to date only when the level changes.
     /// </summary>
@@ -60,6 +60,7 @@ namespace TW3D.Editor
                 ImGui.Separator();
                 ImGui.Text(report.BlocksText);
                 ImGui.Text(report.ObjectsText);
+                ImGui.Text(report.SceneryText);
                 ImGui.Text(report.CellsText);
                 ImGui.Spacing();
                 DrawProblems(report, camera);

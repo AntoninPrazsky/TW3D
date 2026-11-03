@@ -9,7 +9,8 @@ using TW3D.Shared;
 namespace TW3D.Editor
 {
     /// <summary>
-    /// The turning 3D previews of the palette: every block of the catalog and every model of the dynamic objects, each
+    /// The turning 3D previews of the palette: every block of the catalog, every model of the dynamic objects and every
+    /// prop of the scenery, each
     /// drawn in a cell of one render target (the atlas) on a turntable, seen from the angle of the catalog images (a
     /// little from above and from the front-left, see tools/CatalogRender) at a distance that fits its bounding sphere
     /// in the cell, in the lighting of 2016 on a dark grey background. The atlas is bound to ImGui as one texture; the
@@ -52,6 +53,7 @@ namespace TW3D.Editor
         private readonly List<Preview> previews = new List<Preview>();
         private readonly Dictionary<string, int> blockIndices = new Dictionary<string, int>();
         private readonly Dictionary<string, int> objectModelIndices = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> sceneryIndices = new Dictionary<string, int>();
         //How far ahead of the others a preview has turned (radians, the hovered one turns faster); 0 when in phase
         private readonly float[] extraAngles;
         //The grid of the atlas: as square as possible
@@ -74,6 +76,11 @@ namespace TW3D.Editor
             {
                 objectModelIndices.Add(model, previews.Count);
                 previews.Add(Describe(assets.ObjectModel(model)));
+            }
+            foreach (SceneryType prop in assets.Catalog.Scenery)
+            {
+                sceneryIndices.Add(prop.Model, previews.Count);
+                previews.Add(Describe(assets.SceneryModel(prop.Model)));
             }
             extraAngles = new float[previews.Count];
             columns = (int)Math.Ceiling(Math.Sqrt(previews.Count));
@@ -101,6 +108,9 @@ namespace TW3D.Editor
 
         /// <summary>The index of the preview of a model of the dynamic objects; -1 for an unknown model.</summary>
         public int ObjectModelIndex(string model) => objectModelIndices.TryGetValue(model, out int index) ? index : -1;
+
+        /// <summary>The index of the preview of a prop of the scenery, by its model; -1 for an unknown prop.</summary>
+        public int SceneryIndex(string model) => sceneryIndices.TryGetValue(model, out int index) ? index : -1;
 
         /// <summary>The corners of the cell of a preview in the atlas, as ImGui takes them (0 to 1, (0, 0) at the top left).</summary>
         public (System.Numerics.Vector2 Min, System.Numerics.Vector2 Max) CellUv(int index)

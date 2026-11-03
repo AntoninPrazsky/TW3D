@@ -8,9 +8,9 @@ using TW3D.Shared;
 namespace TW3D.Editor
 {
     /// <summary>
-    /// The level being edited drawn as the game draws it: the blocks of the three layers and the dynamic objects of an
-    /// <see cref="EditedLevel"/>, with the models of the <see cref="LevelAssets"/> and without the physics. It draws
-    /// whatever the document has in every frame. Blocks and objects the catalog does not know are left out.
+    /// The level being edited drawn as the game draws it: the blocks of the three layers, the dynamic objects and the
+    /// scenery of an <see cref="EditedLevel"/>, with the models of the <see cref="LevelAssets"/> and without the physics.
+    /// It draws whatever the document has in every frame. Blocks, objects and props the catalog does not know are left out.
     /// </summary>
     sealed class LevelView : GameObject
     {
@@ -20,6 +20,7 @@ namespace TW3D.Editor
         //The models by the name of the block, and by the type and the model of an object the catalog knows
         private readonly Dictionary<string, Model> blockModels = new Dictionary<string, Model>();
         private readonly Dictionary<(string Type, string Model), Model> objectModels = new Dictionary<(string, string), Model>();
+        private readonly Dictionary<string, Model> sceneryModels = new Dictionary<string, Model>();
 
         public LevelView(LevelAssets assets)
         {
@@ -28,6 +29,8 @@ namespace TW3D.Editor
             foreach (ObjectType type in assets.Catalog.Objects)
                 foreach (string model in type.Models)
                     objectModels[(type.Type, model)] = assets.ObjectModel(model);
+            foreach (SceneryType prop in assets.Catalog.Scenery)
+                sceneryModels[prop.Model] = assets.SceneryModel(prop.Model);
         }
 
         /// <summary>The level drawn.</summary>
@@ -42,14 +45,21 @@ namespace TW3D.Editor
         /// <summary>The dynamic objects are drawn.</summary>
         public bool ShowObjects { get; set; } = true;
 
+        /// <summary>The props of the scenery are drawn.</summary>
+        public bool ShowScenery { get; set; } = true;
+
         /// <summary>
         /// Why the tool cannot edit what it works on now, in the words of the status bar: the layer it works on or the
-        /// objects are hidden. Null when what it works on is seen. The Object tool works on the objects, the others on a layer.
+        /// objects or the scenery are hidden. Null when what it works on is seen. The Object tool works on the objects, the
+        /// Scenery tool on the scenery, the others on a layer (the Select tool on the props of the layer with its blocks:
+        /// a hidden scenery leaves them out of the selection, see <see cref="SelectTool"/>).
         /// </summary>
         public string HiddenNote(EditorTool tool, Layer layer)
         {
             if (tool == EditorTool.Object)
                 return ShowObjects ? null : "The objects are hidden.";
+            if (tool == EditorTool.Scenery)
+                return ShowScenery ? null : "The scenery is hidden.";
             if (layer == Layer.Back && !ShowBack)
                 return "The back layer is hidden.";
             return layer == Layer.Front && !ShowFront ? "The front layer is hidden." : null;
@@ -62,7 +72,10 @@ namespace TW3D.Editor
         }
 
         /// <summary>The z of a layer in the scene.</summary>
-        public static float SceneDepth(Layer layer) => -Depth(layer) * Units.PhysicsToScene;
+        public static float SceneDepth(Layer layer) => SceneDepth(Depth(layer));
+
+        /// <summary>The z in the scene of a depth in physics units (of a prop of the scenery: negative behind the road).</summary>
+        public static float SceneDepth(float depth) => -depth * Units.PhysicsToScene;
 
         /// <summary>One cell of the grid in scene units.</summary>
         public const float CellSize = Units.GridCell * Units.PhysicsToScene;
@@ -100,6 +113,16 @@ namespace TW3D.Editor
             DrawLayer(renderer, Layer.Middle);
             if (ShowFront)
                 DrawLayer(renderer, Layer.Front);
+            if (ShowScenery)
+            {
+                IReadOnlyList<PlacedScenery> props = Level.Scenery;
+                for (int i = 0; i < props.Count; i++)
+                {
+                    PlacedScenery prop = props[i];
+                    if (sceneryModels.TryGetValue(prop.Model, out Model model))
+                        renderer.Add(model, SceneryProp.World(prop.X, prop.Y, prop.Z, prop.Turn));
+                }
+            }
             if (!ShowObjects)
                 return;
             IReadOnlyList<PlacedObject> objects = Level.Objects;

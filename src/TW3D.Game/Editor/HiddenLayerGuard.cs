@@ -8,7 +8,7 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// Stands between the screen and the active tool while the layer the tool works on (or the objects, for the Object
-    /// tool) is hidden by the View menu: a hidden layer cannot be edited, as what is placed or selected there could not be
+    /// tool, or the scenery, for the Scenery tool) is hidden by the View menu: a hidden layer cannot be edited, as what is placed or selected there could not be
     /// seen. The cursor still moves and the block is still chosen, so that the user can go on looking around; a key or a
     /// click that would edit says why it does not instead.
     /// </summary>
@@ -53,8 +53,10 @@ namespace TW3D.Editor
         /// still gets the mouse as if it were off the scene, which ends a drag it had and clears what it hovers.
         /// </summary>
         /// <param name="free">The cursor is over the scene, not over the user interface.</param>
+        /// <param name="cursorDepth">The depth of the plane the cursor cell is on (physics units), as the tool has it.</param>
         /// <returns>The mouse was handled here, the tool is not to get it.</returns>
-        public bool HandleMouse(InputState input, IEditorTool activeTool, EditorTool tool, Viewport viewport, Layer layer, bool free, string hidden)
+        public bool HandleMouse(InputState input, IEditorTool activeTool, EditorTool tool, Viewport viewport, Layer layer, bool free, string hidden,
+            float cursorDepth)
         {
             if (hidden == null)
                 return false;
@@ -62,8 +64,7 @@ namespace TW3D.Editor
             bool overScene = free && viewport.Bounds.Contains(input.Mouse.Position);
             bool pressed = input.Mouse.LeftButton == ButtonState.Pressed && input.PreviousMouse.LeftButton == ButtonState.Released
                 || input.Mouse.RightButton == ButtonState.Pressed && input.PreviousMouse.RightButton == ButtonState.Released;
-            //The Object tool's cursor cell is on the middle plane
-            placeTool.FollowMouse(input, viewport, tool == EditorTool.Object ? Layer.Middle : layer, overScene, pressed);
+            placeTool.FollowMouse(input, viewport, LevelView.SceneDepth(cursorDepth), overScene, pressed);
             //Ctrl + the wheel shifts the block under the cursor, which the Place tool would do
             bool shifting = tool == EditorTool.Place && input.WheelDelta != 0
                 && (input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl));
@@ -81,6 +82,8 @@ namespace TW3D.Editor
                 return true;
             if (tool == EditorTool.Object)
                 return false;
+            if (tool == EditorTool.Scenery)
+                return input.KeyPressed(Keys.T) || input.KeyPressed(Keys.PageUp) || input.KeyPressed(Keys.PageDown);
             return input.KeyPressed(Keys.PageUp) || input.KeyPressed(Keys.PageDown)
                 || tool == EditorTool.Place && input.KeyPressed(Keys.F) || tool == EditorTool.Select && input.KeyPressed(Keys.H);
         }
