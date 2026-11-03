@@ -17,7 +17,7 @@ physics bodies.
 | `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](../art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/garagegen/` | Builds the 3D garage behind the menus and the 3D logo of the main menu (`content/Garage/`) and the scenery (`content/Scenery/`) from their Wings 3D files (Python; `wings.py` reads the files) |
-| `tools/fontgen/` | Builds the font of the menus (`content/Fonts/TripleWheelDisplay.ttf` and its `menuFont.spritefont`) from Orbitron (Python with fontTools) |
+| `tools/fontgen/` | Builds the font of the menus (`content/Fonts/TripleWheelDisplay.ttf` and its `menuFont<size>.spritefont` in four sizes) from Orbitron (Python with fontTools) |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](../tools/CollisionGen/README.md) |
 | `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars (built and loaded by the content build) |
@@ -30,7 +30,7 @@ physics bodies.
 
 | Folder | Contents |
 |---|---|
-| `Screens/` | Screen stack (`ScreenManager`), the items of a menu and their focus (`MenuItems`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
+| `Screens/` | Screen stack (`ScreenManager`), the fonts (`GameFonts`; `GameFont`: the font of the menus in several sizes, drawn from the one that fits), the items of a menu and their focus (`MenuItems`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view, also the test drive of the level editor (the level from memory, from any cell, without the tutorial and the records); `Race`: a run of the level (countdown, time, finish) and `RaceHud`, what it shows on the screen, and `Speedometer`, the dial of the speed in km/h drawn by the code; `CarDrag`: the car dragged by hand; `DevelopmentKeys`: the keys for development; `Tutorial`: the lessons of the tutorial and their state, and `TutorialCard`, its card on the screen; `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
 | `GameObjects/` | The car, the level (built from a level file, or the level editor's data in a test drive, and `LevelAssets`: the catalog, the models of its blocks, objects and scenery and the collision shapes, loaded once; `SceneryProp` places a prop of the scenery), dynamic objects, the skid marks of the tyres (`SkidMarks`), the smoke of the tyres and the exhaust (`TyreSmoke`, `ExhaustSmoke`, both clouds of `Smoke`) and the 3D garage behind the menus with the 3D logo of the main menu (`GarageScene`) |
 | `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting, shadows and the sky; `Lighting` and `SkyLook`: the moods), frame rate counter |

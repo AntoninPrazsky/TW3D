@@ -73,7 +73,7 @@ namespace TW3D.Screens
         private void UpdateLayout()
         {
             Viewport viewport = Manager.Viewport;
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             Rectangle safe = Manager.SafeArea;
             float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
@@ -86,7 +86,7 @@ namespace TW3D.Screens
                 //The items spread along the bottom with equal gaps, smaller if the gaps would be too narrow (phones)
                 float width = 0f;
                 foreach (MenuItem item in items)
-                    width += font.MeasureString(item.Text()).X * scale;
+                    width += font.MeasureString(item.Label).X * scale;
                 float fit = Math.Min(1f, (safe.Width - RowGap * lineHeight * (items.Count - 1)) / width);
                 itemScale = scale * fit;
                 float rowHeight = lineHeight * fit;
@@ -95,7 +95,7 @@ namespace TW3D.Screens
                 float x = items.Count > 1 ? safe.Left : (viewport.Width - width * fit) / 2f;
                 for (int i = 0; i < items.Count; i++)
                 {
-                    Vector2 size = font.MeasureString(items[i].Text()) * itemScale;
+                    Vector2 size = font.MeasureString(items[i].Label) * itemScale;
                     items[i].Place(new Rectangle((int)x, (int)rowTop, (int)size.X, (int)rowHeight), padding);
                     x += size.X + gap;
                 }
@@ -115,7 +115,7 @@ namespace TW3D.Screens
             top += content;
             for (int i = 0; i < items.Count; i++)
             {
-                Vector2 size = font.MeasureString(items[i].Text()) * itemScale;
+                Vector2 size = font.MeasureString(items[i].Label) * itemScale;
                 items[i].Place(new Rectangle((int)((viewport.Width - size.X) / 2f), (int)(top + i * line * LineSpacing), (int)size.X, (int)line), padding);
             }
         }

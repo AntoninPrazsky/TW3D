@@ -147,7 +147,7 @@ namespace TW3D.Screens
 
         protected override void DrawContent(float top, float slide, float alpha)
         {
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float uiScale = Manager.UiScale;
             float width = Manager.Viewport.Width;
 
@@ -164,7 +164,7 @@ namespace TW3D.Screens
                 DrawLine(font, note, y, slide, (noteHighlighted ? MainMenuScreen.Yellow : Color.LightGray) * alpha, alpha);
         }
 
-        private void DrawLine(SpriteFont font, string text, float y, float slide, Color color, float alpha)
+        private void DrawLine(GameFont font, string text, float y, float slide, Color color, float alpha)
         {
             float scale = TextScale * Manager.UiScale;
             float textWidth = font.MeasureString(text).X * scale;

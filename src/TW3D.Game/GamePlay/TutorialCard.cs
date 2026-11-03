@@ -52,7 +52,7 @@ namespace TW3D.GamePlay
             if (lesson == null)
                 return;
 
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             float ui = manager.UiScale;
             LessonStep step = tutorial.CurrentStep;
             string caption = step?.Caption ?? lesson.Caption;
@@ -67,7 +67,7 @@ namespace TW3D.GamePlay
             //The card is laid out at its full size and scaled about the middle of its first row, so nothing moves as it
             //arrives, bobs or kicks. The row is centred on the capitals of the instruction (the line of the font has
             //room above and below them).
-            SpriteFont.Glyph capital = Glyphs(font)['H'];
+            SpriteFont.Glyph capital = Glyphs(font.BaseFont)['H'];
             float rowHeight = capital.BoundsInTexture.Height * CaptionScale * ui * GlyphSize;
             float rowCentreY = top + TopGap * ui + rowHeight / 2f + MathF.Sin(tutorial.Age * 2.4f) * 3f * ui;
             float centreX = manager.Viewport.Width / 2f;
@@ -176,7 +176,7 @@ namespace TW3D.GamePlay
         /// <summary>Draws a text centred under a point; returns its height.</summary>
         private static float DrawCentred(ScreenManager manager, string text, float centreX, float top, float scale, Color colour, float alpha)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             Vector2 size = font.MeasureString(text) * scale;
             manager.DrawShadowedText(font, text, new Vector2(centreX - size.X / 2f, top), colour, Color.Black * alpha, scale);
             return size.Y;

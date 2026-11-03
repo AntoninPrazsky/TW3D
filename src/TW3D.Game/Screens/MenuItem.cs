@@ -7,6 +7,9 @@ namespace TW3D.Screens
     public sealed class MenuItem
     {
         public Func<string> Text;
+
+        /// <summary>The text as the menus show it: in capitals, as the menus and the titles of the game are written.</summary>
+        public string Label => Text().ToUpperInvariant();
         public Action Activate;
         public Func<bool> IsEnabled = () => true;
         /// <summary>The item switches a setting, so left and right activate it too.</summary>

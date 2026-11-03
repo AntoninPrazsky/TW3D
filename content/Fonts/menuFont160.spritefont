@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Written by tools/fontgen/menufont.py: do not edit, change the script and run it.
+  The font of the menus, the titles and the display of a run in the size 160 (the digits, the capitals and a little punctuation): Triple Wheel Display
+  (TripleWheelDisplay.ttf, SIL Open Font License 1.1, see TripleWheelDisplay-OFL.txt), a version of Orbitron with
+  the Czech letters. GameFont draws a text from the nearest larger size; a character it lacks is drawn as "?".
+-->
+<XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
+  <Asset Type="Graphics:FontDescription">
+    <FontName>TripleWheelDisplay.ttf</FontName>
+    <Size>160</Size>
+    <Spacing>4</Spacing>
+    <UseKerning>true</UseKerning>
+    <Style>Regular</Style>
+    <DefaultCharacter>?</DefaultCharacter>
+    <CharacterRegions>
+      <CharacterRegion>
+        <Start>&#x0020;</Start>
+        <End>&#x0022;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0027;</Start>
+        <End>&#x0029;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x002C;</Start>
+        <End>&#x002E;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x003A;</Start>
+        <End>&#x003A;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x003F;</Start>
+        <End>&#x003F;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0030;</Start>
+        <End>&#x0039;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0041;</Start>
+        <End>&#x005A;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00C1;</Start>
+        <End>&#x00C1;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x010C;</Start>
+        <End>&#x010C;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x010E;</Start>
+        <End>&#x010E;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00C9;</Start>
+        <End>&#x00C9;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x011A;</Start>
+        <End>&#x011A;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00CD;</Start>
+        <End>&#x00CD;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0147;</Start>
+        <End>&#x0147;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00D3;</Start>
+        <End>&#x00D3;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0158;</Start>
+        <End>&#x0158;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0160;</Start>
+        <End>&#x0160;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x0164;</Start>
+        <End>&#x0164;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00DA;</Start>
+        <End>&#x00DA;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x016E;</Start>
+        <End>&#x016E;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x00DD;</Start>
+        <End>&#x00DD;</End>
+      </CharacterRegion>
+      <CharacterRegion>
+        <Start>&#x017D;</Start>
+        <End>&#x017D;</End>
+      </CharacterRegion>
+    </CharacterRegions>
+  </Asset>
+</XnaContent>

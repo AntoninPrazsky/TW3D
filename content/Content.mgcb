@@ -21,11 +21,14 @@
 /build:Effects/Scene.fx
 /build:Effects/Occlusion.fx
 
-# The fonts: the menus and the display of a run, from TripleWheelDisplay.ttf (tools/fontgen), and the glyphs
+# The fonts: the menus and the display of a run in four sizes, from TripleWheelDisplay.ttf (tools/fontgen), and the glyphs
 # of the keys and buttons on the tutorial cards, from PromptFont.ttf
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
-/build:Fonts/menuFont.spritefont
+/build:Fonts/menuFont20.spritefont
+/build:Fonts/menuFont40.spritefont
+/build:Fonts/menuFont80.spritefont
+/build:Fonts/menuFont160.spritefont
 /build:Fonts/promptFont.spritefont
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter

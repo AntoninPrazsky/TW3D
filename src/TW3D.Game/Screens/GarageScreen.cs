@@ -301,16 +301,19 @@ namespace TW3D.Screens
                 Show(-1);
         }
 
+        /// <summary>A name or a label as the garage shows it: in capitals, as the menus are written.</summary>
+        private static string Caps(string text) => text.ToUpperInvariant();
+
         private void UpdateLayout()
         {
             Rectangle safe = Manager.SafeArea;
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float uiScale = Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * TextScale * uiScale;
             int padding = (int)(Padding * uiScale);
 
             //The name of the car in the middle of the bottom row, between the arrows; Back at its left end
-            Vector2 nameSize = font.MeasureString(cars[selected].Name) * TextScale * uiScale;
+            Vector2 nameSize = font.MeasureString(Caps(cars[selected].Name)) * TextScale * uiScale;
             float rowCenter = safe.Bottom - lineHeight / 2f;
             namePosition = new Vector2((Manager.Viewport.Width - nameSize.X) / 2f, rowCenter - lineHeight / 2f);
 
@@ -322,7 +325,7 @@ namespace TW3D.Screens
             leftArrow.Inflate(padding, padding);
             rightArrow.Inflate(padding, padding);
 
-            Vector2 backSize = font.MeasureString("Back") * TextScale * uiScale;
+            Vector2 backSize = font.MeasureString("BACK") * TextScale * uiScale;
             backText = new Rectangle(safe.Left, (int)(rowCenter - lineHeight / 2f), (int)backSize.X, (int)lineHeight);
             back = backText;
             back.Inflate(padding, padding);
@@ -331,7 +334,7 @@ namespace TW3D.Screens
             //as wide as the widest name of wheels
             float labelHeight = font.MeasureString("M").Y * LabelScale * uiScale;
             float valueHeight = font.MeasureString("M").Y * ValueScale * uiScale;
-            float valueWidth = catalog.Wheels.Max(wheel => font.MeasureString(wheel.Name).X) * ValueScale * uiScale;
+            float valueWidth = catalog.Wheels.Max(wheel => font.MeasureString(Caps(wheel.Name)).X) * ValueScale * uiScale;
             Point smallArrow = (new Vector2(arrowTexture.Height, arrowTexture.Width) * SmallArrowScale * uiScale).ToPoint();
             float smallSpacing = ArrowSpacing * 0.6f * uiScale;
             float rowHeight = labelHeight + valueHeight;
@@ -346,7 +349,7 @@ namespace TW3D.Screens
                 float valueRight = choice.Right.X - smallSpacing;
                 choice.Value = new Rectangle((int)(valueRight - valueWidth), (int)(y + labelHeight), (int)valueWidth, (int)valueHeight);
                 choice.Left = new Rectangle((int)(choice.Value.X - smallSpacing) - smallArrow.X, choice.Right.Y, smallArrow.X, smallArrow.Y);
-                float labelWidth = font.MeasureString(choice.Label).X * LabelScale * uiScale;
+                float labelWidth = font.MeasureString(Caps(choice.Label)).X * LabelScale * uiScale;
                 choice.LabelPosition = new Vector2(choice.Value.Center.X - labelWidth / 2f, y);
                 choice.Left.Inflate(padding, padding / 2);
                 choice.Right.Inflate(padding, padding / 2);
@@ -364,7 +367,7 @@ namespace TW3D.Screens
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
 
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float slide = SlideAmount * TextSlide * uiScale * (IsDisappearing ? 1f : -1f);
             Vector2 pointer = Manager.Input.PointerPosition;
             Color shadow = Color.DarkSlateGray * (alpha * alpha);
@@ -375,9 +378,10 @@ namespace TW3D.Screens
             foreach ((CarType car, float offset) in scene.Row())
             {
                 float x = offset * scene.PixelsPerUnit;
-                float nameWidth = font.MeasureString(car.Name).X * TextScale * uiScale;
+                string carName = Caps(car.Name);
+                float nameWidth = font.MeasureString(carName).X * TextScale * uiScale;
                 float nameAlpha = alpha * MathHelper.Clamp(1f - Math.Abs(x) / (viewport.Width / 4f), 0f, 1f);
-                Manager.DrawShadowedText(font, car.Name, new Vector2((viewport.Width - nameWidth) / 2f + x + slide, namePosition.Y),
+                Manager.DrawShadowedText(font, carName, new Vector2((viewport.Width - nameWidth) / 2f + x + slide, namePosition.Y),
                     Color.White * nameAlpha, Color.DarkSlateGray * (nameAlpha * nameAlpha), TextScale * uiScale);
             }
             //At the ends of the row, the arrow towards nothing is faint
@@ -388,8 +392,8 @@ namespace TW3D.Screens
             CarWheels chosen = settings.WheelsOf(cars[selected]);
             foreach (WheelChoice choice in wheelChoices)
             {
-                Manager.DrawShadowedText(font, choice.Label, choice.LabelPosition - new Vector2(slide, 0f), Color.LightGray * alpha, shadow, LabelScale * uiScale);
-                string name = catalog.FindWheel(choice.Row == Row.FrontWheels ? chosen.Front : chosen.Rear).Name;
+                Manager.DrawShadowedText(font, Caps(choice.Label), choice.LabelPosition - new Vector2(slide, 0f), Color.LightGray * alpha, shadow, LabelScale * uiScale);
+                string name = Caps(catalog.FindWheel(choice.Row == Row.FrontWheels ? chosen.Front : chosen.Rear).Name);
                 float nameWidth = font.MeasureString(name).X * ValueScale * uiScale;
                 bool highlighted = focus == choice.Row || (choice.Value.Contains(pointer) && HasFocus);
                 Manager.DrawShadowedText(font, name, new Vector2(choice.Value.Center.X - nameWidth / 2f - slide, choice.Value.Y),
@@ -403,7 +407,7 @@ namespace TW3D.Screens
             Vector2 position = statsPosition + new Vector2(slide, 0f);
             for (int i = 0; i < StatNames.Length; i++)
             {
-                Manager.DrawShadowedText(font, StatNames[i], position, Color.LightGray * alpha, shadow, LabelScale * uiScale);
+                Manager.DrawShadowedText(font, Caps(StatNames[i]), position, Color.LightGray * alpha, shadow, LabelScale * uiScale);
                 Rectangle bar = new Rectangle((int)position.X, (int)(position.Y + labelHeight), (int)(BarWidth * uiScale), (int)(BarHeight * uiScale));
                 Manager.SpriteBatch.Draw(Manager.Pixel, bar, Color.White * (0.2f * alpha));
                 bar.Width = (int)(bar.Width * MathHelper.Clamp(bars[i], 0f, 1f));
@@ -412,7 +416,7 @@ namespace TW3D.Screens
             }
 
             Color backColor = back.Contains(pointer) && HasFocus ? MainMenuScreen.Yellow : Color.White;
-            Manager.DrawShadowedText(font, "Back", new Vector2(backText.X + slide, backText.Y), backColor * alpha, shadow, TextScale * uiScale);
+            Manager.DrawShadowedText(font, "BACK", new Vector2(backText.X + slide, backText.Y), backColor * alpha, shadow, TextScale * uiScale);
 
             MainMenuScreen.DrawTitle(Manager, "Garage", Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
 

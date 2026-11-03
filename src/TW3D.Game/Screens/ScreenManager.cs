@@ -196,11 +196,11 @@ namespace TW3D.Screens
         }
 
         /// <summary>Draws text with a dark shadow; must be called between SpriteBatch.Begin and End.</summary>
-        public void DrawShadowedText(SpriteFont font, string text, Vector2 position, Color color, Color shadow, float scale)
+        public void DrawShadowedText(GameFont font, string text, Vector2 position, Color color, Color shadow, float scale)
         {
             Vector2 shadowOffset = new Vector2(Math.Max(1f, 2f * UiScale));
-            SpriteBatch.DrawString(font, text, position + shadowOffset, shadow, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-            SpriteBatch.DrawString(font, text, position, color, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
+            font.Draw(SpriteBatch, text, position + shadowOffset, shadow, scale);
+            font.Draw(SpriteBatch, text, position, color, scale);
         }
     }
 }

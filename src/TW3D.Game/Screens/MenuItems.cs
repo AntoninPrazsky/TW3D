@@ -125,13 +125,13 @@ namespace TW3D.Screens
         /// <param name="scale">Font scale of the items on the screen.</param>
         public void Draw(ScreenManager manager, float scale, float slide, float alpha, bool hasFocus)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             for (int i = 0; i < items.Count; i++)
             {
                 MenuItem item = items[i];
                 Color color = !item.IsEnabled() ? Color.White * DisabledAlpha : (i == Focused && hasFocus ? MainMenuScreen.Yellow : Color.White);
                 Vector2 position = new Vector2(item.TextBounds.X + slide, item.TextBounds.Y);
-                manager.DrawShadowedText(font, item.Text(), position, color * alpha, Color.DarkSlateGray * (alpha * alpha), scale);
+                manager.DrawShadowedText(font, item.Label, position, color * alpha, Color.DarkSlateGray * (alpha * alpha), scale);
             }
         }
 

@@ -7,13 +7,16 @@ namespace TW3D.Screens
     {
         public GameFonts(ContentManager content)
         {
-            Menu = content.Load<SpriteFont>("Fonts/menuFont");
+            Menu = new GameFont(content, "Fonts/menuFont", 40, 20, 40, 80, 160);
             Small = content.Load<SpriteFont>("Fonts/frameRateCounterFont");
             Prompts = content.Load<SpriteFont>("Fonts/promptFont");
         }
 
-        /// <summary>Large font of menu items and titles.</summary>
-        public SpriteFont Menu { get; }
+        /// <summary>
+        /// The font of the menus, the titles and the display of a run (Triple Wheel Display, see tools/fontgen), in four sizes,
+        /// measured in the size 40, whose capitals are as high as those of the font of 2016.
+        /// </summary>
+        public GameFont Menu { get; }
 
         /// <summary>Small font with digits and the letters of "fps" only.</summary>
         public SpriteFont Small { get; }

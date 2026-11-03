@@ -65,7 +65,6 @@ namespace TW3D.Screens
             public float Scale;
         }
 
-        //The font has only the characters of ASCII, so the name is written without its accents
         private readonly Paragraph[] paragraphs =
         {
             new Paragraph { Text = "Triple Wheel 3D", Scale = NameScale, Color = Color.White },
@@ -182,12 +181,12 @@ namespace TW3D.Screens
             layoutScale = uiScale;
 
             Rectangle safe = Manager.SafeArea;
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float lineHeight = font.MeasureString("M").Y;
             int padding = (int)(Padding * uiScale);
 
             //Back at the left end of the bottom row, as in the garage
-            Vector2 backSize = font.MeasureString("Back") * BackScale * uiScale;
+            Vector2 backSize = font.MeasureString("BACK") * BackScale * uiScale;
             backText = new Rectangle(safe.Left, (int)(safe.Bottom - backSize.Y), (int)backSize.X, (int)backSize.Y);
             back = backText;
             back.Inflate(padding, padding);
@@ -227,7 +226,7 @@ namespace TW3D.Screens
         }
 
         /// <summary>The words of the text in lines at most as wide as given (in the units of the font).</summary>
-        private static IEnumerable<string> Wrap(SpriteFont font, string text, float maxWidth)
+        private static IEnumerable<string> Wrap(GameFont font, string text, float maxWidth)
         {
             string line = "";
             foreach (string word in text.Split(' '))
@@ -248,7 +247,7 @@ namespace TW3D.Screens
         {
             UpdateLayout();
 
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             SpriteBatch batch = Manager.SpriteBatch;
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
@@ -275,7 +274,7 @@ namespace TW3D.Screens
             batch.Draw(Manager.Pixel, underline, linkColor * alpha);
 
             Color backColor = focused == Item.Back && HasFocus ? MainMenuScreen.Yellow : Color.White;
-            Manager.DrawShadowedText(font, "Back", new Vector2(backText.X + slide, backText.Y), backColor * alpha, shadow, BackScale * uiScale);
+            Manager.DrawShadowedText(font, "BACK", new Vector2(backText.X + slide, backText.Y), backColor * alpha, shadow, BackScale * uiScale);
 
             MainMenuScreen.DrawTitle(Manager, "About", Manager.SafeArea.Top - SlideAmount * TitleSlide * uiScale, alpha);
 

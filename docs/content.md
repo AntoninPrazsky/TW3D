@@ -98,18 +98,25 @@ The content pipeline builds the images from PNG files:
 
 The content pipeline builds two fonts from TrueType files:
 
-- the font of the menus, the titles and the display of a run (`Fonts/menuFont.spritefont`):
+- the font of the menus, the titles and the display of a run (`Fonts/menuFont<size>.spritefont`):
   **Triple Wheel Display** (`Fonts/TripleWheelDisplay.ttf`, SIL Open Font License 1.1, see
   [its licence](../content/Fonts/TripleWheelDisplay-OFL.txt)), a version of
   [Orbitron](https://github.com/theleagueof/orbitron), which the font of 2016 (a precompiled
-  `.xnb` of ASCII only, whose font is not known) was close to. `tools/fontgen/menufont.py`
-  (Python 3 with fontTools) makes it from `art/fonts/Orbitron[wght].ttf`: the ExtraBold
-  weight, the Czech capitals Orbitron lacks (Ě Č Ř Ů Ť Ď Ň, built from its own letters and
-  its caron and ring), and capitals only (a small letter shows its capital, as the font of
-  2016 did); the licence reserves the name Orbitron, so the modified font has another. The
-  script writes the `.spritefont` too: the size (a capital 38 pixels high, as before) and
-  every character the font has among ASCII, the Latin letters with accents, the dashes, the
-  quotes and the euro; a character it lacks (such as `^` or `©`) is drawn as `?`.
+  `.xnb` of capitals and ASCII only, whose font is not known) was close to.
+  `tools/fontgen/menufont.py` (Python 3 with fontTools) makes it from
+  `art/fonts/Orbitron[wght].ttf`: the ExtraBold weight and the Czech letters Orbitron lacks
+  (Ě Č Ř Ů Ť Ď Ň and ě č ř ů ť ď ň, built from its own letters and its caron and ring; ť and
+  ď with the caron as an apostrophe); the licence reserves the name Orbitron, so the modified
+  font has another. The menus, their items and the titles (and the big countdown) are written
+  in capitals, as in 2016; the other texts (the tutorial, the results, About) in small letters
+  too. The script writes the `.spritefont` files too, in four sizes (20, 40, 80, 160): the
+  game draws a text from the smallest size at least as large as the text is on the screen
+  (`Screens/GameFont.cs`), so that large texts and high resolutions are sharp, and measures
+  the layouts in the size 40, whose capitals are 38 pixels high as before. The sizes up to 80
+  have every character the font has among ASCII, the Latin letters with accents, the dashes,
+  the quotes and the euro; the size 160 only the digits, the capitals and a little
+  punctuation, so that its texture stays within 2048 pixels on phones. A character the font
+  lacks (such as `^` or `©`) is drawn as `?`.
 - the glyphs of keys and buttons on the tutorial cards: `Fonts/promptFont.spritefont`, from
   [PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open Font
   License 1.1), only the glyphs it lists.

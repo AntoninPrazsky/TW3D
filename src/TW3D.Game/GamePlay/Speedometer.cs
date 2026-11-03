@@ -89,19 +89,18 @@ namespace TW3D.GamePlay
             batch.Draw(dial, centre - new Vector2(radius), Color.White * alpha);
 
             //The numbers upright around the scale, and the unit under the middle
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             float numberScale = radius * 0.155f / font.MeasureString("0").Y;
             for (int speed = 0; speed <= MaxSpeed; speed += NumberStep)
             {
                 string text = speed.ToString();
                 Vector2 textSize = font.MeasureString(text) * numberScale;
                 Vector2 at = centre + Direction(Angle(speed)) * radius * NumbersRadius;
-                batch.DrawString(font, text, at - textSize / 2f, (speed >= RedFrom ? Red : Marks) * alpha, 0f, Vector2.Zero, numberScale, SpriteEffects.None, 0f);
+                font.Draw(batch, text, at - textSize / 2f, (speed >= RedFrom ? Red : Marks) * alpha, numberScale);
             }
             float unitScale = numberScale * 0.85f;
             Vector2 unitSize = font.MeasureString("km/h") * unitScale;
-            batch.DrawString(font, "km/h", centre + new Vector2(0f, radius * 0.38f) - unitSize / 2f, Marks * (0.75f * alpha), 0f, Vector2.Zero, unitScale,
-                SpriteEffects.None, 0f);
+            font.Draw(batch, "km/h", centre + new Vector2(0f, radius * 0.38f) - unitSize / 2f, Marks * (0.75f * alpha), unitScale);
 
             //The needle turns about its pivot, the cap covers it
             batch.Draw(needle, centre, null, Color.White * alpha, Angle(shown), new Vector2(needle.Width / 2f, NeedlePivot * radius), 1f, SpriteEffects.None, 0f);

@@ -1,6 +1,6 @@
 Triple Wheel Display (TripleWheelDisplay.ttf) is a modified version of Orbitron, made in 2026 for the
 game Triple Wheel 3D by tools/fontgen/menufont.py from art/fonts/Orbitron[wght].ttf: its ExtraBold weight,
-the Czech capitals added from its own letters and marks, its small letters shown as capitals. It is
+the Czech letters it lacks added, built from its own letters and marks. It is
 licensed under the SIL Open Font License, Version 1.1, as Orbitron is; as the licence requires, it does
 not carry the Reserved Font Name "Orbitron".
 

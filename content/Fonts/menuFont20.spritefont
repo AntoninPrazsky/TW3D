@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Written by tools/fontgen/menufont.py: do not edit, change the script and run it.
-  The font of the menus, the titles and the display of a run: Triple Wheel Display (TripleWheelDisplay.ttf, SIL Open Font
-  License 1.1, see TripleWheelDisplay-OFL.txt), a version of Orbitron with capitals only and the Czech letters. A
-  capital is as high as in the font of 2016; a character it lacks is drawn as "?".
+  The font of the menus, the titles and the display of a run in the size 20 (every character it has of Latin): Triple Wheel Display
+  (TripleWheelDisplay.ttf, SIL Open Font License 1.1, see TripleWheelDisplay-OFL.txt), a version of Orbitron with
+  the Czech letters. GameFont draws a text from the nearest larger size; a character it lacks is drawn as "?".
 -->
 <XnaContent xmlns:Graphics="Microsoft.Xna.Framework.Content.Pipeline.Graphics">
   <Asset Type="Graphics:FontDescription">
     <FontName>TripleWheelDisplay.ttf</FontName>
-    <Size>40</Size>
-    <Spacing>1</Spacing>
+    <Size>20</Size>
+    <Spacing>0.5</Spacing>
     <UseKerning>true</UseKerning>
     <Style>Regular</Style>
     <DefaultCharacter>?</DefaultCharacter>

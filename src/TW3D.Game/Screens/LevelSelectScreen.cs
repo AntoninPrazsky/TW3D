@@ -136,7 +136,7 @@ namespace TW3D.Screens
             sliderBottom = arrowDownY - arrowHeight / 2f - gap - sliderHeight / 2f;
 
             //Back on the left of the title, centred on its height
-            Vector2 backSize = Manager.Fonts.Menu.MeasureString("Back") * BackScale * uiScale;
+            Vector2 backSize = Manager.Fonts.Menu.MeasureString("BACK") * BackScale * uiScale;
             float titleHeight = MainMenuScreen.TitleHeight(Manager);
             backText = new Rectangle(safe.Left, (int)(safe.Top + (titleHeight - backSize.Y) / 2f), (int)backSize.X, (int)backSize.Y);
             back = backText;
@@ -345,9 +345,9 @@ namespace TW3D.Screens
             float titleSlide = SlideAmount * TitleSlide * uiScale;
             MainMenuScreen.DrawTitle(Manager, title, Manager.SafeArea.Top - titleSlide, alpha);
             Color backColor = back.Contains(Manager.Input.PointerPosition) && HasFocus ? MainMenuScreen.Yellow : Color.White;
-            Manager.DrawShadowedText(Manager.Fonts.Menu, "Back", new Vector2(backText.X, backText.Y - titleSlide), backColor * alpha, Color.Black * alpha, BackScale * uiScale);
+            Manager.DrawShadowedText(Manager.Fonts.Menu, "BACK", new Vector2(backText.X, backText.Y - titleSlide), backColor * alpha, Color.Black * alpha, BackScale * uiScale);
             if (levels.Count == 0)
-                DrawCenteredText(batch, "No levels found", new Rectangle(0, (int)listTop, viewport.Width, (int)(listBottom - listTop) / 2), 0.6f * uiScale, alpha);
+                DrawCenteredText(batch, "NO LEVELS FOUND", new Rectangle(0, (int)listTop, viewport.Width, (int)(listBottom - listTop) / 2), 0.6f * uiScale, alpha);
             batch.End();
         }
 
@@ -372,7 +372,7 @@ namespace TW3D.Screens
             StarIcons.Draw(batch, new Vector2(band.X + margin, band.Center.Y - starSize / 2f), starSize, stars, alpha);
 
             string text = GamePlay.RaceScore.FormatTime(time);
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float scale = height * 0.6f / font.MeasureString("M").Y;
             Vector2 size = font.MeasureString(text) * scale;
             Manager.DrawShadowedText(font, text, new Vector2(band.Right - margin - size.X, band.Center.Y - size.Y / 2f), Color.White * alpha, Color.Black * alpha, scale);
@@ -384,8 +384,9 @@ namespace TW3D.Screens
             batch.Draw(Manager.Pixel, bounds, new Color(30, 30, 30) * (0.85f * alpha));
             DrawFrame(batch, bounds, Math.Max(1, (int)(2f * uiScale)), Color.Gray * alpha);
 
-            //The level name in the menu font, as big as fits into the rectangle
-            SpriteFont font = Manager.Fonts.Menu;
+            //The level name in the menu font, in capitals as the menus are written, as big as fits into the rectangle
+            level = level.ToUpperInvariant();
+            GameFont font = Manager.Fonts.Menu;
             Vector2 size = font.MeasureString(level);
             float scale = Math.Min(bounds.Width * 0.8f / size.X, bounds.Height * 0.35f / size.Y);
             DrawCenteredText(batch, level, bounds, scale, alpha);

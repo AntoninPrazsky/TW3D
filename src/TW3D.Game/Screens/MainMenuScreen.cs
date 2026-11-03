@@ -96,7 +96,7 @@ namespace TW3D.Screens
         {
             Viewport viewport = Manager.Viewport;
             Rectangle safe = Manager.SafeArea;
-            SpriteFont font = Manager.Fonts.Menu;
+            GameFont font = Manager.Fonts.Menu;
             float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float bottomRowY = safe.Bottom - lineHeight / 2f;
@@ -106,7 +106,7 @@ namespace TW3D.Screens
 
             for (int i = 0; i < items.Count; i++)
             {
-                Vector2 size = font.MeasureString(items[i].Text()) * scale;
+                Vector2 size = font.MeasureString(items[i].Label) * scale;
                 Vector2 center;
                 switch (Places[i])
                 {
@@ -172,10 +172,14 @@ namespace TW3D.Screens
             Manager.SpriteBatch.End();
         }
 
-        /// <summary>Draws a screen title centred horizontally, with its top at the given height (shared by the other menus).</summary>
+        /// <summary>
+        /// Draws a screen title centred horizontally, with its top at the given height (shared by the other menus), in
+        /// capitals, as the menus are written.
+        /// </summary>
         public static void DrawTitle(ScreenManager manager, string title, float top, float alpha)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            title = title.ToUpperInvariant();
+            GameFont font = manager.Fonts.Menu;
             float scale = TitleScale * manager.UiScale;
             Vector2 size = font.MeasureString(title) * scale;
             Vector2 position = new Vector2((manager.Viewport.Width - size.X) / 2f, top);

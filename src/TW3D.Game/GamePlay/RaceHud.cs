@@ -24,7 +24,7 @@ namespace TW3D.GamePlay
         /// <param name="timeAlpha">How visible the time and the par time are: they fade out as the results come.</param>
         public static float Draw(ScreenManager manager, Race race, float timeAlpha)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             float uiScale = manager.UiScale;
             Rectangle safe = manager.SafeArea;
             float centreX = manager.Viewport.Width / 2f;
@@ -69,7 +69,7 @@ namespace TW3D.GamePlay
         /// </summary>
         private static Vector2 DrawTime(ScreenManager manager, string text, Vector2 topCentre, Color colour, float scale, float alpha)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            GameFont font = manager.Fonts.Menu;
             float digitWidth = 0f;
             for (char digit = '0'; digit <= '9'; digit++)
                 digitWidth = Math.Max(digitWidth, font.MeasureString(digit.ToString()).X);
@@ -90,11 +90,13 @@ namespace TW3D.GamePlay
             return new Vector2(width, font.LineSpacing) * scale;
         }
 
-        /// <summary>Draws a text large in the middle of the screen.</summary>
+        /// <summary>Draws a text large in the middle of the screen, in capitals.</summary>
         /// <param name="size">The size relative to the size of the countdown.</param>
         private static void DrawBig(ScreenManager manager, string text, Color colour, float size, float alpha)
         {
-            SpriteFont font = manager.Fonts.Menu;
+            //In capitals, as the titles are written
+            text = text.ToUpperInvariant();
+            GameFont font = manager.Fonts.Menu;
             float scale = CountdownScale * size * manager.UiScale;
             Vector2 textSize = font.MeasureString(text) * scale;
             Vector2 position = new Vector2(manager.Viewport.Width, manager.Viewport.Height) / 2f - textSize / 2f;
