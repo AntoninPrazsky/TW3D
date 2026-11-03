@@ -10,7 +10,7 @@ namespace TW3D.GameObjects
 {
     /// <summary>
     /// Something of a level drawn by 3D models at the positions of bodies of the physics world: the car, the level itself
-    /// with its blocks and dynamic objects, the sky. See <see cref="Units"/> for how the coordinates of the models, of the
+    /// with its blocks and dynamic objects. See <see cref="Units"/> for how the coordinates of the models, of the
     /// physics world and of the scene relate.
     /// </summary>
     class GameObject
@@ -49,16 +49,9 @@ namespace TW3D.GameObjects
         }
 
         /// <summary>Adds a model to the scene, at a position and rotation of the physics world.</summary>
-        /// <param name="asBackground">
-        /// Draw it behind everything else, unlit and without the depth buffer (used for the sky).
-        /// </param>
-        public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, bool asBackground = false)
+        public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip)
         {
-            Matrix world = ModelWorld(modelPosition, modelRotation, flip) * Placement;
-            if (asBackground)
-                renderer.SetBackground(model, world);
-            else
-                renderer.Add(model, world);
+            renderer.Add(model, ModelWorld(modelPosition, modelRotation, flip) * Placement);
         }
 
         /// <summary>World matrix of a model at a position and rotation of the physics world.</summary>

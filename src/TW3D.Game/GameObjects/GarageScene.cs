@@ -13,7 +13,7 @@ namespace TW3D.GameObjects
     /// <summary>
     /// The 3D garage behind the menus (content/Garage, built from the Wings 3D files of 2015–2016): a hall with a lift in
     /// its middle, the car chosen in the garage on the lift with its wheels, the other cars in a row along the axis of
-    /// the lift in the order of the catalog, and a landscape behind the windows. The camera slowly drifts around the view
+    /// the lift in the order of the catalog, and the sky of a day behind the windows. The camera slowly drifts around the view
     /// of the menu, or, as <see cref="Focus"/> grows, sweeps around the car on the lift (the garage screen), or comes to
     /// the wheels of one of its axles (<see cref="View"/>). The main menu shows the 3D logo of the game in it
     /// (<see cref="Title"/>): placed against the frame, not against the hall, so that it keeps its place in the picture
@@ -89,7 +89,7 @@ namespace TW3D.GameObjects
         private readonly ScreenManager manager;
         private readonly GameSettings settings;
         private readonly SceneRenderer renderer;
-        private readonly Model garage, window, logo;
+        private readonly Model garage, logo;
         private readonly List<CarType> cars;
         private readonly Catalog catalog;
         private readonly World world = new World(Vector2.Zero);
@@ -112,7 +112,6 @@ namespace TW3D.GameObjects
             cars = catalog.Cars;
             ModelCollision.Load();
             garage = manager.Content.Load<Model>("Garage/garage");
-            window = manager.Content.Load<Model>("Garage/window");
             logo = manager.Content.Load<Model>("Garage/logo");
             renderer = new SceneRenderer(manager.GraphicsDevice, manager.Content) { Lighting = Lighting.Garage, ShadowDistance = ShadowDistance };
         }
@@ -261,7 +260,8 @@ namespace TW3D.GameObjects
             renderer.Begin(view, projection);
             if (Title is (Vector2 titleCentre, float titleHeight))
                 renderer.SetOverlay(logo, LogoWorld(titleCentre, titleHeight, view, projection, viewport));
-            renderer.SetBackground(window, garageWorld);
+            //The windows look out at the sky of a day (Lighting.Garage)
+            renderer.SetSky();
             renderer.Add(garage, garageWorld);
             //The car on the lift last: its headlights light the hall
             List<(CarType Car, float Offset)> drawn = Row();

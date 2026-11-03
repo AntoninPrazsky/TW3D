@@ -31,8 +31,8 @@ physics bodies.
 |---|---|
 | `Screens/` | Screen stack (`ScreenManager`), the items of a menu and their focus (`MenuItems`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view, also the test drive of the level editor (the level from memory, from any cell, without the tutorial and the records); `Race`: a run of the level (countdown, time, finish) and `RaceHud`, what it shows on the screen; `CarDrag`: the car dragged by hand; `DevelopmentKeys`: the keys for development; `Tutorial`: the lessons of the tutorial and their state, and `TutorialCard`, its card on the screen; `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
-| `GameObjects/` | The car, the level (built from a level file, or the level editor's data in a test drive, and `LevelAssets`: the catalog, the models of its blocks, objects and scenery and the collision shapes, loaded once; `SceneryProp` places a prop of the scenery), the sky, dynamic objects, the skid marks of the tyres (`SkidMarks`), the smoke of the tyres and the exhaust (`TyreSmoke`, `ExhaustSmoke`, both clouds of `Smoke`) and the 3D garage behind the menus with the 3D logo of the main menu (`GarageScene`) |
-| `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting and shadows), frame rate counter |
+| `GameObjects/` | The car, the level (built from a level file, or the level editor's data in a test drive, and `LevelAssets`: the catalog, the models of its blocks, objects and scenery and the collision shapes, loaded once; `SceneryProp` places a prop of the scenery), dynamic objects, the skid marks of the tyres (`SkidMarks`), the smoke of the tyres and the exhaust (`TyreSmoke`, `ExhaustSmoke`, both clouds of `Smoke`) and the 3D garage behind the menus with the 3D logo of the main menu (`GarageScene`) |
+| `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting, shadows and the sky; `Lighting` and `SkyLook`: the moods), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input (with the device used last) and the on-screen controls |
 | `Audio/` | The sound effects: `Synth` (the arithmetic of tones, noise, filters and reverb), `SoundBakes` (the recipes), `GameSounds` (played by the screens) |
 | `Editor/` | The level editor (`--editor`), left out of the Android build. The document: `EditedLevel` (the level being edited, without MonoGame, every change a command with undo), `LevelReport` and `RoadGap` (its problems and the gaps of its road). The screen: `EditorScreen` (routes the input and draws the parts), `EditorCamera` (the free camera driven by the mouse), `LevelView` (the level drawn without physics), `EditorMarkers` (the cursor, the grid, the finish and the selections drawn over the scene) and `HiddenLayerGuard`. The tools: `BlockTool` (Place), `ObjectTool`, `SelectTool` and `SceneryTool`, with `EditorTool` and `ChosenObject`. The windows: `PaletteWindow`, `InspectorWindow`, `LevelWindow`, `HelpWindow`, `StatusBar`, `EditorMenus` and `InterfaceLayout` (the font, the style and the dock space). The session: `LevelSession` (opens, saves and guards the level), `LevelFolder`, `FileDialogs`, `PendingAction` and `EditorSettings` (the recent levels and the camera), and `TestDriveStart` (hands the level to a `GameplayScreen`). The previews: `BlockPreviews` (the turning 3D images of the palette) and `ModelBounds`. The renderer of ImGui: `ImGuiRenderer` (Dear ImGui drawn by MonoGame, from the `ImGui.NET` package). |
@@ -78,3 +78,23 @@ The 2016 version lit the models by three coloured directional lights of
 game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
 level, which is saved with it), CatalogRender with the 2016
 lighting, as the catalog images were taken so.
+
+### The sky
+
+The sky has no picture: the technique Sky of `Scene.fx` computes it for every pixel of
+the screen from the direction the pixel looks in (`SceneRenderer.SetSky`, drawn behind
+everything, the same in the lighting of 2016). Each mood has its `SkyLook`
+(`Graphics/SkyLook.cs`, in `Lighting`): a smooth ramp from the colour of the horizon (the
+colour of the haze) to the colour overhead, a glow and a disc of the sun (the moon at
+night), stars at night, clouds on a plane high above, distant hills along the horizon and
+the ground below them. The clouds, the stars and a dithering against bands in the ramps
+come from a small noise texture the renderer generates when it starts (soft tiling value
+noise for the clouds, a random value per texel for the rest), so nothing of the sky is
+loaded and it costs a few texture reads per pixel, also on a phone. The clouds drift
+slowly with the wind.
+
+The levels hang high above the land, and the camera of the game looks down at the car:
+their horizon lies 40° below the eye (`SceneRenderer.HorizonDip`), so that the sky fills
+the view behind the track and the land shows only far below it, as the picture of the sky
+of 2016 had it. The garage stands on the ground, its windows look out at the sky of a day
+with its horizon at the eye.

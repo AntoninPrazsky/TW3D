@@ -63,7 +63,6 @@ namespace TW3D.GamePlay
         private CarDrag drag;
 
         private Level level;
-        private Sky sky;
         private Car car;
         private Race race;
         //The cards of the tutorial; null when the tutorial is off
@@ -163,7 +162,7 @@ namespace TW3D.GamePlay
                 ? new Level(world, Manager, camera, physics, assets, Vector2.Zero, testLevel, TestDriveName)
                 : new Level(world, Manager, camera, physics, assets, Vector2.Zero, levelName);
             renderer.Lighting = Lighting.For(level.Mood);
-            sky = new Sky(Manager, camera);
+            renderer.HorizonDip = SceneRenderer.HighAbove;
             Catalog catalog = assets.Catalog;
             CarType carType = catalog.FindCar(settings.Car);
             CarWheels wheels = settings.WheelsOf(carType);
@@ -435,7 +434,7 @@ namespace TW3D.GamePlay
         public override void Draw(GameTime gameTime)
         {
             renderer.Begin(camera.View, camera.Projection);
-            sky.Draw(renderer);
+            renderer.SetSky();
             if (!developmentKeys.TrackOnly)
                 car.Draw(renderer);
             level.Draw(renderer);

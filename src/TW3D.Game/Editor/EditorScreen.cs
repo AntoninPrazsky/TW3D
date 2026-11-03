@@ -34,8 +34,6 @@ namespace TW3D.Editor
         //Where ImGui keeps the positions and sizes of its windows
         private static readonly string LayoutFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TW3D", "editor-layout.ini");
-        //Where the sky is drawn relative to the camera: around it, as the game draws it around the car
-        private static readonly Vector3 SkyOffset = new Vector3(0f, -2f, 6.5f);
         //How far the camera of the game is from the car (scene units): the haze of the renderer is set for that distance,
         //so it is moved by what the camera of the editor is further
         private const float GameCameraDistance = 4.5f;
@@ -51,7 +49,6 @@ namespace TW3D.Editor
 
         private LevelAssets assets;
         private SceneRenderer renderer;
-        private Model sky;
         private EditorCamera camera;
         private LevelView view;
         private BlockTool placeTool;
@@ -114,9 +111,8 @@ namespace TW3D.Editor
             previousTitle = Manager.Game.Window.Title;
 
             assets = LevelAssets.Load(Manager.Content);
-            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
+            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content) { HorizonDip = SceneRenderer.HighAbove };
             settings.Apply(renderer);
-            sky = Manager.Content.Load<Model>("Env/sky");
             camera = new EditorCamera();
             view = new LevelView(assets);
             report = note => message = note;
@@ -463,7 +459,7 @@ namespace TW3D.Editor
             renderer.HazeOffset = Math.Max(0f, camera.Distance - GameCameraDistance);
             renderer.ShadowDistance = Math.Max(MinShadowDistance, camera.Distance * 1.5f);
             renderer.Begin(camera.View, camera.Projection);
-            renderer.SetBackground(sky, Matrix.CreateScale(Units.ModelToScene) * Matrix.CreateTranslation(camera.Position + SkyOffset));
+            renderer.SetSky();
             view.Draw(renderer);
             renderer.End();
             //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on their plane

@@ -1,6 +1,6 @@
 """Builds the 3D garage behind the menus from the Wings 3D files of 2015-2016 (art/wings/Garage) into content/Garage:
-garage.obj/.mtl (the hall, its windows and furniture, the lift) and window.obj/.mtl (the landscape behind the windows,
-drawn as a background). Coordinates stay those of Wings (y up, the axis of the lift along z, its middle at the origin).
+garage.obj/.mtl (the hall, its windows and furniture, the lift); the game draws the sky behind the windows. Coordinates
+stay those of Wings (y up, the axis of the lift along z, its middle at the origin).
 
     python tools/garagegen/build.py
 """
@@ -205,13 +205,4 @@ for (xa, xb, za, zb) in ((bx0, bx0 + w, bz0, bz1), (bx1 - w, bx1, bz0, bz1), (bx
 os.makedirs(OUT, exist_ok=True)
 o.save(os.path.join(OUT, 'garage.obj'))
 
-# ---- the landscape behind the windows: the sky of the game on the plane of 2015 (its photos were stock photos),
-# facing the hall, not mirrored seen from there
-x, ya, yb, za, zb = -44.63, -10.65, 63.14, -36.9, 36.9
-lines = ['# The landscape behind the windows of the garage (drawn as the background): the picture of the sky of the levels',
-         'mtllib window.mtl', 'o window',
-         f'v {x} {ya} {zb}', f'v {x} {ya} {za}', f'v {x} {yb} {za}', f'v {x} {yb} {zb}',
-         'vt 0 0', 'vt 1 0', 'vt 1 1', 'vt 0 1', 'vn 1 0 0', 'usemtl window', 'f 1/1/1 2/2/1 3/3/1 4/4/1']
-open(OUT + '/window.obj', 'w', newline='\n').write('\n'.join(lines) + '\n')
-open(OUT + '/window.mtl', 'w', newline='\n').write('newmtl window\nKd 1 1 1\nd 1\nKs 0 0 0\nKe 0 0 0\nNs 0\nmap_Kd ../Env/sky.png\nillum 1\n')
 print('faces', sum(1 for l in o.lines if l.startswith('f ')), 'materials', len(o.materials))

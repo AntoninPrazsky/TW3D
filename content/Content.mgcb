@@ -39,7 +39,7 @@
 /build:wheel.obj
 /build:wheel2.obj
 
-# Dynamic objects and the sky
+# Dynamic objects
 /build:Env/bar1.obj
 /build:Env/bar2.obj
 /build:Env/box.obj
@@ -47,12 +47,10 @@
 /build:Env/co2.obj
 /build:Env/mov1.obj
 /build:Env/rm.obj
-/build:Env/sky.obj
 /build:Env/tb1.obj
 
-# The 3D garage behind the menus (the landscape behind its windows comes with its texture) and the 3D logo of the main menu
+# The 3D garage behind the menus and the 3D logo of the main menu
 /build:Garage/garage.obj
-/build:Garage/window.obj
 /build:Garage/logo.obj
 
 # Scenery: static props beside the track, without physics (tools/garagegen/scenery.py)

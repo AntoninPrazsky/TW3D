@@ -8,8 +8,10 @@
 // Smooth materials (Roughness less than 1) mirror the sky, the ground and the sun; metal
 // (Metallic) only mirrors, in its own colour, like chrome.
 //
-// Technique Sky draws the sky: its picture recoloured by the colours of the light from the
-// horizon up (it keeps the brightness of the picture, the clouds), with a glow around the sun.
+// Technique Sky draws the sky behind everything, computed from the direction of each pixel (no
+// picture): a smooth ramp from the horizon up, a glow and a disc of the sun (or the moon), stars,
+// clouds on a plane high above (from a noise texture the renderer generates), distant hills along
+// the horizon and the ground below them, dithered so that the ramp shows no bands.
 //
 // Technique Depth draws the shadow map: the depth of the scene seen from the sun, packed into
 // the four 8-bit channels of an ordinary texture (phones may not render to float textures).
@@ -53,16 +55,29 @@ float3 LightColor[CAR_LIGHTS];      // linear; black = off
 float2 LightCone[CAR_LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
 float LightRange[CAR_LIGHTS];
 
-// The sky: the brightness of its picture in these colours (on the screen) at the horizon and above,
-// mixed with the picture as it is by SkyRecolor (0 = the picture as it is)
-float3 SkyHorizon;
+// The sky (colours on the screen, gamma)
+float4x4 InverseViewProjection;
 float3 SkyZenith;
-float SkyRecolor;
+float3 SkyHorizon;
+float3 SkyGround;           // far below the horizon
+float3 SkyHills;            // the distant hills along the horizon
+float3 SkySun;              // unit vector towards the sun (or the moon) of the sky
+float3 SunDisc;             // its colour; black = none
+float SunDiscCos;           // cosine of its radius
 float3 SunGlow;
-texture SkyTexture;
-sampler2D SkySampler = sampler_state
+float Stars;                // how bright the stars are (0 = none)
+float CloudCover;           // how much of the sky the clouds cover (0 = none)
+float3 CloudLight;          // the side of the clouds lit by the sun
+float3 CloudShade;          // their shaded side
+float2 CloudDrift;          // how far the wind has moved them
+float2 SkyScreenSize;       // pixels of the screen, for the dithering
+float HorizonDip;           // the sine of how far below the eye the horizon is
+// R: soft noise for the clouds, tiling; G: an independent random value in each texel (stars, dithering)
+#define NOISE_SIZE 256.0
+texture SkyNoise;
+sampler2D NoiseSampler = sampler_state
 {
-	Texture = <SkyTexture>;
+	Texture = <SkyNoise>;
 	MinFilter = Linear;
 	MagFilter = Linear;
 	MipFilter = Linear;
@@ -311,37 +326,73 @@ technique NormalDepth
 	}
 };
 
+// The sky is drawn by a quad over the whole screen; each corner gets the direction from the camera
 struct SkyInput
 {
-	float4 Position : POSITION0;
-	float2 TexCoord : TEXCOORD0;
+	float4 Position : POSITION0;   // the corner of the screen, -1 to 1
+	float2 TexCoord : TEXCOORD0;   // the same, 0 to 1 from the top left
 };
 
 struct SkyOutput
 {
 	float4 Position : SV_POSITION;
-	float2 TexCoord : TEXCOORD0;
-	float3 Direction : TEXCOORD1;  // from the camera
+	float3 Direction : TEXCOORD0;  // from the camera
+	float2 Pixel : TEXCOORD1;      // the pixel of the screen
 };
 
 SkyOutput SkyVS(SkyInput input)
 {
 	SkyOutput output;
-	float4 world = mul(input.Position, World);
-	output.Position = mul(world, ViewProjection);
-	output.TexCoord = input.TexCoord;
-	output.Direction = world.xyz - CameraPosition;
+	output.Position = float4(input.Position.xy, 0.5, 1.0);
+	// A point of the scene seen in that corner (any depth gives the same direction)
+	float4 world = mul(float4(input.Position.xy, 0.5, 1.0), InverseViewProjection);
+	output.Direction = world.xyz / world.w - CameraPosition;
+	output.Pixel = input.TexCoord * SkyScreenSize;
 	return output;
 }
 
 float4 SkyPS(SkyOutput input) : COLOR0
 {
 	float3 direction = normalize(input.Direction);
-	float3 picture = tex2D(SkySampler, input.TexCoord).rgb;
-	float3 tint = lerp(SkyHorizon, SkyZenith, saturate(direction.y * 2.0));
-	float3 recoloured = dot(picture, float3(0.3, 0.59, 0.11)) * tint;
-	float3 glow = SunGlow * pow(saturate(dot(direction, SunDirection)), 12.0);
-	return float4(lerp(picture, recoloured, SkyRecolor) + glow, 1.0);
+	// How far above the horizon the direction points (the horizon may lie below the eye)
+	float up = direction.y + HorizonDip;
+
+	// The ramp from the horizon up, fast near the horizon and slow overhead
+	float3 sky = lerp(SkyHorizon, SkyZenith, sqrt(saturate(up)));
+
+	// Stars: in some cells of a grid laid over the dome (seen from below it, so that they stay round) a point at a
+	// random place, fading towards the horizon
+	float2 dome = direction.xz / (1.0 + direction.y) * 180.0;
+	float2 cell = floor(dome);
+	float random = tex2D(NoiseSampler, (cell + 0.5) / NOISE_SIZE).g;
+	float2 place = cell + 0.5 + (float2(frac(random * 13.0), frac(random * 29.0)) - 0.5) * 0.6;
+	float star = saturate((random - 0.94) / 0.06) * saturate(1.0 - length(dome - place) / 0.22);
+	sky += Stars * star * smoothstep(0.03, 0.25, up);
+
+	// The glow around the sun and its disc
+	float facing = dot(direction, SkySun);
+	sky += SunGlow * pow(saturate(facing), 12.0);
+	sky = lerp(sky, SunDisc, smoothstep(SunDiscCos - 0.00015, SunDiscCos + 0.00015, facing) * step(0.001, dot(SunDisc, 1.0)));
+
+	// Clouds on a plane above: their thickness here and a little towards the sun (thicker there, this side is shaded)
+	float2 hit = direction.xz / max(up, 0.04) * 0.18 + CloudDrift;
+	float thickness = tex2D(NoiseSampler, hit).r;
+	float towardsSun = tex2D(NoiseSampler, hit + SkySun.xz * 0.025).r;
+	float cloud = smoothstep(1.0 - CloudCover, 1.0 - CloudCover + 0.25, thickness) * smoothstep(0.02, 0.16, up);
+	float3 cloudColour = lerp(CloudLight, CloudShade, saturate((towardsSun - thickness) * 4.0 + 0.35));
+	cloudColour += SunGlow * pow(saturate(facing), 6.0) * 0.6;
+	sky = lerp(sky, cloudColour, cloud * step(0.001, CloudCover));
+
+	// Distant hills along the horizon, and the ground below them, hazy where they are far
+	float azimuth = atan2(direction.x, direction.z);
+	float hills = 0.022 + 0.011 * sin(azimuth * 3.0 + 1.3) + 0.006 * sin(azimuth * 7.0 + 0.4) + 0.003 * sin(azimuth * 19.0 + 2.1);
+	float below = saturate(-up / 0.25);
+	float3 land = lerp(lerp(SkyHills, SkyHorizon, 0.35 * saturate(1.0 - below * 4.0)), SkyGround, sqrt(below));
+	sky = lerp(sky, land, smoothstep(hills + 0.0015, hills - 0.0015, up));
+
+	// Dithering of a part of a step of the screen's colours, against bands in the ramps
+	float dither = tex2D(NoiseSampler, input.Pixel / NOISE_SIZE).g - 0.5;
+	return float4(sky + dither / 255.0, 1.0);
 }
 
 technique Sky

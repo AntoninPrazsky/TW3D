@@ -50,6 +50,11 @@ namespace TW3D.Graphics
         private const float DaylightGlowStrength = 0.45f;
         private const float GlowPull = 0.8f;
         private const int GlowTextureSize = 64;
+        //The noise of the sky (see CreateSkyNoise): its size (as NOISE_SIZE of Scene.fx), the periods of the lattices
+        //of its octaves of clouds in texels, and how fast the wind moves the clouds (texture coordinates per second)
+        private const int SkyNoiseSize = 256;
+        private static readonly int[] CloudPeriods = { 64, 32, 16, 8 };
+        private static readonly Vector2 CloudWind = new Vector2(0.004f, 0.0015f);
 
         //The shadow map covers the part of the scene the camera sees: the 3D models lie between
         //these planes (the back and front decoration layers are 2.25 units from the physics plane
@@ -189,8 +194,10 @@ namespace TW3D.Graphics
         private Matrix view;
         private Matrix projection;
         private Vector3 eye;
-        private Model background;
-        private Matrix backgroundWorld;
+        private bool sky;
+        private readonly Texture2D skyNoise;
+        //The time the clouds drift by, shared by all renderers so that they do not jump between screens
+        private static readonly System.Diagnostics.Stopwatch SkyClock = System.Diagnostics.Stopwatch.StartNew();
         private Model overlay;
         private Matrix overlayWorld;
         //The car: its lamps shining as spot lights, which lamp each is, where it is (relative to the car) and where it
@@ -223,6 +230,7 @@ namespace TW3D.Graphics
 
             glowTexture = CreateGlowTexture(device);
             smokeTexture = CreateSmokeTexture(device);
+            skyNoise = CreateSkyNoise(device);
             smokeEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = smokeTexture };
             glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
 
@@ -277,6 +285,16 @@ namespace TW3D.Graphics
         /// </summary>
         public float ShadowDistance { get; set; } = 40f;
 
+        /// <summary>
+        /// How far below the eye the horizon of the sky is (radians, see <see cref="SetSky"/>): 0 on the ground (the
+        /// garage), <see cref="HighAbove"/> for the levels, which hang high above the land, so that the camera of the game,
+        /// which looks down at the car, sees the sky behind the track and the land only far below it.
+        /// </summary>
+        public float HorizonDip { get; set; }
+
+        /// <summary>The dip of the horizon of the levels (radians): about where the picture of the sky of 2016 had it.</summary>
+        public const float HighAbove = 0.7f;
+
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;
 
@@ -290,7 +308,7 @@ namespace TW3D.Graphics
             eye = Matrix.Invert(view).Translation;
             frustum.Matrix = view * projection;
             items.Clear();
-            background = null;
+            sky = false;
             overlay = null;
             car = false;
             braking = false;
@@ -389,13 +407,13 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
-        /// Sets the model drawn behind everything else, unlit and without the depth buffer (the sky),
-        /// so it never hides the scene.
+        /// The sky of the <see cref="Lighting"/> is drawn behind everything else, for this frame (see Begin): computed from
+        /// the direction of every pixel of the screen, infinitely far, and without the depth buffer, so it never hides the
+        /// scene. Without it the screen is cleared to <see cref="ClearColor"/> there.
         /// </summary>
-        public void SetBackground(Model model, Matrix world)
+        public void SetSky()
         {
-            background = model;
-            backgroundWorld = world;
+            sky = true;
         }
 
         /// <summary>
@@ -421,6 +439,7 @@ namespace TW3D.Graphics
             blurredOcclusionMap?.Dispose();
             smokeTexture.Dispose();
             glowTexture.Dispose();
+            skyNoise.Dispose();
             smokeEffect.Dispose();
             glowEffect.Dispose();
             markEffect?.Dispose();
@@ -443,14 +462,11 @@ namespace TW3D.Graphics
             device.BlendState = BlendState.Opaque;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
 
-            if (background != null)
+            //The same sky in the lighting of 2016, which had a picture of one
+            if (sky)
             {
                 device.DepthStencilState = DepthStencilState.None;
-                device.SamplerStates[0] = SamplerState.LinearWrap;
-                if (Classic)
-                    background.Draw(backgroundWorld, view, projection);
-                else
-                    DrawSky();
+                DrawSky();
             }
 
             device.DepthStencilState = DepthStencilState.Default;
@@ -551,6 +567,55 @@ namespace TW3D.Graphics
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
+        }
+
+        /// <summary>
+        /// The noise the sky is made of. Red: soft value noise of a few octaves that tiles (the lattices' periods divide the
+        /// size), stretched to the full range, of which the shader cuts the clouds. Green: an independent random value in
+        /// every texel, which the shader reads at the middles of the texels (for the stars and the dithering), so the
+        /// texture has no mipmaps. The same every time (a fixed seed).
+        /// </summary>
+        private static Texture2D CreateSkyNoise(GraphicsDevice device)
+        {
+            const int size = SkyNoiseSize;
+            Random random = new Random(2026);
+            float[] clouds = new float[size * size];
+            float weight = 1f;
+            foreach (int period in CloudPeriods)
+            {
+                int cells = size / period;
+                float[] lattice = new float[cells * cells];
+                for (int i = 0; i < lattice.Length; i++)
+                    lattice[i] = (float)random.NextDouble();
+                for (int y = 0; y < size; y++)
+                {
+                    for (int x = 0; x < size; x++)
+                    {
+                        float fx = (float)x / period, fy = (float)y / period;
+                        int x0 = (int)fx, y0 = (int)fy;
+                        //Smoothstep between the lattice points, wrapping around the edges
+                        float tx = fx - x0, ty = fy - y0;
+                        tx = tx * tx * (3f - 2f * tx);
+                        ty = ty * ty * (3f - 2f * ty);
+                        float a = lattice[y0 % cells * cells + x0 % cells], b = lattice[y0 % cells * cells + (x0 + 1) % cells];
+                        float c = lattice[(y0 + 1) % cells * cells + x0 % cells], d = lattice[(y0 + 1) % cells * cells + (x0 + 1) % cells];
+                        clouds[y * size + x] += weight * MathHelper.Lerp(MathHelper.Lerp(a, b, tx), MathHelper.Lerp(c, d, tx), ty);
+                    }
+                }
+                weight *= 0.5f;
+            }
+            float least = float.MaxValue, most = float.MinValue;
+            foreach (float value in clouds)
+            {
+                least = Math.Min(least, value);
+                most = Math.Max(most, value);
+            }
+            Color[] pixels = new Color[size * size];
+            for (int i = 0; i < pixels.Length; i++)
+                pixels[i] = new Color((clouds[i] - least) / (most - least), (float)random.NextDouble(), 0f);
+            Texture2D texture = new Texture2D(device, size, size, false, SurfaceFormat.Color);
+            texture.SetData(pixels);
+            return texture;
         }
 
         /// <summary>A white circle fading out to its edge; its alpha is the strength of the glow.</summary>
@@ -777,26 +842,37 @@ namespace TW3D.Graphics
         }
 
         /// <summary>The sky picture tinted by the colours of the light.</summary>
+        /// <summary>The sky of the lighting over the whole screen (see <see cref="SetSky"/> and the technique Sky of Scene.fx).</summary>
         private void DrawSky()
         {
-            Lighting lighting = Lighting;
-            effect.Parameters["SkyHorizon"].SetValue(lighting.SkyHorizon);
-            effect.Parameters["SkyZenith"].SetValue(lighting.SkyZenith);
-            effect.Parameters["SkyRecolor"].SetValue(lighting.SkyRecolor);
-            effect.Parameters["SunGlow"].SetValue(lighting.SunGlow);
-            effect.Parameters["SunDirection"].SetValue(lighting.SunDirection);
-            effect.Parameters["ViewProjection"].SetValue(view * projection);
+            SkyLook look = Lighting.Sky;
+            effect.Parameters["InverseViewProjection"].SetValue(Matrix.Invert(view * projection));
             effect.Parameters["CameraPosition"].SetValue(eye);
+            effect.Parameters["SkyZenith"].SetValue(look.Zenith);
+            effect.Parameters["SkyHorizon"].SetValue(look.Horizon);
+            effect.Parameters["SkyGround"].SetValue(look.Ground);
+            effect.Parameters["SkyHills"].SetValue(look.Hills);
+            effect.Parameters["SkySun"].SetValue(look.SunDirection);
+            effect.Parameters["SunDisc"].SetValue(look.SunDisc);
+            effect.Parameters["SunDiscCos"].SetValue(MathF.Cos(look.SunRadius));
+            effect.Parameters["SunGlow"].SetValue(look.SunGlow);
+            effect.Parameters["Stars"].SetValue(look.Stars);
+            effect.Parameters["CloudCover"].SetValue(look.Clouds);
+            effect.Parameters["CloudLight"].SetValue(look.CloudLight);
+            effect.Parameters["CloudShade"].SetValue(look.CloudShade);
+            //The texture wraps: only the part of a turn counts, which keeps the shader's numbers small
+            Vector2 drift = CloudWind * (float)SkyClock.Elapsed.TotalSeconds;
+            effect.Parameters["CloudDrift"].SetValue(new Vector2(drift.X % 1f, drift.Y % 1f));
+            effect.Parameters["SkyScreenSize"].SetValue(new Vector2(device.Viewport.Width, device.Viewport.Height));
+            effect.Parameters["HorizonDip"].SetValue(MathF.Sin(HorizonDip));
+            effect.Parameters["SkyNoise"].SetValue(skyNoise);
             EffectTechnique technique = effect.Techniques["Sky"];
             effect.CurrentTechnique = technique;
-
-            foreach (ModelPart part in GetModelData(background).Parts)
-            {
-                worldParameter.SetValue(part.Transform * backgroundWorld);
-                effect.Parameters["SkyTexture"].SetValue(part.Texture);
-                technique.Passes[0].Apply();
-                DrawPart(part.MeshPart);
-            }
+            device.RasterizerState = RasterizerState.CullNone;
+            device.SamplerStates[0] = SamplerState.LinearWrap;
+            technique.Passes[0].Apply();
+            device.DrawUserPrimitives(PrimitiveType.TriangleStrip, screenQuad, 0, 2);
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         private void DrawLit()

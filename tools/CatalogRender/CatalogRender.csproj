@@ -12,6 +12,7 @@
   <ItemGroup>
     <!-- The lighting of the 2016 version, shared with the game and the level editor -->
     <Compile Include="..\..\src\TW3D.Game\Graphics\Lighting.cs" Link="Lighting.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\SkyLook.cs" Link="SkyLook.cs" />
   </ItemGroup>
 
   <ItemGroup>

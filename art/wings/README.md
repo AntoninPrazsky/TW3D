@@ -26,7 +26,9 @@ the old project folder `TripleWheel/`):
 | `Env/sky.wings` | `NPG/environment/skydome/sky.wings` |
 | `Env/tb1.wings` | `NPG/environment/trackblock/roadblock.wings` |
 
-`Env/sky.wings` has one face more than the exported sky: a face without a material.
+`Env/sky.wings` has one face more than the exported sky: a face without a material. It is the dome
+the game drew its sky on until 2026, with a picture; the sky is computed by the shader now, so the
+dome is no longer in `content/`.
 
 `Levels/mod/bl1s.wings` was saved 8 minutes after its export, so it may differ a little
 from the model in the game.
