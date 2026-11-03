@@ -1,7 +1,7 @@
-# Content pipeline project: builds the 3D models of the game (OBJ + MTL, their textures
-# are built with them), the shaders and the glyph font into .xnb files. The projects reference it as
-# MonoGameContentReference, the build output goes to Content/ next to the program. The other
-# files in content/ (precompiled textures and fonts, levels, the catalog) are copied as they are.
+# Content pipeline project: builds the 3D models of the game (OBJ + MTL), the shaders, the images
+# and the glyph font into .xnb files. The projects reference it as MonoGameContentReference, the
+# build output goes to Content/ next to the program. The other files in content/ (precompiled
+# fonts, levels, the catalog) are copied as they are.
 #
 # A new model: add a /build line below the models.
 
@@ -129,8 +129,7 @@
 # The block selector of the level editor
 /build:Levels/selector.obj
 
-# Preview images of the levels in the level select, 700 x 394 (the previews of the levels of 2016
-# are precompiled .xnb files). A new level: a PNG of the same size and a /build line.
+# Images, with their colours premultiplied by alpha as SpriteBatch draws them
 /importer:TextureImporter
 /processor:TextureProcessor
 /processorParam:ColorKeyEnabled=False
@@ -138,7 +137,24 @@
 /processorParam:PremultiplyAlpha=True
 /processorParam:ResizeToPowerOfTwo=False
 /processorParam:TextureFormat=Color
+
+# The images of the user interface: the logo of the start, the pointers, the arrows and the
+# on-screen controls (converted in 2026 from the .xnb files of 2016, whose sources were lost)
+/build:Common/arrow.png
+/build:Common/brakepedal.png
+/build:Common/cursor.png
+/build:Common/lock.png
+/build:Common/logo.png
+/build:Common/slider.png
+/build:Common/socket.png
+/build:Common/stick.png
+
+# Preview images of the levels in the level select, 700 x 394: the track alone (H while driving
+# in a Debug build). A new level: a PNG of the same size and a /build line.
 /build:Levels/levimgs/training1.png
 /build:Levels/levimgs/training2.png
 /build:Levels/levimgs/training3.png
+/build:Levels/levimgs/lock.png
+/build:Levels/levimgs/startblock.png
+/build:Levels/levimgs/tunel.png
 /build:Levels/levimgs/summit.png

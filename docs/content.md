@@ -82,15 +82,23 @@ along the curve it hangs in instead, which looks the same from the camera of the
 leaves the posts with a chain 835 faces. Run the script after changing the `.wings` files or
 the script and commit its output.
 
-## Precompiled content
+## Images and fonts
 
-The other files are still the precompiled `.xnb` files from XNA 4.0, without
-their sources in the repository: the images of the user interface (`Common/`),
-the previews of the levels of 2016 (`Levels/levimgs/`) and the fonts (only the font
-descriptions `*.spritefont` are here). The exceptions are built by the content pipeline:
-the previews of the newer levels (`Levels/levimgs/*.png`, 700 × 394, screenshots of the
-track alone: H while driving hides the car and everything over the level) and the font of the glyphs of keys and buttons on the
-tutorial cards: `Fonts/promptFont.spritefont`, from
+The content pipeline builds the images from PNG files:
+
+- the images of the user interface (`Common/`: the logo of the start, the pointers, the
+  arrows and the on-screen controls). They were precompiled `.xnb` files of XNA 4.0 whose
+  sources were lost; in 2026 they were loaded and written as PNG, their colours no longer
+  premultiplied by alpha (the pipeline premultiplies them again, which gives the same
+  pictures to a rounding). Three images nothing drew any more were left out.
+- the previews of the levels in the level select (`Levels/levimgs/*.png`, 700 × 394):
+  screenshots of the track alone, taken in a Debug build with H, which hides the car and
+  everything over the level while driving. The previews of 2016 were taken again in 2026,
+  of the same places, when the sky changed.
+
+The fonts are still the precompiled `.xnb` files from XNA 4.0, without their sources in
+the repository (only the font descriptions `*.spritefont` are here), but for the font of
+the glyphs of keys and buttons on the tutorial cards: `Fonts/promptFont.spritefont`, from
 [PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open Font
 License 1.1), only the glyphs it lists.
 
