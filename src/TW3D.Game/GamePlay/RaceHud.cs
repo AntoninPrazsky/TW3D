@@ -7,7 +7,8 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// What a run shows over the level: the time of the run at the top of the screen with the par time of the level
-    /// below it, and in the middle of the screen the countdown (3, 2, 1, Start) and the finish, or the game over.
+    /// below it, and in the middle of the screen the countdown (3, 2, 1, Start) and the finish, or the game over. The
+    /// speedometer at the bottom is the <see cref="Speedometer"/>.
     /// </summary>
     static class RaceHud
     {

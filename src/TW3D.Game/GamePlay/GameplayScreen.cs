@@ -59,6 +59,7 @@ namespace TW3D.GamePlay
         private SceneRenderer renderer;
         private DebugView debugView;
         private OnScreenControls controls;
+        private Speedometer speedometer;
         private DevelopmentKeys developmentKeys;
         private CarDrag drag;
 
@@ -185,6 +186,7 @@ namespace TW3D.GamePlay
             Manager.Input.UseDefaultDevice();
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
+            speedometer = new Speedometer(Manager.GraphicsDevice);
             developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood);
             if (testLevel == null && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
@@ -207,6 +209,7 @@ namespace TW3D.GamePlay
             //Every level and every restart makes its own renderer, with a shadow map and render targets of the size of the
             //screen: they are freed with the screen, not left for the finalizer (a test drive of the editor is started often)
             renderer?.Dispose();
+            speedometer?.Dispose();
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -285,6 +288,7 @@ namespace TW3D.GamePlay
                 smoke.Update(realElapsed, car, slipping);
                 exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
+                speedometer.Update(Speedometer.Kmh(car.Speed, GameSpeed), realElapsed);
             }
             //A car fallen off the level is gone: it is not heard any more
             carSounds.Update(realElapsed, running && race.State != RaceState.Lost, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
@@ -456,6 +460,7 @@ namespace TW3D.GamePlay
                 controls.Draw(batch, 1f);
                 //The time gives way to the title of the results, which show it too
                 float hudBottom = RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
+                speedometer.Draw(Manager, results != null ? 1f - results.Visibility : 1f);
                 if (tutorial != null)
                     TutorialCard.Draw(Manager, tutorial, controls, hudBottom);
             }

@@ -152,7 +152,10 @@ follows the tutorial of BS3D.
 A run starts with a countdown (3, 2, 1, Start), while the car is held
 still. The time at the top runs from the start until the car reaches the finish of the
 level (its finish block, see the [level format](levels.md#level-format)); below it is the
-par time of the level, the time a good run takes. The score is 1000 × par time / time:
+par time of the level, the time a good run takes. At the bottom in the middle a
+speedometer shows the speed of the car in km/h, on a round dial with a needle as the cars of
+the past had (drawn by the game, up to 160 km/h; the cars reach about 80 to 100 on their own).
+The score is 1000 × par time / time:
 finishing in the par time scores 1000 points, faster more and slower less (half the time,
 twice the points). A run within the par time gets three stars, within one and a half of it
 two, otherwise one. Past the finish the car brakes on its own. The results offer the level
