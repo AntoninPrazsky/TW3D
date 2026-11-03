@@ -141,6 +141,11 @@ namespace TW3D.Editor
             return normal;
         }
 
+        //The characters Windows does not take in a file name, besides the control characters. Refused everywhere, as
+        //Path.GetInvalidFileNameChars is only / and the null character on Linux: a level saved on a Raspberry Pi as
+        //"a:b" could not be opened on Windows
+        private const string WindowsInvalidNameChars = "\"<>|:*?\\/";
+
         /// <summary>Why a name typed for a level cannot be the name of its file; null when it can (as <see cref="NormalName"/> makes it).</summary>
         public static string CheckName(string name)
         {
@@ -149,10 +154,9 @@ namespace TW3D.Editor
                 return "Type a name for the level.";
             if (normal == "." || normal == "..")
                 return "A level cannot be called \"" + normal + "\".";
-            char[] invalid = Path.GetInvalidFileNameChars();
             foreach (char c in normal)
             {
-                if (Array.IndexOf(invalid, c) < 0)
+                if (!char.IsControl(c) && WindowsInvalidNameChars.IndexOf(c) < 0)
                     continue;
                 return char.IsControl(c) ? "A level name cannot contain control characters."
                     : "A level name cannot contain \"" + c + "\".";

@@ -1,0 +1,3 @@
+The code compiled for DesktopGL in Occlusion.mgfx, by the build on Windows, for the builds that cannot compile it (tools/ContentPipeline/PrecompiledEffectProcessor.cs).
+Source: Occlusion.fx, SHA-256 with LF line endings 2d15fc4e9f07af7a19b4e169ee928a103f8259b0c98b1f2d7087ff1a6a284571
+MonoGame: 3.8.6.0
