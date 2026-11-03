@@ -7,9 +7,9 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The main menu: the 3D logo of the game in the top left corner (drawn in the garage behind the menus, see
-    /// <see cref="GarageScene.Title"/>), two items in the middle of the left and right half, a row of items at the bottom
-    /// and a place in the top right corner, level with the lettering of the logo (the level editor of a Debug build).
+    /// The main menu: the 3D logo of the game (its lettering) in the top left corner (drawn in the garage behind the
+    /// menus, see <see cref="GarageScene.Title"/>), two items in the middle of the left and right half, a row of items at
+    /// the bottom and a place in the top right corner, level with the logo (the level editor of a Debug build).
     /// Items and the logo are positioned relative to the screen edges and scaled with the user interface, so the layout
     /// works on any aspect ratio. The logo slides up out of the frame as the menu goes, as the titles of the other menus do.
     /// </summary>
@@ -33,12 +33,11 @@ namespace TW3D.Screens
 
         //Font scale of the titles of the other menus at the reference resolution
         private const float TitleScale = 1.3f;
-        //The 3D logo: its height at the reference resolution, its width to its height and where the middle of its
-        //lettering is, a part of its height from its top (tools/garagegen/logo.py prints both); it never reaches lower
-        //than this many line heights above the middle of the screen, where the items of the middle are
-        private const float LogoHeight = 300f;
-        private const float LogoWidth = 2.042f;
-        private const float LetteringMiddle = 0.313f;
+        //The 3D logo (its lettering): its height at the reference resolution and its width to its height
+        //(tools/garagegen/logo.py prints it); it never reaches lower than this many line heights above the middle of the
+        //screen, where the items of the middle are, nor further than half way across the screen
+        private const float LogoHeight = 90f;
+        private const float LogoWidth = 5.573f;
         private const float LogoClearance = 1.5f;
         //Extra area around the item text that reacts to the mouse, in reference pixels
         private const float ItemPadding = 20f;
@@ -101,8 +100,8 @@ namespace TW3D.Screens
             float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float bottomRowY = safe.Bottom - lineHeight / 2f;
-            //The top right place is level with the middle of the lettering of the logo
-            float topRowY = safe.Top + LogoSize(lineHeight).Y * LetteringMiddle;
+            //The top right place is level with the middle of the logo
+            float topRowY = safe.Top + LogoSize(lineHeight).Y / 2f;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
             for (int i = 0; i < items.Count; i++)
@@ -124,14 +123,14 @@ namespace TW3D.Screens
 
         /// <summary>
         /// The size of the logo on the screen, in pixels: its height at the reference resolution scaled with the user
-        /// interface, but no larger than leaves the middle of the screen to the items there, nor wider than the screen.
+        /// interface, but no larger than leaves the middle of the screen to the items there, nor wider than half the screen.
         /// </summary>
         private Vector2 LogoSize(float lineHeight)
         {
             Viewport viewport = Manager.Viewport;
             Rectangle safe = Manager.SafeArea;
             float height = Math.Min(LogoHeight * Manager.UiScale, viewport.Height / 2f - lineHeight * LogoClearance - safe.Top);
-            height = Math.Max(0f, Math.Min(height, safe.Width / LogoWidth));
+            height = Math.Max(0f, Math.Min(height, (viewport.Width / 2f - safe.Left) / LogoWidth));
             return new Vector2(height * LogoWidth, height);
         }
 

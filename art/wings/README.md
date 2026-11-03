@@ -50,8 +50,8 @@ own sky there.
 
 `Garage/logo.wings` (August 2015, `TripleWheel/logo/3Dlogo.wings`) is the 3D logo: the lettering
 (`logotext3D.wings` there is the lettering alone) and the emblem of three wheels, on a plate it was
-rendered on. `tools/garagegen/logo.py` builds the 3D logo of the main menu from it (`content/Garage/logo.obj`),
-without the plate.
+rendered on. `tools/garagegen/logo.py` builds the 3D logo of the main menu from it (`content/Garage/logo.obj`):
+the lettering alone.
 
 `Levels/mod/tu1.wings`, `tu2.wings` and `tu3.wings` are the whole tunnels; the game uses
 them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are not in

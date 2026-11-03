@@ -74,7 +74,7 @@ namespace TW3D.GameObjects
         private const float LogoDistance = 1f;
         //How deep the logo is, to its height (tools/garagegen/logo.py prints it): its front stands at that distance, so
         //that the wheels of the emblem, nearer the camera than the middle of the logo, do not reach out of its place
-        private const float LogoDepth = 0.417f;
+        private const float LogoDepth = 0.097f;
         //It sways about its vertical and its horizontal axis this far (radians) at these unrelated rates (radians per
         //second), so that it reads as an object in the room, never so far that it is hard to read; standing in the left
         //corner, it is always turned a little towards the middle of the frame (its face to the right), as a sign faces
