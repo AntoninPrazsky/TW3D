@@ -25,7 +25,8 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 Heights are in shift steps of 2.5 physics units and grow downwards; one grid cell is
 22.5 physics units, i.e. 9 steps. A block's position is `9 * y + shift` (its *base*).
 
-`Profiles` in `lib.js` lists, for every road block, the height of the road surface at its left
+The `profile` of the blocks in `content/catalog.json` (`Profiles` in `lib.js` reads them from there,
+the level editor uses them too) gives, for every road block, the height of the road surface at its left
 and right edge relative to its base, measured on the collision bitmaps. For example `b2f`
 (a 24° climb) is `[4, 0]`: it starts 4 steps below its base and ends at it, so it climbs
 10 physics units. A block missing there cannot be used with `road()`, but can still be placed

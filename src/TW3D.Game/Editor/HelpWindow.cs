@@ -16,6 +16,7 @@ namespace TW3D.Editor
             ("Space / Delete", "Place the chosen block / erase the block at the cursor cell"),
             ("PageUp / PageDown", "Shift the block at the cursor cell up / down (the chosen shift follows)"),
             ("F", "The block at the cursor cell is the finish of the level, or stops being it"),
+            ("R", "Road mode on / off: road blocks join the road next to them; red bars mark gaps"),
             (", / .", "The previous / next block of the catalog becomes the chosen block (and Place the active tool)")
         };
 

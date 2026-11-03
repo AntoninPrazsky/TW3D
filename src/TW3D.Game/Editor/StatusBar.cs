@@ -13,6 +13,7 @@ namespace TW3D.Editor
     static class StatusBar
     {
         private static readonly Vector4 WarningColor = new Vector4(1f, 0.8f, 0.3f, 1f);
+        private static readonly Vector4 RoadColor = new Vector4(0.45f, 0.85f, 1f, 1f);
         //The names of the tools by the EditorTool enum, made once instead of in every frame
         private static readonly string[] ToolNames = Enum.GetNames<EditorTool>();
 
@@ -39,6 +40,11 @@ namespace TW3D.Editor
             ImGui.Text("Tool: " + ToolNames[(int)activeTool]);
             Separate();
             ImGui.Text($"Block: {tool.Block}, shift {tool.Shift}");
+            if (tool.RoadMode)
+            {
+                ImGui.SameLine();
+                ImGui.TextColored(RoadColor, "Road");
+            }
             if (chosenObject != null)
             {
                 Separate();

@@ -74,6 +74,13 @@ game and the editor:
 - **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
   collision shape (`collision`). Only blocks with a collision shape can be in the
   middle (physics) layer; the others are decoration for the back and front layers.
+  A road block also has a `profile`, `[left, right]`: the height of the road surface
+  at the left and the right edge of the block relative to its base, in shift steps
+  (2.5 physics units; heights grow downward, as physics y does). For example `b2f`, a
+  climb, is `[4, 0]`: it starts 4 steps below its base and ends at it. The editor joins
+  the blocks of a road with it (road mode) and marks the gaps, and the level generator
+  `tools/levelgen` builds its roads from it. A block without a profile (the decoration,
+  the gates and walls) is not part of the road.
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution, the
   models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the

@@ -69,12 +69,18 @@ namespace TW3D.Editor
             {
                 ImGui.TextDisabled("Empty cell");
                 ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer} layer)");
+                ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
                 return;
             }
             ImGui.Text("Block: " + block.Name);
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");
+            //The surface of a road block of the middle layer, in shift steps, and the gaps of the road of the whole level
+            int? left = layer == Layer.Middle ? placeTool.Level.SurfaceLeft(block) : null;
+            if (left.HasValue)
+                ImGui.Text($"Surface: left {left.Value}, right {placeTool.Level.SurfaceRight(block).Value} (steps)");
+            ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
         }
 
         private static void DrawSelection(SelectTool selectTool, Layer layer)

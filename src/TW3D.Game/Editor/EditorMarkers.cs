@@ -15,7 +15,8 @@ namespace TW3D.Editor
     /// Place tool is active), tinted copies of the selector marking the finish block and the start cell [0, 0] of the
     /// middle layer, and tinted copies scaled around the bounding spheres of the hovered and the selected dynamic
     /// object (while the Object tool is active), and tinted selectors at the selected blocks, the cells a drag would
-    /// move them to and the rectangle being dragged (while the Select tool is active). The selector is drawn with
+    /// move them to and the rectangle being dragged (while the Select tool is active), and red bars at the gaps of the
+    /// road (the edges where the surfaces of two road blocks differ in height). The selector is drawn with
     /// BasicEffect and the lighting of 2016, as the old editor drew it.
     /// </summary>
     sealed class EditorMarkers
@@ -44,6 +45,13 @@ namespace TW3D.Editor
         //Markers glow a little, so that they are seen in the night too
         private const float MarkerGlow = 0.35f;
         private static readonly Cell StartCell = new Cell(0, 0);
+        //A gap of the road: a bar of lines in this colour, as wide as the lines apart are in scene units, with a tick
+        //at both ends that is a quarter of a cell wide
+        private static readonly Color GapColor = new Color(255, 40, 40);
+        private const float GapBarSpacing = 0.035f;
+        private const float GapTick = 0.25f * LevelView.CellSize / 2f;
+        //The lines of one gap: three of the bar and two ticks, two vertices each
+        private const int GapVertices = 10;
 
         private readonly GraphicsDevice device;
         private readonly Model selector;
@@ -56,6 +64,11 @@ namespace TW3D.Editor
         private readonly int gridLines;
         //The two rectangles of a drag, as lines: refilled for every draw
         private readonly VertexPositionColor[] rectangle = new VertexPositionColor[16];
+        //The bars of the road gaps of a level, built again only when the level or its version is not the one they were built for
+        private VertexPositionColor[] gapBars = new VertexPositionColor[GapVertices * 8];
+        private int gapBarVertices;
+        private EditedLevel gapLevel;
+        private int gapVersion = -1;
 
         public EditorMarkers(GraphicsDevice device, ContentManager content)
         {
@@ -111,6 +124,60 @@ namespace TW3D.Editor
             DrawSelector(view, projection, LevelView.ScenePosition(Layer.Middle, StartCell), MarkerScale, StartTint);
             if (cursor.HasValue)
                 DrawSelector(view, projection, LevelView.ScenePosition(layer, cursor.Value), 1f, null);
+        }
+
+        /// <summary>
+        /// Draws a red vertical bar at every gap of the road of the middle layer: at the edge the two blocks share, from the
+        /// surface of one to the surface of the other. The lines are drawn over the scene whatever is in front of them.
+        /// </summary>
+        public void DrawGaps(Matrix view, Matrix projection, EditedLevel level)
+        {
+            if (level != gapLevel || level.Version != gapVersion)
+                BuildGapBars(level);
+            if (gapBarVertices == 0)
+                return;
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.None;
+            device.RasterizerState = RasterizerState.CullNone;
+            lineEffect.World = Matrix.Identity;
+            lineEffect.View = view;
+            lineEffect.Projection = projection;
+            foreach (EffectPass pass in lineEffect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                device.DrawUserPrimitives(PrimitiveType.LineList, gapBars, 0, gapBarVertices / 2);
+            }
+        }
+
+        private void BuildGapBars(EditedLevel level)
+        {
+            gapLevel = level;
+            gapVersion = level.Version;
+            List<RoadGap> gaps = level.RoadGaps();
+            int needed = gaps.Count * GapVertices;
+            if (gapBars.Length < needed)
+                Array.Resize(ref gapBars, Math.Max(needed, gapBars.Length * 2));
+            int index = 0;
+            foreach (RoadGap gap in gaps)
+            {
+                //The shared edge of the two cells, from surface to surface (a profile height is the base's, the road rides above it)
+                float x = (gap.A.Cell.X + 0.5f) * Units.GridCell;
+                Vector3 low = LevelView.ScenePosition(Layer.Middle, new Vector2(x, Math.Min(gap.LeftHeight, gap.RightHeight) * Units.ShiftStep + Units.RoadSurfaceOffset));
+                Vector3 high = LevelView.ScenePosition(Layer.Middle, new Vector2(x, Math.Max(gap.LeftHeight, gap.RightHeight) * Units.ShiftStep + Units.RoadSurfaceOffset));
+                //The lines apart are in the plane of the road, so that the bar is a band from the side too
+                for (int i = -1; i <= 1; i++)
+                {
+                    Vector3 offset = new Vector3(i * GapBarSpacing, 0f, 0f);
+                    gapBars[index++] = new VertexPositionColor(low + offset, GapColor);
+                    gapBars[index++] = new VertexPositionColor(high + offset, GapColor);
+                }
+                Vector3 tick = new Vector3(GapTick, 0f, 0f);
+                gapBars[index++] = new VertexPositionColor(low - tick, GapColor);
+                gapBars[index++] = new VertexPositionColor(low + tick, GapColor);
+                gapBars[index++] = new VertexPositionColor(high - tick, GapColor);
+                gapBars[index++] = new VertexPositionColor(high + tick, GapColor);
+            }
+            gapBarVertices = index;
         }
 
         /// <summary>Marks the hovered and the selected dynamic object by selectors as large as their bounding spheres.</summary>

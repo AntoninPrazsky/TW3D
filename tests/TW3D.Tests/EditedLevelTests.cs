@@ -19,6 +19,8 @@ namespace TW3D.Tests
         private const string Decoration = "kea1a";
         private static readonly Cell FarAway = new Cell(1000, 1000);
         private static readonly Cell Start = new Cell(0, 0);
+        //How the problems about the gaps of a road begin
+        private const string GapMessage = "The road has a gap";
 
         private static readonly Catalog Catalog = Repository.LoadCatalog();
 
@@ -50,7 +52,8 @@ namespace TW3D.Tests
             Assert.Equal(FileText(level), Json(edited));
             Assert.False(edited.IsDirty);
             Assert.Equal(Repository.LevelPath(level), edited.File);
-            Assert.Empty(edited.Problems());
+            //The levels built by hand have gaps in their roads (found by RoadGaps): nothing else is wrong with them
+            Assert.All(edited.Problems(), problem => Assert.StartsWith(GapMessage, problem.Message));
         }
 
         [Theory]
@@ -986,6 +989,388 @@ namespace TW3D.Tests
         {
             foreach (BlockType block in Catalog.Blocks)
                 Assert.Equal(block.Name, EditedLevel.MirrorName(Catalog, EditedLevel.MirrorName(Catalog, block.Name)));
+        }
+
+        /// <summary>A level of road blocks only (no start block), each given as name, x, y, shift.</summary>
+        private static EditedLevel Row(params (string Block, int X, int Y, int Shift)[] blocks)
+        {
+            EditedLevel level = new EditedLevel(Catalog, new LevelData(), null);
+            foreach ((string block, int x, int y, int shift) in blocks)
+                Assert.Null(level.Place(Layer.Middle, new Cell(x, y), block, shift));
+            return level;
+        }
+
+        /// <summary>
+        /// Places a road block the way road mode does: where RoadShift says, the stroke continuing from the cell given
+        /// (the neighbours are looked for in the column of it).
+        /// </summary>
+        private static Cell PlaceOnRoad(EditedLevel level, int x, string block, bool leftwards = false)
+        {
+            int shift = level.RoadShift(new Cell(x, 0), block, 0, leftwards, out Cell cell);
+            Assert.Null(level.Place(Layer.Middle, cell, block, shift));
+            return cell;
+        }
+
+        [Fact]
+        public void EveryRoadBlockHasAProfileOfTwoNumbers()
+        {
+            List<BlockType> road = Catalog.Blocks.Where(block => block.IsRoad).ToList();
+            Assert.NotEmpty(road);
+            Assert.All(road, block => Assert.Equal(2, block.Profile.Length));
+            //A road block has a collision shape: it can be in the middle layer
+            Assert.All(road, block => Assert.True(block.Collision));
+            Assert.Equal(new[] { 4, 0 }, Catalog.FindBlock("b2f").Profile);
+            Assert.False(Catalog.FindBlock(Decoration).IsRoad);
+        }
+
+        [Fact]
+        public void TheBaseAndTheSurfaceHeightsFollowTheShiftAndTheProfile()
+        {
+            EditedLevel level = Row(("b2f", 3, -1, 1), ("a1", 4, 2, -3));
+            PlacedBlock climb = level.BlockAt(Layer.Middle, new Cell(3, -1));
+            PlacedBlock flat = level.BlockAt(Layer.Middle, new Cell(4, 2));
+            //9 * y + shift, and heights grow downward: b2f is [4, 0]
+            Assert.Equal(-8, EditedLevel.Base(climb));
+            Assert.Equal(-4, level.SurfaceLeft(climb));
+            Assert.Equal(-8, level.SurfaceRight(climb));
+            Assert.Equal(15, EditedLevel.Base(flat));
+            Assert.Equal(15, level.SurfaceLeft(flat));
+            Assert.Equal(15, level.SurfaceRight(flat));
+        }
+
+        [Fact]
+        public void ABlockWithoutAProfileHasNoSurface()
+        {
+            EditedLevel level = Row();
+            Assert.Null(level.Place(Layer.Back, new Cell(0, 0), Decoration, 0));
+            Assert.Null(level.Place(Layer.Back, new Cell(1, 0), "a1", 0));
+            PlacedBlock decoration = level.BlockAt(Layer.Back, new Cell(0, 0));
+            Assert.Null(level.SurfaceLeft(decoration));
+            Assert.Null(level.SurfaceRight(decoration));
+            //An unknown block has none either
+            PlacedBlock unknown = new PlacedBlock(new Cell(0, 0), "nothing", 0, false);
+            Assert.Null(level.SurfaceLeft(unknown));
+        }
+
+        [Theory]
+        [InlineData("training2")]
+        [InlineData("training3")]
+        [InlineData("summit")]
+        public void TheLevelsOfTheGeneratorHaveNoRoadGaps(string name)
+        {
+            //Proof that the profiles of the catalog are those the generator builds its roads with
+            EditedLevel level = Load(name);
+            Assert.Empty(level.RoadGaps());
+            Assert.DoesNotContain(level.Problems(), problem => problem.Message.StartsWith(GapMessage, StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void TheOnlyGapOfTheLevelsOfTheGeneratorIsTheJumpOfTheFirstTrainingLevel()
+        {
+            //training1.js leaves the road with step(2) before the small jump on purpose, which the editor marks as a gap
+            EditedLevel level = Load("training1");
+            RoadGap gap = Assert.Single(level.RoadGaps());
+            Assert.Equal(new Cell(13, 0), gap.A.Cell);
+            Assert.Equal(new Cell(14, 0), gap.B.Cell);
+            Assert.Equal(2, gap.Steps);
+        }
+
+        [Fact]
+        public void ARowOfBlocksThatJoinHasNoGapsAndAJumpInItHasOne()
+        {
+            EditedLevel level = Row(("b2f", 1, 0, 0), ("b2f", 2, 0, -4), ("a1", 3, 0, -4));
+            Assert.Empty(level.RoadGaps());
+
+            //The flat block is down at its base 0: the road breaks by the 4 steps the climb has gone up
+            Assert.Null(level.Place(Layer.Middle, new Cell(3, 0), "a1", 0));
+            RoadGap gap = Assert.Single(level.RoadGaps());
+            Assert.Equal(new Cell(2, 0), gap.A.Cell);
+            Assert.Equal(new Cell(3, 0), gap.B.Cell);
+            Assert.Equal(-4, gap.LeftHeight);
+            Assert.Equal(0, gap.RightHeight);
+            Assert.Equal(4, gap.Steps);
+        }
+
+        [Fact]
+        public void AGapOfEightStepsIsFoundAndReportedAsAProblemWithItsPlace()
+        {
+            EditedLevel level = Row(("b2f", 1, 0, 0), ("b2f", 2, 0, -4), ("b2f", 3, -1, 1), ("a1", 4, 0, 0));
+            RoadGap gap = Assert.Single(level.RoadGaps());
+            Assert.Equal(new Cell(3, -1), gap.A.Cell);
+            Assert.Equal(new Cell(4, 0), gap.B.Cell);
+            Assert.Equal(-8, gap.LeftHeight);
+            Assert.Equal(0, gap.RightHeight);
+
+            LevelProblem problem = level.Problems().Single(found => found.Message.StartsWith(GapMessage, StringComparison.Ordinal));
+            Assert.Equal("The road has a gap between [3, -1] and [4, 0]: the surfaces differ by 8 steps.", problem.Message);
+            Assert.Equal(Layer.Middle, problem.Layer);
+            Assert.Equal(new Cell(3, -1), problem.Cell);
+        }
+
+        [Fact]
+        public void AGapOfOneStepSaysStep()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 1));
+            Assert.Contains(level.Problems(), problem => problem.Message.EndsWith("differ by 1 step.", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void TheEndOfTheRoadAndBlocksOutsideTheRoadAreNoGaps()
+        {
+            //The road ends at x = 2: there is no road block in the next column, whatever is in the other layers
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 0), ("a1", 2, 0, 0));
+            Assert.Null(level.Place(Layer.Back, new Cell(3, 5), "a1", 0));
+            Assert.Null(level.Place(Layer.Front, new Cell(3, 5), "a1", 0));
+            Assert.Empty(level.RoadGaps());
+            //A column without a road block between is not a gap either: the road is broken there on purpose
+            Assert.Null(level.Place(Layer.Middle, new Cell(4, 0), "a1", 5));
+            Assert.Empty(level.RoadGaps());
+        }
+
+        [Fact]
+        public void TheLastRoadBlockOfACellCountsAndABlockWithoutAProfileIsNotOne()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 3));
+            Assert.Single(level.RoadGaps());
+            //Another road block in the same cell, placed later, is the one that counts (the file may hold two)
+            LevelData data = level.ToData();
+            data.Middle.Add(new BlockPlacement { Block = "a1", X = 1, Y = 0, Shift = 0 });
+            Assert.Empty(new EditedLevel(Catalog, data, null).RoadGaps());
+            //A wall or a gate in the cell is no road block: it does not take the place of the road block under it
+            data = level.ToData();
+            data.Middle.Add(new BlockPlacement { Block = "xa6", X = 1, Y = 0, Shift = 0 });
+            Assert.Null(Catalog.FindBlock("xa6").Profile);
+            Assert.Single(new EditedLevel(Catalog, data, null).RoadGaps());
+        }
+
+        [Fact]
+        public void WithSeveralRoadBlocksInAColumnTheNearestInHeightIsTheNext()
+        {
+            //Two roads, one 9 steps (a cell) below the other, side by side: each joins its own
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 0), ("a1", 0, 1, 0), ("a1", 1, 1, 0));
+            Assert.Empty(level.RoadGaps());
+            //The lower road goes up a step at the junction: the gap is the one of its own road
+            Assert.Null(level.Place(Layer.Middle, new Cell(1, 1), "a1", -1));
+            RoadGap gap = Assert.Single(level.RoadGaps());
+            Assert.Equal(new Cell(0, 1), gap.A.Cell);
+            Assert.Equal(new Cell(1, 1), gap.B.Cell);
+        }
+
+        [Fact]
+        public void TheGapsFollowEveryChangeAndUndo()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 0));
+            Assert.Empty(level.RoadGaps());
+            Assert.True(level.Shift(Layer.Middle, new Cell(1, 0), 2));
+            Assert.Single(level.RoadGaps());
+            level.Undo();
+            Assert.Empty(level.RoadGaps());
+            level.Redo();
+            Assert.Single(level.RoadGaps());
+            Assert.True(level.Erase(Layer.Middle, new Cell(1, 0)));
+            Assert.Empty(level.RoadGaps());
+        }
+
+        [Fact]
+        public void RoadShiftJoinsTheClimbOfThreeBlocksFromTheCellOfTheFirst()
+        {
+            //The first block placed by hand, the others by the road: [1, 0] shift 0, [2, 0] shift -4, [3, -1] shift 1
+            EditedLevel level = Row(("b2f", 1, 0, 0));
+            int second = level.RoadShift(new Cell(2, 0), "b2f", 0, false, out Cell secondCell);
+            Assert.Equal(new Cell(2, 0), secondCell);
+            Assert.Equal(-4, second);
+            Assert.Null(level.Place(Layer.Middle, secondCell, "b2f", second));
+
+            int third = level.RoadShift(new Cell(3, 0), "b2f", 0, false, out Cell thirdCell);
+            Assert.Equal(new Cell(3, -1), thirdCell);
+            Assert.Equal(1, third);
+            Assert.Null(level.Place(Layer.Middle, thirdCell, "b2f", third));
+            Assert.Empty(level.RoadGaps());
+        }
+
+        [Fact]
+        public void RoadShiftJoinsToTheBlockOnTheLeftOfAStart()
+        {
+            //The start block a1 is flat at 0: a climb that starts at its surface has its base 4 steps up
+            EditedLevel level = EditedLevel.New(Catalog);
+            int shift = level.RoadShift(new Cell(1, 5), "b2f", 7, false, out Cell cell);
+            Assert.Equal(new Cell(1, 0), cell);
+            Assert.Equal(-4, shift);
+        }
+
+        [Fact]
+        public void RoadShiftPaintsLeftwardsFromTheBlockOnTheRight()
+        {
+            //A descent to the right of a flat block, painted from the right: b2 ends 4 steps down at its right edge [0, 4]
+            EditedLevel level = Row(("a1", 5, 0, 0));
+            int shift = level.RoadShift(new Cell(4, 0), "b2", 0, true, out Cell cell);
+            //The right edge of b2 (base + 4) meets the left edge of a1 (0): base -4
+            Assert.Equal(new Cell(4, 0), cell);
+            Assert.Equal(-4, shift);
+            Assert.Null(level.Place(Layer.Middle, cell, "b2", shift));
+            Assert.Empty(level.RoadGaps());
+
+            //Further leftwards b2 again: its right edge meets the left edge of the b2 placed, at base + 0 = -4
+            int next = level.RoadShift(new Cell(3, 0), "b2", 0, true, out Cell nextCell);
+            Assert.Equal(new Cell(3, -1), nextCell);
+            Assert.Equal(1, next);
+            Assert.Null(level.Place(Layer.Middle, nextCell, "b2", next));
+            Assert.Empty(level.RoadGaps());
+        }
+
+        [Fact]
+        public void RoadShiftTakesTheNeighbourInTheDirectionOfThePaintingFirst()
+        {
+            //Both neighbours exist, a flat road at 0 on the left and one at 20 steps on the right
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 2, 2, 2));
+            int rightwards = level.RoadShift(new Cell(1, 0), "a1", 0, false, out Cell rightwardsCell);
+            Assert.Equal(new Cell(1, 0), rightwardsCell);
+            Assert.Equal(0, rightwards);
+            int leftwards = level.RoadShift(new Cell(1, 0), "a1", 0, true, out Cell leftwardsCell);
+            //20 steps: two cells down and 2 steps
+            Assert.Equal(new Cell(1, 2), leftwardsCell);
+            Assert.Equal(2, leftwards);
+        }
+
+        [Fact]
+        public void RoadShiftFallsBackToTheOtherSideAndThenToTheChosenShift()
+        {
+            //No neighbour on the left: the one on the right is joined although the painting goes rightwards
+            EditedLevel level = Row(("a1", 3, 0, 4));
+            int shift = level.RoadShift(new Cell(2, 0), "a1", 0, false, out Cell cell);
+            Assert.Equal(new Cell(2, 0), cell);
+            Assert.Equal(4, shift);
+
+            //No neighbour at all: the cursor cell and the chosen shift
+            shift = level.RoadShift(new Cell(7, -3), "a1", 5, false, out cell);
+            Assert.Equal(new Cell(7, -3), cell);
+            Assert.Equal(5, shift);
+            shift = level.RoadShift(new Cell(7, -3), "a1", 5, true, out cell);
+            Assert.Equal(new Cell(7, -3), cell);
+            Assert.Equal(5, shift);
+        }
+
+        [Fact]
+        public void RoadShiftKeepsTheChosenShiftOfABlockWithoutAProfile()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0));
+            int shift = level.RoadShift(new Cell(1, 4), Decoration, -2, false, out Cell cell);
+            Assert.Equal(new Cell(1, 4), cell);
+            Assert.Equal(-2, shift);
+            //A wall of the middle layer next to the road has no profile either
+            shift = level.RoadShift(new Cell(1, 4), "xa6", 3, false, out cell);
+            Assert.Equal(new Cell(1, 4), cell);
+            Assert.Equal(3, shift);
+        }
+
+        [Fact]
+        public void RoadShiftPicksTheNeighbourNearestToTheChosenHeight()
+        {
+            //Two roads in the column to the left, a cell apart: the cursor is next to the lower one
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 0, 1, 0));
+            int shift = level.RoadShift(new Cell(1, 1), "a1", 0, false, out Cell cell);
+            Assert.Equal(new Cell(1, 1), cell);
+            Assert.Equal(0, shift);
+            shift = level.RoadShift(new Cell(1, 0), "a1", 0, false, out cell);
+            Assert.Equal(new Cell(1, 0), cell);
+            Assert.Equal(0, shift);
+        }
+
+        [Fact]
+        public void ARoadPaintedByRoadShiftHasNoGapsAndSurvivesSaving()
+        {
+            //A hill: up three, a flat piece, down three, built block by block
+            EditedLevel level = Row(("a1", 0, 0, 0));
+            string[] hill = { "b2f", "b2f", "b2f", "a1", "b2", "b2", "b2", "a1" };
+            for (int i = 0; i < hill.Length; i++)
+                PlaceOnRoad(level, i + 1, hill[i]);
+            Assert.Empty(level.RoadGaps());
+            Assert.Equal(hill.Length + 1, level.Blocks(Layer.Middle).Count);
+
+            //The shifts written to the file give the same road when it is read again
+            EditedLevel again = new EditedLevel(Catalog, LevelFile.Parse(Json(level)), null);
+            Assert.Equal(Json(level), Json(again));
+            Assert.Empty(again.RoadGaps());
+            //The hill is back at the height it began: the last flat block is on the surface of the first
+            Assert.Equal(0, again.SurfaceRight(again.Blocks(Layer.Middle)[hill.Length]));
+        }
+
+        [Fact]
+        public void ARoadPaintedLeftwardsHasNoGapsEither()
+        {
+            EditedLevel level = Row(("a1", 10, 0, 0));
+            string[] hill = { "b2", "b2", "b2", "a1", "b2f", "b2f" };
+            for (int i = 0; i < hill.Length; i++)
+                PlaceOnRoad(level, 9 - i, hill[i], true);
+            Assert.Empty(level.RoadGaps());
+        }
+
+        [Fact]
+        public void AStrokeJoinsTheBlockItPlacedBeforeNotAnOldRoadBlockInTheColumn()
+        {
+            //The new b2f stands at [4, -1] shift 1 (base -8); the old flat a1 is still at [4, 0] (base 0)
+            EditedLevel level = Row(("a1", 3, 0, 0), ("a1", 4, 0, 0), ("b2f", 4, -1, 1));
+            PlacedBlock placed = level.BlockAt(Layer.Middle, new Cell(4, -1));
+
+            //Without it the nearest in height wins, the old one: the climb breaks
+            int shift = level.RoadShift(new Cell(5, 0), "b2f", 0, false, out Cell cell);
+            Assert.Equal(new Cell(5, 0), cell);
+            Assert.Equal(-4, shift);
+
+            //With the block of the stroke it goes on from the surface of that one: left edge -8, base -12
+            shift = level.RoadShift(new Cell(5, 0), "b2f", 0, false, placed, out cell);
+            Assert.Equal(new Cell(5, -1), cell);
+            Assert.Equal(-3, shift);
+            Assert.Null(level.Place(Layer.Middle, cell, "b2f", shift));
+            Assert.Equal(-8, level.SurfaceRight(placed));
+            Assert.Equal(-8, level.SurfaceLeft(level.BlockAt(Layer.Middle, cell)));
+        }
+
+        [Fact]
+        public void ABlockOfAnotherColumnOrOneErasedIsNotTheJoinedNeighbour()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 0), ("a1", 3, 4, 0));
+            PlacedBlock far = level.BlockAt(Layer.Middle, new Cell(3, 4));
+            //Not in the column next to the block: the neighbour is found by the heights as usual
+            int shift = level.RoadShift(new Cell(2, 0), "a1", 0, false, far, out Cell cell);
+            Assert.Equal(new Cell(2, 0), cell);
+            Assert.Equal(0, shift);
+            //Erased since, with no other road next to the block: the chosen shift
+            PlacedBlock gone = level.BlockAt(Layer.Middle, new Cell(1, 0));
+            Assert.True(level.Erase(Layer.Middle, gone));
+            Assert.True(level.Erase(Layer.Middle, far));
+            shift = level.RoadShift(new Cell(2, 0), "a1", 3, false, gone, out cell);
+            Assert.Equal(new Cell(2, 0), cell);
+            Assert.Equal(3, shift);
+        }
+
+        [Fact]
+        public void TheOldRoadBlockAtTheCellPointedAtIsReplacedWhenTheNewOneGoesToAnotherCell()
+        {
+            EditedLevel level = Row(("a1", 3, 0, 0), ("a1", 4, 0, 0), ("a1", 4, 5, 0), ("a1", 4, -6, 0));
+            //The climb block goes to [4, -1] shift 1, the mouse is at [4, 0]: the flat block there is the one to go
+            PlacedBlock replaced = level.RoadBlockReplaced(new Cell(4, 0), new Cell(4, -1), 1);
+            Assert.Equal(new Cell(4, 0), replaced.Cell);
+            //Pointing at an empty cell, the road block within a cell of the new height goes; a road far below or above (a bridge) stays
+            replaced = level.RoadBlockReplaced(new Cell(4, 2), new Cell(4, -1), 1);
+            Assert.Equal(new Cell(4, 0), replaced.Cell);
+            //The block of the cell it is placed at is replaced by the placing, and nothing else is near
+            Assert.Null(level.RoadBlockReplaced(new Cell(4, 0), new Cell(4, 0), -4));
+            Assert.Null(level.RoadBlockReplaced(new Cell(4, 2), new Cell(4, 2), 0));
+            //No road in the column at all
+            Assert.Null(level.RoadBlockReplaced(new Cell(9, 0), new Cell(9, -1), 1));
+        }
+
+        [Fact]
+        public void TheGapsAreReportedAfterTheProblemsThatStopTheLevelFromBeingPlayed()
+        {
+            EditedLevel level = Row(("a1", 1, 0, 0), ("a1", 2, 0, 3));
+            List<string> messages = level.Problems().Select(problem => problem.Message).ToList();
+            int finish = messages.IndexOf("The level has no finish.");
+            int gap = messages.FindIndex(message => message.StartsWith(GapMessage, StringComparison.Ordinal));
+            Assert.True(finish >= 0 && gap > finish);
+            Assert.Equal(messages.Count - 1, gap);
+            Assert.Contains(messages, message => message.StartsWith("There is no block of the middle layer at the start cell", StringComparison.Ordinal));
         }
     }
 }

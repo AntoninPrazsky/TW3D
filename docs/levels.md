@@ -46,8 +46,9 @@ under the cursor and dragging paints, Left Shift + the left button erases, the r
 picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it up or down.
 The keys of the old editor do the same: the arrows move the cursor cell, Space places,
 Delete erases, PageUp / PageDown shift, F marks the finish, comma and period choose the
-block, M the mood. With the Object tool, dynamic objects (boxes, bars, ramps...) are edited
-on the plane of the middle layer, where they always are: the left button adds the chosen
+block, R switches road mode (below), M the mood. With the Object tool, dynamic objects
+(boxes, bars, ramps...) are edited on the plane of the middle layer, where they always are:
+the left button adds the chosen
 object at the point under the cursor (rounded to a tenth of a physics unit) and selects it,
 or selects the object under the cursor, and dragging moves it; Left Shift + the left button
 removes the object under the cursor, the right button picks its type and model as the
@@ -80,6 +81,28 @@ leftmost of the copied blocks, the lowest of those if several, goes to the curso
 H mirrors it left to right, swapping every block for its mirrored variant where the catalog
 has one (`b2` and `b2f`, `s1` and `s1f`...), so that a climb becomes a descent. Each of
 these is one step of undo.
+
+Road mode (R, or Level > Road mode; the status bar says "Road" after the chosen block while
+it is on) makes the Place tool join the road as the level generator does. Every road block
+of the catalog has a `profile`, the height of its surface at the left and the right edge
+(see [content](content.md#catalog)). With road mode on, a road block placed in the middle
+layer (the back and front layers place as usual) goes into the column of the cursor cell at
+the height where its left edge meets the right edge of the road block in the column to the
+left, or its right edge the left edge of the block to the right when the stroke paints
+leftwards. So a hill painted with the mouse or built with Space comes out continuous, the
+cell and the shift being chosen for you ("Placed b2f at [3, -1], shift 1."). In a stroke
+each block joins the one the stroke placed just before it, and an old road block it would
+stand on, at the cell pointed at or within a cell of the new height, is replaced by it, all
+in one step of undo. Where the column on the preferred side has no road block, the other
+side's is joined; the shift chosen by hand applies only to a block with no neighbour at
+all, and blocks without a profile are placed as usual.
+
+Wherever two neighbouring road blocks of the middle layer meet with different surface
+heights, a red bar is drawn at the edge, from one surface to the other, and the problems
+reported when the level is opened or saved count the gap (after the problems that stop the
+level from being played); a gap left on purpose is marked, not refused. The Inspector shows
+the surface heights of the road block at the cursor cell and the number of gaps of the
+level.
 
 ### The old editor
 

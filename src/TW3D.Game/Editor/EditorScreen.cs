@@ -342,6 +342,8 @@ namespace TW3D.Editor
                     renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
                 if (input.KeyPressed(Keys.M))
                     CycleMood();
+                if (input.KeyPressed(Keys.R) && !control)
+                    placeTool.ToggleRoad();
                 if (input.KeyPressed(Keys.Home))
                     FrameLevel();
                 //The layer being edited: Tab cycles, Right Shift and Right Ctrl toggle as in the old editor
@@ -439,6 +441,7 @@ namespace TW3D.Editor
             renderer.End();
             //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on the middle plane for objects
             markers.Draw(camera.View, camera.Projection, activeTool == EditorTool.Object ? Layer.Middle : layer, placeTool.Cursor, Level.Finish);
+            markers.DrawGaps(camera.View, camera.Projection, Level);
             if (activeTool == EditorTool.Select)
                 selectTool.Draw(markers, camera.View, camera.Projection);
             if (activeTool == EditorTool.Object)
@@ -508,6 +511,8 @@ namespace TW3D.Editor
                             Level.SetMood(mood);
                     ImGui.EndMenu();
                 }
+                if (ImGui.MenuItem("Road mode", "R", placeTool.RoadMode))
+                    placeTool.ToggleRoad();
                 ImGui.Separator();
                 if (ImGui.MenuItem("Test drive", "F5"))
                     driveRequested = new Cell(0, 0);

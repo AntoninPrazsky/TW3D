@@ -8,21 +8,25 @@
 "use strict";
 
 const fs = require("fs");
+const path = require("path");
 
 const Cell = 22.5;
 const Step = 2.5;
 
-// Height of the road surface at the left and right edge of each road block, relative to its base.
-// Measured on the 2016 collision bitmaps (now docs/catalog/bl/cols); a flat a1 has its surface at the base.
-// s1/s1f (stairs) start or end with a step at the block edge.
-const Profiles = {
-  a1: [0, 0], xa1: [0, 0], lo: [0, 0], ba1: [0, 0], ba2: [0, 0],
-  b1: [2, 4], b1f: [4, 2], b2: [0, 4], b2f: [4, 0], b3: [-2, 4], b3f: [4, -2], b4: [-4, 4], b4f: [4, -4],
-  c1: [2, 4], c1f: [4, 2], c2: [0, 4], c2f: [4, 0], c3: [-2, 4], c3f: [4, -2],
-  d1: [2, 4], d1f: [4, 2], d2: [0, 4], d2f: [4, 0], d3: [-2, 4], d3f: [4, -2],
-  sb: [4, 4], tu1s: [4, 4], tu2s: [4, 4], tu3s: [4, 4], u1: [4, 4], u2: [4, 4],
-  s1: [-4, 0], s1f: [0, -4]
-};
+// Height of the road surface at the left and right edge of each road block, relative to its base: the "profile"
+// of the blocks in content/catalog.json (measured on the 2016 collision bitmaps, now docs/catalog/bl/cols; a flat a1
+// has its surface at the base; s1/s1f, the stairs, start or end with a step at the block edge). The level editor reads
+// the same profiles, so that it joins the blocks of a road as road() does.
+const Profiles = loadProfiles();
+
+function loadProfiles() {
+  const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "content", "catalog.json"), "utf8"));
+  const profiles = {};
+  for (const block of catalog.blocks)
+    if (block.profile)
+      profiles[block.name] = block.profile;
+  return profiles;
+}
 
 const FlatBlocks = new Set(["a1", "xa1", "sb"]);
 

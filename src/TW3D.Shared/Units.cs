@@ -38,5 +38,12 @@ namespace TW3D.Shared
 
         /// <summary>One step of the vertical shift of a block, in physics units: a ninth of a cell, one model unit.</summary>
         public const float ShiftStep = 2.5f;
+
+        /// <summary>
+        /// Where the surface of a road block is above the height of its profile (<c>BlockType.Profile</c>, in shift
+        /// steps), in physics units: the car rides 1.26 above the base, and y grows downward. The level generator's
+        /// <c>Track.top</c> has the same number.
+        /// </summary>
+        public const float RoadSurfaceOffset = -1.26f;
     }
 }

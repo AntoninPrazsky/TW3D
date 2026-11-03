@@ -17,6 +17,19 @@ namespace TW3D.Shared
         /// </summary>
         public bool Collision { get; set; }
 
+        /// <summary>
+        /// For a road block, [left, right]: the height of the road surface at the left and the right edge of the block
+        /// relative to its base, in shift steps (2.5 physics units; one cell is 9 steps); heights grow downward, as
+        /// physics y does. A climb to the right is [4, 0]: it starts 4 steps below its base and ends at it. The editor
+        /// joins the blocks of a road with it and the level generator builds roads from it. Null for a block that is not
+        /// a road block (decoration, walls, gates).
+        /// </summary>
+        public int[] Profile { get; set; }
+
+        /// <summary>The block is a road block: it has a surface <see cref="Profile"/>.</summary>
+        [JsonIgnore]
+        public bool IsRoad => Profile != null;
+
         [JsonIgnore]
         public string ModelAsset => "Levels/mod/" + Name;
     }

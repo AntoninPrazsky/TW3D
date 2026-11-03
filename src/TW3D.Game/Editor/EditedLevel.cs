@@ -143,6 +143,8 @@ namespace TW3D.Editor
         private const string StartBlock = "a1";
         //How many cells below its own an object may hang over before it is standing on nothing
         private const int ObjectDrop = 2;
+        //How many shift steps a cell is high: the size of a cell over the shift step
+        private const int StepsPerCell = 9;
 
         private readonly Catalog catalog;
         //The blocks of each layer, indexed by the Layer enum, in the order of the file
@@ -155,6 +157,9 @@ namespace TW3D.Editor
         //The steps done so far: the first position of them are done, the rest are undone and can be redone
         private readonly List<Step> history = new List<Step>();
         private int position;
+        //The road gaps found, and the version of the level they were found for
+        private List<RoadGap> roadGaps;
+        private int roadGapsVersion = -1;
         //The position in the history the file holds; -1 when that state is not in the history any more
         private int savedPosition;
         //The step the open compounds collect, and how many of them are open (nested ones are flattened into the outermost)
@@ -238,6 +243,141 @@ namespace TW3D.Editor
         {
             int index = IndexAt(layer, cell);
             return index >= 0 ? layers[(int)layer][index] : null;
+        }
+
+        /// <summary>The vertical position of a block in shift steps, its base: 9 * y + shift.</summary>
+        public static int Base(PlacedBlock block) => StepsPerCell * block.Cell.Y + block.Shift;
+
+        /// <summary>
+        /// The height of the road surface at the left edge of a block in shift steps (they grow downward): its base
+        /// plus the first number of the profile of the block in the catalog; null for a block without a profile.
+        /// </summary>
+        public int? SurfaceLeft(PlacedBlock block)
+        {
+            int[] profile = ProfileOf(block.Name);
+            return profile == null ? null : Base(block) + profile[0];
+        }
+
+        /// <summary>The height of the road surface at the right edge of a block in shift steps; null for a block without a profile.</summary>
+        public int? SurfaceRight(PlacedBlock block)
+        {
+            int[] profile = ProfileOf(block.Name);
+            return profile == null ? null : Base(block) + profile[1];
+        }
+
+        /// <summary>
+        /// Where the road of the middle layer breaks: for every road block (one with a profile; the last one when a cell
+        /// holds two) the road block in the next column to the right whose left edge is the nearest in height to its right
+        /// edge (the only road block of the column, mostly), when the surfaces differ there. A column with no road block
+        /// to the right is the end of the road, not a gap. The list is kept until the level changes: do not change it.
+        /// </summary>
+        public List<RoadGap> RoadGaps()
+        {
+            if (roadGaps != null && roadGapsVersion == Version)
+                return roadGaps;
+
+            List<RoadGap> found = new List<RoadGap>();
+            Dictionary<int, List<PlacedBlock>> columns = RoadColumns();
+            foreach (PlacedBlock a in layers[(int)Layer.Middle])
+            {
+                //Only a block that counts as a road block (the last of its cell) has a place in the columns
+                if (!columns.TryGetValue(a.Cell.X, out List<PlacedBlock> own) || !own.Contains(a))
+                    continue;
+                if (!columns.TryGetValue(a.Cell.X + 1, out List<PlacedBlock> next))
+                    continue;
+                int height = SurfaceRight(a).Value;
+                PlacedBlock b = Nearest(next, true, height);
+                int other = SurfaceLeft(b).Value;
+                if (other != height)
+                    found.Add(new RoadGap(a, b, height, other));
+            }
+            roadGaps = found;
+            roadGapsVersion = Version;
+            return found;
+        }
+
+        /// <summary>
+        /// Where and at what shift a road block is to be placed so that it joins the road, as road() of the level
+        /// generator does: in the column of the cell, with its left edge at the height of the right edge of the road
+        /// block in the column to the left (when painting leftwards, its right edge at the left edge of the one to the
+        /// right; where that column has no road block the other side is tried). With several road blocks in the column
+        /// of the neighbour, the one nearest in height to the block as it would stand at the cell with the chosen shift
+        /// is the neighbour, unless the block placed just before is one of them. With no neighbour at all, and for a
+        /// block without a profile, the cell and the shift are the given ones.
+        /// </summary>
+        /// <param name="cell">The cell the block is placed at: only its column is kept when it joins a neighbour.</param>
+        /// <param name="block">The name of the block in the catalog.</param>
+        /// <param name="chosenShift">The shift chosen by hand.</param>
+        /// <param name="leftwards">The road is painted from the right to the left: the neighbour on the right is joined first.</param>
+        /// <param name="placedCell">The cell the block goes to.</param>
+        /// <returns>The shift the block goes with.</returns>
+        public int RoadShift(Cell cell, string block, int chosenShift, bool leftwards, out Cell placedCell)
+        {
+            return RoadShift(cell, block, chosenShift, leftwards, null, out placedCell);
+        }
+
+        /// <summary>
+        /// <see cref="RoadShift(Cell, string, int, bool, out Cell)"/> for a stroke: the block that the stroke placed
+        /// before this one is the neighbour when it stands in the column next to the block, whatever else that column
+        /// holds (the mouse height has nothing to do with where the road went).
+        /// </summary>
+        /// <param name="joined">The road block placed just before, or null.</param>
+        public int RoadShift(Cell cell, string block, int chosenShift, bool leftwards, PlacedBlock joined, out Cell placedCell)
+        {
+            placedCell = cell;
+            int[] profile = ProfileOf(block);
+            if (profile == null)
+                return chosenShift;
+
+            Dictionary<int, List<PlacedBlock>> columns = RoadColumns();
+            int own = StepsPerCell * cell.Y + chosenShift;
+            for (int pass = 0; pass < 2; pass++)
+            {
+                //The neighbour in the direction of the painting first
+                bool right = leftwards == (pass == 0);
+                if (!columns.TryGetValue(cell.X + (right ? 1 : -1), out List<PlacedBlock> column))
+                    continue;
+                //The edge of the block next to the neighbour, and the edge of the neighbour next to the block
+                int edge = profile[right ? 1 : 0];
+                PlacedBlock neighbour = joined != null && column.Contains(joined) ? joined : Nearest(column, right, own + edge);
+                int height = right ? SurfaceLeft(neighbour).Value : SurfaceRight(neighbour).Value;
+                int placedBase = height - edge;
+                //The cell nearest to the base, as the generator rounds it; a base is never half way between two cells
+                int y = (int)Math.Floor((placedBase + StepsPerCell / 2) / (double)StepsPerCell);
+                placedCell = new Cell(cell.X, y);
+                return placedBase - StepsPerCell * y;
+            }
+            return chosenShift;
+        }
+
+        /// <summary>
+        /// The road block that a road block placed by <see cref="RoadShift(Cell, string, int, bool, out Cell)"/> is to
+        /// replace, so that it does not stand on top of the old road when it goes to another cell than the one pointed
+        /// at: the road block at the pointed cell, else the one in the column that lies within a cell of the new base.
+        /// A road block in the placed cell itself is replaced by the placing; null for none.
+        /// </summary>
+        /// <param name="pointed">The cell the cursor was at.</param>
+        /// <param name="placed">The cell the block goes to.</param>
+        /// <param name="shift">The shift it goes with.</param>
+        public PlacedBlock RoadBlockReplaced(Cell pointed, Cell placed, int shift)
+        {
+            if (!RoadColumns().TryGetValue(placed.X, out List<PlacedBlock> column))
+                return null;
+            PlacedBlock at = BlockAt(Layer.Middle, pointed);
+            if (pointed != placed && pointed.X == placed.X && at != null && column.Contains(at))
+                return at;
+            int newBase = StepsPerCell * placed.Y + shift;
+            PlacedBlock nearest = null;
+            int distance = StepsPerCell;
+            foreach (PlacedBlock block in column)
+            {
+                if (block.Cell != placed && Math.Abs(Base(block) - newBase) < distance)
+                {
+                    nearest = block;
+                    distance = Math.Abs(Base(block) - newBase);
+                }
+            }
+            return nearest;
         }
 
         /// <summary>The level as data to save or to play, everything in the order of the file.</summary>
@@ -562,6 +702,13 @@ namespace TW3D.Editor
                 if (!HasGroundBelow(obj))
                     problems.Add(new LevelProblem($"Object {obj.Type} ({obj.Model}) at {Position(obj)} has nothing below it.", obj.X, obj.Y));
             }
+            //Last: a gap may be left on purpose, so it must not hide the problems that stop the level from being played
+            foreach (RoadGap gap in RoadGaps())
+            {
+                problems.Add(new LevelProblem(
+                    $"The road has a gap between {gap.A.Cell} and {gap.B.Cell}: the surfaces differ by {gap.Steps} step{(gap.Steps == 1 ? "" : "s")}.",
+                    Layer.Middle, gap.A.Cell));
+            }
             return problems;
         }
 
@@ -577,6 +724,52 @@ namespace TW3D.Editor
                 else if (layer == Layer.Middle && !type.Collision)
                     problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} has no collision shape, so it cannot be in the {layerName} layer.", layer, block.Cell));
             }
+        }
+
+        /// <summary>The profile of a block of the catalog, [left, right]; null for a block without one.</summary>
+        private int[] ProfileOf(string block)
+        {
+            int[] profile = catalog.FindBlock(block)?.Profile;
+            return profile != null && profile.Length == 2 ? profile : null;
+        }
+
+        /// <summary>
+        /// The road blocks of the middle layer by their column, in the order of the file; of two in one cell (a road
+        /// block under another) only the one placed last.
+        /// </summary>
+        private Dictionary<int, List<PlacedBlock>> RoadColumns()
+        {
+            Dictionary<Cell, PlacedBlock> last = new Dictionary<Cell, PlacedBlock>();
+            foreach (PlacedBlock block in layers[(int)Layer.Middle])
+                if (ProfileOf(block.Name) != null)
+                    last[block.Cell] = block;
+            Dictionary<int, List<PlacedBlock>> columns = new Dictionary<int, List<PlacedBlock>>();
+            foreach (PlacedBlock block in layers[(int)Layer.Middle])
+            {
+                if (!last.TryGetValue(block.Cell, out PlacedBlock winner) || winner != block)
+                    continue;
+                if (!columns.TryGetValue(block.Cell.X, out List<PlacedBlock> column))
+                    columns[block.Cell.X] = column = new List<PlacedBlock>();
+                column.Add(block);
+            }
+            return columns;
+        }
+
+        /// <summary>The block of a column whose left (or right) edge is the nearest in height to a height; the first of those equally near.</summary>
+        private PlacedBlock Nearest(List<PlacedBlock> column, bool leftEdge, int height)
+        {
+            PlacedBlock nearest = null;
+            int distance = int.MaxValue;
+            foreach (PlacedBlock block in column)
+            {
+                int edge = leftEdge ? SurfaceLeft(block).Value : SurfaceRight(block).Value;
+                if (Math.Abs(edge - height) < distance)
+                {
+                    nearest = block;
+                    distance = Math.Abs(edge - height);
+                }
+            }
+            return nearest;
         }
 
         /// <summary>A block of the middle layer is in the cell of the object or within a few cells below it (y grows downward).</summary>

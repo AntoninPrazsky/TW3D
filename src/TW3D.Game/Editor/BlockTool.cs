@@ -17,7 +17,8 @@ namespace TW3D.Editor
     /// camera follows), Space places, Delete erases, PageUp / PageDown shift, F toggles the finish, comma and period
     /// choose the previous / next block of the catalog; <see cref="Undo"/> and <see cref="Redo"/> (Ctrl+Z / Ctrl+Y, given
     /// by the screen) take a step of the document back and forth. What is done and what the
-    /// document refuses is reported to the screen for its status bar.
+    /// document refuses is reported to the screen for its status bar. In road mode (R) a road block placed in the middle
+    /// layer gets the cell and the shift that join it to the road next to it (<see cref="EditedLevel.RoadShift"/>).
     /// </summary>
     sealed class BlockTool : IEditorTool
     {
@@ -42,6 +43,8 @@ namespace TW3D.Editor
         private IDisposable strokeStep;
         private Layer strokeLayer;
         private Cell strokeCell;
+        //The block the stroke placed last, which the next one of the stroke joins in road mode; null before the first one
+        private PlacedBlock strokePlaced;
 
         /// <param name="camera">The camera, panned along with the cursor moved by the arrows.</param>
         /// <param name="report">Gets a note of what was done, or the reason of a refusal, for the status bar.</param>
@@ -72,6 +75,9 @@ namespace TW3D.Editor
         /// <summary>The shift the placed blocks get; it follows the block picked or shifted.</summary>
         public int Shift { get; private set; }
 
+        /// <summary>Road mode: the road blocks placed in the middle layer join the road next to them, whatever the chosen shift.</summary>
+        public bool RoadMode { get; private set; }
+
         /// <summary>A stroke of the mouse (painting or erasing) is going on: the cursor follows the mouse wherever it is.</summary>
         public bool InStroke => stroke != Stroke.None;
 
@@ -91,7 +97,7 @@ namespace TW3D.Editor
                 MoveCursor(step);
 
             if (input.KeyPressed(Keys.Space))
-                Place(layer, Cursor, true);
+                Place(layer, Cursor, true, null);
             if (input.KeyPressed(Keys.Delete))
                 Erase(layer, Cursor, true);
             if (input.KeyPressed(Keys.PageUp))
@@ -205,6 +211,7 @@ namespace TW3D.Editor
             stroke = kind;
             strokeLayer = layer;
             strokeCell = Cursor;
+            strokePlaced = null;
             strokeStep = level.BeginCompound(kind == Stroke.Paint ? "Paint" : "Erase");
             Apply(Cursor);
         }
@@ -213,7 +220,9 @@ namespace TW3D.Editor
         private void Apply(Cell cell)
         {
             if (stroke == Stroke.Paint)
-                Place(strokeLayer, cell, false);
+            {
+                strokePlaced = Place(strokeLayer, cell, false, strokePlaced) ?? strokePlaced;
+            }
             else
                 Erase(strokeLayer, cell, false);
         }
@@ -231,16 +240,49 @@ namespace TW3D.Editor
             strokeStep = null;
         }
 
-        /// <param name="note">Report what was done, or that there was nothing to do, not only a refusal (the keys do, a stroke does not).</param>
-        private void Place(Layer layer, Cell cell, bool note)
+        /// <summary>Switches road mode on or off.</summary>
+        public void ToggleRoad()
         {
-            //The document records nothing when the same block with the same shift is there already
-            int version = level.Version;
-            string reason = level.Place(layer, cell, Block, Shift);
-            if (reason != null)
-                report(reason);
-            else if (note)
-                report(level.Version != version ? $"Placed {Block} at {cell}." : $"{Block} with shift {Shift} is already at {cell}.");
+            RoadMode = !RoadMode;
+            report(RoadMode ? "Road mode on: road blocks join the road." : "Road mode off.");
+        }
+
+        /// <param name="note">Report what was done, or that there was nothing to do, not only a refusal (the keys do, a stroke does not).</param>
+        /// <param name="joined">The block the stroke placed before: in road mode the new one joins it, on its right when
+        /// the stroke paints to the left; null for a key and for the first block of a stroke.</param>
+        /// <returns>The block that stands at the cell now; null when the document refused to place it.</returns>
+        private PlacedBlock Place(Layer layer, Cell cell, bool note, PlacedBlock joined)
+        {
+            //In road mode the block of the middle layer goes where it joins the road; the chosen shift stays as it is
+            int shift = Shift;
+            bool road = RoadMode && layer == Layer.Middle && level.Catalog.FindBlock(Block)?.IsRoad == true;
+            //The old road block that the new one would otherwise stand on goes, in the same step of undo
+            using (level.BeginCompound("Place " + Block))
+            {
+                if (road)
+                {
+                    Cell pointed = cell;
+                    bool leftwards = joined != null && cell.X < joined.Cell.X;
+                    shift = level.RoadShift(pointed, Block, Shift, leftwards, joined, out cell);
+                    PlacedBlock stale = level.RoadBlockReplaced(pointed, cell, shift);
+                    if (stale != null)
+                        level.Erase(Layer.Middle, stale);
+                }
+
+                //The document records nothing when the same block with the same shift is there already
+                int version = level.Version;
+                string reason = level.Place(layer, cell, Block, shift);
+                if (reason != null)
+                    report(reason);
+                else if (note)
+                {
+                    if (level.Version == version)
+                        report($"{Block} with shift {shift} is already at {cell}.");
+                    else
+                        report(road ? $"Placed {Block} at {cell}, shift {shift}." : $"Placed {Block} at {cell}.");
+                }
+                return reason == null ? level.BlockAt(layer, cell) : null;
+            }
         }
 
         /// <param name="note">Report what was done, or that there was nothing to erase (the keys do, a stroke does not).</param>
