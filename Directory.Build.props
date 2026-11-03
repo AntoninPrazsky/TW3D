@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <!--
-    Game content (content/): the content pipeline (Content.mgcb) builds the models and shaders from their sources,
-    the other files (precompiled textures and fonts, levels, the catalog) are copied as they are.
+    Game content (content/): the content pipeline (Content.mgcb) builds the models, shaders and images from their sources,
+    the other files (precompiled fonts, levels, the catalog) are copied as they are.
     ContentPipelineSources lists the files not to copy: the sources and the pipeline's build folders.
   -->
   <PropertyGroup>

@@ -25,7 +25,7 @@
     <!-- Models and shaders built by the content pipeline, packed in the app as Content/
          (the builds for each runtime run in parallel, so each builds into its own folder) -->
     <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)$(RuntimeIdentifier)" />
-    <!-- The other shared game content (precompiled textures and fonts, levels, the catalog), packed in the app as Content/ -->
+    <!-- The other shared game content (precompiled fonts, levels, the catalog), packed in the app as Content/ -->
     <AndroidAsset Include="$(GameContentDir)**\*" Exclude="$(ContentPipelineSources)" Link="Assets\Content\%(RecursiveDir)%(Filename)%(Extension)" />
     <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
     <AndroidAsset Include="..\..\content\Font.xnb" Link="Assets\Content\DiagnosticsFont.xnb" />
