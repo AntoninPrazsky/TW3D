@@ -50,9 +50,10 @@
 /build:Env/sky.obj
 /build:Env/tb1.obj
 
-# The 3D garage behind the menus (the landscape behind its windows comes with its texture)
+# The 3D garage behind the menus (the landscape behind its windows comes with its texture) and the 3D logo of the main menu
 /build:Garage/garage.obj
 /build:Garage/window.obj
+/build:Garage/logo.obj
 
 # Scenery: static props beside the track, without physics (tools/garagegen/scenery.py)
 /build:Scenery/chain.obj

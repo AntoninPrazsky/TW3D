@@ -191,6 +191,8 @@ namespace TW3D.Graphics
         private Vector3 eye;
         private Model background;
         private Matrix backgroundWorld;
+        private Model overlay;
+        private Matrix overlayWorld;
         //The car: its lamps shining as spot lights, which lamp each is, where it is (relative to the car) and where it
         //points, the colour of its light when fully on
         private bool car, braking;
@@ -289,6 +291,7 @@ namespace TW3D.Graphics
             frustum.Matrix = view * projection;
             items.Clear();
             background = null;
+            overlay = null;
             car = false;
             braking = false;
             Array.Clear(lights);
@@ -396,6 +399,17 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
+        /// Sets the model drawn over the whole scene (the 3D logo of the main menu), for this frame (see Begin): lit as the
+        /// scene is, but over a depth buffer of its own, so that nothing of the scene ever cuts it, and without shadows or
+        /// ambient occlusion, neither cast nor received.
+        /// </summary>
+        public void SetOverlay(Model model, Matrix world)
+        {
+            overlay = model;
+            overlayWorld = world;
+        }
+
+        /// <summary>
         /// Frees the textures, render targets and effects the renderer made itself. The effects of the content manager
         /// (Scene, Occlusion) are shared by all renderers and stay.
         /// </summary>
@@ -446,6 +460,34 @@ namespace TW3D.Graphics
                 DrawLit();
             DrawSmoke();
             DrawLampGlows();
+            DrawOverlay();
+        }
+
+        /// <summary>The overlay over everything drawn so far, in front of it (see <see cref="SetOverlay"/>).</summary>
+        private void DrawOverlay()
+        {
+            if (overlay == null)
+                return;
+            device.Clear(ClearOptions.DepthBuffer, Color.Black, 1f, 0);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
+            ModelData data = GetModelData(overlay);
+            if (Classic)
+            {
+                foreach (ModelPart part in data.Parts)
+                    if (!part.IsTransparent)
+                        DrawClassicPart(part, part.Transform * overlayWorld);
+                return;
+            }
+            //The parameters of the scene stay as DrawLit set them, but for the shadows and the occlusion, which are the scene's
+            effect.Parameters["ShadowStrength"].SetValue(0f);
+            effect.Parameters["OcclusionStrength"].SetValue(0f);
+            effect.CurrentTechnique = litTechnique;
+            EffectPass pass = litTechnique.Passes[0];
+            foreach (ModelPart part in data.Parts)
+                if (!part.IsTransparent)
+                    DrawLitPart(part, part.Transform * overlayWorld, pass);
         }
 
         /// <summary>A white puff thinning out to its edge, a little uneven; its alpha is how thick it is.</summary>

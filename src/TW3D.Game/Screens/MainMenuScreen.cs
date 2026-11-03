@@ -1,15 +1,17 @@
 using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.GameObjects;
 using TW3D.Input;
 
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The main menu: the game title at the top, two items in the middle of the left and right half,
-    /// a row of items at the bottom and a place in the top right corner beside the title (the level editor
-    /// of a Debug build). Items are positioned relative to the screen edges and scaled with the user
-    /// interface, so the layout works on any aspect ratio.
+    /// The main menu: the 3D logo of the game at the top (drawn in the garage behind the menus, see
+    /// <see cref="GarageScene.Title"/>), two items in the middle of the left and right half, a row of items at the bottom
+    /// and a place in the top right corner, level with the lettering of the logo (the level editor of a Debug build).
+    /// Items and the logo are positioned relative to the screen edges and scaled with the user interface, so the layout
+    /// works on any aspect ratio. The logo slides up out of the frame as the menu goes, as the titles of the other menus do.
     /// </summary>
     public sealed class MainMenuScreen : Screen
     {
@@ -29,23 +31,30 @@ namespace TW3D.Screens
             Placement.MiddleLeft, Placement.MiddleRight, Placement.BottomLeft, Placement.BottomCenter, Placement.BottomRight, Placement.TopRight
         };
 
-        //Font scale of the title at the reference resolution
+        //Font scale of the titles of the other menus at the reference resolution
         private const float TitleScale = 1.3f;
+        //The 3D logo: its height at the reference resolution, its width to its height and where the middle of its
+        //lettering is, a part of its height from its top (tools/garagegen/logo.py prints both); it never reaches lower
+        //than this many line heights above the middle of the screen, where the items of the middle are
+        private const float LogoHeight = 300f;
+        private const float LogoWidth = 2.042f;
+        private const float LetteringMiddle = 0.313f;
+        private const float LogoClearance = 1.5f;
         //Extra area around the item text that reacts to the mouse, in reference pixels
         private const float ItemPadding = 20f;
         //How far the items slide in and out, in reference pixels
         private const float ItemSlide = 320f;
-        private const float TitleSlide = 140f;
 
         /// <summary>The colour of the focused item and of the titles, used by all screens.</summary>
         public static readonly Color Yellow = new Color(255, 210, 0);
 
-        private readonly string title;
+        private readonly BackgroundScreen background;
         private readonly MenuItems items = new MenuItems();
 
-        public MainMenuScreen(string title)
+        /// <param name="background">The garage behind the menus, which shows the logo.</param>
+        public MainMenuScreen(BackgroundScreen background)
         {
-            this.title = title;
+            this.background = background;
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
@@ -92,8 +101,8 @@ namespace TW3D.Screens
             float scale = MenuItems.TextScale * Manager.UiScale;
             float lineHeight = font.MeasureString("M").Y * scale;
             float bottomRowY = safe.Bottom - lineHeight / 2f;
-            //The top right place is level with the middle of the title
-            float topRowY = safe.Top + TitleHeight(Manager) / 2f;
+            //The top right place is level with the middle of the lettering of the logo
+            float topRowY = safe.Top + LogoSize(lineHeight).Y * LetteringMiddle;
             int padding = (int)(ItemPadding * Manager.UiScale);
 
             for (int i = 0; i < items.Count; i++)
@@ -113,23 +122,57 @@ namespace TW3D.Screens
             }
         }
 
+        /// <summary>
+        /// The size of the logo on the screen, in pixels: its height at the reference resolution scaled with the user
+        /// interface, but no larger than leaves the middle of the screen to the items there, nor wider than the screen.
+        /// </summary>
+        private Vector2 LogoSize(float lineHeight)
+        {
+            Viewport viewport = Manager.Viewport;
+            Rectangle safe = Manager.SafeArea;
+            float height = Math.Min(LogoHeight * Manager.UiScale, viewport.Height / 2f - lineHeight * LogoClearance - safe.Top);
+            height = Math.Max(0f, Math.Min(height, safe.Width / LogoWidth));
+            return new Vector2(height * LogoWidth, height);
+        }
+
+        /// <summary>
+        /// Puts the logo in the garage at the top of the screen, in the middle, or as far up out of the frame as the menu
+        /// has gone; takes it away when the menu is not seen at all. Done whether the menu has the focus or not, so that
+        /// the logo leaves with it when another screen covers it.
+        /// </summary>
+        public override void Update(GameTime gameTime)
+        {
+            GarageScene scene = background.Scene;
+            if (scene == null)
+                return;
+            if (Visibility <= 0f)
+            {
+                scene.Title = null;
+                return;
+            }
+            float lineHeight = Manager.Fonts.Menu.MeasureString("M").Y * MenuItems.TextScale * Manager.UiScale;
+            float height = LogoSize(lineHeight).Y;
+            float top = Manager.SafeArea.Top;
+            //Fully gone it is just above the top of the screen
+            top -= SlideAmount * (top + height);
+            scene.Title = (new Vector2(Manager.Viewport.Width / 2f, top + height / 2f), height);
+        }
+
         public override void Draw(GameTime gameTime)
         {
             UpdateLayout();
             float uiScale = Manager.UiScale;
             float alpha = Visibility;
 
-            //Items slide in from the left and out to the right, the title slides from the top
+            //Items slide in from the left and out to the right; the logo, in the garage behind, slides from the top
             float slide = SlideAmount * ItemSlide * uiScale * (IsDisappearing ? 1f : -1f);
-            float titleSlide = SlideAmount * TitleSlide * uiScale;
 
             Manager.SpriteBatch.Begin();
             items.Draw(Manager, MenuItems.TextScale * uiScale, slide, alpha, HasFocus);
-            DrawTitle(Manager, title, Manager.SafeArea.Top - titleSlide, alpha);
             Manager.SpriteBatch.End();
         }
 
-        /// <summary>Draws a screen title centred horizontally, with its top at the given height (shared by all screens).</summary>
+        /// <summary>Draws a screen title centred horizontally, with its top at the given height (shared by the other menus).</summary>
         public static void DrawTitle(ScreenManager manager, string title, float top, float alpha)
         {
             SpriteFont font = manager.Fonts.Menu;

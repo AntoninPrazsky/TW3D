@@ -11,6 +11,7 @@ hangs in takes its place, which looks the same from the camera of the game.
     python tools/garagegen/scenery.py
 """
 import math
+import sys
 import os
 import numpy as np
 from wings import read, mesh, face_uvs
@@ -32,12 +33,15 @@ def wings_material(gl, ks=(0.2, 0.2, 0.2), pm=None, pr=None):
 
 
 class Prop:
-    """A prop: its model, its Wings file, its size (the height, or the length along x), how its faces get their
-    materials (None drops a face), the materials, and what is done to it: centred in x and z, turned half way round
-    about y, more faces added (in the coordinates of the Wings file)."""
-    def __init__(self, model, file, rule, materials, height=None, length=None, centre=False, half_turn=False, extra=None):
+    """A prop: its model, its Wings file, its size (the height, or the length along x; neither keeps the size of the
+    Wings file), how its faces get their materials (None drops a face), the materials, and what is done to it: centred
+    in x and z (or in all three: the middle of its box at the origin instead of its foot), turned half way round about
+    y, more faces added (in the coordinates of the Wings file)."""
+    def __init__(self, model, file, rule, materials, height=None, length=None, centre=False, half_turn=False, extra=None,
+                 middle=False):
         self.model, self.file, self.rule, self.materials = model, file, rule, materials
         self.height, self.length, self.centre, self.half_turn, self.extra = height, length, centre, half_turn, extra
+        self.middle = middle
 
 
 # ---- the materials of the faces
@@ -155,8 +159,10 @@ PROPS = [
 ]
 
 
-def build(prop):
-    objects, mats = read(os.path.join(SRC, prop.file))
+def build(prop, src=SRC, out=OUT, what='Scenery'):
+    """Writes the .obj and .mtl of a prop into a folder; returns the box of the model as written (its least and
+    greatest corner)."""
+    objects, mats = read(os.path.join(src, prop.file))
     palette = prop.materials(mats)
     parts = []
     for name, ws in objects.items():
@@ -165,7 +171,10 @@ def build(prop):
             uvs = face_uvs(winged)
             # mesh() and face_uvs() leave out the same faces (those without edges), in the same order
             for (loop, material, normals), f in zip(corners, sorted(uvs)):
-                face = {'material': material, 'points': pts[loop], 'centre': pts[loop].mean(0), 'uvs': uvs[f]}
+                P = pts[loop]
+                area = sum(np.cross(P[i], P[(i + 1) % len(P)]) for i in range(len(P)))
+                face = {'object': name, 'material': material, 'points': P, 'centre': P.mean(0), 'uvs': uvs[f],
+                        'normal': area / (np.linalg.norm(area) + 1e-20)}
                 kind = prop.rule(face, mats)
                 if kind is not None:
                     parts.append((pts[loop], normals, kind))
@@ -173,10 +182,13 @@ def build(prop):
         parts += prop.extra()
     every = np.vstack([p for p, _, _ in parts])
     lo, hi = every.min(0), every.max(0)
-    scale = prop.length / (hi[0] - lo[0]) if prop.height is None else prop.height / (hi[1] - lo[1])
+    scale = (prop.height / (hi[1] - lo[1]) if prop.height is not None else prop.length / (hi[0] - lo[0]) if prop.length is not None
+             else 1.0)
     # The foot at the origin: the bottom at y = 0, the middle of the base in x and z where the model has it, or the
-    # middle of its box
-    offset = np.array([-(lo[0] + hi[0]) / 2 if prop.centre else 0.0, -lo[1], -(lo[2] + hi[2]) / 2 if prop.centre else 0.0])
+    # middle of its box; or the middle of the whole box
+    centre = prop.centre or prop.middle
+    offset = np.array([-(lo[0] + hi[0]) / 2 if centre else 0.0, -(lo[1] + hi[1]) / 2 if prop.middle else -lo[1],
+                       -(lo[2] + hi[2]) / 2 if centre else 0.0])
     # Half way round about y: x and z change their signs
     turn = np.array([-1.0, 1.0, -1.0]) if prop.half_turn else np.ones(3)
 
@@ -198,22 +210,25 @@ def build(prop):
             refs = [f'{index(positions, (p + offset) * scale * turn, "v")}//{index(normals_out, np.asarray(n) * turn, "vn")}' for p, n in zip(P, N)]
             lines.append('f ' + ' '.join(refs))
             faces += 1
-    os.makedirs(OUT, exist_ok=True)
-    with open(os.path.join(OUT, prop.model + '.obj'), 'w', newline='\n') as obj:
-        obj.write(f'# Scenery: {prop.model}, built from art/wings/Scenery/{prop.file} by tools/garagegen/scenery.py\n'
+    os.makedirs(out, exist_ok=True)
+    source = os.path.relpath(os.path.join(src, prop.file), ROOT).replace(os.sep, '/')
+    with open(os.path.join(out, prop.model + '.obj'), 'w', newline='\n') as obj:
+        obj.write(f'# {what}: {prop.model}, built from {source} by tools/garagegen/{os.path.basename(sys.argv[0])}\n'
                   f'mtllib {prop.model}.mtl\no {prop.model}\n' + '\n'.join(lines) + '\n')
-    out = [f'# Materials of {prop.model}; Pm and Pr: metal and roughness (tools/ContentPipeline)', '']
+    materials = [f'# Materials of {prop.model}; Pm and Pr: metal and roughness (tools/ContentPipeline)', '']
     for name, m in palette.items():
-        out += [f'newmtl {name}', 'Kd %.4f %.4f %.4f' % tuple(m.kd), 'd %.4f' % m.d, 'Ks %.4f %.4f %.4f' % tuple(m.ks),
+        materials += [f'newmtl {name}', 'Kd %.4f %.4f %.4f' % tuple(m.kd), 'd %.4f' % m.d, 'Ks %.4f %.4f %.4f' % tuple(m.ks),
                 'Ke %.4f %.4f %.4f' % tuple(m.ke), 'Ns 0.3000']
-        if m.pm is not None: out.append(f'Pm {m.pm:g}')
-        if m.pr is not None: out.append(f'Pr {m.pr:g}')
-        out += ['illum 2', '']
-    with open(os.path.join(OUT, prop.model + '.mtl'), 'w', newline='\n') as mtl:
-        mtl.write('\n'.join(out))
+        if m.pm is not None: materials.append(f'Pm {m.pm:g}')
+        if m.pr is not None: materials.append(f'Pr {m.pr:g}')
+        materials += ['illum 2', '']
+    with open(os.path.join(out, prop.model + '.mtl'), 'w', newline='\n') as mtl:
+        mtl.write('\n'.join(materials))
     size = (hi - lo) * scale
     print(f'{prop.model}: {faces} faces, scale {scale:.4f}, size x {size[0]:.2f} y {size[1]:.2f} z {size[2]:.2f}')
+    return (lo + offset) * scale * turn, (hi + offset) * scale * turn
 
 
-for prop in PROPS:
-    build(prop)
+if __name__ == '__main__':
+    for prop in PROPS:
+        build(prop)

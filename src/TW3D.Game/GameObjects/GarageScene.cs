@@ -15,7 +15,10 @@ namespace TW3D.GameObjects
     /// its middle, the car chosen in the garage on the lift with its wheels, the other cars in a row along the axis of
     /// the lift in the order of the catalog, and a landscape behind the windows. The camera slowly drifts around the view
     /// of the menu, or, as <see cref="Focus"/> grows, sweeps around the car on the lift (the garage screen), or comes to
-    /// the wheels of one of its axles (<see cref="View"/>).
+    /// the wheels of one of its axles (<see cref="View"/>). The main menu shows the 3D logo of the game in it
+    /// (<see cref="Title"/>): placed against the frame, not against the hall, so that it keeps its place in the picture
+    /// however the camera drifts and whatever the shape of the window, lit by the light of the garage, swaying a little,
+    /// and drawn over everything (see <see cref="SceneRenderer.SetOverlay"/>).
     /// </summary>
     public sealed class GarageScene
     {
@@ -66,6 +69,16 @@ namespace TW3D.GameObjects
         private const float WheelsTime = 0.8f;
         //The shadows reach across the hall (world units)
         private const float ShadowDistance = 10f;
+        //The logo hangs this far in front of the camera (world units): its size is solved from the frame, so this sets
+        //only its perspective, and it is drawn over the scene, so nothing of the hall cuts it however near it is
+        private const float LogoDistance = 1f;
+        //How deep the logo is, to its height (tools/garagegen/logo.py prints it): its front stands at that distance, so
+        //that the wheels of the emblem, nearer the camera than the middle of the logo, do not reach out of its place
+        private const float LogoDepth = 0.417f;
+        //It sways about its vertical and its horizontal axis this far (radians) at these unrelated rates (radians per
+        //second), so that it reads as an object in the room, never so far that it is hard to read
+        private const float LogoYaw = 0.09f, LogoPitch = 0.05f;
+        private const float LogoYawRate = 0.37f, LogoPitchRate = 0.23f;
         //The floor under the car on the lift and the middles of its axles follow the car at this rate (1 / seconds):
         //other wheels (larger, or wider) raise the car on the lift and move the view of the wheels smoothly, not at once
         private const float FollowRate = 8f;
@@ -76,7 +89,7 @@ namespace TW3D.GameObjects
         private readonly ScreenManager manager;
         private readonly GameSettings settings;
         private readonly SceneRenderer renderer;
-        private readonly Model garage, window;
+        private readonly Model garage, window, logo;
         private readonly List<CarType> cars;
         private readonly Catalog catalog;
         private readonly World world = new World(Vector2.Zero);
@@ -100,6 +113,7 @@ namespace TW3D.GameObjects
             ModelCollision.Load();
             garage = manager.Content.Load<Model>("Garage/garage");
             window = manager.Content.Load<Model>("Garage/window");
+            logo = manager.Content.Load<Model>("Garage/logo");
             renderer = new SceneRenderer(manager.GraphicsDevice, manager.Content) { Lighting = Lighting.Garage, ShadowDistance = ShadowDistance };
         }
 
@@ -111,6 +125,12 @@ namespace TW3D.GameObjects
 
         /// <summary>What the camera of the garage screen looks at: the whole car on the lift or the wheels of an axle.</summary>
         public CarView View { get; set; }
+
+        /// <summary>
+        /// Where the 3D logo stands in the frame: the middle of its box and its height, in pixels of the screen (the main
+        /// menu sets it as it lays itself out, and moves it up out of the frame as it goes); null for no logo.
+        /// </summary>
+        public (Vector2 Centre, float Height)? Title { get; set; }
 
         /// <summary>
         /// Pixels the cars on the lift move to the right on the screen when the row moves by a world unit, as last
@@ -158,6 +178,24 @@ namespace TW3D.GameObjects
             floor = MathHelper.Lerp(floor ?? selected.WheelsBottom, selected.WheelsBottom, follow);
             frontCentre = Vector3.Lerp(frontCentre ?? selected.WheelsCentre(true, true), selected.WheelsCentre(true, true), follow);
             rearCentre = Vector3.Lerp(rearCentre ?? selected.WheelsCentre(false, true), selected.WheelsCentre(false, true), follow);
+        }
+
+        /// <summary>
+        /// The world matrix of the logo (one unit high, its middle at its origin, facing +z; see tools/garagegen/logo.py)
+        /// standing in a place of the frame: the place turned into the camera's own coordinates through its projection, at
+        /// <see cref="LogoDistance"/> in front of it, so that it keeps its place at any field of view and any window shape.
+        /// </summary>
+        /// <param name="centre">Where the middle of the logo is on the screen, in pixels.</param>
+        /// <param name="height">How high it is on the screen, in pixels.</param>
+        private Matrix LogoWorld(Vector2 centre, float height, Matrix view, Matrix projection, Viewport viewport)
+        {
+            //A point of the screen at a distance in front of the camera: x right, y up, the camera looking along -z
+            float x = (centre.X / viewport.Width * 2f - 1f) * LogoDistance / projection.M11;
+            float y = (1f - centre.Y / viewport.Height * 2f) * LogoDistance / projection.M22;
+            float size = height / viewport.Height * 2f * LogoDistance / projection.M22;
+            Matrix sway = Matrix.CreateRotationY(LogoYaw * MathF.Sin(time * LogoYawRate))
+                * Matrix.CreateRotationX(LogoPitch * MathF.Sin(time * LogoPitchRate + 1f));
+            return Matrix.CreateScale(size) * sway * Matrix.CreateTranslation(x, y, -LogoDistance - LogoDepth / 2f * size) * Matrix.Invert(view);
         }
 
         /// <summary>
@@ -221,6 +259,8 @@ namespace TW3D.GameObjects
             PixelsPerUnit = right.X - left.X;
 
             renderer.Begin(view, projection);
+            if (Title is (Vector2 titleCentre, float titleHeight))
+                renderer.SetOverlay(logo, LogoWorld(titleCentre, titleHeight, view, projection, viewport));
             renderer.SetBackground(window, garageWorld);
             renderer.Add(garage, garageWorld);
             //The car on the lift last: its headlights light the hall

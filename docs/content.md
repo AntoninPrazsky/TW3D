@@ -43,6 +43,17 @@ row along its axis in the order of the catalog (the next ones behind it). The me
 into the garage as the picture of 2016 did; the garage screen moves the camera to the car,
 and to the wheels of the axle being chosen.
 
+The main menu shows the 3D logo of the game (`Garage/logo.obj`) at the top of the screen,
+instead of the title in text: the lettering "TripleWheel3D" beside the emblem of three
+wheels, as the logo at the start has them, modelled in August 2015. `tools/garagegen/logo.py`
+builds it from `art/wings/Garage/logo.wings` (leaving out the plate it was rendered on): one
+unit high, its middle at the origin, the face of the lettering in the yellow of the titles
+of the menus with dark sides, the tyres dark and the rims silver. The garage draws it lit by
+its light, but placed against the frame rather than in the hall (where the main menu lays
+it out, so that it keeps its place whatever the camera and the shape of the window) and
+over everything else, swaying a little; it slides up out of the frame when another screen
+covers the main menu, as the titles of the other menus do.
+
 ## Scenery
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the

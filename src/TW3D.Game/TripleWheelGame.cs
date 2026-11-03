@@ -188,7 +188,8 @@ namespace TW3D
             }
 #endif
 
-            MainMenuScreen menu = new MainMenuScreen("Triple Wheel 3D");
+            background = new BackgroundScreen(settings);
+            MainMenuScreen menu = new MainMenuScreen(background);
             menu.AddItem("Play", OpenLevelSelect);
             menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings, background.Scene)));
             menu.AddItem("About", () => screens.Add(new AboutScreen()));
@@ -204,7 +205,6 @@ namespace TW3D
             menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false, editorLevels)));
 #endif
 
-            background = new BackgroundScreen(settings);
             screens.Add(background);
             screens.Add(menu);
 
