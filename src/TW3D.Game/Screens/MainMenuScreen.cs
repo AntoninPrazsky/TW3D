@@ -7,7 +7,7 @@ using TW3D.Input;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The main menu: the 3D logo of the game at the top (drawn in the garage behind the menus, see
+    /// The main menu: the 3D logo of the game in the top left corner (drawn in the garage behind the menus, see
     /// <see cref="GarageScene.Title"/>), two items in the middle of the left and right half, a row of items at the bottom
     /// and a place in the top right corner, level with the lettering of the logo (the level editor of a Debug build).
     /// Items and the logo are positioned relative to the screen edges and scaled with the user interface, so the layout
@@ -136,7 +136,7 @@ namespace TW3D.Screens
         }
 
         /// <summary>
-        /// Puts the logo in the garage at the top of the screen, in the middle, or as far up out of the frame as the menu
+        /// Puts the logo in the garage in the top left corner of the screen, or as far up out of the frame as the menu
         /// has gone; takes it away when the menu is not seen at all. Done whether the menu has the focus or not, so that
         /// the logo leaves with it when another screen covers it.
         /// </summary>
@@ -151,11 +151,12 @@ namespace TW3D.Screens
                 return;
             }
             float lineHeight = Manager.Fonts.Menu.MeasureString("M").Y * MenuItems.TextScale * Manager.UiScale;
-            float height = LogoSize(lineHeight).Y;
-            float top = Manager.SafeArea.Top;
+            Vector2 size = LogoSize(lineHeight);
+            Rectangle safe = Manager.SafeArea;
+            float top = safe.Top;
             //Fully gone it is just above the top of the screen
-            top -= SlideAmount * (top + height);
-            scene.Title = (new Vector2(Manager.Viewport.Width / 2f, top + height / 2f), height);
+            top -= SlideAmount * (top + size.Y);
+            scene.Title = (new Vector2(safe.Left + size.X / 2f, top + size.Y / 2f), size.Y);
         }
 
         public override void Draw(GameTime gameTime)

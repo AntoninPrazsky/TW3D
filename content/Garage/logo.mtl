@@ -1,10 +1,10 @@
 # Materials of logo; Pm and Pr: metal and roughness (tools/ContentPipeline)
 
 newmtl letters
-Kd 1.0000 0.8240 0.0000
+Kd 0.9500 0.9500 0.9500
 d 1.0000
 Ks 0.4000 0.4000 0.4000
-Ke 0.7500 0.6000 0.0000
+Ke 0.7500 0.7500 0.7500
 Ns 0.3000
 Pr 0.35
 illum 2

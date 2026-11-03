@@ -76,8 +76,10 @@ namespace TW3D.GameObjects
         //that the wheels of the emblem, nearer the camera than the middle of the logo, do not reach out of its place
         private const float LogoDepth = 0.417f;
         //It sways about its vertical and its horizontal axis this far (radians) at these unrelated rates (radians per
-        //second), so that it reads as an object in the room, never so far that it is hard to read
-        private const float LogoYaw = 0.09f, LogoPitch = 0.05f;
+        //second), so that it reads as an object in the room, never so far that it is hard to read; standing in the left
+        //corner, it is always turned a little towards the middle of the frame (its face to the right), as a sign faces
+        //the room rather than the wall beside it
+        private const float LogoYaw = 0.05f, LogoPitch = 0.04f, LogoTurn = 0.1f;
         private const float LogoYawRate = 0.37f, LogoPitchRate = 0.23f;
         //The floor under the car on the lift and the middles of its axles follow the car at this rate (1 / seconds):
         //other wheels (larger, or wider) raise the car on the lift and move the view of the wheels smoothly, not at once
@@ -192,7 +194,7 @@ namespace TW3D.GameObjects
             float x = (centre.X / viewport.Width * 2f - 1f) * LogoDistance / projection.M11;
             float y = (1f - centre.Y / viewport.Height * 2f) * LogoDistance / projection.M22;
             float size = height / viewport.Height * 2f * LogoDistance / projection.M22;
-            Matrix sway = Matrix.CreateRotationY(LogoYaw * MathF.Sin(time * LogoYawRate))
+            Matrix sway = Matrix.CreateRotationY(LogoTurn + LogoYaw * MathF.Sin(time * LogoYawRate))
                 * Matrix.CreateRotationX(LogoPitch * MathF.Sin(time * LogoPitchRate + 1f));
             return Matrix.CreateScale(size) * sway * Matrix.CreateTranslation(x, y, -LogoDistance - LogoDepth / 2f * size) * Matrix.Invert(view);
         }

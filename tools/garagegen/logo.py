@@ -2,7 +2,7 @@
 "TripleWheel3D" beside the emblem of three wheels, as the 2D logo of the start has them; the plate it was rendered on is
 left out) into content/Garage/logo.obj/.mtl: one unit high, the middle of its box at the origin, facing +z.
 
-The lettering has the yellow of the titles of the menus on its face and dark sides, as the text title it replaces had
+The lettering is white on its face, as the items of the menus are, with dark sides, as the text title it replaced had
 its black shadow; the wheels of the emblem have dark tyres and silver rims.
 
     python tools/garagegen/logo.py
@@ -29,7 +29,7 @@ def logo(face, mats):
 
 
 LOGO = Prop('logo', 'logo.wings', logo, lambda mats: {
-    'letters': Material((1.0, 0.824, 0.0), (0.4, 0.4, 0.4), ke=(0.75, 0.6, 0.0), pr=0.35),
+    'letters': Material((0.95, 0.95, 0.95), (0.4, 0.4, 0.4), ke=(0.75, 0.75, 0.75), pr=0.35),
     'letter_sides': Material((0.06, 0.06, 0.06), (0.5, 0.5, 0.5), pr=0.3),
     'rim': Material((0.85, 0.85, 0.85), (0.6, 0.6, 0.6), pm=1, pr=0.3),
     'tyre': Material((0.05, 0.05, 0.05), (0.1, 0.1, 0.1), pr=0.85)}, height=1.0, middle=True)
