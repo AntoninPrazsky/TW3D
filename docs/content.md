@@ -96,11 +96,26 @@ The content pipeline builds the images from PNG files:
   everything over the level while driving. The previews of 2016 were taken again in 2026,
   of the same places, when the sky changed.
 
-The fonts are still the precompiled `.xnb` files from XNA 4.0, without their sources in
-the repository (only the font descriptions `*.spritefont` are here), but for the font of
-the glyphs of keys and buttons on the tutorial cards: `Fonts/promptFont.spritefont`, from
-[PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open Font
-License 1.1), only the glyphs it lists.
+The content pipeline builds two fonts from TrueType files:
+
+- the font of the menus, the titles and the display of a run (`Fonts/menuFont.spritefont`):
+  **Triple Wheel Display** (`Fonts/TripleWheelDisplay.ttf`, SIL Open Font License 1.1, see
+  [its licence](../content/Fonts/TripleWheelDisplay-OFL.txt)), a version of
+  [Orbitron](https://github.com/theleagueof/orbitron), which the font of 2016 (a precompiled
+  `.xnb` of ASCII only, whose font is not known) was close to. `tools/fontgen/menufont.py`
+  (Python 3 with fontTools) makes it from `art/fonts/Orbitron[wght].ttf`: the ExtraBold
+  weight, the Czech capitals Orbitron lacks (Ě Č Ř Ů Ť Ď Ň, built from its own letters and
+  its caron and ring), and capitals only (a small letter shows its capital, as the font of
+  2016 did); the licence reserves the name Orbitron, so the modified font has another. The
+  script writes the `.spritefont` too: the size (a capital 38 pixels high, as before) and
+  every character the font has among ASCII, the Latin letters with accents, the dashes, the
+  quotes and the euro; a character it lacks (such as `^` or `©`) is drawn as `?`.
+- the glyphs of keys and buttons on the tutorial cards: `Fonts/promptFont.spritefont`, from
+  [PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open Font
+  License 1.1), only the glyphs it lists.
+
+The small fonts (`detailsFont`, `frameRateCounterFont`) are still precompiled `.xnb` files
+from XNA 4.0 (their descriptions `*.spritefont` name Arial and Courier New).
 
 ## Editing models
 

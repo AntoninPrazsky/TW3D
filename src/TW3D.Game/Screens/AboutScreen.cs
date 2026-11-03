@@ -74,7 +74,7 @@ namespace TW3D.Screens
             new Paragraph { Text = "Rotate and lock the axles of the car to get it through the track.", Scale = TextScale, Color = Color.White },
             new Paragraph { Text = "Created in 2016 for a bachelor's thesis, brought up to date in 2026.", Scale = SmallScale, Color = Color.LightGray, StartsGroup = true },
             new Paragraph { Text = "Made with MonoGame and Aether.Physics2D", Scale = SmallScale, Color = Color.LightGray },
-            new Paragraph { Text = "Copyright (c) 2014-2026 Antonin Prazsky, MIT License", Scale = SmallScale, Color = Color.LightGray },
+            new Paragraph { Text = "Copyright (c) 2014–2026 Antonín Pražský, MIT License", Scale = SmallScale, Color = Color.LightGray },
             new Paragraph { Text = "Source code on GitHub", Scale = SmallScale, Color = Color.LightGray, StartsGroup = true },
             new Paragraph { Text = RepositoryUrl.Substring("https://".Length), Scale = LinkScale, Color = Color.White, IsLink = true }
         };

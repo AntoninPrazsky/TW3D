@@ -43,12 +43,15 @@ The on-screen controls, a gamepad and touch work too.
 ## License
 
 [MIT](LICENSE), © 2014–2026 Antonín Pražský: the code, the game content
-(`content/`, except PromptFont below) and the documentation.
+(`content/`, except the fonts below) and the documentation.
 
 The physics engine **Aether.Physics2D** is used as a NuGet package and is licensed
 under the Microsoft Public License (Ms-PL). It is based on Farseer Physics
 (© Ian Qvist) and Box2D (© Erin Catto).
 
+The font of the menus is **Triple Wheel Display**, a modified version of **Orbitron**
+(© The Orbitron Project Authors), licensed under the
+[SIL Open Font License 1.1](content/Fonts/TripleWheelDisplay-OFL.txt).
 The glyphs of keys and buttons come from **PromptFont** (© Yukari Hafner), licensed
 under the [SIL Open Font License 1.1](content/Fonts/PromptFont-OFL.txt). The level editor
 is drawn by **Dear ImGui** through the [ImGui.NET](https://github.com/ImGuiNET/ImGui.NET)

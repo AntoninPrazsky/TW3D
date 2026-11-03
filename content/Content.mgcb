@@ -21,9 +21,11 @@
 /build:Effects/Scene.fx
 /build:Effects/Occlusion.fx
 
-# The glyphs of the keys and buttons on the tutorial cards, from PromptFont.ttf
+# The fonts: the menus and the display of a run, from TripleWheelDisplay.ttf (tools/fontgen), and the glyphs
+# of the keys and buttons on the tutorial cards, from PromptFont.ttf
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
+/build:Fonts/menuFont.spritefont
 /build:Fonts/promptFont.spritefont
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter

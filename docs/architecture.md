@@ -17,6 +17,7 @@ physics bodies.
 | `art/wings/` | The original Wings 3D files of the models (2014–2015), see its [README](../art/wings/README.md) |
 | `tools/levelgen/` | Level generator: levels written as Node.js scripts |
 | `tools/garagegen/` | Builds the 3D garage behind the menus and the 3D logo of the main menu (`content/Garage/`) and the scenery (`content/Scenery/`) from their Wings 3D files (Python; `wings.py` reads the files) |
+| `tools/fontgen/` | Builds the font of the menus (`content/Fonts/TripleWheelDisplay.ttf` and its `menuFont.spritefont`) from Orbitron (Python with fontTools) |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](../tools/CollisionGen/README.md) |
 | `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars (built and loaded by the content build) |
