@@ -353,7 +353,7 @@ namespace TW3D.Editor
                     placeTool.ToggleRoad();
                 if (input.KeyPressed(Keys.Home))
                     FrameLevel();
-                //The layer being edited: Tab cycles, Right Shift and Right Ctrl toggle as in the old editor
+                //The layer being edited: Tab cycles, Right Shift and Right Ctrl toggle as in the editor of 2016
                 if (input.KeyPressed(Keys.Tab))
                     layer = (Layer)(((int)layer + 1) % 3);
                 if (input.KeyPressed(Keys.RightShift))

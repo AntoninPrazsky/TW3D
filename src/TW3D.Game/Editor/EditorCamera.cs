@@ -11,7 +11,7 @@ namespace TW3D.Editor
     /// turned around it (the yaw around the vertical axis, the pitch up and down). A yaw of 0 looks along +z as the
     /// camera of the game does, so the track runs from left to right on the screen. The mouse pans it (the middle
     /// button: the point of the plane under the cursor stays under it), orbits it (Alt + the left button, around the
-    /// point under the cursor) and zooms it (the wheel, towards the cursor); the keys of the old editor fly it: W/S/A/D
+    /// point under the cursor) and zooms it (the wheel, towards the cursor); the keys of the editor of 2016 fly it: W/S/A/D
     /// along the plane, Q/E up and down, and the numeric keypad turns it.
     /// </summary>
     sealed class EditorCamera
@@ -24,7 +24,7 @@ namespace TW3D.Editor
         private const float MaxPitch = MathHelper.PiOver2 - 0.05f;
         private const float MinDistance = 1f;
         private const float MaxDistance = 500f;
-        //The view of the old editor: a little from above
+        //The view of the editor of 2016: a little from above
         private const float DefaultPitch = -MathHelper.Pi / 10f;
         private const float DefaultDistance = 22f;
         //Radians of turning per pixel of an orbiting drag and per second of a key held
@@ -123,7 +123,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The keys of the old editor: W/S/A/D and Q/E fly the camera, the numeric keypad turns it. With Ctrl held the
+        /// The keys of the editor of 2016: W/S/A/D and Q/E fly the camera, the numeric keypad turns it. With Ctrl held the
         /// letters are shortcuts (Ctrl+S saves), not flying.
         /// </summary>
         /// <param name="elapsed">Elapsed seconds.</param>

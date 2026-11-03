@@ -45,7 +45,7 @@
   <!--
     The collision shapes of the models (content/collision.json) are generated from the models by tools/CollisionGen
     whenever a model, the catalog or the generator changes. The file is in the repository with the models,
-    the other projects (Android, the editor) take it as it is.
+    the other project (Android) takes it as it is.
   -->
   <Target Name="GenerateCollisionShapes" AfterTargets="ResolveProjectReferences" DependsOnTargets="FindCollisionShapeSources"
           Inputs="@(CollisionShapeSource);@(CollisionGenAssembly)" Outputs="$(GameContentDir)collision.json">

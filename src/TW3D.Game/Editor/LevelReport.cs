@@ -111,6 +111,28 @@ namespace TW3D.Editor
             CellsText = HasCells ? $"Cells: {Min} to {Max}" : "Cells: none";
         }
 
+        /// <summary>
+        /// What the status bar says after "Opened x.json" or "Saved x.json" about the problems found and the gaps of the road,
+        /// counted apart: "1 problem: the first one's text; 3 road gaps", "12 road gaps"; null when there are none.
+        /// </summary>
+        /// <param name="found">What <see cref="EditedLevel.Problems"/> gives, the problems first and the gaps of the road after them.</param>
+        public static string Summary(List<LevelProblem> found)
+        {
+            LevelProblem first = null;
+            int problems = 0, gaps = 0;
+            foreach (LevelProblem problem in found)
+            {
+                if (problem.IsRoadGap)
+                    gaps++;
+                else if (problems++ == 0)
+                    first = problem;
+            }
+            string text = problems > 0 ? Count(problems, "problem") + ": " + first : null;
+            if (gaps > 0)
+                text = (text != null ? text + "; " : "") + Count(gaps, "road gap");
+            return text;
+        }
+
         /// <summary>"3 problems", "1 problem"; null for none.</summary>
         private static string Count(int count, string noun)
         {

@@ -4,7 +4,7 @@
 
 The 3D models are in `content/` as `.obj` + `.mtl` files (Wavefront OBJ, a text
 format that Blender and most 3D programs open and save). The MonoGame Content
-Pipeline builds them into `.xnb` files whenever the game, the editor or
+Pipeline builds them into `.xnb` files whenever the game or
 CatalogRender is built: `content/Content.mgcb` lists them, and the projects run it
 through the `MonoGame.Content.Builder.Task` package. The models have no textures,
 they are made of coloured polygons only (the colour is the diffuse colour `Kd` of

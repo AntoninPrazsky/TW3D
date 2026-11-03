@@ -1,8 +1,9 @@
 # Catalog images
 
 Renders images of track blocks for the block catalog (`docs/catalog/bl`) the way the
-2016 images look: the block with the selector of the level editor, in the editor's
-lighting, on a gray background, 481 × 477 pixels.
+2016 images look: the block with the selector of the level editor (`Levels/selector`,
+which the editor of the game draws at its cursor), in the lighting of 2016, on a gray
+background, 481 × 477 pixels.
 
 ```sh
 # writes docs/catalog/bl/<block>.png
@@ -17,7 +18,7 @@ A new block also needs a row in `docs/catalog/catalog.html`.
 
 ## The camera
 
-The 2016 images were taken in the level editor with a camera moved by hand, and its
+The 2016 images were taken in the level editor of 2016 with a camera moved by hand, and its
 position was not saved. It was found again by fitting renders of the selector (the green
 corners) to the catalog images: the edges of the selector are 0.14 px apart on average.
 Renders of the blocks then differ from their 2016 images by about 8–16 (RMS of the colour

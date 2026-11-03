@@ -18,7 +18,7 @@ With the [.NET SDK 10](https://dotnet.microsoft.com/download) or newer:
 
 ```sh
 dotnet run --project src/TW3D.Game                # the game
-dotnet run --project src/TW3D.Game -- --editor    # the level editor (being built, see docs/levels.md)
+dotnet run --project src/TW3D.Game -- --editor    # the level editor (see docs/levels.md)
 ```
 
 | Key | Action |

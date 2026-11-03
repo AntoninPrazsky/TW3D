@@ -281,7 +281,7 @@ namespace TW3D.Editor
                 report("The catalog has no dynamic objects.");
                 return;
             }
-            //Two objects in one place look as one and fly apart in the physics, as the old editor knew
+            //Two objects in one place look as one and fly apart in the physics, as the editor of 2016 knew
             foreach (PlacedObject other in level.Objects)
             {
                 if (MathF.Abs(other.X - position.X) < SamePlace && MathF.Abs(other.Y - position.Y) < SamePlace)

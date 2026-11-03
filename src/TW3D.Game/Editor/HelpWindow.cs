@@ -3,27 +3,83 @@ using ImGuiNET;
 
 namespace TW3D.Editor
 {
-    /// <summary>The Controls window of the editor (F1): what the mouse and the keys do, in tables by the tool and for all of them.</summary>
+    /// <summary>
+    /// The help window of the editor (F1, Help > Controls): a tab with the controls, in tables of rows grown from what the
+    /// tools and the screen do (the mouse by the tool, the keys by what they work on, the windows), and a tab with a short
+    /// guide to building a level. It keeps nothing but the text; the screen only says whether it is shown.
+    /// </summary>
     static class HelpWindow
     {
-        private static readonly (string Keys, string Action)[] PlaceRows =
+        //The width of the column of the keys, in heights of the font: the longest of them fits, and the tables line up
+        private const float KeysColumnWidth = 15.5f;
+        //The colour of the small headings inside a section
+        private static readonly Vector4 TopicColor = new Vector4(0.55f, 0.8f, 1f, 1f);
+
+        private static readonly (string Keys, string Action)[] CameraRows =
         {
-            ("Left button", "Place the chosen block in the cell under the cursor; dragging paints"),
+            ("Middle button drag", "Pan along the track: the point under the cursor stays under it"),
+            ("Wheel", "Zoom towards the cursor"),
+            ("Alt + left drag", "Orbit around the point under the cursor")
+        };
+
+        private static readonly (string Keys, string Action)[] PlaceMouseRows =
+        {
+            ("Left button", "Place the chosen block in the cell under the cursor, in the active layer; dragging paints (a drag is one step of undo)"),
             ("Left Shift + left button", "Erase the block under the cursor; dragging erases"),
             ("Right button", "Pick: the block under the cursor becomes the chosen block, with its shift"),
-            ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)"),
+            ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)")
+        };
+
+        private static readonly (string Keys, string Action)[] ObjectMouseRows =
+        {
+            ("Left button", "Add the chosen object at the point under the cursor, or select the object there; dragging moves it"),
+            ("Left Shift + left button", "Remove the object under the cursor"),
+            ("Right button", "Pick: the object under the cursor becomes the chosen object")
+        };
+
+        private static readonly (string Keys, string Action)[] SelectMouseRows =
+        {
+            ("Left button", "Select the block under the cursor alone; Ctrl adds it to the selection or takes it out"),
+            ("Left drag", "From a block (selecting it alone if it was not selected): moves the selection by whole cells, as one step of undo. From an empty cell, or with Ctrl: a rectangle selects the blocks of the active layer in it (Ctrl adds them)")
+        };
+
+        private static readonly (string Keys, string Action)[] EverywhereRows =
+        {
+            ("Right button", "Picks in the Place and Object tools; the Select tool does not use it"),
+            ("Left Shift", "With the left button erases (Place tool) or removes (Object tool); Right Shift only toggles the back layer"),
+            ("Ctrl", "With the left button adds to the selection or takes out of it (Select tool); with the wheel shifts a block (Place tool, so it does not zoom)"),
+            ("Alt", "With the left button orbits the camera instead of using the tool")
+        };
+
+        private static readonly (string Keys, string Action)[] ToolKeyRows =
+        {
+            ("B / O / V", "The Place tool (blocks) / the Object tool (dynamic objects) / the Select tool (many blocks); View > Tool lists them and the status bar names the active one"),
+            ("Tab", "The next layer: back, middle, front"),
+            ("Right Shift", "Toggles the back layer as soon as it is pressed"),
+            ("Right Ctrl", "Toggles the front layer when it is tapped alone (let go with nothing else done while it was held)"),
+            ("R", "Road mode on / off, in any tool: road blocks join the road next to them; red bars mark gaps"),
+            ("M", "The mood of the level, in any tool: day, sunset, night")
+        };
+
+        private static readonly (string Keys, string Action)[] PlaceKeyRows =
+        {
             ("Arrows", "Move the cursor cell (the camera follows)"),
             ("Space / Delete", "Place the chosen block / erase the block at the cursor cell"),
             ("PageUp / PageDown", "Shift the block at the cursor cell up / down (the chosen shift follows)"),
-            ("F", "The block at the cursor cell is the finish of the level, or stops being it"),
-            ("R", "Road mode on / off: road blocks join the road next to them; red bars mark gaps"),
+            ("F", "The block at the cursor cell is the finish of the level, or stops being it (middle layer only)"),
             (", / .", "The previous / next block of the catalog becomes the chosen block (and Place the active tool)")
         };
 
-        private static readonly (string Keys, string Action)[] SelectRows =
+        private static readonly (string Keys, string Action)[] ObjectKeyRows =
         {
-            ("Left button", "Select the block under the cursor alone; Ctrl adds it to the selection or takes it out"),
-            ("Left drag", "From an empty cell: a rectangle selects the blocks of the active layer in it (Ctrl adds them). From a selected block: moves the selection by whole cells, as one step"),
+            ("Space", "Add the chosen object at the top of the cursor cell (it follows the mouse): it drops onto the block there"),
+            ("Delete", "Remove the selected object"),
+            ("Arrows / Ctrl + arrows", "Move the selected object by 1 / 0.1 physics unit; without a selection the arrows (not Ctrl) move the cursor cell"),
+            ("Esc", "Clear the selection (a second Esc leaves the editor)")
+        };
+
+        private static readonly (string Keys, string Action)[] SelectKeyRows =
+        {
             ("Ctrl+A / Esc", "Select the whole active layer / clear the selection (a second Esc leaves the editor)"),
             ("Space", "Add the block at the cursor cell to the selection, or take it out"),
             ("Arrows / Ctrl + arrows", "Move the selection (and the cursor) by a cell; without a selection, or with Ctrl, only the cursor cell"),
@@ -33,74 +89,140 @@ namespace TW3D.Editor
             ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) block at the cursor cell (the pasted blocks are selected; decorations are skipped in the middle layer)")
         };
 
-        private static readonly (string Keys, string Action)[] ObjectRows =
+        private static readonly (string Keys, string Action)[] FileKeyRows =
         {
-            ("Left button", "Add the chosen object at the point under the cursor, or select the object there; dragging moves it"),
-            ("Left Shift + left button", "Remove the object under the cursor"),
-            ("Right button", "Pick: the object under the cursor becomes the chosen object"),
-            ("Space", "Add the chosen object at the top of the cursor cell (it follows the mouse): it drops onto the block there"),
-            ("Delete", "Remove the selected object"),
-            ("Arrows / Ctrl + arrows", "Move the selected object by 1 / 0.1 physics unit; without a selection the cursor cell"),
-            ("Esc", "Clear the selection (a second Esc leaves the editor)")
-        };
-
-        private static readonly (string Keys, string Action)[] WindowRows =
-        {
-            ("Palette", "Click a block to choose it (Place), an object of the Objects tab to choose it (Object)"),
-            ("Inspector", "The block at the cursor cell, the selected blocks, or the selected object with its position to type"),
-            ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there"),
-            ("Controls", "This window (F1)"),
-            ("View menu", "Shows or hides each window, the back and front layers (which cannot be edited while hidden), the objects, the grid and the gap markers")
-        };
-
-        private static readonly (string Keys, string Action)[] CommonRows =
-        {
-            ("B / V / O", "The Place tool (blocks) / the Select tool (many blocks) / the Object tool (dynamic objects); View > Tool lists them"),
-            ("Middle button drag", "Pan along the track"),
-            ("Wheel", "Zoom towards the cursor"),
-            ("Alt + left drag", "Orbit around the point under the cursor"),
-            ("Ctrl+Z / Ctrl+Y", "Undo / redo"),
             ("Ctrl+N", "A new level (asks to save unsaved changes)"),
             ("Ctrl+O", "Open a level of the levels folder or any level file"),
             ("Ctrl+S", "Save the level (a new level asks for a name)"),
             ("Ctrl+Shift+S", "Save the level under a new name in the levels folder"),
+            ("Ctrl+Z / Ctrl+Y", "Undo / redo (Ctrl+Shift+Z redoes too)"),
+            ("Esc", "Leave the editor (asks to save unsaved changes)")
+        };
+
+        private static readonly (string Keys, string Action)[] DriveKeyRows =
+        {
             ("F5", "Test drive: the level in the game from the start, with the car of the garage; Esc comes back"),
-            ("Shift+F5", "Test drive from the cursor cell"),
-            ("Tab", "The next layer; Right Shift / Right Ctrl (pressed alone) toggle the back / front layer"),
-            ("M", "The mood of the level: day, sunset, night"),
-            ("W / S / A / D, Q / E", "Fly the camera along the track, up and down"),
+            ("Shift+F5", "Test drive from the cursor cell")
+        };
+
+        private static readonly (string Keys, string Action)[] ViewKeyRows =
+        {
+            ("W / S", "Fly the camera forward / back into the scene, towards or away from the layers"),
+            ("A / D", "Fly the camera left / right along the track"),
+            ("Q / E", "Fly the camera up / down"),
             ("Numeric keypad 4 / 6, 8 / 2", "Turn the camera"),
             ("Home", "Frame the whole level"),
             ("F9 / F10 / F11", "Lighting of 2016 / shadows / ambient occlusion"),
-            ("F1", "This window"),
-            ("Esc", "Leave the editor (asks to save unsaved changes)")
+            ("F1", "This window")
+        };
+
+        private static readonly (string Keys, string Action)[] WindowRows =
+        {
+            ("Palette", "Every block of the catalog as a turning 3D preview, in groups, with a search box: click a block to choose it (Place tool). The Objects tab does the same for the dynamic objects (Object tool). View > Palette"),
+            ("Inspector", "What the active tool works on: the block at the cursor cell, the selected blocks, or the selected object with its position to type. View > Inspector"),
+            ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there. View > Level"),
+            ("Controls", "This window: Help > Controls or F1"),
+            ("View menu", "Also hides the back and front layers (which cannot be edited while hidden), the objects, the grid and the gap markers")
+        };
+
+        private static readonly (string Heading, string Text)[] Guide =
+        {
+            ("Start", "The car starts at the cell [0, 0], and a new level has its start block there. Build the track to the right of it. The status bar shows the cell under the cursor, the active layer and tool and the chosen block."),
+            ("Choose blocks", "Choose a block in the Palette. The middle layer is the road the car drives on and the blocks that collide; decorations go to the back layer (behind the road) and to the front layer (in front of it): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active."),
+            ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
+            ("Put the finish", "Put the cursor on a block of the middle layer and press F: that block is the finish, where the run ends. A level without a finish has no end, and the Level window says so."),
+            ("Add objects", "Boxes, bars, ramps and the other dynamic objects are added with the Object tool (O): choose one in the Objects tab of the Palette and click where it is to be, or press Space to drop it onto the block at the cursor cell. Drag an object to move it."),
+            ("Test drive", "Press F5 to drive the level at once, from the start (Shift+F5 from the cursor cell). Nothing is saved and no record is kept. Esc brings the editor back as it was, so test often."),
+            ("Save", "Press Ctrl+S. A new level asks for a name; the file goes into the levels folder (content/Levels of the repository), where the game finds it: the level select shows it at once. The status bar counts the problems and the road gaps of the level when it is saved."),
+            ("Set the level", "In the Level window set the mood (day, sunset or night), the position in the level select (the order) and the par time, the time a good run takes. A level without an order comes after the others in the level select, and the game estimates a par time when the level has none."),
+            ("The thesis of 2016", "The Czech thesis of 2016 (docs/bachelor-thesis in the repository) describes the old editor, not this one: the controls of this editor are in the Controls tab.")
         };
 
         /// <param name="open">The window is shown; its close button clears it.</param>
         /// <param name="scale">The scale of the interface (the font size against the size it was designed for).</param>
         public static void Draw(ref bool open, float scale)
         {
-            ImGui.SetNextWindowSize(new Vector2(560f, 620f) * scale, ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize(new Vector2(760f, 780f) * scale, ImGuiCond.FirstUseEver);
             if (ImGui.Begin("Controls", ref open))
             {
-                ImGui.SeparatorText("Place tool (B): blocks");
-                Rows(PlaceRows);
-                ImGui.SeparatorText("Select tool (V): many blocks of the layer");
-                Rows(SelectRows);
-                ImGui.SeparatorText("Object tool (O): dynamic objects");
-                Rows(ObjectRows);
-                ImGui.SeparatorText("Windows");
-                Rows(WindowRows);
-                ImGui.SeparatorText("All tools");
-                Rows(CommonRows);
+                //Opened by F1 over the other windows, not behind one that was shown later
+                if (ImGui.IsWindowAppearing())
+                    ImGui.SetWindowFocus();
+                if (ImGui.BeginTabBar("help tabs"))
+                {
+                    if (ImGui.BeginTabItem("Controls"))
+                    {
+                        DrawControls();
+                        ImGui.EndTabItem();
+                    }
+                    if (ImGui.BeginTabItem("How to build a level"))
+                    {
+                        DrawGuide();
+                        ImGui.EndTabItem();
+                    }
+                    ImGui.EndTabBar();
+                }
             }
             ImGui.End();
         }
 
-        private static void Rows((string Keys, string Action)[] rows)
+        /// <summary>The Controls tab: the mouse, the keys and the windows.</summary>
+        private static void DrawControls()
         {
-            if (!ImGui.BeginTable("help", 2, ImGuiTableFlags.SizingStretchProp))
+            ImGui.SeparatorText("Mouse");
+            Topic("Camera");
+            Rows("camera", CameraRows);
+            Topic("Place tool (B): blocks");
+            Rows("place mouse", PlaceMouseRows);
+            Topic("Object tool (O): dynamic objects");
+            Rows("object mouse", ObjectMouseRows);
+            Topic("Select tool (V): many blocks of the layer");
+            Rows("select mouse", SelectMouseRows);
+            Topic("Everywhere");
+            Rows("everywhere", EverywhereRows);
+
+            ImGui.SeparatorText("Keys");
+            Topic("Tools and layers");
+            Rows("tool keys", ToolKeyRows);
+            Topic("Place tool");
+            Rows("place keys", PlaceKeyRows);
+            Topic("Object tool");
+            Rows("object keys", ObjectKeyRows);
+            Topic("Select tool");
+            Rows("select keys", SelectKeyRows);
+            Topic("Files and undo");
+            Rows("file keys", FileKeyRows);
+            Topic("Test drive");
+            Rows("drive keys", DriveKeyRows);
+            Topic("View");
+            Rows("view keys", ViewKeyRows);
+
+            ImGui.SeparatorText("Windows");
+            Rows("windows", WindowRows);
+        }
+
+        /// <summary>The How to build a level tab: a short guide in paragraphs.</summary>
+        private static void DrawGuide()
+        {
+            foreach ((string heading, string text) in Guide)
+            {
+                ImGui.SeparatorText(heading);
+                ImGui.TextWrapped(text);
+            }
+        }
+
+        /// <summary>A small heading inside a section.</summary>
+        private static void Topic(string text)
+        {
+            ImGui.TextColored(TopicColor, text);
+        }
+
+        private static void Rows(string id, (string Keys, string Action)[] rows)
+        {
+            if (!ImGui.BeginTable(id, 2, ImGuiTableFlags.SizingStretchProp))
                 return;
+            ImGui.TableSetupColumn("Keys", ImGuiTableColumnFlags.WidthFixed, ImGui.GetFontSize() * KeysColumnWidth);
+            ImGui.TableSetupColumn("Action", ImGuiTableColumnFlags.WidthStretch);
             foreach ((string keys, string action) in rows)
             {
                 ImGui.TableNextRow();

@@ -64,8 +64,8 @@ namespace TW3D.Editor
                 || input.Mouse.RightButton == ButtonState.Pressed && input.PreviousMouse.RightButton == ButtonState.Released;
             //The Object tool's cursor cell is on the middle plane
             placeTool.FollowMouse(input, viewport, tool == EditorTool.Object ? Layer.Middle : layer, overScene, pressed);
-            //Ctrl + the wheel shifts the block under the cursor, which the Place and Select tools would do
-            bool shifting = tool != EditorTool.Object && input.WheelDelta != 0
+            //Ctrl + the wheel shifts the block under the cursor, which the Place tool would do
+            bool shifting = tool == EditorTool.Place && input.WheelDelta != 0
                 && (input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl));
             if (overScene && (pressed || shifting))
                 report(hidden);

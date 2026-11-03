@@ -134,9 +134,8 @@ namespace TW3D.Editor
             editorSettings.Save(EditorSettings.DefaultPath);
 
             Show(opened, saved);
-            List<LevelProblem> problems = level.Problems();
-            report(problems.Count == 0 ? "Opened " + Path.GetFileName(fullPath) + "."
-                : Count(problems.Count, "problem") + " in the level: " + problems[0]);
+            string found = LevelReport.Summary(level.Problems());
+            report("Opened " + Path.GetFileName(fullPath) + (found != null ? "; " + found : "") + ".");
         }
 
         /// <summary>A new level with the start block only, asking "Save changes?" first when there are unsaved changes.</summary>
@@ -234,9 +233,8 @@ namespace TW3D.Editor
                 level.SavedAs(file);
             else
                 level.MarkSaved();
-            List<LevelProblem> problems = level.Problems();
-            string note = problems.Count == 0 ? "Saved " + fileName + "."
-                : "Saved " + fileName + "; " + Count(problems.Count, "problem") + ": " + problems[0];
+            string found = LevelReport.Summary(level.Problems());
+            string note = "Saved " + fileName + (found != null ? "; " + found : "") + ".";
             try
             {
                 folder.CopyToBuild(file);
@@ -258,8 +256,6 @@ namespace TW3D.Editor
             UpdateWarning();
             return true;
         }
-
-        private static string Count(int count, string noun) => count + " " + noun + (count == 1 ? "" : "s");
 
         /// <summary>Shows the Open dialog, the level being edited selected.</summary>
         public void ShowOpen()

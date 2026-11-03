@@ -17,7 +17,7 @@ namespace TW3D.Editor
     /// object (while the Object tool is active), and tinted selectors at the selected blocks, the cells a drag would
     /// move them to and the rectangle being dragged (while the Select tool is active), and red bars at the gaps of the
     /// road (the edges where the surfaces of two road blocks differ in height). The selector is drawn with
-    /// BasicEffect and the lighting of 2016, as the old editor drew it.
+    /// BasicEffect and the lighting of 2016, as the editor of 2016 drew it.
     /// </summary>
     sealed class EditorMarkers
     {

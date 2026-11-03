@@ -19,9 +19,8 @@ dotnet build TW3D.slnx
 dotnet run --project src/TW3D.Game
 dotnet run --project src/TW3D.Game -- --windowed --level lock
 
-# level editor
-dotnet run --project src/TW3D.LevelEditor
-dotnet run --project src/TW3D.LevelEditor -- --level content/Levels/lock.json
+# level editor (the game with the editor screen)
+dotnet run --project src/TW3D.Game -- --editor lock
 ```
 
 Game arguments for development:
@@ -34,12 +33,12 @@ Game arguments for development:
 | `--tutorial` | Shows the tutorial's lessons of each level again, learnt or not, saving nothing |
 | `--tutorial demo` | Shows every lesson of the tutorial in turn on any level, each done by itself after two seconds (for screenshots), saving nothing |
 | `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them |
-| `--editor [<level>]` | Opens the new level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
+| `--editor [<level>]` | Opens the level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
 | `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
 
 The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
-the game has not been tested there yet. The old level editor runs on Windows only;
-the new one is a part of the game.
+the game has not been tested there yet. The level editor is a part of the game and runs
+wherever the game runs; the Android build leaves it out.
 
 ## Tests and CI
 

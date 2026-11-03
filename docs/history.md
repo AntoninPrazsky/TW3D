@@ -24,6 +24,11 @@
 - The collision shapes are generated from the models while building instead of
   being traced from the collision bitmaps at runtime (see
   [Collision shapes](content.md#collision-shapes)).
+- The level editor of 2016 (a Windows program with the keyboard as its only control)
+  was replaced by an editor inside the game, driven by the mouse, with a palette of the
+  blocks, a test drive and help in English (see [Levels](levels.md#level-editor)). It
+  runs wherever the game runs; the Czech documentation of the old one stays in
+  [`bachelor-thesis/`](bachelor-thesis/).
 
 ## Roadmap
 

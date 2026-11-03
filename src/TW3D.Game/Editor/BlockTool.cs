@@ -10,7 +10,7 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// The Place tool of the editor: the cursor cell of the active layer and the editing of blocks there, with the mouse
-    /// and with the keys of the old editor. The mouse sets the cursor to the cell under it; the left button paints the
+    /// and with the keys of the editor of 2016. The mouse sets the cursor to the cell under it; the left button paints the
     /// chosen block (with the chosen shift) into every cell the cursor passes while it is held, Left Shift + the left
     /// button erases the same way (a stroke is one step of undo, and it goes on wherever the cursor gets to), the right
     /// button picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it. The arrows move the cursor (the
@@ -82,7 +82,7 @@ namespace TW3D.Editor
         public bool InStroke => stroke != Stroke.None;
 
         /// <summary>
-        /// The keys of the old editor; called when the interface does not want the keyboard. With Ctrl held the keys are
+        /// The keys of the editor of 2016; called when the interface does not want the keyboard. With Ctrl held the keys are
         /// shortcuts of the screen's menus (Ctrl+Z, Ctrl+S...), which the screen handles even while a text field has the
         /// keyboard, so they are left alone here.
         /// </summary>

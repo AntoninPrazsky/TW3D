@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using TW3D.Editor;
 using TW3D.GamePlay;
 using TW3D.Shared;
@@ -126,6 +128,23 @@ namespace TW3D.Tests
             report.Update(other);
             Assert.Same(other, report.Level);
             Assert.NotSame(before, report.Problems[0]);
+        }
+
+        [Fact]
+        public void SummarisesTheProblemsAndTheGapsApartForTheStatusBar()
+        {
+            //Both of the kinds a level can have: the first problem's text is kept, the gaps are counted after it
+            List<LevelProblem> found = Load("lock").Problems();
+            int gaps = found.Count(problem => problem.IsRoadGap);
+            Assert.True(gaps > 1);
+            Assert.Equal(gaps + " road gaps", LevelReport.Summary(found));
+
+            LevelProblem problem = new LevelProblem("The level has no finish.");
+            LevelProblem gap = new LevelProblem("Gap.") { IsRoadGap = true };
+            Assert.Equal("1 problem: The level has no finish.", LevelReport.Summary(new List<LevelProblem> { problem }));
+            Assert.Equal("2 problems: The level has no finish.; 1 road gap",
+                LevelReport.Summary(new List<LevelProblem> { problem, new LevelProblem("Another."), gap }));
+            Assert.Null(LevelReport.Summary(new List<LevelProblem>()));
         }
 
         [Fact]
