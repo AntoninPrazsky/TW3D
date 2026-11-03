@@ -460,7 +460,7 @@ namespace TW3D.GamePlay
                 controls.Draw(batch, 1f);
                 //The time gives way to the title of the results, which show it too
                 float hudBottom = RaceHud.Draw(Manager, race, results != null ? 1f - results.Visibility : 1f);
-                speedometer.Draw(Manager, results != null ? 1f - results.Visibility : 1f);
+                speedometer.Draw(Manager, results != null ? 1f - results.Visibility : 1f, controls.JoystickTop);
                 if (tutorial != null)
                     TutorialCard.Draw(Manager, tutorial, controls, hudBottom);
             }

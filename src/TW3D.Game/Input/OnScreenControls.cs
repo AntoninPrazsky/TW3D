@@ -116,6 +116,9 @@ namespace TW3D.Input
 
         private float JoystickRadius => socketTexture.Width / 2f * scale;
 
+        /// <summary>The top of the joystick (screen y) as last laid out, shown or not: the speedometer stays above it.</summary>
+        public float JoystickTop => joystickCenter.Y - JoystickRadius;
+
         /// <summary>Places the controls on the screen; called by Update, or before drawing when there was no input.</summary>
         public void Layout(Viewport viewport, float controlsScale)
         {

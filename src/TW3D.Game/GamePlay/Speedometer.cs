@@ -6,8 +6,10 @@ using TW3D.Screens;
 namespace TW3D.GamePlay
 {
     /// <summary>
-    /// The speed of the car in km/h on a round dial with a needle, as the cars of the past had them, at the bottom of the
-    /// screen in the middle (between the on-screen controls in the corners). Nothing of it is a picture: the dial (a
+    /// The speed of the car in km/h on a round dial with a needle, as the cars of the past had them, at the left edge of
+    /// the screen in the middle of its height: behind the car, which drives to the right (the screen ahead of it stays
+    /// clear) and is in the middle, above the joystick of the on-screen controls in the bottom left corner, never low
+    /// enough to touch it. Nothing of it is a picture: the dial (a
     /// chrome bezel, a dark face, the ticks, a red zone), the needle and its cap are drawn by the code into textures as
     /// large as they are on the screen, smoothed at their edges, made again when the size changes; the numbers and
     /// "km/h" are written by the font of the menus. The needle follows the speed with a little lag, as a real one does.
@@ -22,10 +24,11 @@ namespace TW3D.GamePlay
         private const float RedFrom = 130f;
         //The scale spans this angle (radians), symmetric about the top of the dial
         private static readonly float Sweep = MathHelper.ToRadians(240f);
-        //The size of the dial at the reference resolution (pixels, scaled as the on-screen controls are) and how far it
-        //stands from the bottom of the screen
+        //The size of the dial at the reference resolution (pixels, scaled as the on-screen controls are), how far it
+        //stands from the left edge of the screen (as far as the joystick under it) and at least how far above the joystick
         private const float ReferenceSize = 215f;
-        private const float BottomMargin = 18f;
+        private const float EdgeMargin = 48f;
+        private const float JoystickGap = 24f;
         //How fast the needle follows the speed (1 / seconds)
         private const float NeedleRate = 8f;
 
@@ -74,7 +77,8 @@ namespace TW3D.GamePlay
 
         /// <summary>Draws the speedometer; called between SpriteBatch.Begin and End.</summary>
         /// <param name="alpha">How visible it is (it fades out as the results come).</param>
-        public void Draw(ScreenManager manager, float alpha)
+        /// <param name="joystickTop">The top of the joystick of the on-screen controls (screen y): the dial stays above it.</param>
+        public void Draw(ScreenManager manager, float alpha, float joystickTop)
         {
             if (alpha <= 0f)
                 return;
@@ -84,7 +88,9 @@ namespace TW3D.GamePlay
 
             Viewport viewport = manager.Viewport;
             float radius = size / 2f;
-            Vector2 centre = new Vector2(viewport.Width / 2f, viewport.Height - BottomMargin * manager.ControlsScale - radius);
+            float x = EdgeMargin * manager.ControlsScale + radius;
+            float y = Math.Min(viewport.Height / 2f, joystickTop - JoystickGap * manager.ControlsScale - radius);
+            Vector2 centre = new Vector2(x, Math.Max(radius, y));
             SpriteBatch batch = manager.SpriteBatch;
             batch.Draw(dial, centre - new Vector2(radius), Color.White * alpha);
 
