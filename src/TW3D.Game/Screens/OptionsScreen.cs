@@ -22,7 +22,8 @@ namespace TW3D.Screens
         private int heightsWidth, heightsHeight;
 
         /// <param name="displayChanged">Applies a switch between full screen and a window; null = no such option (phones).</param>
-        public OptionsScreen(GameSettings settings, Action displayChanged)
+        /// <param name="antialiasing">The screen has antialiasing in this run; a switch of it comes with the next start.</param>
+        public OptionsScreen(GameSettings settings, Action displayChanged, bool antialiasing)
             : base("Options")
         {
             this.settings = settings;
@@ -49,6 +50,14 @@ namespace TW3D.Screens
                 Activate = () => SetResolution(RenderResolution.Next(Heights(), SceneHeight())),
                 Adjust = step => SetResolution(RenderResolution.Step(Heights(), SceneHeight(), step)),
                 IsEnabled = () => !SceneRenderer.PinnedHeight.HasValue,
+                IsSwitch = true
+            });
+            //The multisample antialiasing of the screen, which the game gets when it starts
+            AddItem(new MenuItem
+            {
+                Text = () => "Antialiasing: " + (settings.Antialiasing ? "On" : "Off")
+                    + (settings.Antialiasing != antialiasing ? " (after a restart)" : ""),
+                Activate = () => Change(() => settings.Antialiasing = !settings.Antialiasing),
                 IsSwitch = true
             });
             AddItem(new MenuItem

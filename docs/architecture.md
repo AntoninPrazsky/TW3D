@@ -41,7 +41,8 @@ physics bodies.
 ## Frames and physics steps
 
 The game draws one frame per refresh of the monitor (e.g. 75 frames per second
-on a 75 Hz monitor), with 8× multisample antialiasing on Windows and 4× elsewhere
+on a 75 Hz monitor), with 8× multisample antialiasing on Windows and 4× elsewhere (Options > Antialiasing switches
+it off; the screen gets its samples when the window is made, so a switch comes with the next start)
 (MonoGame does not lower the count, and with more samples than the graphics card has
 there is no window at all); a Raspberry Pi draws the 3D scene at 1280×720 without
 multisampling instead, scaled up under the user interface (`PiGraphics`, see

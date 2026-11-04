@@ -67,7 +67,7 @@ CI fails without them and attaches the code it compiled to the run (the artifact
 
 On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the 3D scene
 at 1280×720 (until another Resolution is chosen in Options), scaled up to the screen, with
-the user interface at the full resolution over it, without multisampling, without ambient occlusion by default (Options can switch it on)
+the user interface at the full resolution over it, without multisampling and without ambient occlusion by default (Options can switch them on)
 and with a smaller shadow map: its GPU drew a level at 1920×1080 with the graphics of a
 desktop in 49 ms a frame. A level then holds 60 frames per second, the garage of the menus
 about 45.
@@ -98,7 +98,7 @@ Raspberry Pi), which takes the code of the shaders compiled on Windows (see
 `src/TW3D.Android` builds the game for Android phones (Android 7.0 and newer). It
 compiles the code of `src/TW3D.Game` (linked, not copied); what differs between the
 platforms is marked `#if ANDROID`: full screen in landscape, a twice as big user
-interface, 4× multisampling, the level list read from the app and the highest
+interface, 4× multisampling (Options can switch it off), the level list read from the app and the highest
 refresh rate of the display. The project is not in `TW3D.slnx`, so the desktop build
 needs no Android tools.
 

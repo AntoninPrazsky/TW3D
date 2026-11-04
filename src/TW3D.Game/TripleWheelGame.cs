@@ -20,17 +20,19 @@ namespace TW3D
     public class TripleWheelGame : Game
     {
 #if ANDROID
-        //Samples per pixel of the multisample antialiasing; fewer on phones, where it costs more
+        //Samples per pixel of the multisample antialiasing (Options > Antialiasing); fewer on phones, where it costs
+        //more. The edges of the scene show steps without it even on the screens of phones (the owner, 2026-11-04)
         private const int MultiSampleCount = 4;
         //A phone screen is small, so the user interface is bigger than on a monitor (see ScreenManager.UiSize),
         //the on-screen controls less so (ScreenManager.ControlsSize)
         private const float PhoneUiSize = 2f;
         private const float PhoneControlsSize = 1.5f;
 #else
-        //Samples per pixel of the multisample antialiasing: 8 on Windows, 4 elsewhere, which every OpenGL 3 graphics card
-        //takes. MonoGame does not lower the count: SDL makes no window at all with more samples than the card has (the
-        //GPU of a Raspberry Pi 5 has 4). None on a Raspberry Pi, which draws the scene smaller instead (see PiGraphics)
-        private static readonly int MultiSampleCount = PiGraphics.Active ? 0 : OperatingSystem.IsWindows() ? 8 : 4;
+        //Samples per pixel of the multisample antialiasing (Options > Antialiasing): 8 on Windows, 4 elsewhere, which
+        //every OpenGL 3 graphics card takes. MonoGame does not lower the count: SDL makes no window at all with more
+        //samples than the card has (the GPU of a Raspberry Pi 5 has 4). Off by default on a Raspberry Pi, which draws the
+        //scene smaller instead (see PiGraphics and GameSettings.Antialiasing)
+        private static readonly int MultiSampleCount = OperatingSystem.IsWindows() ? 8 : 4;
 #endif
 
         private readonly GraphicsDeviceManager graphics;
@@ -42,6 +44,8 @@ namespace TW3D
         private readonly string editorLevel;
         private readonly string editorLevels;
         private readonly GameSettings settings = GameSettings.Load();
+        //The screen has multisample antialiasing in this run: as the settings said at the start
+        private readonly bool antialiasing;
         //The 3D garage behind the menus
         private BackgroundScreen background;
         private readonly GameRecords records = GameRecords.Load();
@@ -77,10 +81,13 @@ namespace TW3D
             IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = true;
 
-            //Multisample antialiasing (see MultiSampleCount)
-            graphics.PreferMultiSampling = MultiSampleCount > 0;
+            //Multisample antialiasing (see MultiSampleCount), unless Options switched it off. The screen gets its samples
+            //when the window (the surface of a phone) is made: a change in Options comes with the next start, as MonoGame
+            //changed nothing seen when its device was reset with other samples (on Windows and on the phone, 2026-11-04)
+            antialiasing = settings.Antialiasing;
+            graphics.PreferMultiSampling = antialiasing;
             graphics.PreparingDeviceSettings += (sender, e) =>
-                e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = MultiSampleCount;
+                e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = antialiasing ? MultiSampleCount : 0;
 
 #if ANDROID
             //Full screen, landscape either way round
@@ -237,9 +244,9 @@ namespace TW3D
             menu.AddItem("Garage", () => screens.Add(new GarageScreen(settings, background.Scene)));
             menu.AddItem("About", () => screens.Add(new AboutScreen()));
 #if ANDROID
-            menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, null)));
+            menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, null, antialiasing)));
 #else
-            menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, ApplyDisplayMode)));
+            menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, ApplyDisplayMode, antialiasing)));
 #endif
             menu.AddItem("Exit", Exit);
 #if DEBUG && !ANDROID

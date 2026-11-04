@@ -33,6 +33,12 @@ namespace TW3D
 
         public bool Shadows { get; set; } = true;
 
+        /// <summary>
+        /// Multisample antialiasing of the screen (the edges of the 3D smooth): on by default, but on a Raspberry Pi, which
+        /// draws the scene smaller instead (see PiGraphics).
+        /// </summary>
+        public bool Antialiasing { get; set; } = !PiGraphics.Active;
+
         /// <summary>Ambient occlusion: off by default on a Raspberry Pi, where it costs about 5 ms a frame (see PiGraphics).</summary>
         public bool AmbientOcclusion { get; set; } = !PiGraphics.Active;
 
