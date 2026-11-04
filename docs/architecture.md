@@ -45,7 +45,12 @@ on a 75 Hz monitor), with 8× multisample antialiasing on Windows and 4× elsewh
 (MonoGame does not lower the count, and with more samples than the graphics card has
 there is no window at all); a Raspberry Pi draws the 3D scene at 1280×720 without
 multisampling instead, scaled up under the user interface (`PiGraphics`, see
-[Building](building.md#linux-and-a-raspberry-pi)). The physics simulation is independent of that: it always
+[Building](building.md#linux-and-a-raspberry-pi)). The Resolution of Options does the same
+anywhere: below native, `SceneRenderer.End` draws the scene into a render target of its own,
+multisampled as the screen is, at a height of `RenderResolution` (the exact shape of the
+screen), and scales it up to the screen with one bilinear sample; the ambient occlusion and
+the sky follow the size of the target, and the menus and the display of a run are drawn over
+it at the size of the screen. At native the scene is drawn straight on the screen, as before. The physics simulation is independent of that: it always
 runs 60 fixed steps of 1/60 s per game second, and the positions of moving bodies are
 interpolated between the last two steps for drawing.
 

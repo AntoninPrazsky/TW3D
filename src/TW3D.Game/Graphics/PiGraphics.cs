@@ -22,7 +22,10 @@ namespace TW3D.Graphics
             OperatingSystem.IsLinux() && RuntimeInformation.OSArchitecture == Architecture.Arm64;
 #endif
 
-        /// <summary>The height the 3D scene is drawn at, at most (the width keeps the shape of the screen).</summary>
+        /// <summary>
+        /// The height the 3D scene is drawn at, at most, until a Resolution is chosen in the Options menu (the largest
+        /// height of RenderResolution not above it; the width keeps the shape of the screen).
+        /// </summary>
         public const int SceneHeight = 720;
 
         /// <summary>The size of the shadow map (2048 elsewhere): at 2048 it cost the Pi 5 ms more at 1280×720.</summary>

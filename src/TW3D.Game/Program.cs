@@ -2,6 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using TW3D.Audio;
 using TW3D.GamePlay;
+using TW3D.Graphics;
 
 namespace TW3D
 {
@@ -18,6 +19,8 @@ namespace TW3D
         ///   --editor [level] opens the level editor instead of the game, with a level (a name in the levels folder or a file;
         ///                   without one the last level edited)
         ///   --levels folder the levels folder of the editor, instead of content/Levels of the repository
+        ///   --render height draws the 3D scene at the height of the Resolution row nearest to it (e.g. --render 720), whatever
+        ///                   the Options menu says, without saving it
         /// </summary>
         [STAThread]
         static void Main(string[] args)
@@ -40,6 +43,9 @@ namespace TW3D
                 if (parts.Length == 2 && int.TryParse(parts[0], out int width) && int.TryParse(parts[1], out int height))
                     windowSize = new Point(width, height);
             }
+
+            if (int.TryParse(ArgumentValue(args, "--render"), out int renderHeight) && renderHeight > 0)
+                SceneRenderer.PinnedHeight = renderHeight;
 
             if (Array.IndexOf(args, "--tutorial") >= 0)
                 Tutorial.Lever = ArgumentValue(args, "--tutorial") == "demo" ? TutorialLever.Demo : TutorialLever.Replay;

@@ -35,6 +35,7 @@ Game arguments for development:
 | `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them |
 | `--editor [<level>]` | Opens the level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
 | `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
+| `--render <height>` | Draws the 3D scene at the height of the Resolution row of Options nearest to the one given (e.g. `--render 720`), whatever Options say, without saving it (for tests and screenshots); the row cannot be changed meanwhile |
 
 The game runs on Windows and on Linux, a Raspberry Pi 5 included (see below); DesktopGL
 also supports macOS, which has not been tried. The level editor is a part of the game; the
@@ -65,8 +66,8 @@ CI fails without them and attaches the code it compiled to the run (the artifact
 `effects-desktopgl`).
 
 On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the 3D scene
-at 1280×720, scaled up to the screen, with the user interface at the full resolution over
-it, without multisampling, without ambient occlusion by default (Options can switch it on)
+at 1280×720 (until another Resolution is chosen in Options), scaled up to the screen, with
+the user interface at the full resolution over it, without multisampling, without ambient occlusion by default (Options can switch it on)
 and with a smaller shadow map: its GPU drew a level at 1920×1080 with the graphics of a
 desktop in 49 ms a frame. A level then holds 60 frames per second, the garage of the menus
 about 45.

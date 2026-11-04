@@ -35,12 +35,24 @@ opens in the web browser (clicked, or chosen by the keys and Enter).
 ## Options
 
 Full screen or a window (on a desktop, also F11 anywhere in the game; the window opens
-maximized and can be resized), the look of the game (new, or classic: as the 2016 version looked),
+maximized and can be resized), the resolution of the 3D, the look of the game (new, or classic: as the 2016 version looked),
 shadows, ambient occlusion, the frame rate (frames per second in the top left
 corner), the tutorial and the volume of the sound (in tenths; Enter turns it up, round to
 off, left and right turn it down and up). A window was the cure when the game stuttered in
 full screen with one graphics driver (an AMD Radeon with OpenGL, 2026). They are saved in
 `TW3D/settings.json` in the user's local application data (on Windows `%LOCALAPPDATA%\TW3D`).
+
+**Resolution** draws the 3D scene below the resolution of the screen, for a faster frame on
+a weak graphics card, a large monitor or a phone: native, then 5/6, 2/3, 1/2 and 1/3 of the
+height of the screen, none under 360 rows, each at the exact shape of the screen, so that the
+picture scaled up to it is never stretched (on 1920 × 1080: 1600 × 900, 1280 × 720,
+960 × 540 and 640 × 360; a 21:9 monitor gets 21:9 sizes only). Only the 3D gets coarser: the
+menus, the time, the tutorial cards and the on-screen controls stay sharp. Enter steps down,
+from the lowest round to native, and left and right step down and up. The row shows the size
+drawn (`1280 × 720`, `1920 × 1080 (native)`); it is kept as a part of the height of the
+screen, so a window of another size, or another monitor, gets the nearest size of its own. A
+Raspberry Pi draws 720 rows at most until another resolution is chosen there. The level
+editor and the previews of the levels (H while driving) stay at the full resolution.
 
 ## Sound
 

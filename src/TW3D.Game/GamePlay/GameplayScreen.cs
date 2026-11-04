@@ -437,6 +437,8 @@ namespace TW3D.GamePlay
 
         public override void Draw(GameTime gameTime)
         {
+            //The previews of the levels are taken of the track alone, at the full resolution whatever the Options say
+            renderer.MayDrawSmaller = !developmentKeys.TrackOnly;
             renderer.Begin(camera.View, camera.Projection);
             renderer.SetSky();
             if (!developmentKeys.TrackOnly)

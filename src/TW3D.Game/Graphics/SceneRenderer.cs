@@ -179,9 +179,11 @@ namespace TW3D.Graphics
         private readonly Texture2D smokeTexture;
         private readonly BasicEffect smokeEffect;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
-        //The scene drawn smaller than the screen and scaled up to it (on a Raspberry Pi, see PiGraphics), and the size the
-        //scene of this frame is drawn at
+        //The scene drawn smaller than the screen and scaled up to it (see Resolution), the height it is drawn at for the
+        //screen and the choice it was worked out for, and the size the scene of this frame is drawn at
         private RenderTarget2D sceneTarget;
+        private int sceneHeight;
+        private (int, int, int?, float?) sceneHeightKey = (-1, -1, null, null);
         private SpriteBatch sceneBatch;
         private Point sceneSize;
         //The corners of the screen, for the passes over the whole screen
@@ -342,11 +344,32 @@ namespace TW3D.Graphics
         public const float HighAbove = 0.7f;
 
         /// <summary>
-        /// The scene may be drawn smaller than the screen and scaled up to it, where the graphics say so (on a Raspberry Pi,
-        /// see <see cref="PiGraphics"/>). Off for a scene that is drawn over afterwards with its depth buffer (the markers
-        /// of the level editor).
+        /// The scene may be drawn smaller than the screen and scaled up to it, at the height of <see cref="Resolution"/>.
+        /// Off for a scene that is drawn over afterwards with its depth buffer (the markers of the level editor), and for
+        /// the track alone that the previews of the levels are taken of (H while driving).
         /// </summary>
         public bool MayDrawSmaller { get; set; } = true;
+
+        /// <summary>
+        /// The part of the height of the screen the scene is drawn at, as chosen in the Options menu (see
+        /// <see cref="RenderResolution"/>; 1 is native); null while none was chosen: native, or 720 rows on a Raspberry Pi
+        /// (see <see cref="PiGraphics"/>).
+        /// </summary>
+        public float? Resolution { get; set; }
+
+        /// <summary>The height the scenes of this run are drawn at, whatever was chosen (the --render argument); null for none.</summary>
+        public static int? PinnedHeight { get; set; }
+
+        /// <summary>
+        /// The height the scene is drawn at on a screen of a size (see <see cref="RenderResolution.SceneHeight"/>): the
+        /// pinned one, the one chosen, or the default (720 rows at most on a Raspberry Pi, else native).
+        /// </summary>
+        /// <param name="resolution">The part of the height chosen; null while none was chosen.</param>
+        public static int SceneHeight(int screenWidth, int screenHeight, float? resolution)
+        {
+            return RenderResolution.SceneHeight(screenWidth, screenHeight, PinnedHeight, resolution,
+                PiGraphics.Active ? PiGraphics.SceneHeight : null);
+        }
 
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;
@@ -561,21 +584,31 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
-        /// The target the scene of this frame is drawn into when it is drawn smaller than the screen (see
-        /// <see cref="PiGraphics"/>): the height of <see cref="PiGraphics.SceneHeight"/>, the shape of the screen. Null when
-        /// it is drawn straight on the screen: elsewhere, on a screen no higher than that, into a render target of the caller
-        /// (the previews of the level editor) or into a part of the screen.
+        /// The target the scene of this frame is drawn into when it is drawn smaller than the screen: the height of
+        /// <see cref="SceneHeight"/>, at the exact shape of the screen (see <see cref="RenderResolution"/>), multisampled
+        /// as the screen is. Null when it is drawn straight on the screen, as it always was: at the native height, while
+        /// it may not be drawn smaller (<see cref="MayDrawSmaller"/>), into a render target of the caller (the previews of
+        /// the level editor) or into a part of the screen.
         /// </summary>
         private RenderTarget2D SceneTarget()
         {
             PresentationParameters screen = device.PresentationParameters;
             Viewport viewport = device.Viewport;
-            int height = PiGraphics.SceneHeight;
-            if (!PiGraphics.Active || !MayDrawSmaller || device.RenderTargetCount > 0 || screen.BackBufferHeight <= height
+            if (!MayDrawSmaller || device.RenderTargetCount > 0
                 || viewport.X != 0 || viewport.Y != 0 || viewport.Width != screen.BackBufferWidth || viewport.Height != screen.BackBufferHeight)
                 return null;
+            //The list of heights is worked out again only when the screen or the choice changes
+            var key = (screen.BackBufferWidth, screen.BackBufferHeight, PinnedHeight, Resolution);
+            if (key != sceneHeightKey)
+            {
+                sceneHeightKey = key;
+                sceneHeight = SceneHeight(screen.BackBufferWidth, screen.BackBufferHeight, Resolution);
+            }
+            int height = sceneHeight;
+            if (height <= 0 || height >= screen.BackBufferHeight)
+                return null;
 
-            int width = Math.Max(1, (int)MathF.Round(screen.BackBufferWidth * (float)height / screen.BackBufferHeight));
+            int width = RenderResolution.WidthAt(screen.BackBufferWidth, screen.BackBufferHeight, height);
             if (sceneTarget == null || sceneTarget.Width != width || sceneTarget.Height != height)
             {
                 sceneTarget?.Dispose();

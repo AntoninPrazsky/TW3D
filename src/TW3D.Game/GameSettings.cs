@@ -39,6 +39,14 @@ namespace TW3D
         /// <summary>Full screen; otherwise a window (on a desktop).</summary>
         public bool FullScreen { get; set; } = true;
 
+        /// <summary>
+        /// The part of the height of the screen the 3D scene is drawn at (the Resolution row of the Options menu, see
+        /// RenderResolution): 1 native, 0.8333, 0.6667, 0.5 or 0.3333. Kept as a part rather than in pixels, so that it
+        /// means the same in a window of another size and on another monitor. Null until it is chosen: native, or 720
+        /// rows on a Raspberry Pi (see PiGraphics).
+        /// </summary>
+        public float? Resolution { get; set; }
+
         /// <summary>Frames per second in the top left corner.</summary>
         public bool ShowFrameRate { get; set; } = true;
 
@@ -99,6 +107,7 @@ namespace TW3D
             renderer.Classic = Classic;
             renderer.Shadows = Shadows;
             renderer.AmbientOcclusion = AmbientOcclusion;
+            renderer.Resolution = Resolution;
         }
     }
 }

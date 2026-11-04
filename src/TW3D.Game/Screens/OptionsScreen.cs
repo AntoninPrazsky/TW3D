@@ -1,11 +1,15 @@
 using System;
+using Microsoft.Xna.Framework.Graphics;
 using TW3D.Audio;
+using TW3D.Graphics;
 
 namespace TW3D.Screens
 {
     /// <summary>
     /// The Options menu: the graphics and display settings, the tutorial and the volume of the sound. Selecting an item (or pressing left or right on it)
-    /// switches its value; the settings are saved at once.
+    /// switches its value; the settings are saved at once. The Resolution row steps through the heights the 3D scene may
+    /// be drawn at on the screen as it is now (see <see cref="RenderResolution"/>), so it follows the window while the menu
+    /// is open.
     /// </summary>
     public sealed class OptionsScreen : ListMenuScreen
     {
@@ -13,6 +17,9 @@ namespace TW3D.Screens
         private const float VolumeStep = 0.1f;
 
         private readonly GameSettings settings;
+        //The heights of the Resolution row, and the size of the screen they are of
+        private int[] heights = Array.Empty<int>();
+        private int heightsWidth, heightsHeight;
 
         /// <param name="displayChanged">Applies a switch between full screen and a window; null = no such option (phones).</param>
         public OptionsScreen(GameSettings settings, Action displayChanged)
@@ -34,6 +41,16 @@ namespace TW3D.Screens
                     IsSwitch = true
                 });
 
+            //Enter (or a click) steps the height of the 3D down, round to native; left and right step it down and up. The
+            //menus and the display of a run stay at the size of the screen. A height pinned by --render cannot be changed
+            AddItem(new MenuItem
+            {
+                Text = () => "Resolution: " + ResolutionText(),
+                Activate = () => SetResolution(RenderResolution.Next(Heights(), SceneHeight())),
+                Adjust = step => SetResolution(RenderResolution.Step(Heights(), SceneHeight(), step)),
+                IsEnabled = () => !SceneRenderer.PinnedHeight.HasValue,
+                IsSwitch = true
+            });
             AddItem(new MenuItem
             {
                 Text = () => "Look: " + (settings.Classic ? "Classic (2016)" : "New"),
@@ -76,6 +93,52 @@ namespace TW3D.Screens
                 IsSwitch = true
             });
             AddItem(new MenuItem { Text = () => "Back", Activate = Close });
+        }
+
+        /// <summary>The size of the screen (the window) now.</summary>
+        private (int Width, int Height) ScreenSize
+        {
+            get
+            {
+                PresentationParameters screen = Manager.GraphicsDevice.PresentationParameters;
+                return (screen.BackBufferWidth, screen.BackBufferHeight);
+            }
+        }
+
+        /// <summary>The heights of the Resolution row on the screen as it is now.</summary>
+        private int[] Heights()
+        {
+            (int width, int height) = ScreenSize;
+            if (width != heightsWidth || height != heightsHeight)
+            {
+                heights = RenderResolution.Heights(width, height);
+                heightsWidth = width;
+                heightsHeight = height;
+            }
+            return heights;
+        }
+
+        /// <summary>The height the 3D scene is drawn at now.</summary>
+        private int SceneHeight()
+        {
+            (int width, int height) = ScreenSize;
+            return SceneRenderer.SceneHeight(width, height, settings.Resolution);
+        }
+
+        /// <summary>The size the 3D scene is drawn at, as the row says it: "1280 × 720", "1920 × 1080 (native)".</summary>
+        private string ResolutionText()
+        {
+            (int width, int height) = ScreenSize;
+            int sceneHeight = SceneHeight();
+            if (sceneHeight <= 0 || sceneHeight >= height)
+                return $"{width} \u00D7 {height} (native)";
+            return $"{RenderResolution.WidthAt(width, height, sceneHeight)} \u00D7 {sceneHeight}";
+        }
+
+        /// <summary>Keeps a height of the row as the part of the height of the screen it is.</summary>
+        private void SetResolution(int sceneHeight)
+        {
+            Change(() => settings.Resolution = RenderResolution.PartOf(ScreenSize.Height, sceneHeight));
         }
 
         private void SetVolume(float volume)
