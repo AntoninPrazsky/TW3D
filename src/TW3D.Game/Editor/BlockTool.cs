@@ -46,6 +46,9 @@ namespace TW3D.Editor
         private Cell strokeCell;
         //The block the stroke placed last, which the next one of the stroke joins in road mode; null before the first one
         private PlacedBlock strokePlaced;
+        //The preview of the block to be placed, and what it was found for
+        private PlacedBlock preview;
+        private (EditedLevel, int, Layer, Cell, string, bool, int, bool) previewKey;
 
         /// <param name="camera">The camera, panned along with the cursor moved by the arrows.</param>
         /// <param name="report">Gets a note of what was done, or the reason of a refusal, for the status bar.</param>
@@ -90,6 +93,38 @@ namespace TW3D.Editor
 
         /// <summary>A stroke of the mouse (painting or erasing) is going on: the cursor follows the mouse wherever it is.</summary>
         public bool InStroke => stroke != Stroke.None;
+
+        /// <summary>
+        /// The block Space or a click would place in a layer, where it would go (the preview the screen draws see-through):
+        /// the chosen block with its turn at the cursor cell, with the chosen shift, or in road mode at the cell and the
+        /// shift that join the road (<see cref="EditedLevel.RoadShift(Cell, string, bool, int, bool, out Cell)"/>, as a
+        /// single block joins it). Null during a stroke (it places what it paints at once), when the document would refuse
+        /// the block (decoration in the middle layer) and when the same block is there already (nothing would change).
+        /// The block is not in the level; it is the same object until something it depends on changes.
+        /// </summary>
+        public PlacedBlock Preview(Layer layer)
+        {
+            if (level == null || InStroke)
+                return null;
+            var key = (level, level.Version, layer, Cursor, Block, PlacesTurned, Shift, RoadMode);
+            if (key == previewKey)
+                return preview;
+            previewKey = key;
+            preview = null;
+
+            BlockType type = level.Catalog.FindBlock(Block);
+            if (type == null || layer == Layer.Middle && !type.Collision)
+                return null;
+            bool turned = PlacesTurned;
+            Cell cell = Cursor;
+            int shift = Shift;
+            if (RoadMode && layer == Layer.Middle && type.IsRoad)
+                shift = level.RoadShift(Cursor, Block, turned, Shift, false, out cell);
+            PlacedBlock existing = level.BlockAt(layer, cell);
+            if (existing == null || existing.Name != Block || existing.Shift != shift || existing.Turned != turned)
+                preview = new PlacedBlock(cell, Block, shift, false, turned);
+            return preview;
+        }
 
         /// <summary>
         /// The keys of the editor of 2016; called when the interface does not want the keyboard. With Ctrl held the keys are

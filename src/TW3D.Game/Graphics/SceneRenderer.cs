@@ -215,6 +215,21 @@ namespace TW3D.Graphics
         private static readonly System.Diagnostics.Stopwatch SkyClock = System.Diagnostics.Stopwatch.StartNew();
         private Model overlay;
         private Matrix overlayWorld;
+        //The model of this frame drawn see-through (see SetGhost); null for none
+        private Model ghost;
+        private Matrix ghostWorld;
+        private float ghostAlpha;
+        private Vector3 ghostGlow;
+        //The see-through model is drawn twice: its depth alone, then its colour where its depth is, so that only its
+        //nearest surfaces are seen, not those behind them through them
+        private static readonly BlendState DepthOnly = new BlendState { Name = "DepthOnly", ColorWriteChannels = ColorWriteChannels.None };
+        private static readonly DepthStencilState DepthAtMost = new DepthStencilState
+        {
+            Name = "DepthAtMost",
+            DepthBufferEnable = true,
+            DepthBufferWriteEnable = false,
+            DepthBufferFunction = CompareFunction.LessEqual
+        };
         //The car: its lamps shining as spot lights, which lamp each is, where it is (relative to the car) and where it
         //points, the colour of its light when fully on
         private bool car, braking;
@@ -348,6 +363,7 @@ namespace TW3D.Graphics
             items.Clear();
             sky = false;
             overlay = null;
+            ghost = null;
             car = false;
             braking = false;
             Array.Clear(lights);
@@ -463,6 +479,21 @@ namespace TW3D.Graphics
         {
             overlay = model;
             overlayWorld = world;
+        }
+
+        /// <summary>
+        /// Sets a model drawn see-through, for this frame (see Begin): the block the Place tool of the level editor would
+        /// place. It is drawn after the scene, hidden where the scene is in front of it, only its nearest surfaces, lit
+        /// as the scene is but without the ambient occlusion (that of the scene behind it); it casts no shadow.
+        /// </summary>
+        /// <param name="alpha">How much it hides what is behind it, 0..1.</param>
+        /// <param name="glow">Light it gives off besides its own (linear colour), so that it is told from the blocks of the scene.</param>
+        public void SetGhost(Model model, Matrix world, float alpha, Vector3 glow)
+        {
+            ghost = model;
+            ghostWorld = world;
+            ghostAlpha = alpha;
+            ghostGlow = glow;
         }
 
         /// <summary>
@@ -1050,17 +1081,34 @@ namespace TW3D.Graphics
             device.DepthStencilState = DepthStencilState.DepthRead;
             foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
                 DrawLitPart(part, world, pass);
+
+            if (ghost != null)
+            {
+                ModelPart[] parts = GetModelData(ghost).Parts;
+                //The occlusion map is of the scene behind it
+                effect.Parameters["OcclusionStrength"].SetValue(0f);
+                device.BlendState = DepthOnly;
+                device.DepthStencilState = DepthStencilState.Default;
+                foreach (ModelPart part in parts)
+                    DrawLitPart(part, part.Transform * ghostWorld, pass);
+                device.BlendState = BlendState.NonPremultiplied;
+                device.DepthStencilState = DepthAtMost;
+                foreach (ModelPart part in parts)
+                    DrawLitPart(part, part.Transform * ghostWorld, pass, ghostAlpha, ghostGlow);
+            }
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
         }
 
-        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass)
+        /// <param name="alpha">A part of its own opacity it is drawn with (the see-through model).</param>
+        /// <param name="glow">Light added to its own (the see-through model).</param>
+        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default)
         {
             worldParameter.SetValue(world);
             diffuseParameter.SetValue(part.Diffuse);
-            emissiveParameter.SetValue(part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp) * LampBrightness));
+            emissiveParameter.SetValue((part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp) * LampBrightness)) + glow);
             specularParameter.SetValue(part.Specular);
-            alphaParameter.SetValue(part.Alpha);
+            alphaParameter.SetValue(part.Alpha * alpha);
             metallicParameter.SetValue(part.Metallic);
             roughnessParameter.SetValue(part.Roughness);
             pass.Apply();
@@ -1108,21 +1156,49 @@ namespace TW3D.Graphics
             device.DepthStencilState = DepthStencilState.DepthRead;
             foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
                 DrawClassicPart(part, world);
+
+            if (ghost != null)
+            {
+                ModelPart[] parts = GetModelData(ghost).Parts;
+                device.BlendState = DepthOnly;
+                device.DepthStencilState = DepthStencilState.Default;
+                foreach (ModelPart part in parts)
+                    DrawClassicPart(part, part.Transform * ghostWorld);
+                device.BlendState = BlendState.AlphaBlend;
+                device.DepthStencilState = DepthAtMost;
+                foreach (ModelPart part in parts)
+                    DrawClassicPart(part, part.Transform * ghostWorld, ghostAlpha, ghostGlow);
+            }
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
         }
 
-        private void DrawClassicPart(ModelPart part, Matrix world)
+        /// <param name="alpha">A part of its own opacity it is drawn with (the see-through model).</param>
+        /// <param name="glow">Light added to its own (the see-through model).</param>
+        private void DrawClassicPart(ModelPart part, Matrix world, float alpha = 1f, Vector3 glow = default)
         {
             BasicEffect basic = part.Effect;
             Lighting.ApplyClassic(basic);
             if (part.Lamp != Lamp.None)
                 basic.EmissiveColor = part.ClassicEmissive * LampGlow(part.Lamp);
+            //The effect is the model's, shared with every draw of it: what is changed for one draw is put back after it
+            bool seeThrough = alpha < 1f || glow != Vector3.Zero;
+            Vector3 emissive = basic.EmissiveColor;
+            if (seeThrough)
+            {
+                basic.Alpha = part.Alpha * alpha;
+                basic.EmissiveColor = emissive + glow;
+            }
             basic.View = view;
             basic.Projection = projection;
             basic.World = world;
             basic.CurrentTechnique.Passes[0].Apply();
             DrawPart(part.MeshPart);
+            if (seeThrough)
+            {
+                basic.Alpha = part.Alpha;
+                basic.EmissiveColor = emissive;
+            }
         }
 
         /// <summary>Models whose bounding sphere is completely outside the camera view are not drawn.</summary>

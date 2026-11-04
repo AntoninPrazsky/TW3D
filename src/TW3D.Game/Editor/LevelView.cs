@@ -10,13 +10,19 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// The level being edited drawn as the game draws it: the blocks of the layers, the dynamic objects and the
-    /// scenery of an <see cref="EditedLevel"/>, with the models of the <see cref="LevelAssets"/> and without the physics.
-    /// It draws whatever the document has in every frame. Blocks, objects and props the catalog does not know are left out.
+    /// scenery of an <see cref="EditedLevel"/>, with the models of the <see cref="LevelAssets"/> and without the physics,
+    /// and the block the Place tool would place, see-through (<see cref="Preview"/>). It draws whatever the document has
+    /// in every frame. Blocks, objects and props the catalog does not know are left out.
     /// </summary>
     sealed class LevelView : GameObject
     {
         //Distance between two layers (physics units), as in the game's Level
         private const float LayerDepth = Units.GridCell;
+        //The preview of the block to be placed: see-through, glowing a little green like the selector, and a little larger
+        //than its cell, so that a face it shares with a block of the level (the front of a road) is in front of it
+        private const float PreviewAlpha = 0.5f;
+        private static readonly Vector3 PreviewGlow = new Vector3(0.03f, 0.12f, 0.05f);
+        private const float PreviewScale = 1.01f;
 
         //The layers that are drawn, by the Layer enum (View menu); the middle layer always is
         private readonly bool[] shown = new bool[Layers.Count];
@@ -40,6 +46,12 @@ namespace TW3D.Editor
 
         /// <summary>The level drawn.</summary>
         public EditedLevel Level { get; set; }
+
+        /// <summary>
+        /// The block the Place tool would place and its layer (see <see cref="BlockTool.Preview"/>), drawn see-through
+        /// over the level; null for none. It is not in the level.
+        /// </summary>
+        public (Layer Layer, PlacedBlock Block)? Preview { get; set; }
 
         /// <summary>The layer is drawn (View menu); the middle layer always is.</summary>
         public bool Shows(Layer layer) => layer == Layer.Middle || shown[(int)layer];
@@ -115,6 +127,12 @@ namespace TW3D.Editor
             foreach (Layer layer in Layers.All)
                 if (Shows(layer))
                     DrawLayer(renderer, layer);
+            if (Preview is (Layer previewLayer, PlacedBlock preview) && blockModels.TryGetValue(preview.Name, out Model previewModel))
+            {
+                Matrix world = Matrix.CreateScale(PreviewScale)
+                    * ModelWorld(new Vector3(PhysicsPosition(preview), Depth(previewLayer)), 0f, preview.Turned) * Placement;
+                renderer.SetGhost(previewModel, world, PreviewAlpha, PreviewGlow);
+            }
             if (ShowScenery)
             {
                 IReadOnlyList<PlacedScenery> props = Level.Scenery;

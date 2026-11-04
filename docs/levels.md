@@ -72,7 +72,10 @@ turn), and Ctrl + the wheel shifts the block up or down. The arrows move the cur
 Space places, Delete erases, PageUp / PageDown shift, F marks the block at the cursor cell
 as the finish (again, it stops being it), T turns the chosen block round (again, back),
 comma and period choose the previous and the next block of the catalog, and R switches road
-mode (below).
+mode (below). The chosen block is shown see-through, glowing a little green, where Space or a
+click would place it: at the cursor cell with the chosen shift and turn, in road mode where it
+joins the road. It is not shown where the same block is already, nor while Left Shift is held
+(a click erases then).
 
 A block of the road can be **turned** round by 180° about the vertical axis: its road then
 runs the other way, so `b2`, a descent, turned is a climb, and the walls `t1` and `u1` turned

@@ -83,6 +83,8 @@ namespace TW3D.Editor
         private Keys[] heldKeys = Array.Empty<Keys>();
         //Right Ctrl went down and nothing else has happened since (see RightControlTapped)
         private bool rightControlAlone;
+        //Left Shift is held: a click of the Place tool erases, and the preview of the block to be placed is not drawn
+        private bool erasing;
         //A test drive covers the editor; the cell the menu asked to start one from, started with the next input, not in
         //the middle of drawing the interface
         private bool driving;
@@ -341,6 +343,8 @@ namespace TW3D.Editor
             bool mouseFree = !io.WantCaptureMouse;
             bool control = input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl);
             bool shift = input.IsKeyDown(Keys.LeftShift) || input.IsKeyDown(Keys.RightShift);
+            //Left Shift makes a click of the Place tool erase: the preview of the block to be placed is not drawn meanwhile
+            erasing = input.IsKeyDown(Keys.LeftShift);
 
             //The shortcuts of the menus work while a text field of a window has the keyboard too
             if (control && !keysHeld)
@@ -469,6 +473,11 @@ namespace TW3D.Editor
             renderer.ShadowDistance = Math.Max(MinShadowDistance, camera.Distance * 1.5f);
             renderer.Begin(camera.View, camera.Projection);
             renderer.SetSky();
+            //The block the Place tool would place, where it would go; not while Left Shift makes a click erase, nor in a
+            //hidden layer
+            PlacedBlock preview = activeTool == EditorTool.Place && !erasing && view.HiddenNote(activeTool, layer) == null
+                ? placeTool.Preview(layer) : null;
+            view.Preview = preview != null ? (layer, preview) : null;
             view.Draw(renderer);
             renderer.End();
             //The cursor cell of the Place tool is the other tools' too (Space adds or toggles there), on their plane
