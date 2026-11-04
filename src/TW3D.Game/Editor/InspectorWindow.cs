@@ -82,12 +82,12 @@ namespace TW3D.Editor
             if (block == null)
             {
                 ImGui.TextDisabled("Empty cell");
-                ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer} layer)");
+                ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
                 ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
                 return;
             }
             ImGui.Text("Block: " + block.Name);
-            ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer} layer)");
+            ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");
             //The surface of a road block of the middle layer, in shift steps, and the gaps of the road of the whole level
@@ -104,7 +104,7 @@ namespace TW3D.Editor
             else
             {
                 ImGui.Text(SelectTool.Items(selectTool.Selection.Count, selectTool.SelectedProps.Count) + " selected");
-                ImGui.Text($"Cells: {min} to {max} ({layer} layer)");
+                ImGui.Text($"Cells: {min} to {max} ({layer.Name()} layer)");
             }
             ImGui.Text(selectTool.ClipboardCount == 0 ? "Clipboard: empty" : "Clipboard: " + selectTool.ClipboardText);
             ImGui.BeginDisabled(!selectTool.Any);
@@ -166,7 +166,7 @@ namespace TW3D.Editor
                     ImGui.Separator();
                     ImGui.Text($"Prop: {sceneryTool.Name(hovered)} ({hovered.Model})");
                     ImGui.Text($"X: {Number(hovered.X)}, Y: {Number(hovered.Y)}");
-                    ImGui.Text($"Depth: {Number(hovered.Z)} ({hovered.Layer.ToString().ToLowerInvariant()} layer)");
+                    ImGui.Text($"Depth: {Number(hovered.Z)} ({hovered.Layer.Name()} layer)");
                     ImGui.Text("Turn: " + SceneryTool.Turns(hovered.Turn));
                     ImGui.TextDisabled("Click it to select it.");
                     return;
@@ -197,7 +197,7 @@ namespace TW3D.Editor
             int turn = TurnButtons(selected.Turn);
             if (turn >= 0)
                 sceneryTool.TurnTo(selected, turn);
-            ImGui.TextDisabled($"Stands in the {selected.Layer.ToString().ToLowerInvariant()} layer");
+            ImGui.TextDisabled($"Stands in the {selected.Layer.Name()} layer");
             if (ImGui.Button("Remove"))
                 sceneryTool.Remove(selected);
         }

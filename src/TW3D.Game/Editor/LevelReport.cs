@@ -94,12 +94,17 @@ namespace TW3D.Editor
             Estimate = current.Par ?? RaceScore.Par(current.ToData());
             EstimateText = "estimated: " + Estimate.ToString("0.0", CultureInfo.InvariantCulture) + " s";
 
-            BlocksText = $"Blocks: {current.Blocks(Layer.Middle).Count} middle, {current.Blocks(Layer.Back).Count} back, {current.Blocks(Layer.Front).Count} front";
+            //The middle layer first, then the others from the road outwards (the back layers that are empty left out)
+            BlocksText = $"Blocks: {current.Blocks(Layer.Middle).Count} middle, {current.Blocks(Layer.Back).Count} back";
+            foreach (Layer deeper in new[] { Layer.Back2, Layer.Back3 })
+                if (current.Blocks(deeper).Count > 0)
+                    BlocksText += $", {current.Blocks(deeper).Count} {deeper.Name()}";
+            BlocksText += $", {current.Blocks(Layer.Front).Count} front";
             ObjectsText = "Objects: " + current.Objects.Count;
             SceneryText = "Scenery: " + current.Scenery.Count + (current.Scenery.Count == 1 ? " prop" : " props");
             int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
             HasCells = false;
-            foreach (Layer layer in Enum.GetValues<Layer>())
+            foreach (Layer layer in Layers.All)
             {
                 foreach (PlacedBlock block in current.Blocks(layer))
                 {

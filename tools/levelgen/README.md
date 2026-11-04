@@ -40,6 +40,7 @@ const t = new Track(-3, 0);              // first column and surface height
 t.road("a1", "a1", "c2f", "c2", "a1");    // road blocks, one column each
 t.step(-1);                              // a step up by 2.5 units
 t.put("back", "st2", 2, -5);             // any block in any layer, by its base
+t.put("back3", "za", 4, -9);             // three cells behind the road ("back2": two)
 t.obj("Box", "box", 50, Track.top(0) - 3.3);
 t.prop("lamp", 45, -1.25, -12.5, 1);     // a street lamp behind the road, turned (scenery: no physics)
 for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
@@ -54,15 +55,20 @@ The car starts at x = -1.6, so the road has to be flat at height 0 around column
 physics units (the road of a flat block at height `h` is at `h * 2.5 - 1.25`), at the depth
 `z` (negative behind the road, positive in front of it), turned by quarter turns.
 
+The layers are `"middle"` (the road, with physics), `"back"`, `"back2"` and `"back3"` (one,
+two and three cells behind the road; the level file keeps them in one list with the `depth` of
+the blocks) and `"front"` (one cell in front of it).
+
 Decoration helpers (back and front layers, no physics): `kerbs` (kerbs with end pieces along
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),
-and `stairs` (a footpath beside `b2f` climbs); `bothSides` uses `copyRoad` or `stairs` in both
-layers. Barriers and railings stand on the back edge of the road, so dynamic objects go through
+and `stairs` (a footpath beside `b2f` climbs); `checkered`, `copyRoad` and `stairs` take any
+of the back layers too, and `bothSides` uses `copyRoad` or `stairs` in the back and the front
+layer. Barriers and railings stand on the back edge of the road, so dynamic objects go through
 them; keep them away from places the objects can get to.
 
 The camera looks from the front and from above, so the front layer is close to it: blocks there
-should stay at the road surface or below it, or they hide the car. The back layer is seen mostly
-above the road surface.
+should stay at the road surface or below it, or they hide the car. The back layers are seen mostly
+above the road surface, the deeper ones higher on the screen.
 
 ## Playability
 

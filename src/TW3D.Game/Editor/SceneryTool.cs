@@ -228,7 +228,7 @@ namespace TW3D.Editor
                 return;
 
             bool alt = input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt);
-            //Right Shift toggles the back layer the moment it is pressed, so only Left Shift makes a click remove
+            //Right Shift switches to a back layer the moment it is pressed, so only Left Shift makes a click remove
             bool remove = input.IsKeyDown(Keys.LeftShift);
             if (leftPressed && !alt)
             {

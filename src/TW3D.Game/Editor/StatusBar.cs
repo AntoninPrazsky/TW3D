@@ -40,7 +40,7 @@ namespace TW3D.Editor
 
             ImGui.Text($"Cell: {tool.Cursor.X}, {tool.Cursor.Y}");
             Separate();
-            ImGui.Text("Layer: " + layer);
+            ImGui.Text("Layer: " + layer.Title());
             Separate();
             ImGui.Text("Tool: " + ToolNames[(int)activeTool]);
             Separate();

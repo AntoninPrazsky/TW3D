@@ -25,7 +25,9 @@ namespace TW3D.Editor
     /// Keys: Space toggles the cell at the cursor, Ctrl+A selects the layer, the arrows move the selection by a cell (the
     /// cursor with it), or the cursor cell while nothing is selected (with Ctrl they move the cursor cell only), Delete
     /// erases, PageUp / PageDown shift, H mirrors (see <see cref="EditedLevel.MirrorBlocks(Layer, IReadOnlyList{PlacedBlock}, int)"/>
-    /// and <see cref="EditedLevel.MirrorScenery"/>). No key works while the button drags. Esc drops a drag, then the selection.
+    /// and <see cref="EditedLevel.MirrorScenery"/>), Ctrl+PageUp / Ctrl+PageDown move the selection into the layer behind
+    /// or in front, which becomes the active one (see <see cref="EditedLevel.MoveToLayer"/>). No key works while the
+    /// button drags. Esc drops a drag, then the selection.
     /// </para>
     /// <para>
     /// Clipboard: Ctrl+C / Ctrl+X copy and cut the selection into the clipboard of the tool, the cells relative to the
@@ -63,6 +65,10 @@ namespace TW3D.Editor
         private readonly BlockTool placeTool;
         private readonly Func<PlacedScenery, BoundingSphere?> propBounds;
         private readonly Action<string> report;
+        //Makes another layer the active one, which the selection was moved into
+        private readonly Action<Layer> activate;
+        //Why a layer cannot be edited (it is hidden); null when it can
+        private readonly Func<Layer, string> hiddenNote;
         private readonly List<PlacedBlock> selected = new List<PlacedBlock>();
         private readonly List<PlacedScenery> selectedProps = new List<PlacedScenery>();
         private readonly List<Copied> clipboard = new List<Copied>();
@@ -84,12 +90,17 @@ namespace TW3D.Editor
         /// <param name="placeTool">The Place tool, whose cursor cell the Select tool shares.</param>
         /// <param name="propBounds">The bounding sphere of a prop in the scene, for its mark; null for one that is not drawn.</param>
         /// <param name="report">Gets a note of what was done, or the reason of a refusal, for the status bar.</param>
-        public SelectTool(EditorCamera camera, BlockTool placeTool, Func<PlacedScenery, BoundingSphere?> propBounds, Action<string> report)
+        /// <param name="activate">Makes a layer the active one: the selection was moved into it.</param>
+        /// <param name="hiddenNote">Why a layer cannot be edited, as the status bar says it (the View menu hides it); null when it can.</param>
+        public SelectTool(EditorCamera camera, BlockTool placeTool, Func<PlacedScenery, BoundingSphere?> propBounds, Action<string> report,
+            Action<Layer> activate, Func<Layer, string> hiddenNote)
         {
+            this.hiddenNote = hiddenNote;
             this.camera = camera;
             this.placeTool = placeTool;
             this.propBounds = propBounds;
             this.report = report;
+            this.activate = activate;
         }
 
         /// <summary>
@@ -204,6 +215,11 @@ namespace TW3D.Editor
                     Cut();
                 if (input.KeyPressed(Keys.V))
                     Paste();
+                //Away from the camera and towards it, as PageUp and PageDown move a prop of the Scenery tool
+                if (input.KeyPressed(Keys.PageUp))
+                    MoveToLayer(-1);
+                if (input.KeyPressed(Keys.PageDown))
+                    MoveToLayer(1);
                 return;
             }
             Point step = BlockTool.ArrowStep(input);
@@ -306,6 +322,44 @@ namespace TW3D.Editor
                 propClipboard.Add(new CopiedProp(prop.Model, prop.X - origin.X * Units.GridCell, prop.Y - origin.Y * Units.GridCell,
                     prop.Z - LevelView.Depth(layer), prop.Turn));
             report($"Copied {Items(selected.Count, selectedProps.Count)}.");
+        }
+
+        /// <summary>
+        /// Moves the selected blocks and props into the layer a number of layers further to the front (negative: to the
+        /// back), as one step of undo; that layer becomes the active one and they stay selected (Ctrl+PageUp and
+        /// Ctrl+PageDown, Edit > Move to the layer behind / in front). Nothing beyond the first and the last layer.
+        /// </summary>
+        public void MoveToLayer(int layers)
+        {
+            if (!Any)
+            {
+                report("Nothing is selected.");
+                return;
+            }
+            Layer to = Layers.OfCells(layer.Cells() + layers);
+            if (to == layer)
+            {
+                report(layers < 0 ? "There is no layer behind this one." : "There is no layer in front of this one.");
+                return;
+            }
+            //What is moved into a hidden layer could not be seen there
+            string hidden = hiddenNote(to);
+            if (hidden != null)
+            {
+                report(hidden);
+                return;
+            }
+            string items = Items(selected.Count, selectedProps.Count);
+            string refused = level.MoveToLayer(layer, selected, selectedProps, to);
+            if (refused != null)
+            {
+                report(refused);
+                return;
+            }
+            //The selection goes with them (a prop whose depth falls beyond the last layer drops out of it)
+            layer = to;
+            activate(to);
+            report($"Moved {items} to the {to.Name()} layer.");
         }
 
         /// <summary>Copies the selection and erases it, in one step of undo (Ctrl+X).</summary>

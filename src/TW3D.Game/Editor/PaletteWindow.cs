@@ -42,7 +42,7 @@ namespace TW3D.Editor
             ("LO", new[] { "lo" })
         };
         private const string OtherGroup = "Other";
-        private const string DecorationNote = " (decoration: back or front layer only)";
+        private const string DecorationNote = " (decoration: back or front layers only)";
         //The frame of the chosen preview: the colour of its button and of the border drawn around it
         private static readonly Vector4 ChosenButton = new Vector4(0.26f, 0.59f, 0.98f, 0.7f);
         private static readonly Vector4 ChosenBorder = new Vector4(1f, 0.85f, 0.2f, 1f);

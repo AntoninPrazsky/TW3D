@@ -36,6 +36,10 @@ namespace TW3D.Editor
                 Edit(hidden, report, selectTool.SelectAll);
             if (ImGui.MenuItem("Mirror", "H", false, selected))
                 Edit(hidden, report, selectTool.Mirror);
+            if (ImGui.MenuItem("Move to the layer behind", "Ctrl+PageUp", false, selected))
+                Edit(hidden, report, () => selectTool.MoveToLayer(-1));
+            if (ImGui.MenuItem("Move to the layer in front", "Ctrl+PageDown", false, selected))
+                Edit(hidden, report, () => selectTool.MoveToLayer(1));
             ImGui.EndMenu();
         }
 
@@ -49,7 +53,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>The View menu: the lighting, what is drawn, the tool and the layer, framing the level, the windows.</summary>
-        /// <param name="view">The level drawn, whose back layer, front layer, objects and scenery can be hidden.</param>
+        /// <param name="view">The level drawn, whose back layers, front layer, objects and scenery can be hidden.</param>
         /// <param name="markers">The markers drawn over it, whose grid and gap bars can be hidden.</param>
         /// <param name="setTool">Makes a tool the active one.</param>
         /// <param name="frameLevel">Points the camera at the whole level.</param>
@@ -66,10 +70,9 @@ namespace TW3D.Editor
                 renderer.AmbientOcclusion = !renderer.AmbientOcclusion;
             ImGui.Separator();
             //A hidden layer is not drawn and cannot be edited (see HiddenLayerGuard)
-            if (ImGui.MenuItem("Back layer", null, view.ShowBack))
-                view.ShowBack = !view.ShowBack;
-            if (ImGui.MenuItem("Front layer", null, view.ShowFront))
-                view.ShowFront = !view.ShowFront;
+            foreach (Layer shown in Layers.All)
+                if (shown != Layer.Middle && ImGui.MenuItem(shown.Title() + " layer", null, view.Shows(shown)))
+                    view.Show(shown, !view.Shows(shown));
             if (ImGui.MenuItem("Objects", null, view.ShowObjects))
                 view.ShowObjects = !view.ShowObjects;
             if (ImGui.MenuItem("Scenery", null, view.ShowScenery))
@@ -88,8 +91,8 @@ namespace TW3D.Editor
             }
             if (ImGui.BeginMenu("Layer"))
             {
-                foreach (Layer candidate in Enum.GetValues<Layer>())
-                    if (ImGui.MenuItem(candidate.ToString(), null, layer == candidate))
+                foreach (Layer candidate in Layers.All)
+                    if (ImGui.MenuItem(candidate.Title(), null, layer == candidate))
                         layer = candidate;
                 ImGui.EndMenu();
             }

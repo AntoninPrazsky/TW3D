@@ -142,7 +142,8 @@ the game and the editor:
 
 - **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
   collision shape (`collision`). Only blocks with a collision shape can be in the
-  middle (physics) layer; the others are decoration for the back and front layers.
+  middle (physics) layer; the others are decoration for the back layers (up to three cells
+  behind the road) and the front layer.
   A road block also has a `profile`, `[left, right]`: the height of the road surface
   at the left and the right edge of the block relative to its base, in shift steps
   (2.5 physics units; heights grow downward, as physics y does). For example `b2f`, a

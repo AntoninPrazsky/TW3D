@@ -118,10 +118,19 @@ namespace TW3D.Editor
 
         /// <summary>
         /// The layer the prop belongs to, by its depth: the one whose cells it stands in (the road of the middle layer
-        /// reaches half a cell to either side, the back and front layers the next cell), or the nearest one beyond them.
+        /// reaches half a cell to either side, each of the other layers the next cell), or the nearest one beyond them.
         /// The Select tool works on the props of a layer with its blocks.
         /// </summary>
-        public Layer Layer => Z < -Units.GridCell / 2f ? Layer.Back : Z > Units.GridCell / 2f ? Layer.Front : Layer.Middle;
+        public Layer Layer => Layers.OfCells(LayerCells(Z));
+
+        /// <summary>How many cells in front of the road the layer of a depth is (physics units; the middle of a cell lies on a layer, its edges half way between two).</summary>
+        public static int LayerCells(float z)
+        {
+            float half = Units.GridCell / 2f;
+            if (z > half)
+                return (int)MathF.Ceiling((z - half) / Units.GridCell);
+            return z < -half ? -(int)MathF.Ceiling((-z - half) / Units.GridCell) : 0;
+        }
 
         /// <summary>The cell of the layer its foot is in.</summary>
         public Cell Cell => Cell.Of(X, Y);
@@ -177,7 +186,7 @@ namespace TW3D.Editor
     }
 
     /// <summary>
-    /// The level being edited, as a document: three layers of blocks, the dynamic objects, the props of the scenery, the
+    /// The level being edited, as a document: five layers of blocks, the dynamic objects, the props of the scenery, the
     /// mood, the order and the par, built from a <see cref="LevelData"/> and written back to one. Every change is a
     /// command that can be undone and redone; commands that can break the level refuse with a reason instead. The blocks
     /// keep the order of the file they were read in (new ones are appended, a block put back by undo goes to its old
@@ -194,8 +203,11 @@ namespace TW3D.Editor
         private const int StepsPerCell = 9;
 
         private readonly Catalog catalog;
+        //The layers but the middle one in the order their problems are listed: the back layers from the road, the front
+        private static readonly Layer[] OuterLayers = { Layer.Back, Layer.Back2, Layer.Back3, Layer.Front };
+
         //The blocks of each layer, indexed by the Layer enum, in the order of the file
-        private readonly List<PlacedBlock>[] layers = new List<PlacedBlock>[3];
+        private readonly List<PlacedBlock>[] layers = new List<PlacedBlock>[Layers.Count];
         private readonly List<PlacedObject> objects = new List<PlacedObject>();
         private readonly List<PlacedScenery> scenery = new List<PlacedScenery>();
         private LevelMood mood;
@@ -224,9 +236,13 @@ namespace TW3D.Editor
             mood = data.Mood;
             order = data.Order;
             par = data.Par;
-            layers[(int)Layer.Back] = data.Back.Select(Convert).ToList();
-            layers[(int)Layer.Middle] = data.Middle.Select(Convert).ToList();
-            layers[(int)Layer.Front] = data.Front.Select(Convert).ToList();
+            foreach (Layer layer in Layers.All)
+                layers[(int)layer] = new List<PlacedBlock>();
+            //The back layers are one list in the file, by the depth of the blocks (one out of range goes to the nearest)
+            foreach (BlockPlacement placement in data.Back)
+                layers[(int)Layers.OfBackDepth(placement.Depth)].Add(Convert(placement));
+            layers[(int)Layer.Middle].AddRange(data.Middle.Select(Convert));
+            layers[(int)Layer.Front].AddRange(data.Front.Select(Convert));
             objects.AddRange(data.Objects.Select(placement => new PlacedObject(placement.Type, placement.Model, placement.X, placement.Y)));
             if (data.Scenery != null)
                 scenery.AddRange(data.Scenery.Select(placement => new PlacedScenery(placement.Model, placement.X, placement.Y, placement.Z, placement.Turn)));
@@ -443,9 +459,14 @@ namespace TW3D.Editor
                 Mood = mood,
                 Par = par
             };
-            data.Back.AddRange(layers[(int)Layer.Back].Select(Convert));
-            data.Middle.AddRange(layers[(int)Layer.Middle].Select(Convert));
-            data.Front.AddRange(layers[(int)Layer.Front].Select(Convert));
+            //The back layers from the nearest to the deepest, each block with its depth
+            for (Layer layer = Layer.Back; layer >= Layer.Back3; layer--)
+            {
+                int depth = layer.BackDepth();
+                data.Back.AddRange(layers[(int)layer].Select(block => Convert(block, depth)));
+            }
+            data.Middle.AddRange(layers[(int)Layer.Middle].Select(block => Convert(block, 1)));
+            data.Front.AddRange(layers[(int)Layer.Front].Select(block => Convert(block, 1)));
             data.Objects.AddRange(objects.Select(obj => new ObjectPlacement { Type = obj.Type, Model = obj.Model, X = obj.X, Y = obj.Y }));
             data.Scenery.AddRange(scenery.Select(prop => new SceneryPlacement { Model = prop.Model, X = prop.X, Y = prop.Y, Z = prop.Z, Turn = prop.Turn }));
             return data;
@@ -475,7 +496,7 @@ namespace TW3D.Editor
             if (type == null)
                 return $"Block {block} is not in the catalog.";
             if (layer == Layer.Middle && !type.Collision)
-                return $"Block {block} is decoration without a collision shape; it can only be in the back or front layer.";
+                return $"Block {block} is decoration without a collision shape; it can only be in the back or front layers.";
 
             List<PlacedBlock> blocks = layers[(int)layer];
             PlacedBlock existing = BlockAt(layer, cell);
@@ -582,6 +603,63 @@ namespace TW3D.Editor
             return Relocate("Mirror", layer, mirrored,
                 mirrored.Select(block => new Cell(sum - block.Cell.X, block.Cell.Y)).ToList(),
                 mirrored.Select(block => MirrorName(catalog, block.Name)).ToList());
+        }
+
+        /// <summary>
+        /// Moves blocks of a layer into another layer as one step, with props of the scenery, which go as far in depth
+        /// (a cell for every layer, so that they stay with the blocks). Every block keeps its identity, its cell and its
+        /// shift, and goes after the blocks of the other layer; a block of the other layer in a cell they come to is erased
+        /// first (in the same step, so that undo puts it back in its place). Refused, with the reason, for decoration
+        /// going into the middle layer and for the finish leaving it; null when done, also when there was nothing to move
+        /// (no step is recorded then). A block that is not in the layer and a prop that is not in the level are left out.
+        /// </summary>
+        public string MoveToLayer(Layer from, IReadOnlyList<PlacedBlock> blocks, IReadOnlyList<PlacedScenery> props, Layer to)
+        {
+            if (from == to)
+                return null;
+            List<PlacedBlock> moved = InLayer(from, blocks);
+            List<PlacedScenery> movedProps = props.Where(prop => scenery.Contains(prop)).Distinct().ToList();
+            if (to == Layer.Middle)
+            {
+                PlacedBlock decoration = moved.FirstOrDefault(block => catalog.FindBlock(block.Name)?.Collision != true);
+                if (decoration != null)
+                    return $"Block {decoration.Name} at {decoration.Cell} is decoration without a collision shape; it cannot be in the middle layer.";
+            }
+            if (moved.Any(block => block.Finish))
+                return "The finish has to stay in the middle layer.";
+            if (moved.Count == 0 && movedProps.Count == 0)
+                return null;
+
+            string name = "Move to the " + to.Name() + " layer";
+            List<PlacedBlock> source = layers[(int)from], target = layers[(int)to];
+            HashSet<Cell> entered = new HashSet<Cell>(moved.Select(block => block.Cell));
+            List<PlacedBlock> displaced = target.Where(block => entered.Contains(block.Cell)).ToList();
+            //Where the blocks were in the file, from the first: put back in this order, each goes to its place again
+            List<(int Index, PlacedBlock Block)> places = moved.Select(block => (source.IndexOf(block), block)).OrderBy(place => place.Item1).ToList();
+            float dz = (to.Cells() - from.Cells()) * Units.GridCell;
+            using (BeginCompound(name))
+            {
+                foreach (PlacedBlock block in displaced)
+                    Erase(to, block);
+                if (moved.Count > 0)
+                    Record(name,
+                        () =>
+                        {
+                            foreach (PlacedBlock block in moved)
+                                source.Remove(block);
+                            target.AddRange(moved);
+                        },
+                        () =>
+                        {
+                            target.RemoveRange(target.Count - moved.Count, moved.Count);
+                            foreach ((int index, PlacedBlock block) in places)
+                                source.Insert(index, block);
+                        });
+                //Two decimals, as the files keep them
+                foreach (PlacedScenery prop in movedProps)
+                    MoveScenery(prop, prop.X, prop.Y, MathF.Round(prop.Z + dz, 2));
+            }
+            return null;
         }
 
         /// <summary>
@@ -809,9 +887,9 @@ namespace TW3D.Editor
         {
             List<LevelProblem> problems = new List<LevelProblem>();
             FindBlockProblems(Layer.Middle, problems);
-            FindBlockProblems(Layer.Back, problems);
-            FindBlockProblems(Layer.Front, problems);
-            foreach (Layer layer in new[] { Layer.Back, Layer.Front })
+            foreach (Layer layer in OuterLayers)
+                FindBlockProblems(layer, problems);
+            foreach (Layer layer in OuterLayers)
                 foreach (PlacedBlock block in layers[(int)layer].Where(block => block.Finish))
                     problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} is a finish, but only a block of the middle layer can be.", layer, block.Cell));
             if (layers[(int)Layer.Middle].Count(block => block.Finish) > 1)
@@ -857,7 +935,7 @@ namespace TW3D.Editor
         /// <summary>The blocks of a layer the catalog does not know, and decoration in the middle layer, as <see cref="LevelData.Validate"/> words them.</summary>
         private void FindBlockProblems(Layer layer, List<LevelProblem> problems)
         {
-            string layerName = layer.ToString().ToLowerInvariant();
+            string layerName = layer.Name();
             foreach (PlacedBlock block in layers[(int)layer])
             {
                 BlockType type = catalog.FindBlock(block.Name);
@@ -1040,9 +1118,10 @@ namespace TW3D.Editor
             return new PlacedBlock(new Cell(placement.X, placement.Y), placement.Block, placement.Shift, placement.Finish);
         }
 
-        private static BlockPlacement Convert(PlacedBlock block)
+        /// <param name="depth">How many cells behind the road the block stands (1 for the blocks that are not in a back layer).</param>
+        private static BlockPlacement Convert(PlacedBlock block, int depth)
         {
-            return new BlockPlacement { Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Finish = block.Finish };
+            return new BlockPlacement { Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Finish = block.Finish, Depth = depth };
         }
 
         /// <summary>Does a change and records it: as a step of its own, or as a part of the open compound.</summary>
