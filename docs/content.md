@@ -96,7 +96,7 @@ The content pipeline builds the images from PNG files:
   everything over the level while driving. The previews of 2016 were taken again in 2026,
   of the same places, when the sky changed.
 
-The content pipeline builds two fonts from TrueType files:
+The content pipeline builds the fonts from TrueType files:
 
 - the font of the menus, the titles and the display of a run (`Fonts/menuFont<size>.spritefont`):
   **Triple Wheel Display** (`Fonts/TripleWheelDisplay.ttf`, SIL Open Font License 1.1, see
@@ -120,9 +120,17 @@ The content pipeline builds two fonts from TrueType files:
 - the glyphs of keys and buttons on the tutorial cards: `Fonts/promptFont.spritefont`, from
   [PromptFont](../content/Fonts/PromptFont-OFL.txt) (`Fonts/PromptFont.ttf`, SIL Open Font
   License 1.1), only the glyphs it lists.
+- the frame rate counter: `Fonts/frameRateCounterFont.spritefont`, from Triple Wheel Display
+  too (it was a precompiled `.xnb` of Arial until 2026), only the digits and the letters it
+  writes.
+- the font of the debug view of Aether.Physics2D, which the development keys of a Debug build
+  show (see [Playing](playing.md)): `Fonts/diagnosticsFont.spritefont`, from
+  [DejaVu Sans](../content/Fonts/DejaVuSans-LICENSE.txt) (`Fonts/DejaVuSans.ttf`, the font of
+  the level editor), built as `DiagnosticsFont`, the name the debug view loads it by (it was a
+  precompiled `.xnb` of Arial until 2026).
 
-The small fonts (`detailsFont`, `frameRateCounterFont`) are still precompiled `.xnb` files
-from XNA 4.0 (their descriptions `*.spritefont` name Arial and Courier New).
+Nothing of the content is precompiled any more: every image, model, effect and font is built
+from its source in the repository.
 
 ## Editing models
 

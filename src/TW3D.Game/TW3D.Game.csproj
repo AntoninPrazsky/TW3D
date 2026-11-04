@@ -20,10 +20,9 @@
   <ItemGroup>
     <!-- Models built by the content pipeline into Content/ -->
     <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)" />
-    <!-- The other shared content (precompiled fonts, levels, the catalog), copied to the output as Content/ -->
+    <!-- The other shared content (levels, the catalog), copied to the output as Content/ -->
     <None Include="$(GameContentDir)**\*" Exclude="$(ContentPipelineSources)" LinkBase="Content" CopyToOutputDirectory="PreserveNewest" />
-    <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
-    <None Include="..\..\content\Font.xnb" Link="Content\DiagnosticsFont.xnb" CopyToOutputDirectory="PreserveNewest" />
+
     <!-- The font of the level editor, read by ImGui from the file (the other .ttf files are sources of the content pipeline) -->
     <None Include="$(GameContentDir)Fonts\DejaVuSans.ttf" Link="Content\Fonts\DejaVuSans.ttf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>

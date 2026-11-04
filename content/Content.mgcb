@@ -21,8 +21,9 @@
 /build:Effects/Scene.fx
 /build:Effects/Occlusion.fx
 
-# The fonts: the menus and the display of a run in four sizes, from TripleWheelDisplay.ttf (tools/fontgen), and the glyphs
-# of the keys and buttons on the tutorial cards, from PromptFont.ttf
+# The fonts: the menus and the display of a run in four sizes and the frame rate counter, from TripleWheelDisplay.ttf
+# (tools/fontgen), the glyphs of the keys and buttons on the tutorial cards, from PromptFont.ttf, and the font of the
+# debug view of Aether.Physics2D (development keys), from DejaVuSans.ttf, which it loads as DiagnosticsFont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /build:Fonts/menuFont20.spritefont
@@ -30,6 +31,8 @@
 /build:Fonts/menuFont80.spritefont
 /build:Fonts/menuFont160.spritefont
 /build:Fonts/promptFont.spritefont
+/build:Fonts/frameRateCounterFont.spritefont
+/build:Fonts/diagnosticsFont.spritefont;DiagnosticsFont.spritefont
 
 # The FbxImporter reads any format Assimp knows, OBJ too, and unlike the OpenAssetImporter
 # it creates XNA compatible materials (BasicEffect), which the game draws with. The processor
