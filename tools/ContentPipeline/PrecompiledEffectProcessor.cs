@@ -47,7 +47,7 @@ namespace TW3D.ContentPipeline
                     //The effect is built again when the kept code changes
                     context.AddDependency(codeFile);
                     context.AddDependency(stampFile);
-                    context.Logger.LogMessage("{0}: the code compiled on Windows ({1})", Path.GetFileName(source), codeFile);
+                    context.Logger.Log($"{Path.GetFileName(source)}: the code compiled on Windows ({codeFile})");
                     return new CompiledEffectContent(File.ReadAllBytes(codeFile));
                 }
                 try
