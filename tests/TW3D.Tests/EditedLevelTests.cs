@@ -1179,7 +1179,7 @@ namespace TW3D.Tests
         }
 
         [Fact]
-        public void TheOnlyGapOfTheLevelsOfTheGeneratorIsTheJumpOfTheFirstTrainingLevel()
+        public void TheOnlyGapOfTheFirstTrainingLevelIsItsJump()
         {
             //training1.js leaves the road with step(2) before the small jump on purpose, which the editor marks as a gap
             EditedLevel level = Load("training1");
@@ -1187,6 +1187,18 @@ namespace TW3D.Tests
             Assert.Equal(new Cell(13, 0), gap.A.Cell);
             Assert.Equal(new Cell(14, 0), gap.B.Cell);
             Assert.Equal(2, gap.Steps);
+        }
+
+        [Fact]
+        public void TheGapsOfTheDocksAreTheLockAndTheEdgesOfTheContainerYard()
+        {
+            //docks.js steps the road up 3 at the lock block (the front of the trailer meets the road there, as in the lock
+            //level) and sinks the floor of the container yard 5 steps below the road; the editor takes the floor for the
+            //road block of the cell over the ledge, where both stand. The jump across the harbour is no gap: no road block
+            //stands over the water. (Positive: the road goes up.)
+            EditedLevel level = Load("docks");
+            Assert.Equal(new[] { (9, 10, 3), (18, 19, -5), (24, 25, 5) },
+                level.RoadGaps().Select(gap => (gap.A.Cell.X, gap.B.Cell.X, gap.LeftHeight - gap.RightHeight)));
         }
 
         [Fact]

@@ -17,6 +17,7 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 |---|---|
 | `lib.js` | `Track`: the road builder and helpers for decorations |
 | `summit.js` | The *summit* level |
+| `docks.js` | The *docks* level: every kind of block, object and prop, and the three back layers; a sliding ramp to brake on and climb from by turning the axles, pits for barrels, a ramp over the roofs of containers, a hump to brake for, stairs, and a jump across the harbour that needs full speed |
 | `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, long stairs |
 | `side-view.ps1` | Side view of a level's road as an image (Windows PowerShell), to check that it is continuous |
 
@@ -75,3 +76,11 @@ above the road surface, the deeper ones higher on the screen.
 The car climbs 24° slopes (`b2f`) even from a standstill, but not 34° ones (`b3f`) without
 a run-up, and with the throttle alone it gets over a step of 2.5 units but not one of 5 units.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
+
+The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of
+a pit (3.6 units from the middle of a `ba1` block, 6.6 of a `ba2`) tips in at a touch, and the car drives over it; at
+speed the car flies over the pits anyway. The ramp object (`rm`, 26 units long and 4.7 high at its curved end) lying on
+the road at a ledge, overhanging it, throws a fast car over the containers (`co`, `co2`, 13.8 high) standing in a yard
+12.5 units below. The sliding ramp (`mov1`, a trailer) needs the lock block `lo` 7.5 units up and a run-up as in the
+lock level: the car runs onto its bed and brakes, the trailer slides into the lock, and the car climbs onto the road
+above by turning the axles. `docks.js` has the distances of the lock level for both.

@@ -110,5 +110,5 @@ for (const layer of ["back", "front"]) {
 }
 
 const output = process.argv[2] || path.join(__dirname, "..", "..", "content", "Levels", "summit.json");
-t.save(output);
+t.save(output, 7);
 console.log(`${output}: ${t.middle.length} road blocks, ${t.back.length + t.front.length} decorations, ${t.objects.length} objects`);
