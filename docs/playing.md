@@ -51,8 +51,11 @@ menus, the time, the tutorial cards and the on-screen controls stay sharp. Enter
 from the lowest round to native, and left and right step down and up. The row shows the size
 drawn (`1280 × 720`, `1920 × 1080 (native)`); it is kept as a part of the height of the
 screen, so a window of another size, or another monitor, gets the nearest size of its own. A
-Raspberry Pi draws 720 rows at most until another resolution is chosen there. The level
-editor and the previews of the levels (H while driving) stay at the full resolution.
+Raspberry Pi draws 720 rows at most until another resolution is chosen there. On a phone the
+smaller 3D has no multisample antialiasing (MonoGame cannot resolve it there), so its edges
+are rougher; on the vivo test phone the load of its GPU in the garage fell from about 62 % at
+native to 42 % at 2/3 and 25 % at 1/3, at the same 60 frames per second. The level editor and
+the previews of the levels (H while driving) stay at the full resolution.
 
 ## Sound
 

@@ -47,7 +47,8 @@ there is no window at all); a Raspberry Pi draws the 3D scene at 1280×720 witho
 multisampling instead, scaled up under the user interface (`PiGraphics`, see
 [Building](building.md#linux-and-a-raspberry-pi)). The Resolution of Options does the same
 anywhere: below native, `SceneRenderer.End` draws the scene into a render target of its own,
-multisampled as the screen is, at a height of `RenderResolution` (the exact shape of the
+multisampled as the screen is (not on Android: MonoGame resolves a multisampled target by
+`glBlitFramebuffer`, which it lacks there), at a height of `RenderResolution` (the exact shape of the
 screen), and scales it up to the screen with one bilinear sample; the ambient occlusion and
 the sky follow the size of the target, and the menus and the display of a run are drawn over
 it at the size of the screen. At native the scene is drawn straight on the screen, as before. The physics simulation is independent of that: it always

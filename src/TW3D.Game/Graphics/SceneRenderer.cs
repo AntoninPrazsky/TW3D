@@ -586,7 +586,7 @@ namespace TW3D.Graphics
         /// <summary>
         /// The target the scene of this frame is drawn into when it is drawn smaller than the screen: the height of
         /// <see cref="SceneHeight"/>, at the exact shape of the screen (see <see cref="RenderResolution"/>), multisampled
-        /// as the screen is. Null when it is drawn straight on the screen, as it always was: at the native height, while
+        /// as the screen is but on a phone (see <see cref="SceneTargetSamples"/>). Null when it is drawn straight on the screen, as it always was: at the native height, while
         /// it may not be drawn smaller (<see cref="MayDrawSmaller"/>), into a render target of the caller (the previews of
         /// the level editor) or into a part of the screen.
         /// </summary>
@@ -613,9 +613,23 @@ namespace TW3D.Graphics
             {
                 sceneTarget?.Dispose();
                 sceneTarget = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.Depth24,
-                    screen.MultiSampleCount, RenderTargetUsage.DiscardContents);
+                    SceneTargetSamples(screen), RenderTargetUsage.DiscardContents);
             }
             return sceneTarget;
+        }
+
+        /// <summary>
+        /// The samples per pixel of the target the scene is drawn into when it is smaller than the screen: as many as the
+        /// screen has, but none on a phone. MonoGame resolves a multisampled render target by glBlitFramebuffer, which it
+        /// does not have on Android: the game crashed there at the first frame drawn smaller (2026-11-04).
+        /// </summary>
+        private static int SceneTargetSamples(PresentationParameters screen)
+        {
+#if ANDROID
+            return 0;
+#else
+            return screen.MultiSampleCount;
+#endif
         }
 
         /// <summary>The scene drawn smaller (see <see cref="SceneTarget"/>), scaled up over the whole screen.</summary>
