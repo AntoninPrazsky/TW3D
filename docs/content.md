@@ -17,8 +17,10 @@ out (it reads only what XNA's `BasicEffect` has), so the models are processed by
 `MtlModelProcessor` of `tools/ContentPipeline`, which reads them from the `.mtl` file
 and keeps them with the model. It also marks the lamps, by the names of their
 materials: the lenses of the headlights of the cars are named `headlight…`, of the rear
-lights `taillight…`, of the street lamp `streetlight…`. Each lamp is an object of its own in
-the `.obj` file (`HeadlightLeft` …, `lens`), the game finds its middle as the middle of the object.
+lights `taillight…`, of the street lamp `streetlight…`, the signal lamps of the start gate
+`sg` `signalred…`, `signalyellow…` and `signalgreen…`. Each lamp is an object of its own in
+the `.obj` file (`HeadlightLeft` …, `lens`, `SignalRed1` …), the game finds its middle as the
+middle of the object.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were

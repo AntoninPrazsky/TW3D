@@ -1,3 +1,5 @@
+using System;
+
 namespace TW3D.GamePlay
 {
     public enum RaceState
@@ -21,6 +23,8 @@ namespace TW3D.GamePlay
     {
         /// <summary>The countdown before the start, in seconds.</summary>
         public const float CountdownTime = 3f;
+        /// <summary>The columns of red lamps of the start gate, which come on one by one during the countdown.</summary>
+        public const int SignalColumns = 5;
         /// <summary>How long the car falls below the level before the run is lost, in seconds.</summary>
         public const float FallTime = 1f;
         //How long the results wait after the end of the run (seconds)
@@ -41,6 +45,24 @@ namespace TW3D.GamePlay
 
         /// <summary>Seconds left of the countdown.</summary>
         public float Countdown { get; private set; } = CountdownTime;
+
+        /// <summary>
+        /// How many columns of the red lamps of the start gate are on, as in Formula 1: during the countdown one more every
+        /// fifth of it, the first at once and all five for its last fifth; at the start they all go out. None after it.
+        /// </summary>
+        public int RedSignals
+        {
+            get
+            {
+                if (State != RaceState.Countdown)
+                    return 0;
+                int lit = (int)((CountdownTime - Countdown) / (CountdownTime / SignalColumns)) + 1;
+                return Math.Clamp(lit, 1, SignalColumns);
+            }
+        }
+
+        /// <summary>The green lamps of the start gate are on: from the start until the run ends.</summary>
+        public bool GreenSignal => State == RaceState.Racing;
 
         /// <summary>The time of the run in seconds: from the start until now, or until the end of the run.</summary>
         public float Time { get; private set; }

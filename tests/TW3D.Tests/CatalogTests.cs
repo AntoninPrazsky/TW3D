@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using TW3D.GamePlay;
 using TW3D.Shared;
 using Xunit;
 
@@ -57,6 +58,22 @@ namespace TW3D.Tests
             Assert.NotEmpty(turning);
             Assert.All(turning, block => Assert.Null(catalog.FindBlock(block.Name + "f")));
             Assert.All(turning, block => Assert.True(block.Collision));
+        }
+
+        /// <summary>
+        /// The start gate has its signal lamps as objects of their own, five of each colour, in the materials the game
+        /// lights them by (the red ones count the start down column by column, see Race.RedSignals).
+        /// </summary>
+        [Fact]
+        public void TheStartGateHasFiveSignalLampsOfEachColour()
+        {
+            string[] lines = File.ReadAllLines(Path.Combine(Repository.Content, "Levels", "mod", "sg.obj"));
+            foreach ((string name, string material) in new[] { ("SignalRed", "signalred"), ("SignalYellow", "signalyellow"), ("SignalGreen", "signalgreen") })
+            {
+                List<int> objects = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("o " + name)).ToList();
+                Assert.Equal(Race.SignalColumns, objects.Count);
+                Assert.All(objects, i => Assert.Equal("usemtl " + material, lines[i + 1]));
+            }
         }
 
         /// <summary>The levels name a prop of the scenery by its model, so no two props share one.</summary>

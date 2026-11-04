@@ -87,7 +87,10 @@ lamp also lights the scene as a spot light of its colour: the two headlights ahe
 beams a little apart, the rear lights red behind the car. The street lamps of the scenery
 (the lens of the material `streetlight…`) shine at night with a glow too, and the four nearest
 to the camera light the road and the props below them as spot lights pointing down, warm
-white: `Scene.fx` has eight lights, four of the car and four of the street lamps.
+white: `Scene.fx` has eight lights, four of the car and four of the street lamps. The
+signal lamps of the start gate count the start down in any weather (`SceneRenderer.StartLights`,
+set from `Race.RedSignals` and `Race.GreenSignal` by the run, off everywhere else): the red ones
+come on column by column during the countdown, the green ones light at the start.
 
 The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the

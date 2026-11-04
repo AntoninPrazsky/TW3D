@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
@@ -13,8 +14,18 @@ namespace TW3D.Graphics
         Headlight,
         RearLight,
         /// <summary>The lens of a street lamp: it shines at night and lights the scene below it.</summary>
-        StreetLight
+        StreetLight,
+        /// <summary>A signal lamp of the start gate, which shines as <see cref="SceneRenderer.StartLights"/> says.</summary>
+        SignalRed,
+        SignalYellow,
+        SignalGreen
     }
+
+    /// <summary>
+    /// What the signal lamps of the start gate show: how many columns of the red lamps are on (from the left seen by the
+    /// driver, as the lamps of Formula 1 come on), and whether the green lamps are. The yellow lamps stay off.
+    /// </summary>
+    public readonly record struct StartLights(int Red, bool Green);
 
     /// <summary>
     /// Draws the 3D scene of one frame: the models added between <see cref="Begin"/> and <see cref="End"/>,
@@ -51,6 +62,7 @@ namespace TW3D.Graphics
         private const float HeadlightGlowRadius = 0.3f;
         private const float RearLightGlowRadius = 0.18f;
         private const float StreetLightGlowRadius = 0.45f;
+        private const float SignalGlowRadius = 0.15f;
         private const float GlowStrength = 0.8f;
         private const float DaylightGlowStrength = 0.45f;
         private const float GlowPull = 0.8f;
@@ -134,8 +146,10 @@ namespace TW3D.Graphics
             public float Metallic;
             /// <summary>0 for a perfect mirror, 1 for a material mirroring nothing ("Pr" of the MTL file, 1 without it).</summary>
             public float Roughness;
-            /// <summary>A lamp of the car, shining in its emissive colour only when it is on.</summary>
+            /// <summary>A lamp, shining in its emissive colour only when it is on.</summary>
             public Lamp Lamp;
+            /// <summary>The column of a signal lamp of the start gate: 0 the leftmost seen by the driver (see <see cref="StartLights"/>).</summary>
+            public int Column;
             /// <summary>The emissive colour of the material as it is (for the classic look, which changes it for lamps).</summary>
             public Vector3 ClassicEmissive;
 
@@ -150,19 +164,21 @@ namespace TW3D.Graphics
             public LampData[] Lamps;
         }
 
-        /// <summary>A lamp of a car model: the middle and radius of its mesh, the colour it shines in.</summary>
+        /// <summary>A lamp of a model: the middle and radius of its mesh, the colour it shines in, its column (a signal lamp).</summary>
         private readonly struct LampData
         {
-            public LampData(Lamp lamp, BoundingSphere bounds, Vector3 colour)
+            public LampData(Lamp lamp, BoundingSphere bounds, Vector3 colour, int column)
             {
                 Lamp = lamp;
                 Bounds = bounds;
                 Colour = colour;
+                Column = column;
             }
 
             public Lamp Lamp { get; }
             public BoundingSphere Bounds { get; }
             public Vector3 Colour { get; }
+            public int Column { get; }
         }
 
         private readonly struct DrawItem
@@ -391,6 +407,12 @@ namespace TW3D.Graphics
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;
 
+        /// <summary>
+        /// What the signal lamps of the start gates show, for this frame (see Begin, which switches them off): set by a run
+        /// of a level during its countdown and after the start, off everywhere else (the menus, the level editor).
+        /// </summary>
+        public StartLights StartLights { get; set; }
+
         /// <summary>Starts a frame seen by a camera.</summary>
         public void Begin(Matrix view, Matrix projection)
         {
@@ -404,6 +426,7 @@ namespace TW3D.Graphics
             sky = false;
             overlay = null;
             ghost = null;
+            StartLights = default;
             car = false;
             braking = false;
             Array.Clear(lights);
@@ -522,7 +545,8 @@ namespace TW3D.Graphics
         }
 
         /// <summary>How much a lamp shines now: 0 = off, 1 = fully.</summary>
-        private float LampGlow(Lamp lamp)
+        /// <param name="column">The column of a signal lamp of the start gate.</param>
+        private float LampGlow(Lamp lamp, int column = 0)
         {
             bool lightsOn = car && Lighting.Headlights;
             switch (lamp)
@@ -530,9 +554,15 @@ namespace TW3D.Graphics
                 case Lamp.Headlight: return lightsOn ? 1f : 0f;
                 case Lamp.RearLight: return braking ? 1f : lightsOn ? RearLightDim : 0f;
                 case Lamp.StreetLight: return Lighting.Headlights ? 1f : 0f;
+                case Lamp.SignalRed: return column < StartLights.Red ? 1f : 0f;
+                case Lamp.SignalYellow: return 0f;
+                case Lamp.SignalGreen: return StartLights.Green ? 1f : 0f;
                 default: return 1f;
             }
         }
+
+        /// <summary>A signal lamp of the start gate, which shines by day as well as at night.</summary>
+        private static bool IsSignal(Lamp lamp) => lamp is Lamp.SignalRed or Lamp.SignalYellow or Lamp.SignalGreen;
 
         /// <summary>
         /// The sky of the <see cref="Lighting"/> is drawn behind everything else, for this frame (see Begin): computed from
@@ -868,14 +898,15 @@ namespace TW3D.Graphics
 
                 foreach (LampData lamp in item.Model.Lamps)
                 {
-                    float glow = LampGlow(lamp.Lamp);
+                    float glow = LampGlow(lamp.Lamp, lamp.Column);
                     if (glow <= 0f)
                         continue;
                     Vector3 centre = Vector3.Transform(lamp.Bounds.Center, item.World);
                     centre += Vector3.Normalize(eye - centre) * GlowPull;
                     float radius = (lamp.Lamp == Lamp.Headlight ? HeadlightGlowRadius : lamp.Lamp == Lamp.StreetLight ? StreetLightGlowRadius
-                        : RearLightGlowRadius) * MathF.Sqrt(glow);
-                    Color colour = new Color(lamp.Colour * (glow * strength));
+                        : IsSignal(lamp.Lamp) ? SignalGlowRadius : RearLightGlowRadius) * MathF.Sqrt(glow);
+                    //A signal is meant to be seen in daylight too
+                    Color colour = new Color(lamp.Colour * (glow * (IsSignal(lamp.Lamp) ? GlowStrength : strength)));
                     Vector3 x = right * radius, y = up * radius;
                     glowVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
                     glowVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
@@ -1206,7 +1237,7 @@ namespace TW3D.Graphics
         {
             worldParameter.SetValue(world);
             diffuseParameter.SetValue(part.Diffuse);
-            emissiveParameter.SetValue((part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp) * LampBrightness)) + glow);
+            emissiveParameter.SetValue((part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp, part.Column) * LampBrightness)) + glow);
             specularParameter.SetValue(part.Specular);
             alphaParameter.SetValue(part.Alpha * alpha);
             metallicParameter.SetValue(part.Metallic);
@@ -1280,7 +1311,7 @@ namespace TW3D.Graphics
             BasicEffect basic = part.Effect;
             Lighting.ApplyClassic(basic);
             if (part.Lamp != Lamp.None)
-                basic.EmissiveColor = part.ClassicEmissive * LampGlow(part.Lamp);
+                basic.EmissiveColor = part.ClassicEmissive * LampGlow(part.Lamp, part.Column);
             //The effect is the model's, shared with every draw of it: what is changed for one draw is put back after it
             bool seeThrough = alpha < 1f || glow != Vector3.Zero;
             Vector3 emissive = basic.EmissiveColor;
@@ -1323,7 +1354,8 @@ namespace TW3D.Graphics
             model.CopyAbsoluteBoneTransformsTo(transforms);
 
             List<ModelPart> parts = new List<ModelPart>();
-            List<LampData> lamps = new List<LampData>();
+            //The lamps: their parts, the bounds of their meshes and the colours they shine in
+            List<(ModelPart Part, BoundingSphere Bounds, Vector3 Colour)> lamps = new List<(ModelPart, BoundingSphere, Vector3)>();
             BoundingSphere bounds = new BoundingSphere();
             bool first = true;
             foreach (ModelMesh mesh in model.Meshes)
@@ -1355,11 +1387,24 @@ namespace TW3D.Graphics
                         Lamp = (Lamp)(int)finish.Z
                     });
                     if (parts[parts.Count - 1].Lamp != Lamp.None)
-                        lamps.Add(new LampData(parts[parts.Count - 1].Lamp, meshBounds, material.EmissiveColor));
+                        lamps.Add((parts[parts.Count - 1], meshBounds, material.EmissiveColor));
                 }
             }
 
-            data = new ModelData { Parts = parts.ToArray(), Bounds = bounds, Lamps = lamps.ToArray() };
+            //The signal lamps of each colour by their columns: from the one furthest along +z of the model, the leftmost
+            //seen by a driver driving along +x of the physics (towards -x of the scene)
+            foreach (var colour in lamps.Where(lamp => IsSignal(lamp.Part.Lamp)).GroupBy(lamp => lamp.Part.Lamp))
+            {
+                int column = 0;
+                foreach (var lamp in colour.OrderByDescending(lamp => lamp.Bounds.Center.Z))
+                    lamp.Part.Column = column++;
+            }
+            data = new ModelData
+            {
+                Parts = parts.ToArray(),
+                Bounds = bounds,
+                Lamps = lamps.Select(lamp => new LampData(lamp.Part.Lamp, lamp.Bounds, lamp.Colour, lamp.Part.Column)).ToArray()
+            };
             models.Add(model, data);
             return data;
         }

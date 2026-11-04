@@ -1,4 +1,5 @@
-# Converted from sg.x, the Wings 3D export of the model
+# Converted from sg.x, the Wings 3D export of the model; the signal lamps (signalred, signalyellow, signalgreen)
+# shine in their Ke when the game lights them at the start (SceneRenderer.StartLights)
 
 newmtl default2
 Kd 0.24742 0.24742 0.24742
@@ -8,11 +9,11 @@ Ke 0.0 0.0 0.0
 Ns 0.3466666666666667
 illum 2
 
-newmtl default3
+newmtl signalred
 Kd 0.30666666666666664 0.0 0.0
 d 1.0
 Ks 0.0 0.0 0.0
-Ke 0.0 0.0 0.0
+Ke 1.0 0.06 0.04
 Ns 0.76
 illum 2
 
@@ -24,19 +25,19 @@ Ke 0.0 0.0 0.0
 Ns 0.7466666666666667
 illum 2
 
-newmtl default5
+newmtl signalyellow
 Kd 0.42 0.31919999999999993 0.0
 d 1.0
 Ks 0.0 0.0 0.0
-Ke 0.0 0.0 0.0
+Ke 1.0 0.72 0.05
 Ns 0.76
 illum 2
 
-newmtl default6
+newmtl signalgreen
 Kd 0.10756 0.32 0.10756
 d 1.0
 Ks 0.0 0.0 0.0
-Ke 0.0 0.0 0.0
+Ke 0.12 1.0 0.28
 Ns 0.76
 illum 2
 

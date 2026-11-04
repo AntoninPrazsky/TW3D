@@ -441,6 +441,8 @@ namespace TW3D.GamePlay
             renderer.MayDrawSmaller = !developmentKeys.TrackOnly;
             renderer.Begin(camera.View, camera.Projection);
             renderer.SetSky();
+            //The signal lamps of the start gate count the start down, as the numbers in the middle of the screen do
+            renderer.StartLights = new StartLights(race.RedSignals, race.GreenSignal);
             if (!developmentKeys.TrackOnly)
                 car.Draw(renderer);
             level.Draw(renderer);
