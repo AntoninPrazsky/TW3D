@@ -40,6 +40,8 @@ namespace TW3D.GamePlay
         private const char KeyDown = '↓';
         private const char KeySpace = '␺';
         private const char KeyLeftCtrl = '⑍';
+        private const char KeyEscape = '␯';
+        private const char PadBack = '⇺';
 
         //The glyphs of the fonts; SpriteFont.GetGlyphs makes a new dictionary each time
         private static readonly Dictionary<SpriteFont, Dictionary<char, SpriteFont.Glyph>> glyphs = new Dictionary<SpriteFont, Dictionary<char, SpriteFont.Glyph>>();
@@ -103,7 +105,7 @@ namespace TW3D.GamePlay
             float y = rowCentreY + rowHeight / 2f * size;
             if (step?.Detail != null)
                 y += DrawCentred(manager, step.Detail, centreX, y, DetailScale * ui * size, Color.LightGray * alpha, alpha);
-            if (tutorial.PraiseAge is float praiseAge)
+            if (tutorial.PraiseAge is float praiseAge && lesson.Praise != null)
             {
                 float praiseAlpha = alpha * MathHelper.Clamp(praiseAge * 6f, 0f, 1f);
                 DrawCentred(manager, lesson.Praise, centreX, y, PraiseScale * ui * size * (1f + 0.35f * Kick(praiseAge)),
@@ -119,6 +121,7 @@ namespace TW3D.GamePlay
                 CarControl.Throttle => gamePad ? PadLeftStickRight.ToString() : KeyRight.ToString(),
                 CarControl.Axles => gamePad ? PadLeftStickUpDown.ToString() : new string(new[] { KeyUp, KeyDown }),
                 CarControl.Brake => gamePad ? PadA.ToString() : KeySpace.ToString(),
+                CarControl.Pause => gamePad ? PadBack.ToString() : KeyEscape.ToString(),
                 _ => gamePad ? PadB.ToString() : KeyLeftCtrl.ToString()
             };
         }

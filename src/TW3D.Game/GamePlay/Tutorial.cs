@@ -26,6 +26,29 @@ namespace TW3D.GamePlay
         public bool LockAxles { get; }
     }
 
+    /// <summary>How the car moves in a frame, as far as the hints of the tutorial need it.</summary>
+    public readonly struct CarMotion
+    {
+        public CarMotion(float speed, float distance, bool onWheels)
+        {
+            Speed = speed;
+            Distance = distance;
+            OnWheels = onWheels;
+        }
+
+        /// <summary>The speed of the car forward (physics units a second).</summary>
+        public float Speed { get; }
+
+        /// <summary>How far along the level the car is: its position forward (physics units).</summary>
+        public float Distance { get; }
+
+        /// <summary>
+        /// The car stands on its wheels: some of them touch the ground and it is not turned far over (onto its roof, its
+        /// nose or its tail). In the air or turned over, turning the axles climbs nothing.
+        /// </summary>
+        public bool OnWheels { get; }
+    }
+
     /// <summary>One step of a lesson: what its card says, and what the player has to hold, and how long, to do it.</summary>
     public sealed class LessonStep
     {
@@ -105,7 +128,7 @@ namespace TW3D.GamePlay
 
         public bool IsNotice => Steps.Count == 0;
 
-        /// <summary>Shown when it is due, not taught once (see <see cref="Tutorial.StuckHint"/>).</summary>
+        /// <summary>Shown when it is due, not taught once (see <see cref="Tutorial.StuckHint"/> and <see cref="Tutorial.RestartHint"/>).</summary>
         public bool IsHint { get; }
     }
 
@@ -124,7 +147,8 @@ namespace TW3D.GamePlay
     /// tutorial of BS3D. A level shows its own lessons in every run, taught or not; a lesson not taught yet follows the
     /// player into the next levels, one taught is saved and not shown there again. An action stays until the player
     /// does it (then a word of praise joins it) and gives up after a while unrecorded; a notice stays a few seconds.
-    /// A hint comes whenever the player needs it (see <see cref="StuckHint"/>). The cards never stop the game.
+    /// A hint comes whenever the player needs it (see <see cref="StuckHint"/> and <see cref="RestartHint"/>). The cards never
+    /// stop the game.
     /// This class holds the lessons and their state and draws nothing (see <see cref="TutorialCard"/>).
     /// </summary>
     public sealed class Tutorial
@@ -151,6 +175,11 @@ namespace TW3D.GamePlay
         private const float StuckTime = 3f;
         private const float StuckSpeed = 3f;
         private const float HintTime = 7f;
+        //Turning the axles at a place, on the wheels, this long (seconds; as long as doing the stuck hint takes) without
+        //the car moving on this far from it (physics units, about half the length of a car) shows that they do not help
+        //there: the restart hint comes there instead of the stuck hint
+        private const float TriedTime = 0.6f;
+        private const float ProgressDistance = 10f;
 
         /// <summary>
         /// The lessons, in the order they are taught. The first levels are training levels: driving (training1), stairs
@@ -170,11 +199,20 @@ namespace TW3D.GamePlay
 
         /// <summary>
         /// The hint for a car stuck in front of an obstacle with the throttle held, after BS3D's precise-aim hint: it
-        /// counts only the time the throttle is held while the car makes no progress, so a player who stops to think is
-        /// not nagged, and turning the axles starts the count again.
+        /// counts only the time the throttle is held while the car stands on its wheels and makes no progress, so a player
+        /// who stops to think is not nagged, and turning the axles starts the count again. In the air or turned over it
+        /// does not come (on the roof the run is soon lost, see Race), nor where the axles were turned and did not help.
         /// </summary>
         public static readonly Lesson StuckHint = Lesson.Hint("stuck", "That's it!",
-            new LessonStep(CarControl.Axles, "Turn the axles to climb over", null, a => a.Axles, 0.6f, false));
+            new LessonStep(CarControl.Axles, "Turn the axles to climb over", null, a => a.Axles, TriedTime, false));
+
+        /// <summary>
+        /// The hint for a car stuck where turning the axles did not help (wedged between blocks, hung on an edge with its
+        /// wheels in the air, in front of a step too high): restarting is the only way on. It comes as the stuck hint
+        /// would, and goes when the pause menu opens (see <see cref="Paused"/>) or after a while.
+        /// </summary>
+        public static readonly Lesson RestartHint = Lesson.Hint("restart", null,
+            new LessonStep(CarControl.Pause, "Stuck? Pause and restart", null, _ => false, 1f, false));
 
         /// <summary>Set once at the start by the command line (see Program).</summary>
         public static TutorialLever Lever { get; set; }
@@ -190,6 +228,10 @@ namespace TW3D.GamePlay
         private bool leaving;
         //Seconds the throttle has been held while the car made no progress
         private float stuck;
+        //Where the car was when the axles were turned there (physics units) and for how long they have been turned since,
+        //the car not having moved on from there; null while they were not
+        private float? triedAt;
+        private float triedFor;
 
         /// <param name="level">The position of the level in the level select (0 = the first one).</param>
         /// <param name="taughtLessons">The keys of the lessons taught before.</param>
@@ -209,7 +251,10 @@ namespace TW3D.GamePlay
                     queue.Enqueue(lesson);
             }
             if (Lever == TutorialLever.Demo)
+            {
                 queue.Enqueue(StuckHint);
+                queue.Enqueue(RestartHint);
+            }
         }
 
         /// <summary>The lesson of the card shown; null when there is none.</summary>
@@ -233,17 +278,30 @@ namespace TW3D.GamePlay
         /// <summary>Moves the tutorial on.</summary>
         /// <param name="elapsed">Real seconds since the last update.</param>
         /// <param name="racing">The run is on: before the start no card comes, at the finish the card goes at once.</param>
-        /// <param name="carSpeed">The speed of the car forward (physics units a second).</param>
-        public void Update(float elapsed, bool racing, DriveActions actions, float carSpeed)
+        public void Update(float elapsed, bool racing, DriveActions actions, CarMotion car)
         {
             if (!racing)
             {
                 Lesson = null;
                 stuck = 0f;
+                triedAt = null;
+                triedFor = 0f;
                 return;
             }
 
-            if (actions.Axles || carSpeed >= StuckSpeed)
+            //The place where the axles were turned is forgotten when the car has moved on from it
+            if (triedAt.HasValue && car.Distance > triedAt.Value + ProgressDistance)
+            {
+                triedAt = null;
+                triedFor = 0f;
+            }
+            if (actions.Axles && car.OnWheels)
+            {
+                triedAt ??= car.Distance;
+                triedFor += elapsed;
+            }
+
+            if (actions.Axles || car.Speed >= StuckSpeed || !car.OnWheels)
                 stuck = 0f;
             else if (actions.Throttle)
                 stuck += elapsed;
@@ -251,11 +309,11 @@ namespace TW3D.GamePlay
             if (Lesson == null)
             {
                 wait -= elapsed;
-                //A hint due comes first, as soon as no card is up
+                //A hint due comes first, as soon as no card is up: where the axles did not help, the restart hint
                 if (stuck >= StuckTime)
                 {
                     stuck = 0f;
-                    Show(StuckHint);
+                    Show(triedAt.HasValue && triedFor >= TriedTime ? RestartHint : StuckHint);
                 }
                 else if (wait <= 0f && queue.Count > 0)
                     Show(queue.Dequeue());
@@ -302,6 +360,19 @@ namespace TW3D.GamePlay
             Practise(elapsed, actions);
             if (!PraiseAge.HasValue && Age >= (Lesson.IsHint ? HintTime : ActionTimeout))
                 Leave();
+        }
+
+        /// <summary>
+        /// The pause menu opened: the restart hint is heeded (the player is about to restart, or comes back still stuck,
+        /// when it comes again), so its card goes at once. The other cards stay.
+        /// </summary>
+        public void Paused()
+        {
+            if (Lesson != RestartHint)
+                return;
+            Lesson = null;
+            stuck = 0f;
+            wait = CardGap;
         }
 
         private void Show(Lesson lesson)

@@ -165,9 +165,16 @@ no lesson yet: no level needs it so far. A card can have two steps (the second o
 when the first is done), which a lesson of braking while turning the axles would use.
 
 A car stuck in front of an obstacle gets a hint: when the throttle has been held for 3
-seconds while the car made no progress, ↑ ↓ *Turn the axles to climb over* comes (only the
-time with the throttle held counts, and turning the axles starts the count again). The
-hint is never saved: it goes after 7 seconds and comes again whenever it is due.
+seconds while the car stood on its wheels and made no progress, ↑ ↓ *Turn the axles to
+climb over* comes (only the time with the throttle held counts, and turning the axles
+starts the count again). It does not come in the air or with the car turned far over (on
+its roof the run is soon lost, see below). Where the axles were turned (with the hint or
+without it) and the car still did not move on, they do not help (it is wedged between
+blocks, hung on an edge with its wheels in the air, in front of a step too high): there
+the next hint is Esc (the Back button of a gamepad, the pause button of the screen)
+*Stuck? Pause and restart* instead, until the car has moved on half a car's length. The
+hints are never saved: they go after 7 seconds and come again whenever they are due; the
+restart hint goes at once when the pause menu opens.
 
 The levels are counted in the order of the level select. The lessons and their state are
 in `GamePlay/Tutorial.cs`, the card is drawn by `GamePlay/TutorialCard.cs`; the design
@@ -200,8 +207,13 @@ dragged by hand does not count.
 
 A car that falls off the level (below its lowest block, where there is nothing to land on)
 for a second, while nobody holds it, loses the run (`GamePlay/Race.cs`): Game over, with a
-falling chord, and results titled Game over with no stars and no time. The camera does not
-follow the car below the level, so it drops out of sight, and stays where it was lost.
+falling chord, and results titled Game over with no stars and no time. So does a car lying
+still on its roof for 4 seconds (turned more than about 120° from upright, its body on the
+track or an object): one that slides, or that the player rocks with the axles or gets back
+onto its wheels in time (braking and turning the axles), drives on, and a car that turns
+over in the air counts only when it lands on its roof. The camera keeps following a car
+lost on its roof, but not a car below the level: that one drops out of sight, and the
+camera stays where it was lost.
 
 ## Development keys
 
@@ -219,3 +231,4 @@ While driving:
 | M | Switches the mood of the level (day, sunset, night) to try it; the level file stays as it is |
 | F12 | Frames per second on / off (also in Options) |
 | H | The track alone: the car, the time, the tutorial and the on-screen controls hidden (for the previews of the levels) |
+| U | Turns the car onto its roof (to try out the Game over on the roof) |

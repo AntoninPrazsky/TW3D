@@ -9,15 +9,31 @@ namespace TW3D.GamePlay
         Racing,
         /// <summary>The car has reached the finish; the results follow after a while.</summary>
         Finished,
-        /// <summary>The car fell off the level: the game is over, the results (no stars) follow after a while.</summary>
+        /// <summary>
+        /// The car fell off the level or lay still on its roof (see <see cref="Race.Loss"/>): the game is over, the results
+        /// (no stars) follow after a while.
+        /// </summary>
         Lost
+    }
+
+    /// <summary>How a run was lost.</summary>
+    public enum RaceLoss
+    {
+        /// <summary>Not lost.</summary>
+        None,
+        /// <summary>The car fell off the level (below its lowest block) for <see cref="Race.FallTime"/>.</summary>
+        Fell,
+        /// <summary>The car lay still on its roof for <see cref="Race.RoofTime"/>.</summary>
+        Roof
     }
 
     /// <summary>
     /// A run of a level: the countdown before the start, the time from the start until the car reaches the finish, and
     /// the wait at the finish before the results. The time is measured by the simulation, not by the frames, so the run
     /// is timed fairly even when frames are slow; it is in real seconds (the game runs faster than real time, see
-    /// GameplayScreen.GameSpeed). A car falling below the level for a while has fallen off it, and the run is lost.
+    /// GameplayScreen.GameSpeed). A car falling below the level for a while has fallen off it, and the run is lost; so is
+    /// it when the car lies still on its roof for a while (one that moves, or that the player gets back onto its wheels in
+    /// time, drives on).
     /// </summary>
     public sealed class Race
     {
@@ -27,6 +43,8 @@ namespace TW3D.GamePlay
         public const int SignalColumns = 5;
         /// <summary>How long the car falls below the level before the run is lost, in seconds.</summary>
         public const float FallTime = 1f;
+        /// <summary>How long the car lies still on its roof before the run is lost, in seconds (the owner's choice, #50).</summary>
+        public const float RoofTime = 4f;
         //How long the results wait after the end of the run (seconds)
         private const float ResultsDelay = 1.5f;
 
@@ -68,6 +86,12 @@ namespace TW3D.GamePlay
         /// <summary>Seconds the car has been falling below the level, without coming back.</summary>
         public float Falling { get; private set; }
 
+        /// <summary>Seconds the car has been lying still on its roof, without moving or getting back onto its wheels.</summary>
+        public float OnRoof { get; private set; }
+
+        /// <summary>How the run was lost; <see cref="RaceLoss.None"/> while it is not.</summary>
+        public RaceLoss Loss { get; private set; }
+
         /// <summary>Seconds since the end of the run (the finish, or the car lost).</summary>
         public float SinceEnd { get; private set; }
 
@@ -86,7 +110,8 @@ namespace TW3D.GamePlay
         /// <param name="simulatedTime">How much time the simulation has run so far, in real seconds.</param>
         /// <param name="atFinish">The car is at the finish.</param>
         /// <param name="belowLevel">The car is below the level, falling (and nobody holds it).</param>
-        public bool Update(float elapsed, double simulatedTime, bool atFinish, bool belowLevel)
+        /// <param name="stillOnRoof">The car lies still on its roof (and nobody holds it).</param>
+        public bool Update(float elapsed, double simulatedTime, bool atFinish, bool belowLevel, bool stillOnRoof)
         {
             switch (State)
             {
@@ -107,7 +132,12 @@ namespace TW3D.GamePlay
                         return true;
                     }
                     Falling = belowLevel ? Falling + elapsed : 0f;
-                    if (Falling < FallTime)
+                    OnRoof = stillOnRoof ? OnRoof + elapsed : 0f;
+                    if (Falling >= FallTime)
+                        Loss = RaceLoss.Fell;
+                    else if (OnRoof >= RoofTime)
+                        Loss = RaceLoss.Roof;
+                    else
                         return false;
                     State = RaceState.Lost;
                     return true;

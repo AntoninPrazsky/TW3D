@@ -15,7 +15,7 @@ namespace TW3D.Audio
         Countdown,
         Start,
         Finish,
-        /// <summary>The car fell off the level: the run is lost.</summary>
+        /// <summary>The car fell off the level, or lay still on its roof: the run is lost.</summary>
         GameOver,
         /// <summary>A star of the results; played a third and a fifth higher for the second and the third star.</summary>
         Star,

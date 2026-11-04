@@ -212,7 +212,7 @@ namespace TW3D.Input
 
         /// <summary>
         /// Draws the on-screen control of a car control as an icon (on the tutorial cards): the joystick moving the way it
-        /// is used, or the brake or lock button being pressed. Must be called between SpriteBatch.Begin and End.
+        /// is used, the brake or lock button being pressed, or the pause button. Must be called between SpriteBatch.Begin and End.
         /// </summary>
         /// <param name="centre">The middle of the icon.</param>
         /// <param name="height">The height of the icon in pixels.</param>
@@ -238,6 +238,9 @@ namespace TW3D.Input
                 case CarControl.Lock:
                     DrawIconButton(batch, lockTexture, pressed ? LockPressedRegion : LockReleased, centre, height, colour);
                     break;
+                case CarControl.Pause:
+                    DrawPauseBars(batch, new Rectangle((int)(centre.X - height / 2f), (int)(centre.Y - height / 2f), (int)height, (int)height), colour);
+                    break;
             }
         }
 
@@ -248,6 +251,7 @@ namespace TW3D.Input
             {
                 CarControl.Brake => height * BrakeReleased.Width / BrakeReleased.Height,
                 CarControl.Lock => height * LockReleased.Width / LockReleased.Height,
+                CarControl.Pause => height,
                 _ => height * socketTexture.Width / socketTexture.Height
             };
         }
@@ -260,13 +264,19 @@ namespace TW3D.Input
         /// <summary>Two upright bars, like the buttons half transparent.</summary>
         private void DrawPauseButton(SpriteBatch batch, float alpha)
         {
-            int barWidth = (int)(pauseBounds.Width * 0.22f);
-            int barHeight = (int)(pauseBounds.Height * 0.7f);
-            int gap = (int)(pauseBounds.Width * 0.2f);
-            int left = pauseBounds.Center.X - gap / 2 - barWidth;
-            int top = pauseBounds.Center.Y - barHeight / 2;
-            batch.Draw(pixel, new Rectangle(left, top, barWidth, barHeight), Color.White * (0.5f * alpha));
-            batch.Draw(pixel, new Rectangle(left + barWidth + gap, top, barWidth, barHeight), Color.White * (0.5f * alpha));
+            DrawPauseBars(batch, pauseBounds, Color.White * (0.5f * alpha));
+        }
+
+        /// <summary>The two upright bars of the pause button, in a square.</summary>
+        private void DrawPauseBars(SpriteBatch batch, Rectangle square, Color colour)
+        {
+            int barWidth = (int)(square.Width * 0.22f);
+            int barHeight = (int)(square.Height * 0.7f);
+            int gap = (int)(square.Width * 0.2f);
+            int left = square.Center.X - gap / 2 - barWidth;
+            int top = square.Center.Y - barHeight / 2;
+            batch.Draw(pixel, new Rectangle(left, top, barWidth, barHeight), colour);
+            batch.Draw(pixel, new Rectangle(left + barWidth + gap, top, barWidth, barHeight), colour);
         }
 
         private void DrawButton(SpriteBatch batch, Texture2D texture, Vector2 center, Rectangle region, float alpha)

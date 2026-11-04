@@ -216,7 +216,7 @@ namespace TW3D.GamePlay
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
             speedometer = new Speedometer(Manager.GraphicsDevice);
-            developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood);
+            developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood, car.TurnOver);
             if (testLevel == null && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
@@ -267,7 +267,7 @@ namespace TW3D.GamePlay
             throttleHeld = Math.Abs(drive.Stick.X) > ThrottleThreshold ? Math.Min(1f, Math.Abs(drive.Stick.X)) : 0f;
             tutorial?.Update(elapsed, race.State == RaceState.Racing,
                 new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage),
-                car.car.LinearVelocity.X);
+                new CarMotion(car.car.LinearVelocity.X, car.car.Position.X, car.OnWheels));
 
             //A run in which the car was dragged by hand does not count
             if (drag.Update(input, controls, Manager.Viewport) && race.State != RaceState.Finished)
@@ -319,13 +319,14 @@ namespace TW3D.GamePlay
                 impacts.Update(realElapsed);
                 speedometer.Update(Speedometer.Kmh(car.Speed, GameSpeed), realElapsed);
             }
-            //A car fallen off the level is gone: it is not heard any more
-            carSounds.Update(realElapsed, running && race.State != RaceState.Lost, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
+            //A car fallen off the level is gone: it is not heard any more (one lost on its roof still is)
+            bool fallenOff = race.Loss == RaceLoss.Fell;
+            carSounds.Update(realElapsed, running && !fallenOff, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is
             //paused. It does not follow the car below the level: a car falling off it drops out of sight, and is left
-            //there when the run is lost
-            if (race.State != RaceState.Lost)
+            //there when the run is lost (a car lost on its roof it keeps following)
+            if (!fallenOff)
             {
                 followed = physics.Position(car.car);
                 followed.Y = Math.Min(followed.Y, level.Bottom);
@@ -338,7 +339,10 @@ namespace TW3D.GamePlay
             {
                 RaceState before = race.State;
                 bool belowLevel = car.car.Position.Y > level.Bottom && !drag.Holding;
-                if (race.Update(realElapsed, physics.Time / GameSpeed, level.IsAtFinish(car.car.Position), belowLevel))
+                //Turning the axles rocks a car on its roof (the player trying to right it), which then does not lie still:
+                //by itself it wobbles about as much, so the speed of the body alone cannot tell
+                bool stillOnRoof = car.LiesStillOnRoof && !car.holderRotation && !drag.Holding;
+                if (race.Update(realElapsed, physics.Time / GameSpeed, level.IsAtFinish(car.car.Position), belowLevel, stillOnRoof))
                 {
                     if (race.State == RaceState.Finished)
                         Finish();
@@ -377,7 +381,7 @@ namespace TW3D.GamePlay
             record = !race.Assisted && records.Add(levelName, race.Time);
         }
 
-        /// <summary>The car fell off the level: the run is lost.</summary>
+        /// <summary>The car fell off the level, or lay still on its roof: the run is lost.</summary>
         private void GameOver()
         {
             Manager.Sounds.Play(Sound.GameOver);
@@ -390,17 +394,23 @@ namespace TW3D.GamePlay
         {
             if (testLevel != null)
                 results = race.State == RaceState.Lost
-                    ? new ResultsScreen(previousBest, null, Restart, BackToEditor, null, BackToEditorText)
+                    ? new ResultsScreen(previousBest, LossText(), null, Restart, BackToEditor, null, BackToEditorText)
                     : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, null, Restart, BackToEditor, null, BackToEditorText);
             else
             {
                 string next = NextLevel();
                 Action nextLevel = next != null ? () => Start(next) : null;
                 results = race.State == RaceState.Lost
-                    ? new ResultsScreen(previousBest, nextLevel, Restart, Close, ExitToMainMenu)
+                    ? new ResultsScreen(previousBest, LossText(), nextLevel, Restart, Close, ExitToMainMenu)
                     : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close, ExitToMainMenu);
             }
             Manager.Add(results);
+        }
+
+        /// <summary>Why the run was lost, as the results of a lost run say it.</summary>
+        private string LossText()
+        {
+            return race.Loss == RaceLoss.Roof ? "Stuck on its roof" : "Fell off the track";
         }
 
         /// <summary>
@@ -409,6 +419,7 @@ namespace TW3D.GamePlay
         /// </summary>
         private void Pause()
         {
+            tutorial?.Paused();
             if (testLevel != null)
                 Manager.Add(new PauseScreen(Restart, BackToEditor, null, BackToEditorText));
             else

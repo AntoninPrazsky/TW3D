@@ -438,6 +438,70 @@ namespace TW3D.GameObjects
         /// <summary>The speed of the car (physics units a second).</summary>
         public float Speed => car.LinearVelocity.Length();
 
+        //The car is on its roof when its body is turned more than this from upright (radians, about 120°: not standing on
+        //its nose or tail against a wall) and touches the track or an object; it lies still there while it moves and turns
+        //slower than this (physics units a second, radians a second). It stands on its wheels while one of them touches the
+        //ground and the body is turned less than this (radians, 90°)
+        private const float RoofAngle = 2.1f;
+        private const float StillSpeed = 1.5f;
+        private const float StillTurn = 0.3f;
+        private const float WheelsAngle = MathHelper.PiOver2;
+        //Turned over by the development key, the car is lifted this far (physics units) before it falls onto its roof
+        private const float TurnOverLift = 15f;
+
+        /// <summary>How far the body is turned from upright, either way (radians, 0 to π).</summary>
+        public float Tilt => Math.Abs(MathHelper.WrapAngle(car.Rotation));
+
+        /// <summary>
+        /// The car lies still on its roof: turned over, its body on the track or an object, neither moving nor turning (a
+        /// car sliding down on its roof does not; one rocked by the axles as the player tries to right it the caller tells).
+        /// </summary>
+        public bool LiesStillOnRoof => Tilt > RoofAngle && Touches(car)
+            && car.LinearVelocity.Length() < StillSpeed && Math.Abs(car.AngularVelocity) < StillTurn;
+
+        /// <summary>The car stands on its wheels: one of them touches the ground and the body is not turned far over.</summary>
+        public bool OnWheels
+        {
+            get
+            {
+                if (Tilt >= WheelsAngle)
+                    return false;
+                foreach (Body wheel in wheels)
+                    if (Ground(wheel, out _, out _, out _))
+                        return true;
+                return false;
+            }
+        }
+
+        /// <summary>A part of the car touches the track or an object (not the car itself).</summary>
+        private bool Touches(Body part)
+        {
+            for (ContactEdge edge = part.ContactList; edge != null; edge = edge.Next)
+            {
+                Contact contact = edge.Contact;
+                if (contact.IsTouching && !contact.FixtureA.IsSensor && !contact.FixtureB.IsSensor && edge.Other.Tag != this)
+                    return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Turns the whole car upside down about the middle of its body and lifts it a little, still, so that it falls onto
+        /// its roof (a development key, to try out a car on its roof).
+        /// </summary>
+        public void TurnOver()
+        {
+            Vector2 centre = car.Position;
+            Vector2 lift = new Vector2(0f, -TurnOverLift);
+            foreach (Body part in new[] { car, holderB, holderF, wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF })
+            {
+                //Half a turn about the middle: every part keeps its place on the car
+                part.SetTransform(2f * centre - part.Position + lift, part.Rotation + MathHelper.Pi);
+                part.LinearVelocity = Vector2.Zero;
+                part.AngularVelocity = 0f;
+            }
+        }
+
         public override void Update()
         {
             if (car.Rotation >= 2 * Math.PI || car.Rotation <= -2 * Math.PI) { car.Rotation = 0; }

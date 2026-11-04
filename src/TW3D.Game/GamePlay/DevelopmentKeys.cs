@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using nkast.Aether.Physics2D.Diagnostics;
@@ -12,7 +13,8 @@ namespace TW3D.GamePlay
     /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9, F10, Shift+F10) and the mood of the level (M)
     /// to compare them, the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home), and the
     /// track alone (H: the car and everything over the level hidden, for the previews of the levels in the level
-    /// select). They change only the level being played; the Options menu sets the look for good.
+    /// select), and the car turned onto its roof (U, to try out the Game over on the roof). They change only the level
+    /// being played; the Options menu sets the look for good.
     /// </summary>
     sealed class DevelopmentKeys
     {
@@ -39,18 +41,21 @@ namespace TW3D.GamePlay
         private readonly DebugView debugView;
         private readonly SceneRenderer renderer;
         private readonly ChaseCamera camera;
+        private readonly Action turnOver;
         private LevelMood mood;
 
         /// <summary>The track alone: the car, the time, the tutorial and the on-screen controls are not drawn (H).</summary>
         public bool TrackOnly { get; private set; }
 
         /// <param name="mood">The mood of the level, which M changes from.</param>
-        public DevelopmentKeys(DebugView debugView, SceneRenderer renderer, ChaseCamera camera, LevelMood mood)
+        /// <param name="turnOver">Turns the car onto its roof (U).</param>
+        public DevelopmentKeys(DebugView debugView, SceneRenderer renderer, ChaseCamera camera, LevelMood mood, Action turnOver)
         {
             this.debugView = debugView;
             this.renderer = renderer;
             this.camera = camera;
             this.mood = mood;
+            this.turnOver = turnOver;
         }
 
         /// <param name="elapsed">Elapsed real seconds.</param>
@@ -75,6 +80,10 @@ namespace TW3D.GamePlay
 
             if (input.KeyPressed(Keys.H))
                 TrackOnly = !TrackOnly;
+
+            //The car onto its roof, to try out how a run on the roof is lost
+            if (input.KeyPressed(Keys.U))
+                turnOver();
 
             //The moods of the levels, to try them on any level
             if (input.KeyPressed(Keys.M))

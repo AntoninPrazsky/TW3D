@@ -57,6 +57,16 @@
         <Start>&#x244D;</Start>
         <End>&#x244D;</End>
       </CharacterRegion>
+      <!-- Esc key (keyboard: pause) -->
+      <CharacterRegion>
+        <Start>&#x242F;</Start>
+        <End>&#x242F;</End>
+      </CharacterRegion>
+      <!-- View (Back) button (pad: pause) -->
+      <CharacterRegion>
+        <Start>&#x21FA;</Start>
+        <End>&#x21FA;</End>
+      </CharacterRegion>
     </CharacterRegions>
   </Asset>
 </XnaContent>

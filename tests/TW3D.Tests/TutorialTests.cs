@@ -8,7 +8,7 @@ namespace TW3D.Tests
 {
     /// <summary>
     /// The rules of the tutorial (GamePlay/Tutorial): which lessons a level shows, when an action is done, what is
-    /// saved, and when the stuck hint comes. The tutorial is run frame by frame as the game runs it.
+    /// saved, and when the stuck hint and the restart hint come. The tutorial is run frame by frame as the game runs it.
     /// </summary>
     public class TutorialTests : IDisposable
     {
@@ -23,6 +23,8 @@ namespace TW3D.Tests
 
         //The lessons the tutorial saved as taught
         private readonly List<string> taught = new List<string>();
+        //Where the car is along the level (physics units): it moves on at the speed each run gives
+        private float distance;
 
         public TutorialTests()
         {
@@ -40,20 +42,25 @@ namespace TW3D.Tests
             return new Tutorial(level, taughtBefore.ToList(), taught.Add);
         }
 
-        private static void Run(Tutorial tutorial, float seconds, DriveActions actions, float carSpeed = Moving, bool racing = true)
+        /// <param name="onWheels">The car stands on its wheels (not in the air, not turned over).</param>
+        private void Run(Tutorial tutorial, float seconds, DriveActions actions, float carSpeed = Moving, bool racing = true, bool onWheels = true)
         {
             for (float time = 0f; time < seconds; time += Frame)
-                tutorial.Update(Frame, racing, actions, carSpeed);
+            {
+                distance += carSpeed * Frame;
+                tutorial.Update(Frame, racing, actions, new CarMotion(carSpeed, distance, onWheels));
+            }
         }
 
         /// <summary>The cards shown in turn over a while, the player doing nothing (the actions give up).</summary>
-        private static List<string> Cards(Tutorial tutorial, float seconds)
+        private List<string> Cards(Tutorial tutorial, float seconds)
         {
             List<string> cards = new List<string>();
             string last = null;
             for (float time = 0f; time < seconds; time += Frame)
             {
-                tutorial.Update(Frame, true, Nothing, Moving);
+                distance += Moving * Frame;
+                tutorial.Update(Frame, true, Nothing, new CarMotion(Moving, distance, true));
                 string key = tutorial.Lesson?.Key;
                 if (key != null && key != last)
                     cards.Add(key);
@@ -212,6 +219,105 @@ namespace TW3D.Tests
             Run(tutorial, 2.5f, Throttle, Standing);
             Assert.Null(tutorial.Lesson);
             Run(tutorial, 0.5f, Throttle, Standing);
+            Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
+        }
+
+        [Fact]
+        public void TheStuckHintDoesNotComeInTheAirOrTurnedOver()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 10f, Throttle, Standing, onWheels: false);
+            Assert.Null(tutorial.Lesson);
+            //Back on the wheels, the count starts from nothing
+            Run(tutorial, 2.9f, Throttle, Standing);
+            Assert.Null(tutorial.Lesson);
+            Run(tutorial, 0.2f, Throttle, Standing);
+            Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
+        }
+
+        /// <summary>Stuck at a place, the hint done there by turning the axles, and its card gone, the car still not moving on.</summary>
+        private Tutorial AxlesTriedInVain()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
+            Run(tutorial, 0.7f, ThrottleAndAxles, Standing);
+            Assert.NotNull(tutorial.PraiseAge);
+            Run(tutorial, 1.5f, Nothing, Standing);
+            Assert.Null(tutorial.Lesson);
+            return tutorial;
+        }
+
+        [Fact]
+        public void WhereTheAxlesDidNotHelpTheRestartHintComesInstead()
+        {
+            Tutorial tutorial = AxlesTriedInVain();
+            Run(tutorial, 2.9f, Throttle, Standing);
+            Assert.Null(tutorial.Lesson);
+            Run(tutorial, 0.2f, Throttle, Standing);
+            Assert.Same(Tutorial.RestartHint, tutorial.Lesson);
+            Assert.Equal(Input.CarControl.Pause, tutorial.CurrentStep.Control);
+        }
+
+        [Fact]
+        public void TheAxlesTriedWithoutTheHintCountToo()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 1f, ThrottleAndAxles, Standing);
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.RestartHint, tutorial.Lesson);
+        }
+
+        [Fact]
+        public void AMomentOfTheAxlesIsNotTryingThem()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 0.3f, ThrottleAndAxles, Standing);
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
+        }
+
+        [Fact]
+        public void MovingOnForgetsThePlaceWhereTheAxlesDidNotHelp()
+        {
+            Tutorial tutorial = AxlesTriedInVain();
+            //Half a car forward and more (10 physics units), then stuck again: the axles may help at the new place
+            Run(tutorial, 1.2f, Throttle, Moving);
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
+        }
+
+        [Fact]
+        public void TheRestartHintGoesWhenThePauseMenuOpensAndIsNeverSaved()
+        {
+            Tutorial tutorial = AxlesTriedInVain();
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.RestartHint, tutorial.Lesson);
+            tutorial.Paused();
+            Assert.Null(tutorial.Lesson);
+            Assert.Empty(taught);
+            //Back from the pause still stuck, it comes again after the count
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Assert.Same(Tutorial.RestartHint, tutorial.Lesson);
+        }
+
+        [Fact]
+        public void TheRestartHintCannotBeDoneByDrivingAndGoesAfterAWhile()
+        {
+            Tutorial tutorial = AxlesTriedInVain();
+            Run(tutorial, 3.1f, Throttle, Standing);
+            Run(tutorial, 3f, ThrottleAndAxles, Standing);
+            Assert.Null(tutorial.PraiseAge);
+            Run(tutorial, 4.5f, Nothing, Standing);
+            Assert.Null(tutorial.Lesson);
+        }
+
+        [Fact]
+        public void PausingLeavesTheOtherCardsUp()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 3.1f, Throttle, Standing);
+            tutorial.Paused();
             Assert.Same(Tutorial.StuckHint, tutorial.Lesson);
         }
     }
