@@ -9,9 +9,10 @@ namespace TW3D.Screens
 {
     /// <summary>
     /// The results of a level, over the level at its finish: the stars, the time, the score and the best time in the
-    /// middle, along the bottom the level select, the level again and the next level. Esc (Back) goes to the level
-    /// select. A run lost (the car fell off the level) gets them too, titled Game over: no stars, no time. A test drive
-    /// of the level editor leaves them for the editor instead of the level select.
+    /// middle, along the bottom the main menu, the level select, the level again and the next level. Esc (Back) goes to
+    /// the level select. A run lost (the car fell off the level) gets them too, titled Game over: no stars, no time. A
+    /// test drive of the level editor leaves them for the editor instead of the level select, with no main menu (as its
+    /// pause menu).
     /// </summary>
     public sealed class ResultsScreen : ListMenuScreen
     {
@@ -46,9 +47,10 @@ namespace TW3D.Screens
         /// <param name="nextLevel">Starts the next level; null if this is the last one.</param>
         /// <param name="restart">Starts the level again.</param>
         /// <param name="leave">Leaves the level for the level select (or the level editor: see <paramref name="leaveText"/>).</param>
+        /// <param name="mainMenu">Leaves the level for the main menu; null leaves the button out.</param>
         /// <param name="leaveText">The button of <paramref name="leave"/>.</param>
         public ResultsScreen(float time, float par, float? previousBest, bool record, bool counted, Action nextLevel, Action restart, Action leave,
-            string leaveText = "Level select")
+            Action mainMenu, string leaveText = "Level select")
             : base("Finish")
         {
             IsPopup = true;
@@ -73,7 +75,7 @@ namespace TW3D.Screens
             else if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
 
-            AddButtons(nextLevel, restart, leave, leaveText);
+            AddButtons(nextLevel, restart, leave, mainMenu, leaveText);
         }
 
         /// <summary>The results of a run lost: the car fell off the level, so there are no stars and no time.</summary>
@@ -81,8 +83,9 @@ namespace TW3D.Screens
         /// <param name="nextLevel">Starts the next level; null if this is the last one.</param>
         /// <param name="restart">Starts the level again.</param>
         /// <param name="leave">Leaves the level for the level select (or the level editor: see <paramref name="leaveText"/>).</param>
+        /// <param name="mainMenu">Leaves the level for the main menu; null leaves the button out.</param>
         /// <param name="leaveText">The button of <paramref name="leave"/>.</param>
-        public ResultsScreen(float? previousBest, Action nextLevel, Action restart, Action leave, string leaveText = "Level select")
+        public ResultsScreen(float? previousBest, Action nextLevel, Action restart, Action leave, Action mainMenu, string leaveText = "Level select")
             : base("Game over")
         {
             IsPopup = true;
@@ -93,13 +96,15 @@ namespace TW3D.Screens
             lines = new[] { "Fell off the track" };
             if (previousBest.HasValue)
                 note = "Best " + RaceScore.FormatTime(previousBest.Value);
-            AddButtons(nextLevel, restart, leave, leaveText);
+            AddButtons(nextLevel, restart, leave, mainMenu, leaveText);
         }
 
-        private void AddButtons(Action nextLevel, Action restart, Action leave, string leaveText)
+        private void AddButtons(Action nextLevel, Action restart, Action leave, Action mainMenu, string leaveText)
         {
             this.leave = leave;
-            //From left to right: back, again, on
+            //From left to right: out of the game, back, again, on
+            if (mainMenu != null)
+                AddItem(new MenuItem { Text = () => "Main menu", Activate = () => Leave(mainMenu) });
             AddItem(new MenuItem { Text = () => leaveText, Activate = () => Leave(leave) });
             AddItem(new MenuItem { Text = () => "Restart", Activate = () => Leave(restart) });
             if (nextLevel != null)

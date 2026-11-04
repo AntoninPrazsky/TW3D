@@ -390,15 +390,15 @@ namespace TW3D.GamePlay
         {
             if (testLevel != null)
                 results = race.State == RaceState.Lost
-                    ? new ResultsScreen(previousBest, null, Restart, BackToEditor, BackToEditorText)
-                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, null, Restart, BackToEditor, BackToEditorText);
+                    ? new ResultsScreen(previousBest, null, Restart, BackToEditor, null, BackToEditorText)
+                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, null, Restart, BackToEditor, null, BackToEditorText);
             else
             {
                 string next = NextLevel();
                 Action nextLevel = next != null ? () => Start(next) : null;
                 results = race.State == RaceState.Lost
-                    ? new ResultsScreen(previousBest, nextLevel, Restart, Close)
-                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close);
+                    ? new ResultsScreen(previousBest, nextLevel, Restart, Close, ExitToMainMenu)
+                    : new ResultsScreen(race.Time, race.Par, previousBest, record, !race.Assisted, nextLevel, Restart, Close, ExitToMainMenu);
             }
             Manager.Add(results);
         }
@@ -457,6 +457,7 @@ namespace TW3D.GamePlay
             return -1;
         }
 
+        /// <summary>Leaves the level for the main menu (the pause menu and the results): the level select under it closes too.</summary>
         private void ExitToMainMenu()
         {
             foreach (Screen screen in Manager.Screens)

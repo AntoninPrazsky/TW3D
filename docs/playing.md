@@ -192,9 +192,9 @@ the past had (drawn by the game, up to 160 km/h; the cars reach about 80 to 100 
 The score is 1000 × par time / time:
 finishing in the par time scores 1000 points, faster more and slower less (half the time,
 twice the points). A run within the par time gets three stars, within one and a half of it
-two, otherwise one. Past the finish the car brakes on its own. The results offer the level
-select, the level again and the next level in a row along the bottom of the screen (left and
-right choose between them). The best time of each level is kept (in `TW3D/records.json` next
+two, otherwise one. Past the finish the car brakes on its own. The results offer the main
+menu, the level select, the level again and the next level in a row along the bottom of the
+screen (left and right choose between them; Esc goes to the level select). The best time of each level is kept (in `TW3D/records.json` next
 to the settings), and the level select shows it with its stars. A run in which the car was
 dragged by hand does not count.
 
