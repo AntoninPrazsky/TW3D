@@ -14,7 +14,7 @@ namespace TW3D.Tests
     /// </summary>
     public sealed class LevelFolderTests : IDisposable
     {
-        private const string LevelText = "{\n  \"format\": 1,\n  \"order\": 3,\n  \"mood\": \"night\",\n  \"middle\": [\n    {\"block\":\"a1\",\"x\":0,\"y\":0,\"shift\":0},\n    {\"block\":\"a1\",\"x\":1,\"y\":0,\"shift\":0}\n  ],\n  \"back\": [],\n  \"front\": [],\n  \"objects\": []\n}\n";
+        private const string LevelText = "{\n  \"format\": 2,\n  \"order\": 3,\n  \"mood\": \"night\",\n  \"middle\": [\n    {\"block\":\"a1\",\"x\":0,\"y\":0,\"shift\":0},\n    {\"block\":\"a1\",\"x\":1,\"y\":0,\"shift\":0}\n  ],\n  \"back\": [],\n  \"front\": [],\n  \"objects\": []\n}\n";
 
         private readonly string root = Path.Combine(Path.GetTempPath(), "TW3D-LevelFolderTests-" + Guid.NewGuid().ToString("N"));
 
@@ -81,7 +81,7 @@ namespace TW3D.Tests
         public void TheLevelArgumentIsAFileOrANameOfTheFolder()
         {
             LevelFolder folder = new LevelFolder(Path.Combine(root, "levels"), null, null);
-            string other = Path.Combine(root, "elsewhere.lev");
+            string other = Path.Combine(root, "elsewhere.level");
             File.WriteAllText(other, "");
             Assert.Equal(other, folder.Resolve(other));
             Assert.Equal(Path.Combine(folder.FullPath, "lock.json"), folder.Resolve("lock"));
@@ -95,7 +95,7 @@ namespace TW3D.Tests
         [InlineData("mytest.json", "mytest")]
         [InlineData("mytest.JSON", "mytest")]
         [InlineData("my test", "my test")]
-        [InlineData("old.lev", "old.lev")]
+        [InlineData("my.level", "my.level")]
         [InlineData("console", "console")]
         [InlineData("com10", "com10")]
         [InlineData("lpt0", "lpt0")]
@@ -144,9 +144,8 @@ namespace TW3D.Tests
             string levels = Path.Combine(root, "levels");
             Directory.CreateDirectory(levels);
             File.WriteAllText(Path.Combine(levels, "b.json"), LevelText);
-            File.WriteAllText(Path.Combine(levels, "a.json"), "{\"format\": 1}");
+            File.WriteAllText(Path.Combine(levels, "a.json"), "{\"format\": 2}");
             File.WriteAllText(Path.Combine(levels, "c.json"), "{ not json");
-            File.WriteAllText(Path.Combine(levels, "old.lev"), "");
             File.WriteAllText(Path.Combine(levels, "notes.txt"), "");
 
             List<LevelEntry> entries = new LevelFolder(levels, null, null).List(out string error);

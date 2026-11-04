@@ -18,6 +18,13 @@ namespace TW3D.Shared
         /// <summary>Vertical shift in steps of 1/9 of a grid cell (2.5 physics units).</summary>
         public int Shift { get; set; }
 
+        /// <summary>
+        /// The block is turned round by 180° about the vertical axis, so that its road runs the other way (a climb
+        /// becomes a descent). Only a block whose type <see cref="BlockType.Turns"/> can be.
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool Turned { get; set; }
+
         /// <summary>The finish of the level (a block of the middle layer): the car reaching its cell finishes the level.</summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool Finish { get; set; }
@@ -94,7 +101,11 @@ namespace TW3D.Shared
     /// </summary>
     public sealed class LevelData
     {
-        public const int CurrentFormat = 1;
+        /// <summary>
+        /// The version of the file format the game writes and reads. Format 2 turns blocks (<see cref="BlockPlacement.Turned"/>)
+        /// instead of the mirrored "f" models of format 1, which is no longer read.
+        /// </summary>
+        public const int CurrentFormat = 2;
 
         /// <summary>
         /// How many layers there are behind the road, a cell apart. In front of it there is only one: the camera is
@@ -146,6 +157,8 @@ namespace TW3D.Shared
                         problems.Add($"Unknown block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer.");
                     else if (needsCollision && !block.Collision)
                         problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has no collision shape, so it cannot be in the {layerName} layer.");
+                    if (block != null && placement.Turned && !block.Turns)
+                        problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer is turned, but it cannot be turned.");
                 }
             }
 

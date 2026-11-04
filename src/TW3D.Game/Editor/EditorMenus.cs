@@ -34,6 +34,8 @@ namespace TW3D.Editor
                 Edit(hidden, report, selectTool.Paste);
             if (ImGui.MenuItem("Select all", "Ctrl+A", false, selecting))
                 Edit(hidden, report, selectTool.SelectAll);
+            if (ImGui.MenuItem("Turn", "T", false, selected))
+                Edit(hidden, report, selectTool.Turn);
             if (ImGui.MenuItem("Mirror", "H", false, selected))
                 Edit(hidden, report, selectTool.Mirror);
             if (ImGui.MenuItem("Move to the layer behind", "Ctrl+PageUp", false, selected))

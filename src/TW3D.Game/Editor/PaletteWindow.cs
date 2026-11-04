@@ -20,20 +20,17 @@ namespace TW3D.Editor
     {
         //The families of the blocks in the order of the catalog page, each with its blocks in the order of the page;
         //a block of the catalog that is in none of them goes to the last group. The page has no tu3s, which is a
-        //tunnel like the others
+        //tunnel like the others. A block that turns has one preview: T turns the chosen block
         private static readonly (string Group, string[] Blocks)[] Families =
         {
             ("A", new[] { "a1" }),
             ("B", new[] { "b1", "b2", "b3", "b4" }),
-            ("Bf", new[] { "b1f", "b2f", "b3f", "b4f" }),
             ("C", new[] { "c1", "c2", "c3" }),
-            ("Cf", new[] { "c1f", "c2f", "c3f" }),
             ("D", new[] { "d1", "d2", "d3" }),
-            ("Df", new[] { "d1f", "d2f", "d3f" }),
-            ("S", new[] { "s1", "s1f" }),
+            ("S", new[] { "s1" }),
             ("BA", new[] { "ba1", "ba2" }),
-            ("U", new[] { "u1", "u2" }),
-            ("T", new[] { "t1", "t2" }),
+            ("U", new[] { "u1" }),
+            ("T", new[] { "t1" }),
             ("TU", new[] { "tu1s", "tu2s", "tu3s", "tu1v", "tu3v", "tu2v" }),
             ("XA", new[] { "xa1", "xa2", "xa3", "xa4", "xa5", "xa6", "xa7" }),
             ("KEA", new[] { "kea1a", "kea1b", "kea1c", "kea1d", "kea1e", "kea1f" }),

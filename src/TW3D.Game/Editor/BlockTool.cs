@@ -13,9 +13,10 @@ namespace TW3D.Editor
     /// and with the keys of the editor of 2016. The mouse sets the cursor to the cell under it; the left button paints the
     /// chosen block (with the chosen shift) into every cell the cursor passes while it is held, Left Shift + the left
     /// button erases the same way (a stroke is one step of undo, and it goes on wherever the cursor gets to), the right
-    /// button picks the block under the cursor as the chosen one, Ctrl + the wheel shifts it. The arrows move the cursor (the
-    /// camera follows), Space places, Delete erases, PageUp / PageDown shift, F toggles the finish, comma and period
-    /// choose the previous / next block of the catalog; <see cref="Undo"/> and <see cref="Redo"/> (Ctrl+Z / Ctrl+Y, given
+    /// button picks the block under the cursor as the chosen one (with its turn), Ctrl + the wheel shifts it. The arrows
+    /// move the cursor (the camera follows), Space places, Delete erases, PageUp / PageDown shift, F toggles the finish, T
+    /// turns the chosen block round (see <see cref="BlockType.Turns"/>), comma and period choose the previous / next block
+    /// of the catalog; <see cref="Undo"/> and <see cref="Redo"/> (Ctrl+Z / Ctrl+Y, given
     /// by the screen) take a step of the document back and forth. What is done and what the
     /// document refuses is reported to the screen for its status bar. In road mode (R) a road block placed in the middle
     /// layer gets the cell and the shift that join it to the road next to it (<see cref="EditedLevel.RoadShift"/>).
@@ -75,6 +76,15 @@ namespace TW3D.Editor
         /// <summary>The shift the placed blocks get; it follows the block picked or shifted.</summary>
         public int Shift { get; private set; }
 
+        /// <summary>
+        /// The chosen block is placed turned round (T, or a turned block picked). It stays when another block is chosen,
+        /// but only a block that turns is placed turned: see <see cref="PlacesTurned"/>.
+        /// </summary>
+        public bool Turned { get; private set; }
+
+        /// <summary>The chosen block is placed turned: it is <see cref="Turned"/> and it turns.</summary>
+        public bool PlacesTurned => Turned && level?.Catalog.FindBlock(Block)?.Turns == true;
+
         /// <summary>Road mode: the road blocks placed in the middle layer join the road next to them, whatever the chosen shift.</summary>
         public bool RoadMode { get; private set; }
 
@@ -106,6 +116,8 @@ namespace TW3D.Editor
                 ShiftBlock(layer, 1);
             if (input.KeyPressed(Keys.F))
                 ToggleFinish(layer);
+            if (input.KeyPressed(Keys.T))
+                Turn();
             if (input.KeyPressed(Keys.OemComma))
                 ChooseBlock(-1);
             if (input.KeyPressed(Keys.OemPeriod))
@@ -266,31 +278,33 @@ namespace TW3D.Editor
         {
             //In road mode the block of the middle layer goes where it joins the road; the chosen shift stays as it is
             int shift = Shift;
+            bool turned = PlacesTurned;
+            string name = ChosenName;
             bool road = RoadMode && layer == Layer.Middle && level.Catalog.FindBlock(Block)?.IsRoad == true;
             //The old road block that the new one would otherwise stand on goes, in the same step of undo
-            using (level.BeginCompound("Place " + Block))
+            using (level.BeginCompound("Place " + name))
             {
                 if (road)
                 {
                     Cell pointed = cell;
                     bool leftwards = joined != null && cell.X < joined.Cell.X;
-                    shift = level.RoadShift(pointed, Block, Shift, leftwards, joined, out cell);
+                    shift = level.RoadShift(pointed, Block, turned, Shift, leftwards, joined, out cell);
                     PlacedBlock stale = level.RoadBlockReplaced(pointed, cell, shift);
                     if (stale != null)
                         level.Erase(Layer.Middle, stale);
                 }
 
-                //The document records nothing when the same block with the same shift is there already
+                //The document records nothing when the same block with the same shift and turn is there already
                 int version = level.Version;
-                string reason = level.Place(layer, cell, Block, shift);
+                string reason = level.Place(layer, cell, Block, shift, turned);
                 if (reason != null)
                     report(reason);
                 else if (note)
                 {
                     if (level.Version == version)
-                        report($"{Block} with shift {shift} is already at {cell}.");
+                        report($"{name} with shift {shift} is already at {cell}.");
                     else
-                        report(road ? $"Placed {Block} at {cell}, shift {shift}." : $"Placed {Block} at {cell}.");
+                        report(road ? $"Placed {name} at {cell}, shift {shift}." : $"Placed {name} at {cell}.");
                 }
                 return reason == null ? level.BlockAt(layer, cell) : null;
             }
@@ -330,7 +344,7 @@ namespace TW3D.Editor
             }
         }
 
-        /// <summary>The block under the cursor, with its shift, becomes the chosen one; nothing on an empty cell.</summary>
+        /// <summary>The block under the cursor, with its shift and its turn, becomes the chosen one; nothing on an empty cell.</summary>
         private void Pick(Layer layer)
         {
             PlacedBlock block = level.BlockAt(layer, Cursor);
@@ -338,8 +352,26 @@ namespace TW3D.Editor
                 return;
             Block = block.Name;
             Shift = block.Shift;
-            report($"Picked {Block}, shift {Shift}.");
+            Turned = block.Turned;
+            report($"Picked {ChosenName}, shift {Shift}.");
         }
+
+        /// <summary>
+        /// Turns the chosen block round, or back (T): a block that does not turn is refused, and the turn stays as it is.
+        /// </summary>
+        public void Turn()
+        {
+            if (level.Catalog.FindBlock(Block)?.Turns != true)
+            {
+                report($"{Block} cannot be turned.");
+                return;
+            }
+            Turned = !Turned;
+            report(Turned ? $"Chosen block: {Block}, turned." : $"Chosen block: {Block}, not turned.");
+        }
+
+        /// <summary>The chosen block as the messages name it: "b1", or "b1 turned" when it is placed turned.</summary>
+        public string ChosenName => Block + (PlacesTurned ? " turned" : "");
 
         /// <summary>The next (1) or the previous (-1) block of the catalog becomes the chosen one, around its ends.</summary>
         public void ChooseBlock(int direction)
@@ -365,7 +397,7 @@ namespace TW3D.Editor
         private void Choose(BlockType type)
         {
             Block = type.Name;
-            report(type.Collision ? $"Chosen block: {Block}." : $"Chosen block: {Block} (decoration, back or front layers only).");
+            report(type.Collision ? $"Chosen block: {ChosenName}." : $"Chosen block: {ChosenName} (decoration, back or front layers only).");
         }
 
         /// <summary>Takes back the last step of the document and says which.</summary>

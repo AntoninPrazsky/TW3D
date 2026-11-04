@@ -76,13 +76,9 @@
 # Track blocks
 /build:Levels/mod/a1.obj
 /build:Levels/mod/b1.obj
-/build:Levels/mod/b1f.obj
 /build:Levels/mod/b2.obj
-/build:Levels/mod/b2f.obj
 /build:Levels/mod/b3.obj
-/build:Levels/mod/b3f.obj
 /build:Levels/mod/b4.obj
-/build:Levels/mod/b4f.obj
 /build:Levels/mod/ba1.obj
 /build:Levels/mod/ba2.obj
 /build:Levels/mod/bl1.obj
@@ -92,17 +88,11 @@
 /build:Levels/mod/bl2s.obj
 /build:Levels/mod/bl2sf.obj
 /build:Levels/mod/c1.obj
-/build:Levels/mod/c1f.obj
 /build:Levels/mod/c2.obj
-/build:Levels/mod/c2f.obj
 /build:Levels/mod/c3.obj
-/build:Levels/mod/c3f.obj
 /build:Levels/mod/d1.obj
-/build:Levels/mod/d1f.obj
 /build:Levels/mod/d2.obj
-/build:Levels/mod/d2f.obj
 /build:Levels/mod/d3.obj
-/build:Levels/mod/d3f.obj
 /build:Levels/mod/g.obj
 /build:Levels/mod/kea1a.obj
 /build:Levels/mod/kea1b.obj
@@ -112,13 +102,11 @@
 /build:Levels/mod/kea1f.obj
 /build:Levels/mod/lo.obj
 /build:Levels/mod/s1.obj
-/build:Levels/mod/s1f.obj
 /build:Levels/mod/sb.obj
 /build:Levels/mod/sg.obj
 /build:Levels/mod/st.obj
 /build:Levels/mod/st2.obj
 /build:Levels/mod/t1.obj
-/build:Levels/mod/t2.obj
 /build:Levels/mod/tu1s.obj
 /build:Levels/mod/tu1v.obj
 /build:Levels/mod/tu2s.obj
@@ -126,7 +114,6 @@
 /build:Levels/mod/tu3s.obj
 /build:Levels/mod/tu3v.obj
 /build:Levels/mod/u1.obj
-/build:Levels/mod/u2.obj
 /build:Levels/mod/xa1.obj
 /build:Levels/mod/xa2.obj
 /build:Levels/mod/xa3.obj

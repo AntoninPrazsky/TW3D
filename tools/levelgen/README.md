@@ -28,10 +28,19 @@ Heights are in shift steps of 2.5 physics units and grow downwards; one grid cel
 
 The `profile` of the blocks in `content/catalog.json` (`Profiles` in `lib.js` reads them from there,
 the level editor uses them too) gives, for every road block, the height of the road surface at its left
-and right edge relative to its base, measured on the collision bitmaps. For example `b2f`
-(a 24° climb) is `[4, 0]`: it starts 4 steps below its base and ends at it, so it climbs
+and right edge relative to its base, measured on the collision bitmaps. For example `b2`
+(a 24° descent) is `[0, 4]`: it starts at its base and ends 4 steps below it, so it descends
 10 physics units. A block missing there cannot be used with `road()`, but can still be placed
 directly with `put()`.
+
+## Turned blocks
+
+A block that turns (`"turns": true` in the catalog: the slopes, the stairs `s1` and the walls
+`t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
+version were: `"b2f"` is `b2` turned round, a 24° climb with the profile `[4, 0]`, and the
+level file gets `{"block":"b2","x":…,"turned":true}`. The walls turned are `"t1f"` and
+`"u1f"`. A name of the catalog is always the block itself (`"bl2f"` and `"kea1f"` are blocks of
+their own), and a name that is neither is an error.
 
 ## Building a level
 
@@ -73,7 +82,7 @@ above the road surface, the deeper ones higher on the screen.
 
 ## Playability
 
-The car climbs 24° slopes (`b2f`) even from a standstill, but not 34° ones (`b3f`) without
+The car climbs 24° slopes (`b2f`, `b2` turned) even from a standstill, but not 34° ones (`b3f`) without
 a run-up, and with the throttle alone it gets over a step of 2.5 units but not one of 5 units.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 

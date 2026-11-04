@@ -42,12 +42,14 @@ namespace TW3D.Editor
     sealed class PlacedBlock
     {
         /// <param name="name">Name of the block type in the catalog.</param>
-        public PlacedBlock(Cell cell, string name, int shift, bool finish)
+        /// <param name="turned">The block is turned round (see <see cref="BlockPlacement.Turned"/>).</param>
+        public PlacedBlock(Cell cell, string name, int shift, bool finish, bool turned = false)
         {
             Cell = cell;
             Name = name;
             Shift = shift;
             Finish = finish;
+            Turned = turned;
         }
 
         /// <summary>The cell of the layer the block is in.</summary>
@@ -61,6 +63,12 @@ namespace TW3D.Editor
 
         /// <summary>The block is the finish of the level (a block of the middle layer only).</summary>
         public bool Finish { get; internal set; }
+
+        /// <summary>
+        /// The block is turned round by 180° about the vertical axis: its road runs the other way (see
+        /// <see cref="BlockPlacement.Turned"/>). A file may turn a block that cannot be turned, which is a problem.
+        /// </summary>
+        public bool Turned { get; internal set; }
     }
 
     /// <summary>A dynamic object of the edited level. The document alone moves it, so that undo can move it back.</summary>
@@ -319,18 +327,19 @@ namespace TW3D.Editor
 
         /// <summary>
         /// The height of the road surface at the left edge of a block in shift steps (they grow downward): its base
-        /// plus the first number of the profile of the block in the catalog; null for a block without a profile.
+        /// plus the first number of its profile as placed (<see cref="BlockType.PlacedProfile"/>: a turned block has the
+        /// edges of the catalog's profile swapped); null for a block without a profile.
         /// </summary>
         public int? SurfaceLeft(PlacedBlock block)
         {
-            int[] profile = ProfileOf(block.Name);
+            int[] profile = ProfileOf(block.Name, block.Turned);
             return profile == null ? null : Base(block) + profile[0];
         }
 
         /// <summary>The height of the road surface at the right edge of a block in shift steps; null for a block without a profile.</summary>
         public int? SurfaceRight(PlacedBlock block)
         {
-            int[] profile = ProfileOf(block.Name);
+            int[] profile = ProfileOf(block.Name, block.Turned);
             return profile == null ? null : Base(block) + profile[1];
         }
 
@@ -376,25 +385,26 @@ namespace TW3D.Editor
         /// </summary>
         /// <param name="cell">The cell the block is placed at: only its column is kept when it joins a neighbour.</param>
         /// <param name="block">The name of the block in the catalog.</param>
+        /// <param name="turned">The block is placed turned: its profile as placed has the edges swapped.</param>
         /// <param name="chosenShift">The shift chosen by hand.</param>
         /// <param name="leftwards">The road is painted from the right to the left: the neighbour on the right is joined first.</param>
         /// <param name="placedCell">The cell the block goes to.</param>
         /// <returns>The shift the block goes with.</returns>
-        public int RoadShift(Cell cell, string block, int chosenShift, bool leftwards, out Cell placedCell)
+        public int RoadShift(Cell cell, string block, bool turned, int chosenShift, bool leftwards, out Cell placedCell)
         {
-            return RoadShift(cell, block, chosenShift, leftwards, null, out placedCell);
+            return RoadShift(cell, block, turned, chosenShift, leftwards, null, out placedCell);
         }
 
         /// <summary>
-        /// <see cref="RoadShift(Cell, string, int, bool, out Cell)"/> for a stroke: the block that the stroke placed
+        /// <see cref="RoadShift(Cell, string, bool, int, bool, out Cell)"/> for a stroke: the block that the stroke placed
         /// before this one is the neighbour when it stands in the column next to the block, whatever else that column
         /// holds (the mouse height has nothing to do with where the road went).
         /// </summary>
         /// <param name="joined">The road block placed just before, or null.</param>
-        public int RoadShift(Cell cell, string block, int chosenShift, bool leftwards, PlacedBlock joined, out Cell placedCell)
+        public int RoadShift(Cell cell, string block, bool turned, int chosenShift, bool leftwards, PlacedBlock joined, out Cell placedCell)
         {
             placedCell = cell;
-            int[] profile = ProfileOf(block);
+            int[] profile = ProfileOf(block, turned);
             if (profile == null)
                 return chosenShift;
 
@@ -420,7 +430,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The road block that a road block placed by <see cref="RoadShift(Cell, string, int, bool, out Cell)"/> is to
+        /// The road block that a road block placed by <see cref="RoadShift(Cell, string, bool, int, bool, out Cell)"/> is to
         /// replace, so that it does not stand on top of the old road when it goes to another cell than the one pointed
         /// at: the road block at the pointed cell, else the one in the column that lies within a cell of the new base.
         /// A road block in the placed cell itself is replaced by the placing; null for none.
@@ -487,32 +497,37 @@ namespace TW3D.Editor
 
         /// <summary>
         /// Places a block in a cell of a layer, or replaces the block there (which keeps its place in the file and its
-        /// finish flag). Refused, with the reason, for a block the catalog does not know and for decoration (a block
-        /// without a collision shape) in the middle layer; null when done.
+        /// finish flag). Refused, with the reason, for a block the catalog does not know, for decoration (a block
+        /// without a collision shape) in the middle layer and for a turned block that cannot be turned; null when done.
         /// </summary>
-        public string Place(Layer layer, Cell cell, string block, int shift)
+        /// <param name="turned">The block is placed turned round (see <see cref="BlockType.Turns"/>).</param>
+        public string Place(Layer layer, Cell cell, string block, int shift, bool turned = false)
         {
             BlockType type = catalog.FindBlock(block);
             if (type == null)
                 return $"Block {block} is not in the catalog.";
             if (layer == Layer.Middle && !type.Collision)
                 return $"Block {block} is decoration without a collision shape; it can only be in the back or front layers.";
+            if (turned && !type.Turns)
+                return $"Block {block} cannot be turned.";
 
             List<PlacedBlock> blocks = layers[(int)layer];
             PlacedBlock existing = BlockAt(layer, cell);
+            string name = "Place " + block + (turned ? " turned" : "");
             if (existing == null)
             {
-                PlacedBlock placed = new PlacedBlock(cell, block, shift, false);
+                PlacedBlock placed = new PlacedBlock(cell, block, shift, false, turned);
                 int index = blocks.Count;
-                Record("Place " + block, () => blocks.Insert(index, placed), () => blocks.RemoveAt(index));
+                Record(name, () => blocks.Insert(index, placed), () => blocks.RemoveAt(index));
             }
-            else if (existing.Name != block || existing.Shift != shift)
+            else if (existing.Name != block || existing.Shift != shift || existing.Turned != turned)
             {
                 string oldName = existing.Name;
                 int oldShift = existing.Shift;
-                Record("Place " + block,
-                    () => Set(existing, block, shift),
-                    () => Set(existing, oldName, oldShift));
+                bool oldTurned = existing.Turned;
+                Record(name,
+                    () => Set(existing, block, shift, turned),
+                    () => Set(existing, oldName, oldShift, oldTurned));
             }
             return null;
         }
@@ -571,16 +586,17 @@ namespace TW3D.Editor
             List<PlacedBlock> moved = InLayer(layer, blocks);
             return Relocate("Move", layer, moved,
                 moved.Select(block => new Cell(block.Cell.X + dx, block.Cell.Y + dy)).ToList(),
-                moved.Select(block => block.Name).ToList());
+                moved.Select(block => (block.Name, block.Turned)).ToList());
         }
 
         /// <summary>
         /// Flips blocks of a layer left to right around the middle column of them, as one step: a block at x goes to
-        /// minX + maxX - x (minX and maxX are those of the blocks), and gets its mirrored variant where the catalog has
-        /// one (<see cref="MirrorName"/>), so that a climb becomes a descent. Identity, place in the file, shift and
-        /// finish flag are kept; a block of the layer in a cell they move to, that is not among them, is erased first.
+        /// minX + maxX - x (minX and maxX are those of the blocks), and a block that turns (<see cref="BlockType.Turns"/>)
+        /// is turned round, so that a climb becomes a descent; another one gets its mirrored variant where the catalog has
+        /// one (<see cref="MirrorName"/>: bl2 and bl2f), and stays as it is otherwise. Identity, place in the file, shift
+        /// and finish flag are kept; a block of the layer in a cell they move to, that is not among them, is erased first.
         /// Nothing is recorded for no blocks and for blocks that stay as they are (a single block in the middle column
-        /// that has no mirrored variant). True when a step was recorded.
+        /// that neither turns nor has a mirrored variant). True when a step was recorded.
         /// </summary>
         public bool MirrorBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks)
         {
@@ -602,7 +618,32 @@ namespace TW3D.Editor
                 return false;
             return Relocate("Mirror", layer, mirrored,
                 mirrored.Select(block => new Cell(sum - block.Cell.X, block.Cell.Y)).ToList(),
-                mirrored.Select(block => MirrorName(catalog, block.Name)).ToList());
+                mirrored.Select(Mirrored).ToList());
+        }
+
+        /// <summary>What a block becomes in a mirror image: turned round if it turns, else its mirrored variant, if any.</summary>
+        private (string Name, bool Turned) Mirrored(PlacedBlock block)
+        {
+            if (catalog.FindBlock(block.Name)?.Turns == true)
+                return (block.Name, !block.Turned);
+            return (MirrorName(catalog, block.Name), block.Turned);
+        }
+
+        /// <summary>
+        /// Turns blocks of a layer round in their own cells, as one step: each block that turns (<see cref="BlockType.Turns"/>)
+        /// is turned, and a turned one turns back. Identity, cell, place in the file, shift and finish flag are kept; a
+        /// block that cannot turn and a block that is not in the layer are left out. Returns how many blocks were turned;
+        /// nothing is recorded for none.
+        /// </summary>
+        public int TurnBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks)
+        {
+            List<PlacedBlock> turned = InLayer(layer, blocks).Where(block => catalog.FindBlock(block.Name)?.Turns == true).ToList();
+            if (turned.Count == 0)
+                return 0;
+            Record(turned.Count == 1 ? "Turn " + turned[0].Name : "Turn",
+                () => Toggle(turned),
+                () => Toggle(turned));
+            return turned.Count;
         }
 
         /// <summary>
@@ -663,9 +704,9 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// The block a mirrored block becomes: the name without its "f" where that is a block of the catalog (b2f gives
-        /// b2), the name with an "f" where that is one (b2 gives b2f); a block without a mirrored variant keeps its name
-        /// (kea1f: there is no kea1). Mirroring twice gives the block back.
+        /// The block a mirrored block becomes, for a block that does not turn: the name without its "f" where that is a
+        /// block of the catalog (bl2f gives bl2), the name with an "f" where that is one (bl2 gives bl2f); a block without
+        /// a mirrored variant keeps its name (kea1f: there is no kea1). Mirroring twice gives the block back.
         /// </summary>
         public static string MirrorName(Catalog catalog, string name)
         {
@@ -932,7 +973,10 @@ namespace TW3D.Editor
             return problems;
         }
 
-        /// <summary>The blocks of a layer the catalog does not know, and decoration in the middle layer, as <see cref="LevelData.Validate"/> words them.</summary>
+        /// <summary>
+        /// The blocks of a layer the catalog does not know, decoration in the middle layer and turned blocks that cannot
+        /// turn, as <see cref="LevelData.Validate"/> words them.
+        /// </summary>
         private void FindBlockProblems(Layer layer, List<LevelProblem> problems)
         {
             string layerName = layer.Name();
@@ -943,14 +987,15 @@ namespace TW3D.Editor
                     problems.Add(new LevelProblem($"Unknown block \"{block.Name}\" at {block.Cell} in the {layerName} layer.", layer, block.Cell));
                 else if (layer == Layer.Middle && !type.Collision)
                     problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} has no collision shape, so it cannot be in the {layerName} layer.", layer, block.Cell));
+                if (type != null && block.Turned && !type.Turns)
+                    problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} in the {layerName} layer is turned, but it cannot be turned.", layer, block.Cell));
             }
         }
 
-        /// <summary>The profile of a block of the catalog, [left, right]; null for a block without one.</summary>
-        private int[] ProfileOf(string block)
+        /// <summary>The profile of a block of the catalog as placed, [left, right] (see <see cref="BlockType.PlacedProfile"/>); null for a block without one.</summary>
+        private int[] ProfileOf(string block, bool turned)
         {
-            int[] profile = catalog.FindBlock(block)?.Profile;
-            return profile != null && profile.Length == 2 ? profile : null;
+            return catalog.FindBlock(block)?.PlacedProfile(turned);
         }
 
         /// <summary>
@@ -961,7 +1006,7 @@ namespace TW3D.Editor
         {
             Dictionary<Cell, PlacedBlock> last = new Dictionary<Cell, PlacedBlock>();
             foreach (PlacedBlock block in layers[(int)Layer.Middle])
-                if (ProfileOf(block.Name) != null)
+                if (ProfileOf(block.Name, false) != null)
                     last[block.Cell] = block;
             Dictionary<int, List<PlacedBlock>> columns = new Dictionary<int, List<PlacedBlock>>();
             foreach (PlacedBlock block in layers[(int)Layer.Middle])
@@ -1033,12 +1078,12 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// Puts blocks into new cells and under new names as one step. The blocks of the layer that are in the cells
-        /// the blocks leave for, and not among them, are erased first; a block that stays in its cell displaces nobody
-        /// (the other block of a cell with two stays with it). True when a step was recorded: none is when nothing
+        /// Puts blocks into new cells, under new names and turns, as one step. The blocks of the layer that are in the
+        /// cells the blocks leave for, and not among them, are erased first; a block that stays in its cell displaces
+        /// nobody (the other block of a cell with two stays with it). True when a step was recorded: none is when nothing
         /// would change.
         /// </summary>
-        private bool Relocate(string name, Layer layer, List<PlacedBlock> blocks, List<Cell> cells, List<string> names)
+        private bool Relocate(string name, Layer layer, List<PlacedBlock> blocks, List<Cell> cells, List<(string Name, bool Turned)> looks)
         {
             HashSet<Cell> entered = new HashSet<Cell>();
             bool changes = false;
@@ -1046,7 +1091,7 @@ namespace TW3D.Editor
             {
                 if (cells[i] != blocks[i].Cell)
                     entered.Add(cells[i]);
-                changes |= cells[i] != blocks[i].Cell || names[i] != blocks[i].Name;
+                changes |= cells[i] != blocks[i].Cell || looks[i] != (blocks[i].Name, blocks[i].Turned);
             }
             if (!changes)
                 return false;
@@ -1054,23 +1099,30 @@ namespace TW3D.Editor
             HashSet<PlacedBlock> own = new HashSet<PlacedBlock>(blocks);
             List<PlacedBlock> displaced = layers[(int)layer].Where(block => entered.Contains(block.Cell) && !own.Contains(block)).ToList();
             List<Cell> oldCells = blocks.Select(block => block.Cell).ToList();
-            List<string> oldNames = blocks.Select(block => block.Name).ToList();
+            List<(string Name, bool Turned)> oldLooks = blocks.Select(block => (block.Name, block.Turned)).ToList();
             using (BeginCompound(name))
             {
                 foreach (PlacedBlock block in displaced)
                     Erase(layer, block);
-                Record(name, () => Relocated(blocks, cells, names), () => Relocated(blocks, oldCells, oldNames));
+                Record(name, () => Relocated(blocks, cells, looks), () => Relocated(blocks, oldCells, oldLooks));
             }
             return true;
         }
 
-        private static void Relocated(List<PlacedBlock> blocks, List<Cell> cells, List<string> names)
+        private static void Relocated(List<PlacedBlock> blocks, List<Cell> cells, List<(string Name, bool Turned)> looks)
         {
             for (int i = 0; i < blocks.Count; i++)
             {
                 blocks[i].Cell = cells[i];
-                blocks[i].Name = names[i];
+                blocks[i].Name = looks[i].Name;
+                blocks[i].Turned = looks[i].Turned;
             }
+        }
+
+        private static void Toggle(List<PlacedBlock> blocks)
+        {
+            foreach (PlacedBlock block in blocks)
+                block.Turned = !block.Turned;
         }
 
         private int IndexAt(Layer layer, Cell cell)
@@ -1078,10 +1130,11 @@ namespace TW3D.Editor
             return layers[(int)layer].FindLastIndex(block => block.Cell == cell);
         }
 
-        private static void Set(PlacedBlock block, string name, int shift)
+        private static void Set(PlacedBlock block, string name, int shift, bool turned)
         {
             block.Name = name;
             block.Shift = shift;
+            block.Turned = turned;
         }
 
         private static void SetFinish(PlacedBlock block, bool finish, List<PlacedBlock> others, bool othersFinish)
@@ -1115,13 +1168,13 @@ namespace TW3D.Editor
 
         private static PlacedBlock Convert(BlockPlacement placement)
         {
-            return new PlacedBlock(new Cell(placement.X, placement.Y), placement.Block, placement.Shift, placement.Finish);
+            return new PlacedBlock(new Cell(placement.X, placement.Y), placement.Block, placement.Shift, placement.Finish, placement.Turned);
         }
 
         /// <param name="depth">How many cells behind the road the block stands (1 for the blocks that are not in a back layer).</param>
         private static BlockPlacement Convert(PlacedBlock block, int depth)
         {
-            return new BlockPlacement { Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Finish = block.Finish, Depth = depth };
+            return new BlockPlacement { Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Turned = block.Turned, Finish = block.Finish, Depth = depth };
         }
 
         /// <summary>Does a change and records it: as a step of its own, or as a part of the open compound.</summary>

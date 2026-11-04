@@ -44,27 +44,33 @@ namespace TW3D.GameObjects
         /// <summary>Adds the collision shape of a model to a body, with the density 1.</summary>
         /// <param name="model">Content name of the model.</param>
         /// <param name="category">Collision category of the shape; a block with separate shapes for the body and the wheels of the car gets their categories.</param>
-        public static void AddTo(Body body, string model, Category category)
+        /// <param name="turned">The model is turned round by 180° about the vertical axis (a turned block): its shape is mirrored left to right.</param>
+        public static void AddTo(Body body, string model, Category category, bool turned = false)
         {
             CollisionShape shape = shapes.Find(model)
                 ?? throw new InvalidDataException("The model " + model + " has no collision shape in " + CollisionShapes.FileName + ".");
             if (shape.Shape != null)
-                AddPolygons(body, shape.Shape, category);
+                AddPolygons(body, shape.Shape, category, turned);
             else
             {
-                AddPolygons(body, shape.Body, CollisionCategories.TrackForBody);
-                AddPolygons(body, shape.Wheels, CollisionCategories.TrackForWheels);
+                AddPolygons(body, shape.Body, CollisionCategories.TrackForBody, turned);
+                AddPolygons(body, shape.Wheels, CollisionCategories.TrackForWheels, turned);
             }
         }
 
-        private static void AddPolygons(Body body, List<float[]> polygons, Category category)
+        private static void AddPolygons(Body body, List<float[]> polygons, Category category, bool turned)
         {
             foreach (float[] polygon in polygons)
             {
-                //The shapes are in the units of the models (see Units)
-                Vertices vertices = new Vertices(polygon.Length / 2);
-                for (int i = 0; i < polygon.Length; i += 2)
-                    vertices.Add(new Vector2(polygon[i], polygon[i + 1]) * Units.ModelToPhysics);
+                //The shapes are in the units of the models (see Units). Turned, x goes to -x, and the vertices are taken
+                //from the last, so that the polygon stays counterclockwise
+                int count = polygon.Length / 2;
+                Vertices vertices = new Vertices(count);
+                for (int n = 0; n < count; n++)
+                {
+                    int i = 2 * (turned ? count - 1 - n : n);
+                    vertices.Add(new Vector2(turned ? -polygon[i] : polygon[i], polygon[i + 1]) * Units.ModelToPhysics);
+                }
                 Fixture fixture = body.CreateFixture(new PolygonShape(vertices, 1f));
                 fixture.CollisionCategories = category;
             }

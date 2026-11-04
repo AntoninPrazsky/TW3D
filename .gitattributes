@@ -5,7 +5,6 @@
 *.csproj  text
 *.sln     text eol=crlf
 *.slnx    text
-*.lev     text
 *.md      text
 *.obj     text
 *.mtl     text

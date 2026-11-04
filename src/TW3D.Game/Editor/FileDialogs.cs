@@ -333,7 +333,7 @@ namespace TW3D.Editor
                 ImGui.TextDisabled("The folder has no levels.");
 
             ImGui.Spacing();
-            ImGui.TextDisabled("Any level file (also an old .lev):");
+            ImGui.TextDisabled("Any level file:");
             ImGui.SetNextItemWidth(-(ImGui.CalcTextSize("Open file").X + ImGui.GetStyle().FramePadding.X * 2f + ImGui.GetStyle().ItemSpacing.X));
             bool pathEntered = ImGui.InputTextWithHint("##path", "A path, or a name of the folder", ref path, PathLength, ImGuiInputTextFlags.EnterReturnsTrue);
             ImGui.SameLine();

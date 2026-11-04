@@ -14,12 +14,13 @@ namespace TW3D.GameObjects
     /// <summary>A track block as placed in a level.</summary>
     sealed class TrackBlock
     {
-        public TrackBlock(BlockType type, Model model, Vector2 position, float depth)
+        public TrackBlock(BlockType type, Model model, Vector2 position, float depth, bool turned)
         {
             Type = type;
             Model = model;
             Position = position;
             Depth = depth;
+            Turned = turned;
         }
 
         public BlockType Type { get; }
@@ -31,6 +32,9 @@ namespace TW3D.GameObjects
 
         /// <summary>How far in front of the road the block stands, in physics units: negative behind it, 0 on it.</summary>
         public float Depth { get; }
+
+        /// <summary>The block is turned round by 180° about the vertical axis (see <see cref="BlockPlacement.Turned"/>).</summary>
+        public bool Turned { get; }
 
         /// <summary>The physics body of a block of the middle layer; null for the decoration of the back and front layers.</summary>
         public Body Body { get; set; }
@@ -136,10 +140,10 @@ namespace TW3D.GameObjects
         private TrackBlock CreateBlock(BlockPlacement placement, LevelAssets assets, float depth, bool physical)
         {
             BlockType type = assets.Catalog.FindBlock(placement.Block);
-            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement), depth);
+            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement), depth, placement.Turned);
             if (physical)
             {
-                block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track);
+                block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track, placement.Turned);
                 block.Body.Position = block.Position;
                 block.Body.SetRestitution(1f);
                 block.Body.SetFriction(1f);
@@ -176,7 +180,7 @@ namespace TW3D.GameObjects
         private void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer)
         {
             foreach (TrackBlock block in layer)
-                DrawModel(renderer, block.Model, new Vector3(block.Position, block.Depth), 0f, false);
+                DrawModel(renderer, block.Model, new Vector3(block.Position, block.Depth), 0f, block.Turned);
         }
     }
 }

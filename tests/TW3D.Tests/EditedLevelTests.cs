@@ -44,6 +44,41 @@ namespace TW3D.Tests
 
         private static string Json(EditedLevel level) => LevelFile.ToJson(level.ToData());
 
+        /// <summary>
+        /// A block of the catalog by the shorthand of the level generator: its name, or the name of a block that turns
+        /// with an "f" after it for that block turned ("b2f" is b2 turned; "bl2f" is a block of its own).
+        /// </summary>
+        private static (string Name, bool Turned) Named(string name)
+        {
+            if (Catalog.FindBlock(name) != null)
+                return (name, false);
+            string stem = name.Substring(0, name.Length - 1);
+            Assert.True(name.EndsWith("f", StringComparison.Ordinal) && Catalog.FindBlock(stem)?.Turns == true, $"No block {name}");
+            return (stem, true);
+        }
+
+        /// <summary>A placed block in the shorthand of <see cref="Named"/>: "b2f" for b2 turned.</summary>
+        private static string Look(PlacedBlock block) => block.Name + (block.Turned ? "f" : "");
+
+        /// <summary>Places a block named in the shorthand of <see cref="Named"/>; the reason of a refusal, null when done.</summary>
+        private static string Place(EditedLevel level, Layer layer, Cell cell, string name, int shift)
+        {
+            (string block, bool turned) = Named(name);
+            return level.Place(layer, cell, block, shift, turned);
+        }
+
+        /// <summary><see cref="EditedLevel.RoadShift(Cell, string, bool, int, bool, PlacedBlock, out Cell)"/> of a block named in the shorthand of <see cref="Named"/>.</summary>
+        private static int RoadShift(EditedLevel level, Cell at, string name, int chosenShift, bool leftwards, PlacedBlock joined, out Cell cell)
+        {
+            (string block, bool turned) = Named(name);
+            return level.RoadShift(at, block, turned, chosenShift, leftwards, joined, out cell);
+        }
+
+        private static int RoadShift(EditedLevel level, Cell at, string name, int chosenShift, bool leftwards, out Cell cell)
+        {
+            return RoadShift(level, at, name, chosenShift, leftwards, null, out cell);
+        }
+
         [Theory]
         [MemberData(nameof(ShippedLevels))]
         public void SavesAShippedLevelAsItWasRead(string level)
@@ -788,22 +823,25 @@ namespace TW3D.Tests
             Assert.Equal(new[] { new Cell(-1, -1), new Cell(-1, -2), new Cell(-2, -3), new Cell(-2, -4) }, new Cell(0, 0).LineTo(new Cell(-2, -4)));
         }
 
-        /// <summary>A new level with the hill b2, b2, c2f, a1 at [1..4, 0] after the start block.</summary>
+        /// <summary>A new level with the hill b2, b2, c2 turned, a1 at [1..4, 0] after the start block.</summary>
         private static EditedLevel Hill()
         {
             EditedLevel level = EditedLevel.New(Catalog);
             string[] names = { "b2", "b2", "c2f", "a1" };
             for (int i = 0; i < names.Length; i++)
-                Assert.Null(level.Place(Layer.Middle, new Cell(i + 1, 0), names[i], 0));
+                Assert.Null(Place(level, Layer.Middle, new Cell(i + 1, 0), names[i], 0));
             return level;
         }
 
-        /// <summary>A level of the middle layer made of the blocks given as (name, x), all at y = 0, in that order.</summary>
+        /// <summary>A level of the middle layer made of the blocks given as (name, x) (see <see cref="Named"/>), all at y = 0, in that order.</summary>
         private static EditedLevel Row((string Name, int X)[] blocks)
         {
             LevelData data = new LevelData();
             foreach ((string name, int x) in blocks)
-                data.Middle.Add(new BlockPlacement { Block = name, X = x, Y = 0 });
+            {
+                (string block, bool turned) = Named(name);
+                data.Middle.Add(new BlockPlacement { Block = block, Turned = turned, X = x, Y = 0 });
+            }
             return new EditedLevel(Catalog, data, null);
         }
 
@@ -917,7 +955,7 @@ namespace TW3D.Tests
         }
 
         [Fact]
-        public void MirrorBlocksTurnsAHillIntoADescentInMirroredOrderAndNames()
+        public void MirrorBlocksTurnsAHillIntoADescentInMirroredOrderAndTurns()
         {
             EditedLevel level = Hill();
             string json = Json(level);
@@ -925,10 +963,11 @@ namespace TW3D.Tests
 
             level.MirrorBlocks(Layer.Middle, selection);
 
-            //b2, b2, c2f, a1 at 1..4 become a1, c2, b2f, b2f at 1..4: the same blocks, in the same places of the file
+            //b2, b2, c2 turned, a1 at 1..4 become a1, c2, b2 turned, b2 turned at 1..4: the same blocks, in the same
+            //places of the file, the blocks that turn turned round (a1 does not turn and looks the same mirrored)
             string[] expected = { "a1", "c2", "b2f", "b2f" };
             for (int x = 1; x <= 4; x++)
-                Assert.Equal(expected[x - 1], level.BlockAt(Layer.Middle, new Cell(x, 0)).Name);
+                Assert.Equal(expected[x - 1], Look(level.BlockAt(Layer.Middle, new Cell(x, 0))));
             Assert.Same(selection[3], level.BlockAt(Layer.Middle, new Cell(1, 0)));
             Assert.Equal(new Cell(4, 0), selection[0].Cell);
             Assert.Equal("Mirror", level.UndoName);
@@ -959,15 +998,34 @@ namespace TW3D.Tests
         }
 
         [Fact]
-        public void MirrorBlocksOfOneBlockRenamesItWhereItIs()
+        public void MirrorBlocksOfOneBlockTurnsItWhereItIs()
         {
             EditedLevel level = Hill();
             PlacedBlock block = level.BlockAt(Layer.Middle, new Cell(1, 0));
 
             level.MirrorBlocks(Layer.Middle, new[] { block });
 
-            Assert.Equal("b2f", block.Name);
+            Assert.Equal("b2", block.Name);
+            Assert.True(block.Turned);
             Assert.Equal(new Cell(1, 0), block.Cell);
+            level.MirrorBlocks(Layer.Middle, new[] { block });
+            Assert.False(block.Turned);
+        }
+
+        [Fact]
+        public void MirrorBlocksSwapsTheDecorationsWithAMirroredVariantAndKeepsTheirTurn()
+        {
+            EditedLevel level = Row();
+            Assert.Null(level.Place(Layer.Back, new Cell(0, 0), "bl2", 0));
+            Assert.Null(level.Place(Layer.Back, new Cell(1, 0), "bl2s", 0));
+            Assert.Null(level.Place(Layer.Back, new Cell(2, 0), "bl1", 0));
+            List<PlacedBlock> blocks = level.Blocks(Layer.Back).ToList();
+
+            level.MirrorBlocks(Layer.Back, blocks);
+
+            //bl2 and bl2f are mirror images, not turns: the names swap; bl1 has no variant and stays
+            Assert.Equal(new[] { "bl1", "bl2sf", "bl2f" }, new[] { 0, 1, 2 }.Select(x => Look(level.BlockAt(Layer.Back, new Cell(x, 0)))));
+            Assert.All(blocks, block => Assert.False(block.Turned));
         }
 
         [Fact]
@@ -982,7 +1040,7 @@ namespace TW3D.Tests
             PlacedBlock first = blocks[0], last = blocks[6];
             level.MirrorBlocks(Layer.Middle, new[] { first, last });
             Assert.Equal(7, blocks.Count);
-            Assert.Equal("b1f", first.Name);
+            Assert.Equal("b1f", Look(first));
             Assert.Equal(new Cell(5, 0), first.Cell);
             Assert.Equal(new Cell(0, 0), last.Cell);
             level.Undo();
@@ -993,7 +1051,7 @@ namespace TW3D.Tests
             level.MirrorBlocks(Layer.Middle, new[] { left, right });
             Assert.Equal(6, blocks.Count);
             Assert.Same(right, level.BlockAt(Layer.Middle, new Cell(1, 0)));
-            Assert.Equal("c1f", right.Name);
+            Assert.Equal("c1f", Look(right));
             level.Undo();
             Assert.Equal(json, Json(level));
             Assert.Equal("sg", level.Blocks(Layer.Middle)[2].Name);
@@ -1009,7 +1067,7 @@ namespace TW3D.Tests
 
             //A block that stays in its cell displaces nobody
             Assert.Equal(3, level.Blocks(Layer.Middle).Count);
-            Assert.Equal("b1f", level.Blocks(Layer.Middle)[0].Name);
+            Assert.Equal("b1f", Look(level.Blocks(Layer.Middle)[0]));
         }
 
         [Fact]
@@ -1018,7 +1076,8 @@ namespace TW3D.Tests
             EditedLevel level = Hill();
             int version = level.Version;
             Assert.False(level.MirrorBlocks(Layer.Middle, new List<PlacedBlock>()));
-            //A block with no mirrored variant alone stays as it is, and the result says that no step was recorded
+            //A block that neither turns nor has a mirrored variant alone stays as it is, and the result says that no
+            //step was recorded
             Assert.False(level.MirrorBlocks(Layer.Middle, new[] { level.BlockAt(Layer.Middle, new Cell(4, 0)) }));
             Assert.Equal(version, level.Version);
         }
@@ -1066,10 +1125,7 @@ namespace TW3D.Tests
         [Fact]
         public void MirrorNameSwapsEveryBlockWithItsFVariant()
         {
-            (string Plain, string Mirrored)[] pairs =
-            {
-                ("b1", "b1f"), ("c1", "c1f"), ("d1", "d1f"), ("s1", "s1f"), ("bl2", "bl2f"), ("bl2s", "bl2sf"), ("b4", "b4f")
-            };
+            (string Plain, string Mirrored)[] pairs = { ("bl2", "bl2f"), ("bl2s", "bl2sf") };
             foreach ((string plain, string mirrored) in pairs)
             {
                 Assert.Equal(mirrored, EditedLevel.MirrorName(Catalog, plain));
@@ -1094,6 +1150,8 @@ namespace TW3D.Tests
         public void MirrorNameKeepsABlockWithoutAMirroredVariant()
         {
             Assert.Equal("kea1f", EditedLevel.MirrorName(Catalog, "kea1f"));
+            //A block that turns has no mirrored variant: it is turned instead
+            Assert.Equal("b1", EditedLevel.MirrorName(Catalog, "b1"));
             Assert.Equal("lo", EditedLevel.MirrorName(Catalog, "lo"));
             Assert.Equal("nothing", EditedLevel.MirrorName(Catalog, "nothing"));
         }
@@ -1105,12 +1163,127 @@ namespace TW3D.Tests
                 Assert.Equal(block.Name, EditedLevel.MirrorName(Catalog, EditedLevel.MirrorName(Catalog, block.Name)));
         }
 
-        /// <summary>A level of road blocks only (no start block), each given as name, x, y, shift.</summary>
+        [Fact]
+        public void TurnBlocksTurnsTheBlocksThatTurnInTheirCellsAsOneStep()
+        {
+            EditedLevel level = Hill();
+            Assert.Null(level.SetFinish(Layer.Middle, new Cell(2, 0)));
+            Assert.True(level.Shift(Layer.Middle, new Cell(2, 0), 3));
+            string json = Json(level);
+            List<PlacedBlock> selection = Between(level, 1, 4);
+            List<PlacedBlock> before = level.Blocks(Layer.Middle).ToList();
+
+            //b2, b2, c2 turned turn; a1 does not
+            Assert.Equal(3, level.TurnBlocks(Layer.Middle, selection));
+
+            Assert.Equal(new[] { "b2f", "b2f", "c2", "a1" }, selection.Select(Look));
+            Assert.Equal(before, level.Blocks(Layer.Middle));
+            Assert.Equal(new[] { 1, 2, 3, 4 }, selection.Select(block => block.Cell.X));
+            Assert.Equal(3, selection[1].Shift);
+            Assert.True(selection[1].Finish);
+            Assert.Equal("Turn", level.UndoName);
+
+            level.Undo();
+            Assert.Equal(json, Json(level));
+            level.Redo();
+            Assert.Equal("b2f", Look(selection[0]));
+            //Turned twice, the blocks are as they were
+            level.TurnBlocks(Layer.Middle, selection);
+            Assert.Equal(json, Json(level));
+        }
+
+        [Fact]
+        public void TurnBlocksOfOneBlockNamesTheStepAfterIt()
+        {
+            EditedLevel level = Hill();
+            Assert.Equal(1, level.TurnBlocks(Layer.Middle, new[] { level.BlockAt(Layer.Middle, new Cell(1, 0)) }));
+            Assert.Equal("Turn b2", level.UndoName);
+        }
+
+        [Fact]
+        public void TurnBlocksRecordsNothingForBlocksThatDoNotTurnOrAreNotInTheLayer()
+        {
+            EditedLevel level = Hill();
+            int version = level.Version;
+            string undo = level.UndoName;
+            Assert.Equal(0, level.TurnBlocks(Layer.Middle, new List<PlacedBlock>()));
+            Assert.Equal(0, level.TurnBlocks(Layer.Middle, new[] { level.BlockAt(Layer.Middle, new Cell(4, 0)) }));
+            Assert.Equal(0, level.TurnBlocks(Layer.Back, Between(level, 1, 3)));
+            Assert.Equal(0, level.TurnBlocks(Layer.Middle, new[] { new PlacedBlock(new Cell(9, 9), "b1", 0, false) }));
+            Assert.Equal(version, level.Version);
+            Assert.Equal(undo, level.UndoName);
+        }
+
+        [Fact]
+        public void PlaceTurnedReplacesTheBlockNotTurnedAndRefusesABlockThatDoesNotTurn()
+        {
+            EditedLevel level = Hill();
+            string json = Json(level);
+            PlacedBlock block = level.BlockAt(Layer.Middle, new Cell(1, 0));
+
+            Assert.Null(level.Place(Layer.Middle, new Cell(1, 0), "b2", 0, true));
+            Assert.Same(block, level.BlockAt(Layer.Middle, new Cell(1, 0)));
+            Assert.True(block.Turned);
+            Assert.Equal("Place b2 turned", level.UndoName);
+            //The same block with the same shift and turn records nothing
+            int version = level.Version;
+            Assert.Null(level.Place(Layer.Middle, new Cell(1, 0), "b2", 0, true));
+            Assert.Equal(version, level.Version);
+            level.Undo();
+            Assert.Equal(json, Json(level));
+
+            Assert.Equal("Block a1 cannot be turned.", level.Place(Layer.Middle, new Cell(5, 0), "a1", 0, true));
+            Assert.Equal("Block tu1v cannot be turned.", level.Place(Layer.Middle, new Cell(5, 0), "tu1v", 0, true));
+            Assert.Equal(json, Json(level));
+        }
+
+        [Fact]
+        public void ATurnedBlockIsSavedAndReadBackTurned()
+        {
+            EditedLevel level = Row(("a1", 0, 0, 0), ("b2f", 1, 0, -4));
+            string json = Json(level);
+            Assert.Contains("{\"block\":\"b2\",\"x\":1,\"y\":0,\"shift\":-4,\"turned\":true}", json);
+            //A block that is not turned writes no turn
+            Assert.Contains("{\"block\":\"a1\",\"x\":0,\"y\":0,\"shift\":0}", json);
+
+            EditedLevel again = new EditedLevel(Catalog, LevelFile.Parse(json), null);
+            Assert.True(again.BlockAt(Layer.Middle, new Cell(1, 0)).Turned);
+            Assert.Equal(json, Json(again));
+            Assert.Empty(again.RoadGaps());
+        }
+
+        [Fact]
+        public void ATurnedBlockThatCannotTurnIsAProblem()
+        {
+            LevelData data = new LevelData();
+            data.Middle.Add(new BlockPlacement { Block = "a1", X = 0, Y = 0, Turned = true, Finish = true });
+            EditedLevel level = new EditedLevel(Catalog, data, null);
+            const string Message = "Block \"a1\" at [0, 0] in the middle layer is turned, but it cannot be turned.";
+            LevelProblem problem = Assert.Single(level.Problems());
+            Assert.Equal(Message, problem.Message);
+            Assert.Equal(new Cell(0, 0), problem.Cell);
+            Assert.Equal(new[] { Message }, data.Validate(Catalog));
+            //Mirrored or turned, it stays turned, and so the problem stays: only fixing it by hand removes it
+            Assert.Equal(0, level.TurnBlocks(Layer.Middle, level.Blocks(Layer.Middle)));
+        }
+
+        [Fact]
+        public void ATurnedRoadBlockJoinsTheRoadWithTheEdgesOfItsProfileSwapped()
+        {
+            //b2 turned climbs: it starts 4 steps below its base, so after the flat start its base is 4 steps up
+            EditedLevel level = EditedLevel.New(Catalog);
+            Assert.Equal(-4, level.RoadShift(new Cell(1, 0), "b2", true, 0, false, out Cell cell));
+            Assert.Equal(new Cell(1, 0), cell);
+            //Not turned, it descends from the surface of the start block: its base stays at 0
+            Assert.Equal(0, level.RoadShift(new Cell(1, 0), "b2", false, 0, false, out cell));
+        }
+
+        /// <summary>A level of road blocks only (no start block), each given as name (see <see cref="Named"/>), x, y, shift.</summary>
         private static EditedLevel Row(params (string Block, int X, int Y, int Shift)[] blocks)
         {
             EditedLevel level = new EditedLevel(Catalog, new LevelData(), null);
             foreach ((string block, int x, int y, int shift) in blocks)
-                Assert.Null(level.Place(Layer.Middle, new Cell(x, y), block, shift));
+                Assert.Null(Place(level, Layer.Middle, new Cell(x, y), block, shift));
             return level;
         }
 
@@ -1120,8 +1293,8 @@ namespace TW3D.Tests
         /// </summary>
         private static Cell PlaceOnRoad(EditedLevel level, int x, string block, bool leftwards = false)
         {
-            int shift = level.RoadShift(new Cell(x, 0), block, 0, leftwards, out Cell cell);
-            Assert.Null(level.Place(Layer.Middle, cell, block, shift));
+            int shift = RoadShift(level, new Cell(x, 0), block, 0, leftwards, out Cell cell);
+            Assert.Null(Place(level, Layer.Middle, cell, block, shift));
             return cell;
         }
 
@@ -1133,8 +1306,11 @@ namespace TW3D.Tests
             Assert.All(road, block => Assert.Equal(2, block.Profile.Length));
             //A road block has a collision shape: it can be in the middle layer
             Assert.All(road, block => Assert.True(block.Collision));
-            Assert.Equal(new[] { 4, 0 }, Catalog.FindBlock("b2f").Profile);
+            //Turned, a block has the edges of its profile swapped: b2 descends, b2 turned climbs
+            Assert.Equal(new[] { 0, 4 }, Catalog.FindBlock("b2").PlacedProfile(false));
+            Assert.Equal(new[] { 4, 0 }, Catalog.FindBlock("b2").PlacedProfile(true));
             Assert.False(Catalog.FindBlock(Decoration).IsRoad);
+            Assert.Null(Catalog.FindBlock(Decoration).PlacedProfile(true));
         }
 
         [Fact]
@@ -1143,7 +1319,7 @@ namespace TW3D.Tests
             EditedLevel level = Row(("b2f", 3, -1, 1), ("a1", 4, 2, -3));
             PlacedBlock climb = level.BlockAt(Layer.Middle, new Cell(3, -1));
             PlacedBlock flat = level.BlockAt(Layer.Middle, new Cell(4, 2));
-            //9 * y + shift, and heights grow downward: b2f is [4, 0]
+            //9 * y + shift, and heights grow downward: b2 turned is [4, 0]
             Assert.Equal(-8, EditedLevel.Base(climb));
             Assert.Equal(-4, level.SurfaceLeft(climb));
             Assert.Equal(-8, level.SurfaceRight(climb));
@@ -1303,15 +1479,15 @@ namespace TW3D.Tests
         {
             //The first block placed by hand, the others by the road: [1, 0] shift 0, [2, 0] shift -4, [3, -1] shift 1
             EditedLevel level = Row(("b2f", 1, 0, 0));
-            int second = level.RoadShift(new Cell(2, 0), "b2f", 0, false, out Cell secondCell);
+            int second = RoadShift(level, new Cell(2, 0), "b2f", 0, false, out Cell secondCell);
             Assert.Equal(new Cell(2, 0), secondCell);
             Assert.Equal(-4, second);
-            Assert.Null(level.Place(Layer.Middle, secondCell, "b2f", second));
+            Assert.Null(Place(level, Layer.Middle, secondCell, "b2f", second));
 
-            int third = level.RoadShift(new Cell(3, 0), "b2f", 0, false, out Cell thirdCell);
+            int third = RoadShift(level, new Cell(3, 0), "b2f", 0, false, out Cell thirdCell);
             Assert.Equal(new Cell(3, -1), thirdCell);
             Assert.Equal(1, third);
-            Assert.Null(level.Place(Layer.Middle, thirdCell, "b2f", third));
+            Assert.Null(Place(level, Layer.Middle, thirdCell, "b2f", third));
             Assert.Empty(level.RoadGaps());
         }
 
@@ -1320,7 +1496,7 @@ namespace TW3D.Tests
         {
             //The start block a1 is flat at 0: a climb that starts at its surface has its base 4 steps up
             EditedLevel level = EditedLevel.New(Catalog);
-            int shift = level.RoadShift(new Cell(1, 5), "b2f", 7, false, out Cell cell);
+            int shift = RoadShift(level, new Cell(1, 5), "b2f", 7, false, out Cell cell);
             Assert.Equal(new Cell(1, 0), cell);
             Assert.Equal(-4, shift);
         }
@@ -1330,7 +1506,7 @@ namespace TW3D.Tests
         {
             //A descent to the right of a flat block, painted from the right: b2 ends 4 steps down at its right edge [0, 4]
             EditedLevel level = Row(("a1", 5, 0, 0));
-            int shift = level.RoadShift(new Cell(4, 0), "b2", 0, true, out Cell cell);
+            int shift = RoadShift(level, new Cell(4, 0), "b2", 0, true, out Cell cell);
             //The right edge of b2 (base + 4) meets the left edge of a1 (0): base -4
             Assert.Equal(new Cell(4, 0), cell);
             Assert.Equal(-4, shift);
@@ -1338,7 +1514,7 @@ namespace TW3D.Tests
             Assert.Empty(level.RoadGaps());
 
             //Further leftwards b2 again: its right edge meets the left edge of the b2 placed, at base + 0 = -4
-            int next = level.RoadShift(new Cell(3, 0), "b2", 0, true, out Cell nextCell);
+            int next = RoadShift(level, new Cell(3, 0), "b2", 0, true, out Cell nextCell);
             Assert.Equal(new Cell(3, -1), nextCell);
             Assert.Equal(1, next);
             Assert.Null(level.Place(Layer.Middle, nextCell, "b2", next));
@@ -1350,10 +1526,10 @@ namespace TW3D.Tests
         {
             //Both neighbours exist, a flat road at 0 on the left and one at 20 steps on the right
             EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 2, 2, 2));
-            int rightwards = level.RoadShift(new Cell(1, 0), "a1", 0, false, out Cell rightwardsCell);
+            int rightwards = RoadShift(level, new Cell(1, 0), "a1", 0, false, out Cell rightwardsCell);
             Assert.Equal(new Cell(1, 0), rightwardsCell);
             Assert.Equal(0, rightwards);
-            int leftwards = level.RoadShift(new Cell(1, 0), "a1", 0, true, out Cell leftwardsCell);
+            int leftwards = RoadShift(level, new Cell(1, 0), "a1", 0, true, out Cell leftwardsCell);
             //20 steps: two cells down and 2 steps
             Assert.Equal(new Cell(1, 2), leftwardsCell);
             Assert.Equal(2, leftwards);
@@ -1364,15 +1540,15 @@ namespace TW3D.Tests
         {
             //No neighbour on the left: the one on the right is joined although the painting goes rightwards
             EditedLevel level = Row(("a1", 3, 0, 4));
-            int shift = level.RoadShift(new Cell(2, 0), "a1", 0, false, out Cell cell);
+            int shift = RoadShift(level, new Cell(2, 0), "a1", 0, false, out Cell cell);
             Assert.Equal(new Cell(2, 0), cell);
             Assert.Equal(4, shift);
 
             //No neighbour at all: the cursor cell and the chosen shift
-            shift = level.RoadShift(new Cell(7, -3), "a1", 5, false, out cell);
+            shift = RoadShift(level, new Cell(7, -3), "a1", 5, false, out cell);
             Assert.Equal(new Cell(7, -3), cell);
             Assert.Equal(5, shift);
-            shift = level.RoadShift(new Cell(7, -3), "a1", 5, true, out cell);
+            shift = RoadShift(level, new Cell(7, -3), "a1", 5, true, out cell);
             Assert.Equal(new Cell(7, -3), cell);
             Assert.Equal(5, shift);
         }
@@ -1381,11 +1557,11 @@ namespace TW3D.Tests
         public void RoadShiftKeepsTheChosenShiftOfABlockWithoutAProfile()
         {
             EditedLevel level = Row(("a1", 0, 0, 0));
-            int shift = level.RoadShift(new Cell(1, 4), Decoration, -2, false, out Cell cell);
+            int shift = RoadShift(level, new Cell(1, 4), Decoration, -2, false, out Cell cell);
             Assert.Equal(new Cell(1, 4), cell);
             Assert.Equal(-2, shift);
             //A wall of the middle layer next to the road has no profile either
-            shift = level.RoadShift(new Cell(1, 4), "xa6", 3, false, out cell);
+            shift = RoadShift(level, new Cell(1, 4), "xa6", 3, false, out cell);
             Assert.Equal(new Cell(1, 4), cell);
             Assert.Equal(3, shift);
         }
@@ -1395,10 +1571,10 @@ namespace TW3D.Tests
         {
             //Two roads in the column to the left, a cell apart: the cursor is next to the lower one
             EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 0, 1, 0));
-            int shift = level.RoadShift(new Cell(1, 1), "a1", 0, false, out Cell cell);
+            int shift = RoadShift(level, new Cell(1, 1), "a1", 0, false, out Cell cell);
             Assert.Equal(new Cell(1, 1), cell);
             Assert.Equal(0, shift);
-            shift = level.RoadShift(new Cell(1, 0), "a1", 0, false, out cell);
+            shift = RoadShift(level, new Cell(1, 0), "a1", 0, false, out cell);
             Assert.Equal(new Cell(1, 0), cell);
             Assert.Equal(0, shift);
         }
@@ -1440,15 +1616,15 @@ namespace TW3D.Tests
             PlacedBlock placed = level.BlockAt(Layer.Middle, new Cell(4, -1));
 
             //Without it the nearest in height wins, the old one: the climb breaks
-            int shift = level.RoadShift(new Cell(5, 0), "b2f", 0, false, out Cell cell);
+            int shift = RoadShift(level, new Cell(5, 0), "b2f", 0, false, out Cell cell);
             Assert.Equal(new Cell(5, 0), cell);
             Assert.Equal(-4, shift);
 
             //With the block of the stroke it goes on from the surface of that one: left edge -8, base -12
-            shift = level.RoadShift(new Cell(5, 0), "b2f", 0, false, placed, out cell);
+            shift = RoadShift(level, new Cell(5, 0), "b2f", 0, false, placed, out cell);
             Assert.Equal(new Cell(5, -1), cell);
             Assert.Equal(-3, shift);
-            Assert.Null(level.Place(Layer.Middle, cell, "b2f", shift));
+            Assert.Null(Place(level, Layer.Middle, cell, "b2f", shift));
             Assert.Equal(-8, level.SurfaceRight(placed));
             Assert.Equal(-8, level.SurfaceLeft(level.BlockAt(Layer.Middle, cell)));
         }
@@ -1459,14 +1635,14 @@ namespace TW3D.Tests
             EditedLevel level = Row(("a1", 0, 0, 0), ("a1", 1, 0, 0), ("a1", 3, 4, 0));
             PlacedBlock far = level.BlockAt(Layer.Middle, new Cell(3, 4));
             //Not in the column next to the block: the neighbour is found by the heights as usual
-            int shift = level.RoadShift(new Cell(2, 0), "a1", 0, false, far, out Cell cell);
+            int shift = RoadShift(level, new Cell(2, 0), "a1", 0, false, far, out Cell cell);
             Assert.Equal(new Cell(2, 0), cell);
             Assert.Equal(0, shift);
             //Erased since, with no other road next to the block: the chosen shift
             PlacedBlock gone = level.BlockAt(Layer.Middle, new Cell(1, 0));
             Assert.True(level.Erase(Layer.Middle, gone));
             Assert.True(level.Erase(Layer.Middle, far));
-            shift = level.RoadShift(new Cell(2, 0), "a1", 3, false, gone, out cell);
+            shift = RoadShift(level, new Cell(2, 0), "a1", 3, false, gone, out cell);
             Assert.Equal(new Cell(2, 0), cell);
             Assert.Equal(3, shift);
         }

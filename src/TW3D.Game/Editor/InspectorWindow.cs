@@ -7,11 +7,11 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// The Inspector window of the editor: what the active tool works on. With the Place tool the block in the cursor
-    /// cell of the active layer (its name, cell, shift and whether it is the finish); with the Object tool the selected
+    /// cell of the active layer (its name and whether it is turned, its cell, shift and whether it is the finish); with the Object tool the selected
     /// object, whose type and model it shows, its position as two fields (an edit is applied as one step of undo when it
     /// is finished, to the object it was begun on) and a button that removes it; while none is selected, the hovered one
     /// only to read; with the Select tool how many blocks and props are selected and the cells they span, with buttons that
-    /// mirror and delete them; with the Scenery tool the selected prop, its position and depth as fields and its turn as
+    /// turn, mirror and delete them; with the Scenery tool the selected prop, its position and depth as fields and its turn as
     /// buttons, and a button that removes it (the hovered one only to read), or while none is selected the depth and the
     /// turn new props get.
     /// </summary>
@@ -86,7 +86,7 @@ namespace TW3D.Editor
                 ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
                 return;
             }
-            ImGui.Text("Block: " + block.Name);
+            ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : ""));
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");
@@ -108,6 +108,9 @@ namespace TW3D.Editor
             }
             ImGui.Text(selectTool.ClipboardCount == 0 ? "Clipboard: empty" : "Clipboard: " + selectTool.ClipboardText);
             ImGui.BeginDisabled(!selectTool.Any);
+            if (ImGui.Button("Turn"))
+                selectTool.Turn();
+            ImGui.SameLine();
             if (ImGui.Button("Mirror"))
                 selectTool.Mirror();
             ImGui.SameLine();

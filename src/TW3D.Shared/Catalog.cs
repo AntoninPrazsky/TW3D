@@ -26,9 +26,27 @@ namespace TW3D.Shared
         /// </summary>
         public int[] Profile { get; set; }
 
+        /// <summary>
+        /// The block may be turned round by 180° about the vertical axis (<see cref="BlockPlacement.Turned"/>): its road
+        /// then runs the other way, and it looks the same from behind. A tunnel or a decoration turned would show its
+        /// back, so it does not turn.
+        /// </summary>
+        public bool Turns { get; set; }
+
         /// <summary>The block is a road block: it has a surface <see cref="Profile"/>.</summary>
         [JsonIgnore]
         public bool IsRoad => Profile != null;
+
+        /// <summary>
+        /// The <see cref="Profile"/> of the block as placed, [left, right]: turned, the edges swap, so a turned climb
+        /// [4, 0] is a descent [0, 4]. Null for a block that is not a road block.
+        /// </summary>
+        public int[] PlacedProfile(bool turned)
+        {
+            if (Profile == null || Profile.Length != 2)
+                return null;
+            return turned ? new[] { Profile[1], Profile[0] } : Profile;
+        }
 
         [JsonIgnore]
         public string ModelAsset => "Levels/mod/" + Name;

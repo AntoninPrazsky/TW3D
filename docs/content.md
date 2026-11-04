@@ -165,11 +165,20 @@ the game and the editor:
   behind the road) and the front layer.
   A road block also has a `profile`, `[left, right]`: the height of the road surface
   at the left and the right edge of the block relative to its base, in shift steps
-  (2.5 physics units; heights grow downward, as physics y does). For example `b2f`, a
-  climb, is `[4, 0]`: it starts 4 steps below its base and ends at it. The editor joins
+  (2.5 physics units; heights grow downward, as physics y does). For example `b2`, a
+  descent, is `[0, 4]`: it starts at its base and ends 4 steps below it. The editor joins
   the blocks of a road with it (road mode) and marks the gaps, and the level generator
   `tools/levelgen` builds its roads from it. A block without a profile (the decoration,
   the gates and walls) is not part of the road.
+  A block with `"turns": true` can be turned round by 180° about the vertical axis in a
+  level (`"turned": true`, see [the level format](levels.md#level-format)): the game draws
+  its model turned, mirrors its collision shape left to right and swaps its profile, so `b2`
+  turned is a climb, `[4, 0]`. The slopes, the stairs `s1` and the walls `t1` and `u1` turn;
+  so one model serves both directions, where the 2016 version had a mirrored model of each
+  (`b2f`, `t2`...; their Wings 3D originals are still in `art/wings`). A tunnel or a
+  decoration turned would show its back, so it does not turn; the barriers `bl2f` and
+  `bl2sf` are mirror images of `bl2` and `bl2s`, not their turns, and stay blocks of their
+  own. A new block that should run both ways needs one model with `turns`.
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution, the
   models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the

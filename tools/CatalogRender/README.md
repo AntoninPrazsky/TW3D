@@ -7,14 +7,15 @@ background, 481 × 477 pixels.
 
 ```sh
 # writes docs/catalog/bl/<block>.png
-dotnet run --project tools/CatalogRender -- render kea1e c3f
+dotnet run --project tools/CatalogRender -- render kea1e c3
 dotnet run --project tools/CatalogRender -- render --out some/folder kea1e
 
 # compares renders of all blocks in content/catalog.json with their catalog images
 dotnet run --project tools/CatalogRender -- check
 ```
 
-A new block also needs a row in `docs/catalog/catalog.html`.
+A new block also needs a row in `docs/catalog/catalog.html` (and the row *Turns* when it has
+`"turns": true`: a turned block has no image of its own).
 
 ## The camera
 
@@ -24,7 +25,8 @@ corners) to the catalog images: the edges of the selector are 0.14 px apart on a
 Renders of the blocks then differ from their 2016 images by about 8–16 (RMS of the colour
 channels, 0–255), as those were drawn by XNA. `check` reports an image differing much
 more as showing another block; that is how the images of `kea1e` (showed `kea1d`) and
-`c3f` (showed `c2f`) were found and replaced by renders.
+`c3f` (showed `c2f`; the block is now `c3` turned and has no image of its own) were found and
+replaced by renders.
 
 The image of `lo` was taken from another position, as the block reaches out of its cell,
 so `check` does not compare it.

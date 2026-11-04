@@ -41,10 +41,11 @@ namespace TW3D.GameObjects
 
         /// <summary>A body with the collision shape of a model (see <see cref="ModelCollision"/>).</summary>
         /// <param name="model">Content name of the model.</param>
-        public Body CreateModelBody(string model, BodyType bodyType, Category category = Category.Cat1)
+        /// <param name="turned">The model is turned round about the vertical axis (a turned block), and so is its shape.</param>
+        public Body CreateModelBody(string model, BodyType bodyType, Category category = Category.Cat1, bool turned = false)
         {
             Body body = world.CreateBody(Vector2.Zero, 0f, bodyType);
-            ModelCollision.AddTo(body, model, category);
+            ModelCollision.AddTo(body, model, category, turned);
             return body;
         }
 

@@ -12,11 +12,12 @@ namespace TW3D.Shared
     /// Reading and writing level files. Levels are stored as JSON with one block or object per line:
     /// <code>
     /// {
-    ///   "format": 1,
+    ///   "format": 2,
     ///   "order": 1,
     ///   "mood": "sunset",
     ///   "middle": [
     ///     {"block":"a1","x":0,"y":0,"shift":0},
+    ///     {"block":"b2","x":1,"y":0,"shift":-4,"turned":true},
     ///     ...
     ///   ],
     ///   "back": [ ... ],
@@ -31,13 +32,11 @@ namespace TW3D.Shared
     ///   ]
     /// }
     /// </code>
-    /// The scenery is written only when the level has some.
-    /// Files in the original .lev format of the 2016 version can be read too.
+    /// The scenery is written only when the level has some, and a block's "turned" only when it is.
     /// </summary>
     public static class LevelFile
     {
         public const string Extension = ".json";
-        public const string LegacyExtension = ".lev";
 
         public static LevelData Load(string path)
         {
@@ -50,17 +49,22 @@ namespace TW3D.Shared
                 return Parse(reader.ReadToEnd());
         }
 
-        /// <summary>Reads a level in the JSON format, or in the legacy .lev format.</summary>
+        /// <summary>
+        /// Reads a level in the JSON format of <see cref="LevelData.CurrentFormat"/>. Anything else is refused: a file that
+        /// is not JSON (such as a level of the 2016 version) and a level of another format.
+        /// </summary>
         public static LevelData Parse(string text)
         {
             if (!text.TrimStart().StartsWith("{"))
-                return LegacyLevelFormat.Parse(text);
+                throw new InvalidDataException("The file is not a level: a level file is JSON.");
 
             LevelData level = JsonSerializer.Deserialize<LevelData>(text, JsonOptions.Default);
             if (level == null)
                 throw new InvalidDataException("The level file is empty.");
             if (level.Format > LevelData.CurrentFormat)
                 throw new InvalidDataException($"The level file has format {level.Format}, but only formats up to {LevelData.CurrentFormat} are supported.");
+            if (level.Format < LevelData.CurrentFormat)
+                throw new InvalidDataException($"The level file has format {level.Format}, which is no longer read: since format {LevelData.CurrentFormat} a block is turned instead of using its mirrored \"f\" model.");
             //The scenery is optional: "scenery": null is a level without it
             level.Scenery ??= new List<SceneryPlacement>();
             return level;

@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: |
           dotnet run --project tools/CollisionGen -c Release --no-build -- content
-          for script in tools/levelgen/training*.js; do node "$script"; done
+          for script in tools/levelgen/training*.js tools/levelgen/docks.js; do node "$script"; done
           git add --intent-to-add -- content
           git diff --exit-code --stat -- content
 

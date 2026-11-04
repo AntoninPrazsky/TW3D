@@ -144,7 +144,7 @@ namespace TW3D.Editor
             {
                 PlacedBlock block = blocks[i];
                 if (blockModels.TryGetValue(block.Name, out Model model))
-                    DrawModel(renderer, model, new Vector3(PhysicsPosition(block), depth), 0f, false);
+                    DrawModel(renderer, model, new Vector3(PhysicsPosition(block), depth), 0f, block.Turned);
             }
         }
 

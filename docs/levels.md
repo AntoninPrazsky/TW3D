@@ -67,11 +67,21 @@ beside the track); View > Tool lists them.
 
 The **Place tool** edits blocks in the active layer. The left button places the chosen block
 in the cell under the cursor and dragging paints, Left Shift + the left button erases, the
-right button picks the block under the cursor as the chosen one (with its shift), and
-Ctrl + the wheel shifts the block up or down. The arrows move the cursor cell, Space places,
-Delete erases, PageUp / PageDown shift, F marks the block at the cursor cell as the finish
-(again, it stops being it), comma and period choose the previous and the next block of the
-catalog, and R switches road mode (below).
+right button picks the block under the cursor as the chosen one (with its shift and its
+turn), and Ctrl + the wheel shifts the block up or down. The arrows move the cursor cell,
+Space places, Delete erases, PageUp / PageDown shift, F marks the block at the cursor cell
+as the finish (again, it stops being it), T turns the chosen block round (again, back),
+comma and period choose the previous and the next block of the catalog, and R switches road
+mode (below).
+
+A block of the road can be **turned** round by 180° about the vertical axis: its road then
+runs the other way, so `b2`, a descent, turned is a climb, and the walls `t1` and `u1` turned
+stand at the other side of their cell. The blocks that turn are the slopes (`b1`–`b4`,
+`c1`–`c3`, `d1`–`d3`), the stairs `s1` and the walls `t1` and `u1` (`"turns": true` in the
+catalog); a tunnel or a decoration turned would show its back, so it does not turn. The
+status bar says "turned" after the chosen block, and the Inspector after the block at the
+cursor cell. (The 2016 version had a mirrored model of each, `b2f`, `t2`...; the level
+generator still names a turned block so.)
 
 The **Object tool** edits the dynamic objects (boxes, bars, ramps...), which are always on
 the plane of the middle layer. The left button adds the chosen object at the point under
@@ -111,9 +121,11 @@ and Space adds the cell at the cursor to the selection, or takes it out again. T
 move the selection (Ctrl + the arrows only the cursor cell), Delete erases it, PageUp /
 PageDown shift it, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste it (the leftmost of the
 copied cells, the lowest of those if several, goes to the cursor cell; the props keep their
-depth relative to the layer), and H mirrors it left to right, swapping every block for its
-mirrored variant where the catalog has one (`b2` and `b2f`, `s1` and `s1f`...), so that a
-climb becomes a descent, and turning the props as their mirror images. Ctrl+PageUp /
+depth relative to the layer), T turns the selected blocks round in their cells (the turned
+ones back; blocks that do not turn stay as they are) and the selected props by a quarter,
+and H mirrors it left to right, turning every block that turns round, so that a climb becomes
+a descent (the barriers `bl2` and `bl2f`, `bl2s` and `bl2sf`, which are mirror images of each
+other, swap), and turning the props as their mirror images. Ctrl+PageUp /
 Ctrl+PageDown (Edit > Move to the layer behind / in front) move the selection into the
 next layer behind or in front, in the same cells, the props as far in depth; that layer
 becomes the active one and the selection stays. A block of that layer in a cell they come to
@@ -133,9 +145,9 @@ Controls window.
   makes one the chosen object and the Object tool active; its Scenery tab does the same for
   the props of the scenery and the Scenery tool.
 - **Inspector** shows what the active tool works on: the block at the cursor cell of the
-  active layer (its name, cell, shift and whether it is the finish, and the surface heights
-  of a road block), the selected blocks (how many, and the cells they span) with buttons
-  that mirror and delete them, the selected object with its type, model and position,
+  active layer (its name and whether it is turned, its cell, shift and whether it is the
+  finish, and the surface heights of a road block), the selected blocks (how many, and the
+  cells they span) with buttons that turn, mirror and delete them, the selected object with its type, model and position,
   which can be typed (each edit one step of undo), and a button that removes it, or the
   selected prop with its position and depth to type, its turn as four buttons and a button
   that removes it (without a selection, the depth and the turn of the props to be added).
@@ -159,12 +171,12 @@ Controls window.
 Road mode (R, or Level > Road mode; the status bar says "Road" after the chosen block while
 it is on) makes the Place tool join the road as the level generator does. Every road block
 of the catalog has a `profile`, the height of its surface at the left and the right edge
-(see [content](content.md#catalog)). With road mode on, a road block placed in the middle
+(see [content](content.md#catalog)); a turned block has the two swapped. With road mode on, a road block placed in the middle
 layer (the back and front layers place as usual) goes into the column of the cursor cell at
 the height where its left edge meets the right edge of the road block in the column to the
 left, or its right edge the left edge of the block to the right when the stroke paints
 leftwards. So a hill painted with the mouse or built with Space comes out continuous, the
-cell and the shift being chosen for you ("Placed b2f at [3, -1], shift 1."). In a stroke
+cell and the shift being chosen for you ("Placed b2 turned at [3, -1], shift 1."). In a stroke
 each block joins the one the stroke placed just before it, and an old road block it would
 stand on, at the cell pointed at or within a cell of the new height, is replaced by it, all
 in one step of undo. Where the column on the preferred side has no road block, the other
@@ -191,10 +203,9 @@ cannot build is refused.
 
 The File menu has New (Ctrl+N, a level with the start block only, at [0, 0], where the car
 starts), Open (Ctrl+O: the levels of the folder with their order, mood, number of blocks
-and preview, and a field for any level file, also an old `.lev`), Open recent (the last 8
-levels opened or saved), Save (Ctrl+S) and Save as (Ctrl+Shift+S, a name in the folder; an
-existing file is replaced only when confirmed). A new level and an old `.lev` file are saved
-through Save as, as `.json`. New, Open, Esc and the close button of the window ask "Save
+and preview, and a field for any level file), Open recent (the last 8 levels opened or
+saved), Save (Ctrl+S) and Save as (Ctrl+Shift+S, a name in the folder; an existing file is
+replaced only when confirmed). A new level is saved through Save as. New, Open, Esc and the close button of the window ask "Save
 changes?" while the level has unsaved changes (Enter saves, D drops them, Esc cancels).
 Opening or saving a level says in the status bar how many problems and road gaps it has,
 and the first problem ("Saved x.json; 1 problem: The level has no finish.; 3 road gaps.").
@@ -225,11 +236,12 @@ Levels are JSON files with one block or object per line:
 
 ```json
 {
-  "format": 1,
+  "format": 2,
   "order": 1,
   "mood": "sunset",
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
+    {"block":"b2","x":1,"y":0,"shift":-4,"turned":true},
     ...
   ],
   "back": [
@@ -263,9 +275,14 @@ Levels are JSON files with one block or object per line:
   how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one
   depth only, a cell in front of the road.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
-  moves the block vertically in steps of 2.5 physics units. `"finish": true` makes a
+  moves the block vertically in steps of 2.5 physics units. `"turned": true` (written
+  only when it is) turns a block that turns round by 180° about the vertical axis, in its
+  cell: its model, its collision shape and its profile. `"finish": true` makes a
   block of the middle layer the finish of the level (one at most): the run ends when
   the middle of the car reaches its cell. A level without a finish has no end.
+- `format`: 2. The game and the editor read only this format. Format 1 had the mirrored
+  models of the blocks (`b2f` instead of `b2` turned) and is refused, and so is the format
+  of the 2016 version.
 - Objects: `x`, `y` in physics units.
 - `scenery` (optional, written only when the level has some): the props beside the track,
   without physics. `model` is a prop of the `scenery` list of the catalog, `x`, `y` where
@@ -279,7 +296,8 @@ Levels are JSON files with one block or object per line:
 ## Converted and generated levels
 
 The levels lock, startblock and tunel were converted from the original `.lev`
-format of the 2016 version, which the editor can still open.
+format of the 2016 version, and on 2026-11-04 with summit from format 1 to format 2 (every
+mirrored f model became its block turned, in the same cell).
 
 The training levels (training1 to training3, the first in the level select, see the
 tutorial in [Playing](playing.md#tutorial)), the summit level and the docks level (the last one,

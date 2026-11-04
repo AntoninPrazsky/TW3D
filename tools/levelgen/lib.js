@@ -7,6 +7,10 @@
 // Units: heights are in shift steps (2.5 physics units), y grows downwards, one grid cell is
 // 22.5 physics units = 9 shift steps. A block's "base" is 9 * y + shift, i.e. its vertical
 // position in shift steps.
+//
+// Names: a block is named as in content/catalog.json, and a block that turns ("turns": true) is named turned with an
+// "f" after its name: "b2f" is b2 turned round, its road running the other way ({ "block": "b2", "turned": true } in
+// the level file), as the mirrored f models of the 2016 version were. The walls t1 and u1 turned are "t1f" and "u1f".
 
 "use strict";
 
@@ -16,19 +20,39 @@ const path = require("path");
 const Cell = 22.5;
 const Step = 2.5;
 
+const Catalog = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "content", "catalog.json"), "utf8"));
+const Blocks = new Map(Catalog.blocks.map(block => [block.name, block]));
+
 // Height of the road surface at the left and right edge of each road block, relative to its base: the "profile"
 // of the blocks in content/catalog.json (measured on the 2016 collision bitmaps, now docs/catalog/bl/cols; a flat a1
-// has its surface at the base; s1/s1f, the stairs, start or end with a step at the block edge). The level editor reads
-// the same profiles, so that it joins the blocks of a road as road() does.
+// has its surface at the base; s1, the stairs, ends with a step at the block edge), and of the turned blocks with the
+// edges swapped ("b2f" is b2 turned: [4, 0] of b2's [0, 4]). The level editor reads the same profiles, and swaps them
+// for a turned block too, so that it joins the blocks of a road as road() does.
 const Profiles = loadProfiles();
 
 function loadProfiles() {
-  const catalog = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "..", "content", "catalog.json"), "utf8"));
   const profiles = {};
-  for (const block of catalog.blocks)
-    if (block.profile)
-      profiles[block.name] = block.profile;
+  for (const block of Catalog.blocks) {
+    if (!block.profile)
+      continue;
+    profiles[block.name] = block.profile;
+    if (block.turns)
+      profiles[block.name + "f"] = [block.profile[1], block.profile[0]];
+  }
   return profiles;
+}
+
+/**
+ * The block of the catalog a name means, and whether it is turned: a name of the catalog is that block, a name that is
+ * not in the catalog but is a block that turns with an "f" after it is that block turned ("b2f": b2 turned).
+ */
+function resolve(name) {
+  if (Blocks.has(name))
+    return { block: name, turned: false };
+  const base = name.endsWith("f") ? Blocks.get(name.slice(0, -1)) : undefined;
+  if (base && base.turns)
+    return { block: base.name, turned: true };
+  throw new Error(`No block "${name}" in the catalog` + (base ? `: ${base.name} does not turn` : ""));
 }
 
 const FlatBlocks = new Set(["a1", "xa1", "sb"]);
@@ -57,9 +81,13 @@ class Track {
     this.cells = new Map();
   }
 
-  static place(block, x, base) {
+  /** A block in the format of the level file: the name resolved (a turned one gets "turned"), its cell and shift. */
+  static place(name, x, base) {
     const y = Math.round(base / 9);
-    return { block, x, y, shift: base - 9 * y };
+    const { block, turned } = resolve(name);
+    const placed = { block, x, y, shift: base - 9 * y };
+    if (turned) placed.turned = true;
+    return placed;
   }
 
   /** Surface y in physics units of a flat block at height h. */
@@ -98,10 +126,11 @@ class Track {
     return this;
   }
 
-  /** Removes the blocks of the given type in column x of a layer. */
-  remove(layer, block, x) {
+  /** Removes the blocks of the given name (a turned one by its "f" name) in column x of a layer. */
+  remove(layer, name, x) {
     Track.layer(layer);
-    this[layer] = this[layer].filter(b => b.block !== block || b.x !== x);
+    const { block, turned } = resolve(name);
+    this[layer] = this[layer].filter(b => b.block !== block || !!b.turned !== turned || b.x !== x);
     return this;
   }
 
@@ -229,7 +258,7 @@ class Track {
     const list = (name, items, last) => `  "${name}": [`
       + (items.length ? "\n" + items.map(i => "    " + JSON.stringify(i)).join(",\n") + "\n  ]" : "]")
       + (last ? "\n" : ",\n");
-    return "{\n  \"format\": 1,\n" + (order != null ? `  "order": ${order},\n` : "")
+    return "{\n  \"format\": 2,\n" + (order != null ? `  "order": ${order},\n` : "")
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + (this.par != null ? `  "par": ${this.par},\n` : "")
       + list("middle", this.middle) + list("back", back) + list("front", this.front)
@@ -242,4 +271,4 @@ class Track {
   }
 }
 
-module.exports = { Track, Profiles, Cell, Step };
+module.exports = { Track, Profiles, Cell, Step, resolve };

@@ -85,7 +85,8 @@ namespace TW3D.Editor
             if (tool == EditorTool.Scenery)
                 return input.KeyPressed(Keys.T) || input.KeyPressed(Keys.PageUp) || input.KeyPressed(Keys.PageDown);
             return input.KeyPressed(Keys.PageUp) || input.KeyPressed(Keys.PageDown)
-                || tool == EditorTool.Place && input.KeyPressed(Keys.F) || tool == EditorTool.Select && input.KeyPressed(Keys.H);
+                || tool == EditorTool.Place && input.KeyPressed(Keys.F)
+                || tool == EditorTool.Select && (input.KeyPressed(Keys.H) || input.KeyPressed(Keys.T));
         }
     }
 }

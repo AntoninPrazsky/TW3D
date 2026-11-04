@@ -46,6 +46,19 @@ namespace TW3D.Tests
             Assert.DoesNotContain(physical, model => shapes.Find(model) == null);
         }
 
+        /// <summary>
+        /// A block that turns has no model of its own for its other direction: the level generator names it turned with
+        /// an "f" after its name, which would be ambiguous. And it is a block of the track, with a collision shape.
+        /// </summary>
+        [Fact]
+        public void EveryBlockThatTurnsHasNoFVariantAndACollisionShape()
+        {
+            List<BlockType> turning = catalog.Blocks.Where(block => block.Turns).ToList();
+            Assert.NotEmpty(turning);
+            Assert.All(turning, block => Assert.Null(catalog.FindBlock(block.Name + "f")));
+            Assert.All(turning, block => Assert.True(block.Collision));
+        }
+
         /// <summary>The levels name a prop of the scenery by its model, so no two props share one.</summary>
         [Fact]
         public void EveryPropOfTheSceneryHasItsOwnModelAndAName()

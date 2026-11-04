@@ -24,7 +24,8 @@ namespace TW3D.Editor
     /// <para>
     /// Keys: Space toggles the cell at the cursor, Ctrl+A selects the layer, the arrows move the selection by a cell (the
     /// cursor with it), or the cursor cell while nothing is selected (with Ctrl they move the cursor cell only), Delete
-    /// erases, PageUp / PageDown shift, H mirrors (see <see cref="EditedLevel.MirrorBlocks(Layer, IReadOnlyList{PlacedBlock}, int)"/>
+    /// erases, PageUp / PageDown shift, T turns the blocks round in their cells and the props by a quarter (see
+    /// <see cref="EditedLevel.TurnBlocks"/>), H mirrors (see <see cref="EditedLevel.MirrorBlocks(Layer, IReadOnlyList{PlacedBlock}, int)"/>
     /// and <see cref="EditedLevel.MirrorScenery"/>), Ctrl+PageUp / Ctrl+PageDown move the selection into the layer behind
     /// or in front, which becomes the active one (see <see cref="EditedLevel.MoveToLayer"/>). No key works while the
     /// button drags. Esc drops a drag, then the selection.
@@ -49,8 +50,8 @@ namespace TW3D.Editor
             Rectangle
         }
 
-        /// <summary>A block in the clipboard: what it was and where, relative to the anchor cell (see <see cref="Anchor"/>).</summary>
-        private readonly record struct Copied(string Name, int Shift, int X, int Y);
+        /// <summary>A block in the clipboard: what it was, how it was turned and where, relative to the anchor cell (see <see cref="Anchor"/>).</summary>
+        private readonly record struct Copied(string Name, int Shift, bool Turned, int X, int Y);
 
         /// <summary>
         /// A prop in the clipboard: its model, where its foot was relative to the middle of the anchor cell (physics units),
@@ -238,6 +239,8 @@ namespace TW3D.Editor
                 ShiftSelection(-1);
             if (input.KeyPressed(Keys.PageDown))
                 ShiftSelection(1);
+            if (input.KeyPressed(Keys.T))
+                Turn();
             if (input.KeyPressed(Keys.H))
                 Mirror();
         }
@@ -316,7 +319,7 @@ namespace TW3D.Editor
             Cell origin = Anchor();
             clipboard.Clear();
             foreach (PlacedBlock block in selected)
-                clipboard.Add(new Copied(block.Name, block.Shift, block.Cell.X - origin.X, block.Cell.Y - origin.Y));
+                clipboard.Add(new Copied(block.Name, block.Shift, block.Turned, block.Cell.X - origin.X, block.Cell.Y - origin.Y));
             propClipboard.Clear();
             foreach (PlacedScenery prop in selectedProps)
                 propClipboard.Add(new CopiedProp(prop.Model, prop.X - origin.X * Units.GridCell, prop.Y - origin.Y * Units.GridCell,
@@ -398,7 +401,7 @@ namespace TW3D.Editor
                 foreach (Copied copied in clipboard)
                 {
                     Cell cell = new Cell(origin.X + copied.X, origin.Y + copied.Y);
-                    if (level.Place(layer, cell, copied.Name, copied.Shift) != null)
+                    if (level.Place(layer, cell, copied.Name, copied.Shift, copied.Turned) != null)
                     {
                         skipped++;
                         continue;
@@ -444,8 +447,36 @@ namespace TW3D.Editor
         }
 
         /// <summary>
-        /// Flips the selection left to right around the middle of its cells, swapping the blocks for their mirrored
-        /// variants and turning the props as their mirror images, in one step of undo (H, the Inspector).
+        /// Turns the selection in its cells, in one step of undo (T, the Inspector): each selected block that turns is
+        /// turned round (a turned one back), and each selected prop is turned by a quarter, as the Scenery tool's T turns
+        /// it. The blocks that cannot turn stay as they are.
+        /// </summary>
+        public void Turn()
+        {
+            if (!Any)
+            {
+                report("Nothing is selected.");
+                return;
+            }
+            int blocks;
+            using (level.BeginCompound("Turn"))
+            {
+                blocks = level.TurnBlocks(layer, selected);
+                foreach (PlacedScenery prop in selectedProps)
+                    level.TurnScenery(prop, prop.Turn + 1);
+            }
+            int unturned = selected.Count - blocks;
+            string items = Items(blocks, selectedProps.Count);
+            if (items.Length == 0)
+                report(unturned == 1 ? "The selected block cannot be turned." : "None of the selected blocks can be turned.");
+            else
+                report($"Turned {items}" + (unturned == 0 ? "." : $"; {unturned} {(unturned == 1 ? "block" : "blocks")} cannot be turned."));
+        }
+
+        /// <summary>
+        /// Flips the selection left to right around the middle of its cells, turning the blocks that turn round (and
+        /// swapping the others for their mirrored variants, bl2 and bl2f) and turning the props as their mirror images, in
+        /// one step of undo (H, the Inspector).
         /// </summary>
         public void Mirror()
         {

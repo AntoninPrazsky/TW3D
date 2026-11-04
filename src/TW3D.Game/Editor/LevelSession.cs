@@ -180,13 +180,10 @@ namespace TW3D.Editor
                 : null;
         }
 
-        /// <summary>
-        /// Saves the level into its file. A new level and a level read from an old .lev file (which is never overwritten)
-        /// need a name: Save as asks for it.
-        /// </summary>
+        /// <summary>Saves the level into its file. A new level needs a name: Save as asks for it.</summary>
         public SaveOutcome Save()
         {
-            if (level.File == null || level.File.EndsWith(LevelFile.LegacyExtension, StringComparison.OrdinalIgnoreCase))
+            if (level.File == null)
             {
                 SaveAs();
                 return SaveOutcome.SavingAs;

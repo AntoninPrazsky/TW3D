@@ -26,7 +26,7 @@ namespace TW3D.Editor
         {
             ("Left button", "Place the chosen block in the cell under the cursor, in the active layer; dragging paints (a drag is one step of undo)"),
             ("Left Shift + left button", "Erase the block under the cursor; dragging erases"),
-            ("Right button", "Pick: the block under the cursor becomes the chosen block, with its shift"),
+            ("Right button", "Pick: the block under the cursor becomes the chosen block, with its shift and its turn"),
             ("Ctrl + wheel", "Shift the block under the cursor up or down (the chosen shift follows)")
         };
 
@@ -74,6 +74,7 @@ namespace TW3D.Editor
             ("Space / Delete", "Place the chosen block / erase the block at the cursor cell"),
             ("PageUp / PageDown", "Shift the block at the cursor cell up / down (the chosen shift follows)"),
             ("F", "The block at the cursor cell is the finish of the level, or stops being it (middle layer only)"),
+            ("T", "Turn the chosen block round, or back: its road runs the other way, a climb becomes a descent (the status bar says \"turned\"; tunnels and decorations do not turn)"),
             (", / .", "The previous / next block of the catalog becomes the chosen block (and Place the active tool)")
         };
 
@@ -101,7 +102,8 @@ namespace TW3D.Editor
             ("Space", "Add the block and the props at the cursor cell to the selection, or take them out"),
             ("Arrows / Ctrl + arrows", "Move the selection (and the cursor) by a cell; without a selection, or with Ctrl, only the cursor cell"),
             ("PageUp / PageDown", "Shift the selected blocks up / down"),
-            ("H", "Mirror the selection left to right, swapping the blocks for their f variants (b2 and b2f); the props turn as their mirror images"),
+            ("T", "Turn the selected blocks round in their cells (the turned ones back), and the selected props by a quarter"),
+            ("H", "Mirror the selection left to right: the blocks are turned round (bl2 and bl2f swap), the props turn as their mirror images"),
             ("Delete", "Erase the selected blocks and props"),
             ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) cell at the cursor cell (the pasted blocks and props are selected; decorations are skipped in the middle layer)"),
             ("Ctrl+PageUp / Ctrl+PageDown", "Move the selection into the layer behind / in front, in the same cells (the props go as far in depth); that layer becomes the active one. Decorations do not go into the middle layer, and the finish stays there")
@@ -148,7 +150,7 @@ namespace TW3D.Editor
         {
             ("Start", "The car starts at the cell [0, 0], and a new level has its start block there. Build the track to the right of it. The status bar shows the cell under the cursor, the active layer and tool and the chosen block."),
             ("Choose blocks", "Choose a block in the Palette. The middle layer is the road the car drives on and the blocks that collide; decorations go to the three back layers (one, two and three cells behind the road: back, back 2 and back 3) and to the front layer (in front of it; the camera is too near for more): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active. The Select tool moves a selection into another layer with Ctrl+PageUp and Ctrl+PageDown."),
-            ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
+            ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. A slope descends to the right: T turns the chosen block round, so that it climbs (the stairs and the walls t1 and u1 turn too). Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
             ("Put the finish", "Put the cursor on a block of the middle layer and press F: that block is the finish, where the run ends. A level without a finish has no end, and the Level window says so."),
             ("Add objects", "Boxes, bars, ramps and the other dynamic objects are added with the Object tool (O): choose one in the Objects tab of the Palette and click where it is to be, or press Space to drop it onto the block at the cursor cell. Drag an object to move it."),
             ("Add scenery", "Traffic cones, street lamps, utility poles, fences, guardrails, posts with a chain and a judges' stand stand beside the track without physics: the car drives through them. Choose one in the Scenery tab of the Palette (the Scenery tool, P), set the depth it goes to (PageUp and PageDown, or the Inspector: negative behind the road, positive in front of it; the road reaches 11.25 to either side, each of the other layers the next 22.5) and click where it is to stand, or press Space to stand it on the road at the cursor cell. T turns it. A guardrail is a cell long: Space at every cell of a straight road makes a continuous one; two pieces of the fence or of the chain fill a cell. The Select tool moves, copies and mirrors the props with the blocks of the layer they stand in."),

@@ -16,7 +16,7 @@ t.par = 14;
 // ---- Road (middle layer, takes part in the physics) ----
 
 // Start: wall behind the car, checkered start area, start gate with the START sign
-t.put("middle", "u2", -4, -4).put("middle", "t2", -4, -13).put("middle", "t2", -4, -22);
+t.put("middle", "u1f", -4, -4).put("middle", "t1f", -4, -13).put("middle", "t1f", -4, -22);
 t.road("a1", "a1", "xa1", "xa1", "xa1", "sb");
 t.put("middle", "sg", 2, -4).put("middle", "st2", 2, -13);
 

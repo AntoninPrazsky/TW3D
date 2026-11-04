@@ -71,7 +71,7 @@ namespace TW3D.Tests
         [Fact]
         public void ALevelWithoutDepthsHasOnlyTheFirstBackLayer()
         {
-            LevelData data = LevelFile.Parse("{\"format\":1,\"middle\":[{\"block\":\"a1\",\"x\":0,\"y\":0,\"shift\":0}],"
+            LevelData data = LevelFile.Parse("{\"format\":2,\"middle\":[{\"block\":\"a1\",\"x\":0,\"y\":0,\"shift\":0}],"
                 + "\"back\":[{\"block\":\"kea1a\",\"x\":0,\"y\":0,\"shift\":0}],\"front\":[],\"objects\":[]}");
             Assert.Equal(1, data.Back.Single().Depth);
             EditedLevel level = new EditedLevel(Catalog, data, null);

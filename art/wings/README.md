@@ -8,7 +8,9 @@ game is built from are the `.obj` + `.mtl` files in `content/` (see
 cannot open `.wings` files; Wings 3D can, and exports OBJ as well.
 
 The folders follow `content/`: `Levels/mod/a1.wings` is the original of
-`content/Levels/mod/a1.obj`. The files of the blocks, the dynamic objects and the selector
+`content/Levels/mod/a1.obj`. The blocks of the other direction (`b1f.wings` to `d3f.wings`,
+`s1f.wings`, `t2.wings` and `u2.wings`) are their blocks turned round by 180°; since 2026-11
+the game turns the block instead (`"turned"` in a level), so they are not in `content/`. The files of the blocks, the dynamic objects and the selector
 lay next to their `.x` exports, which were the ones the game used. The vehicles were
 modelled in several versions, often in files with other names, so their files (and the
 sky's) were found by comparing them with the exports: each contains just the exported
