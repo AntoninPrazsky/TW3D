@@ -15,10 +15,10 @@ The materials of metal parts also have the metallic `Pm` (0–1) and the roughne
 (0–1, 0 = a mirror) of the PBR extension of MTL. The importer of MonoGame leaves them
 out (it reads only what XNA's `BasicEffect` has), so the models are processed by
 `MtlModelProcessor` of `tools/ContentPipeline`, which reads them from the `.mtl` file
-and keeps them with the model. It also marks the lamps of the cars, by the names of
-their materials: the lenses of the headlights are named `headlight…`, of the rear
-lights `taillight…`. Each lamp is an object of its own in the `.obj` file
-(`HeadlightLeft` …), the game finds its middle as the middle of the object.
+and keeps them with the model. It also marks the lamps, by the names of their
+materials: the lenses of the headlights of the cars are named `headlight…`, of the rear
+lights `taillight…`, of the street lamp `streetlight…`. Each lamp is an object of its own in
+the `.obj` file (`HeadlightLeft` …, `lens`), the game finds its middle as the middle of the object.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
@@ -59,24 +59,33 @@ covers the main menu, as the titles of the other menus do.
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
 level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
-through them. The first four are the props the owner released on OpenGameArt in 2016: the
-traffic cone (`cone`), the street lamp (`lamp`), the utility pole (`pole`) and the metal fence
-(`fence`); the other four the owner made for the game in March 2018: the guardrail
+through them. The traffic cone (`cone`), the utility pole (`pole`) and the metal fence
+(`fence`) are props the owner released on OpenGameArt in 2016; the street lamp (`lamp`) is a
+modern one of 2026 (below); the other four the owner made for the game in March 2018: the guardrail
 (`guardrail`), the thick guardrail with red and white stripes (`guardrail2`), the posts with a
 chain (`chain`) and the judges' stand (`stand`), a two-storey building with a terrace for the
 start or the finish.
 
 `tools/garagegen/scenery.py` (Python 3 with NumPy) builds them from their Wings 3D files in
 `art/wings/Scenery/`, with smooth normals by the hard edges of Wings, at the scale of the
-blocks: the cone is 1.6 model units high (the car is 2.4), the lamp 8, the judges' stand 12,
+blocks: the cone is 1.6 model units high (the car is 2.4), the judges' stand 12,
 the pole 20 (over two cells); a guardrail is a cell long (9), so that the pieces in a row along
 a straight road join, and a piece of the fence and of the chain half a cell (4.5), two pieces
 to a cell. The foot of every prop is at the origin of its model, and the long side of the
 fence, the chain and the guardrails runs along x, along the road; the rails of the guardrails
 and the terrace of the stand face the camera (-z), so that behind the road they face the road.
-The lamp and the fence were textured with photos of rust, which are not in the repository;
-their faces get the colours the textures had there, by rules in the script (the rim of the
-lamp's roof, the door at its foot and the steel spikes of the fence have their own). The chain
+The fence was textured with photos of rust, which are not in the repository; its faces get
+the colours the texture had there, by rules in the script (the steel spikes have their own).
+
+The street lamp is a modern LED street light in the colours of the blocks, built by
+`tools/blender/streetlamp.py` (Blender 4.2, `blender -b --factory-startup --python
+tools/blender/streetlamp.py`), about 3200 triangles: a tapered dark grey pole on a base with
+a flange and bolts, a yellow band and a service door, an arm bending out over the road and a
+light grey head with cooling fins and yellow strips, tilted up a little; its foot at the
+origin, 8.7 high, the head 3.5 towards the camera (-z), so that a lamp behind the road leans
+over it. The lens under the head is an object of its own with the material `streetlight…`:
+at night it shines in its emissive colour with a glow, and the four street lamps nearest to
+the camera light the scene below them as spot lights (`SceneRenderer`); by day they are off. The chain
 was modelled link by link (some 3400 faces); the script puts a tube of red and white pieces
 along the curve it hangs in instead, which looks the same from the camera of the game and
 leaves the posts with a chain 835 faces. Run the script after changing the `.wings` files or

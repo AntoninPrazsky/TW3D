@@ -20,7 +20,7 @@ physics bodies.
 | `tools/fontgen/` | Builds the font of the menus (`content/Fonts/TripleWheelDisplay.ttf` and its `menuFont<size>.spritefont` in four sizes) from Orbitron (Python with fontTools) |
 | `tools/CatalogRender/` | Renders images of blocks for the catalog and checks the catalog images |
 | `tools/CollisionGen/` | Generates the collision shapes from the models (run by the build of the game), see its [README](../tools/CollisionGen/README.md) |
-| `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars (built and loaded by the content build) |
+| `tools/ContentPipeline/` | Extension of the content pipeline: keeps the metal of the materials and the lamps of the cars and the street lamps (built and loaded by the content build) |
 | `tests/TW3D.Tests/` | Tests of the content, the score and the tutorial (see [Building](building.md#tests-and-ci)) |
 | `.github/workflows/` | The build of every push on GitHub Actions |
 | `docs/bachelor-thesis/` | Original documentation from the bachelor's thesis (in Czech, describes the 2016 state) |
@@ -84,7 +84,10 @@ The lamps of the cars shine in their emissive colour (`Ke`) only when they are o
 headlights at night, the rear lights dimly with them and fully when the car brakes (in
 any weather), each with a glow around it that the wheels of the car do not hide. Each
 lamp also lights the scene as a spot light of its colour: the two headlights ahead, their
-beams a little apart, the rear lights red behind the car.
+beams a little apart, the rear lights red behind the car. The street lamps of the scenery
+(the lens of the material `streetlight…`) shine at night with a glow too, and the four nearest
+to the camera light the road and the props below them as spot lights pointing down, warm
+white: `Scene.fx` has eight lights, four of the car and four of the street lamps.
 
 The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the

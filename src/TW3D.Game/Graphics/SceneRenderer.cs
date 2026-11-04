@@ -6,12 +6,14 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace TW3D.Graphics
 {
-    /// <summary>The lamps of a car among the materials of its model.</summary>
+    /// <summary>The lamps among the materials of a model: of a car, or of a street lamp of the scenery.</summary>
     public enum Lamp
     {
         None,
         Headlight,
-        RearLight
+        RearLight,
+        /// <summary>The lens of a street lamp: it shines at night and lights the scene below it.</summary>
+        StreetLight
     }
 
     /// <summary>
@@ -26,7 +28,9 @@ namespace TW3D.Graphics
     /// its mesh parts) mirror the sky, the ground and the sun. The lamps of a car (materials named "headlight…" and
     /// "taillight…") shine in their emissive colour ("Ke") only when they are on (<see cref="SetCar"/>), with a glow
     /// around them, and light the scene as spot lights in that colour; each lamp is a mesh of its own, its light
-    /// and its glow are at its middle.
+    /// and its glow are at its middle. The lenses of the street lamps ("streetlight…") of any model shine so at night
+    /// (when the lighting has the headlights on), and the <see cref="StreetLightCount"/> of them nearest to the camera
+    /// light the scene below them.
     /// </remarks>
     public sealed class SceneRenderer : IDisposable
     {
@@ -46,6 +50,7 @@ namespace TW3D.Graphics
         //hide it (the wheels at its sides are about 0.55 from the middle of the car)
         private const float HeadlightGlowRadius = 0.3f;
         private const float RearLightGlowRadius = 0.18f;
+        private const float StreetLightGlowRadius = 0.45f;
         private const float GlowStrength = 0.8f;
         private const float DaylightGlowStrength = 0.45f;
         private const float GlowPull = 0.8f;
@@ -103,6 +108,15 @@ namespace TW3D.Graphics
         private const float RearLightRange = 5f;
         private const float RearLightDip = 0.5f;
         private const float RearLightDaylight = 0.3f;
+        //The street lamps nearest to the camera light the scene (the other four lights of Scene.fx) at night, as spot
+        //lights shining down from their lenses, in their emissive colours this many times brighter, within the inner and
+        //outer angle (degrees) of their cones, reaching this far (world units; a lamp is 2 high, a cell 2.25 long)
+        public const int StreetLightCount = 4;
+        private const int LightCount = CarLightCount + StreetLightCount;
+        private const float StreetLightIntensity = 12f;
+        private const float StreetLightInnerAngle = 25f;
+        private const float StreetLightOuterAngle = 55f;
+        private const float StreetLightRange = 6f;
 
         /// <summary>A part of a model with one material, ready to draw.</summary>
         private sealed class ModelPart
@@ -236,13 +250,15 @@ namespace TW3D.Graphics
         //points, the colour of its light when fully on
         private bool car, braking;
         private Vector3 carPosition;
-        private readonly Lamp[] lights = new Lamp[CarLightCount];
-        private readonly Vector3[] lightOffsets = new Vector3[CarLightCount];
-        private readonly Vector3[] lightDirections = new Vector3[CarLightCount];
-        private readonly Vector3[] lightColours = new Vector3[CarLightCount];
-        private readonly Vector3[] lightLevels = new Vector3[CarLightCount];
-        private readonly Vector2[] lightCones = new Vector2[CarLightCount];
-        private readonly float[] lightRanges = new float[CarLightCount];
+        private readonly Lamp[] lights = new Lamp[LightCount];
+        private readonly Vector3[] lightOffsets = new Vector3[LightCount];
+        private readonly Vector3[] lightDirections = new Vector3[LightCount];
+        private readonly Vector3[] lightColours = new Vector3[LightCount];
+        private readonly Vector3[] lightLevels = new Vector3[LightCount];
+        private readonly Vector2[] lightCones = new Vector2[LightCount];
+        private readonly float[] lightRanges = new float[LightCount];
+        //The street lamps of the frame: how far each is from the camera, where it is and its colour
+        private readonly List<(float Distance, Vector3 Position, Vector3 Colour)> streetLamps = new List<(float, Vector3, Vector3)>();
 
         public SceneRenderer(GraphicsDevice device, ContentManager content)
         {
@@ -285,11 +301,12 @@ namespace TW3D.Graphics
             occlusionEffect.Parameters["Intensity"].SetValue(OcclusionIntensity);
             occlusionEffect.Parameters["Bias"].SetValue(OcclusionBias);
 
-            for (int i = 0; i < CarLightCount; i++)
+            for (int i = 0; i < LightCount; i++)
             {
-                bool headlight = i < HeadlightCount;
-                lightCones[i] = Cone(headlight ? HeadlightInnerAngle : RearLightInnerAngle, headlight ? HeadlightOuterAngle : RearLightOuterAngle);
-                lightRanges[i] = headlight ? HeadlightRange : RearLightRange;
+                bool headlight = i < HeadlightCount, streetLight = i >= CarLightCount;
+                lightCones[i] = streetLight ? Cone(StreetLightInnerAngle, StreetLightOuterAngle)
+                    : Cone(headlight ? HeadlightInnerAngle : RearLightInnerAngle, headlight ? HeadlightOuterAngle : RearLightOuterAngle);
+                lightRanges[i] = streetLight ? StreetLightRange : headlight ? HeadlightRange : RearLightRange;
             }
             effect.Parameters["LightCone"].SetValue(lightCones);
             effect.Parameters["LightRange"].SetValue(lightRanges);
@@ -471,7 +488,40 @@ namespace TW3D.Graphics
             }
         }
 
-        /// <summary>How much a lamp of the car shines now: 0 = off, 1 = fully.</summary>
+        /// <summary>
+        /// The street lamps nearest to the camera take the lights after those of the car: at night only, as their lenses
+        /// shine then (see <see cref="LampGlow"/>), from the middle of the lens, down.
+        /// </summary>
+        private void CollectStreetLights()
+        {
+            for (int i = CarLightCount; i < LightCount; i++)
+                lights[i] = Lamp.None;
+            if (!Lighting.Headlights)
+                return;
+            streetLamps.Clear();
+            foreach (DrawItem item in items)
+            {
+                foreach (LampData lamp in item.Model.Lamps)
+                {
+                    if (lamp.Lamp != Lamp.StreetLight)
+                        continue;
+                    Vector3 centre = Vector3.Transform(lamp.Bounds.Center, item.World);
+                    streetLamps.Add((Vector3.DistanceSquared(centre, eye), centre, lamp.Colour));
+                }
+            }
+            streetLamps.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+            for (int n = 0; n < StreetLightCount && n < streetLamps.Count; n++)
+            {
+                int slot = CarLightCount + n;
+                lights[slot] = Lamp.StreetLight;
+                //Relative to the car, as the shader has all its lamps
+                lightOffsets[slot] = streetLamps[n].Position - carPosition;
+                lightDirections[slot] = Vector3.Down;
+                lightColours[slot] = ToLinear(streetLamps[n].Colour) * StreetLightIntensity;
+            }
+        }
+
+        /// <summary>How much a lamp shines now: 0 = off, 1 = fully.</summary>
         private float LampGlow(Lamp lamp)
         {
             bool lightsOn = car && Lighting.Headlights;
@@ -479,6 +529,7 @@ namespace TW3D.Graphics
             {
                 case Lamp.Headlight: return lightsOn ? 1f : 0f;
                 case Lamp.RearLight: return braking ? 1f : lightsOn ? RearLightDim : 0f;
+                case Lamp.StreetLight: return Lighting.Headlights ? 1f : 0f;
                 default: return 1f;
             }
         }
@@ -822,7 +873,8 @@ namespace TW3D.Graphics
                         continue;
                     Vector3 centre = Vector3.Transform(lamp.Bounds.Center, item.World);
                     centre += Vector3.Normalize(eye - centre) * GlowPull;
-                    float radius = (lamp.Lamp == Lamp.Headlight ? HeadlightGlowRadius : RearLightGlowRadius) * MathF.Sqrt(glow);
+                    float radius = (lamp.Lamp == Lamp.Headlight ? HeadlightGlowRadius : lamp.Lamp == Lamp.StreetLight ? StreetLightGlowRadius
+                        : RearLightGlowRadius) * MathF.Sqrt(glow);
                     Color colour = new Color(lamp.Colour * (glow * strength));
                     Vector3 x = right * radius, y = up * radius;
                     glowVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
@@ -1088,7 +1140,8 @@ namespace TW3D.Graphics
             effect.Parameters["MirroredSky"].SetValue(lighting.SkyLight * MirroredSkyLight);
             effect.Parameters["MirroredHorizon"].SetValue(ToLinear(lighting.HazeColor) * MirroredHorizon);
             effect.Parameters["MirroredGround"].SetValue(lighting.GroundLight * MirroredGroundLight);
-            for (int i = 0; i < CarLightCount; i++)
+            CollectStreetLights();
+            for (int i = 0; i < LightCount; i++)
             {
                 float level = lights[i] == Lamp.None ? 0f : LampGlow(lights[i]);
                 if (lights[i] == Lamp.RearLight && !lighting.Headlights)

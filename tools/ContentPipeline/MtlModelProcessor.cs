@@ -11,12 +11,13 @@ namespace TW3D.ContentPipeline
 {
     /// <summary>
     /// The model processor of MonoGame, keeping what the importer leaves out of the materials of an OBJ model:
-    /// how metallic and how rough they are, and which of them are the lamps of a car. The importer reads only what
+    /// how metallic and how rough they are, and which of them are lamps. The importer reads only what
     /// BasicEffect has (the colours and the opacity); this processor reads the MTL file of the model: the PBR
     /// extension, "Pm" (metallic, 0–1) and "Pr" (roughness, 0–1) of a material, and the name of the material:
-    /// the lenses of the headlights are named "headlight…", of the rear lights "taillight…". It keeps them in the
-    /// Tag of the mesh parts of the material as a Vector3: metallic, roughness, lamp (0 = none, 1 = headlight,
-    /// 2 = rear light). A material with none of them gets no tag.
+    /// the lenses of the headlights of a car are named "headlight…", of the rear lights "taillight…", of a street
+    /// lamp "streetlight…". It keeps them in the Tag of the mesh parts of the material as a Vector3: metallic,
+    /// roughness, lamp (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp). A material with none of them gets
+    /// no tag.
     /// </summary>
     [ContentProcessor(DisplayName = "Model - TW3D (metal and lamps from MTL)")]
     public class MtlModelProcessor : ModelProcessor
@@ -81,7 +82,8 @@ namespace TW3D.ContentPipeline
                 if (name == null)
                     return;
                 float lamp = name.StartsWith("headlight", StringComparison.OrdinalIgnoreCase) ? 1f
-                    : name.StartsWith("taillight", StringComparison.OrdinalIgnoreCase) ? 2f : 0f;
+                    : name.StartsWith("taillight", StringComparison.OrdinalIgnoreCase) ? 2f
+                    : name.StartsWith("streetlight", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
                 //Neither metallic nor rough, as the materials without them are drawn
                 if (metallic != null || roughness != null || lamp != 0f)
                     finishes[name] = new Vector3(metallic ?? 0f, roughness ?? 1f, lamp);

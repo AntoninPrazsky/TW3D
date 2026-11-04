@@ -2,7 +2,7 @@
 // so the light makes the whole look: the sun with its shadows, the light of the sky from above
 // and the light reflected by the ground from below (both dimmed in corners and crevices by
 // ambient occlusion), a highlight of the sun, a rim of sky light at grazing angles and the
-// lamps of the car (spot lights: the headlights at night, the rear lights). It is computed in linear colour space and
+// lamps of the car and the street lamps (spot lights: the headlights and the street lamps at night, the rear lights). It is computed in linear colour space and
 // mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
 // Glass (Alpha less than 1) is blended over the scene, less transparent where it shines.
 // Smooth materials (Roughness less than 1) mirror the sky, the ground and the sun; metal
@@ -45,15 +45,16 @@ float3 MirroredSky;
 float3 MirroredHorizon;
 float3 MirroredGround;
 
-// The lamps of the car, spot lights: two headlights, two rear lights. Their positions are given
-// relative to the car (LightOrigin), the vector from a point to the car is computed in the vertex shader
-#define CAR_LIGHTS 4
+// The lamps, spot lights: two headlights and two rear lights of the car, and the four street lamps nearest to
+// the camera, which shine down. Their positions are given relative to the car (LightOrigin), the vector from a
+// point to the car is computed in the vertex shader
+#define LIGHTS 8
 float3 LightOrigin;
-float3 LightOffset[CAR_LIGHTS];     // position of the lamp - LightOrigin
-float3 LightDirection[CAR_LIGHTS];  // unit vector
-float3 LightColor[CAR_LIGHTS];      // linear; black = off
-float2 LightCone[CAR_LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
-float LightRange[CAR_LIGHTS];
+float3 LightOffset[LIGHTS];     // position of the lamp - LightOrigin
+float3 LightDirection[LIGHTS];  // unit vector
+float3 LightColor[LIGHTS];      // linear; black = off
+float2 LightCone[LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
+float LightRange[LIGHTS];
 
 // The sky (colours on the screen, gamma)
 float4x4 InverseViewProjection;
@@ -268,7 +269,7 @@ float4 MainPS(VertexOutput input) : COLOR0
 	rim *= diffuse;
 
 	float3 spot = 0.0;
-	for (int i = 0; i < CAR_LIGHTS; i++)
+	for (int i = 0; i < LIGHTS; i++)
 	{
 		float3 toLight = input.ToCar + LightOffset[i];
 		float lightDistance = length(toLight);

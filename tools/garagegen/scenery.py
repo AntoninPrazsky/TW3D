@@ -3,9 +3,9 @@ content/Scenery: an .obj + .mtl for each prop, in model units at the scale of th
 8.6 units long), with the foot of the prop at the origin, y up and the long side of a fence or a guardrail along x (along
 the road). Smooth normals by the hard edges of Wings, as the garage has them.
 
-The street lamp and the metal fence were textured with photos of rust, which are not in the repository: the game
-draws coloured polygons, so their faces get the colours the textures had there (sampled once and written down here)
-by the rules below. The chain between the posts was modelled link by link (some 3400 faces); a tube along the curve it
+The metal fence was textured with photos of rust, which are not in the repository: the game draws coloured
+polygons, so its faces get the colours the texture had there (sampled once and written down here) by the rules below.
+The street lamp is not built here: it is modern since 2026, built by tools/blender/streetlamp.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the curve it
 hangs in takes its place, which looks the same from the camera of the game.
 
     python tools/garagegen/scenery.py
@@ -49,17 +49,6 @@ class Prop:
 def cone(face, mats):
     # Orange plastic with white reflective bands
     return 'orange' if face['material'] == 'default2' else 'white'
-
-def lamp(face, mats):
-    if face['material'] == 'default2':
-        return 'glass'
-    # The texture: rust, brighter on the rim of the roof, and a grey plate in one corner (the door at the foot)
-    if 12.9 < face['centre'][1] < 12.95:
-        return 'rim'
-    uvs = face['uvs']
-    if uvs is not None and max(u for u, v in uvs) < 0.13 and max(v for u, v in uvs) < 0.26:
-        return 'door'
-    return 'rust'
 
 def pole(face, mats):
     return {'default': 'metal', 'default2': 'brace', 'default3': 'insulator', 'default4': 'wood'}[face['material']]
@@ -119,11 +108,6 @@ PROPS = [
     Prop('cone', 'cone.wings', cone, lambda mats: {
         'orange': wings_material(mats['default2'], ks=(0.3, 0.3, 0.3), pr=0.5),
         'white': wings_material(mats['default3'], ks=(0.3, 0.3, 0.3), pr=0.5)}, height=1.6),
-    Prop('lamp', 'lamp.wings', lamp, lambda mats: {
-        'rust': Material((0.42, 0.21, 0.07), (0.1, 0.1, 0.1)),
-        'rim': Material((0.58, 0.27, 0.15), (0.1, 0.1, 0.1)),
-        'door': Material((0.33, 0.32, 0.30), (0.3, 0.3, 0.3), pm=1, pr=0.5),
-        'glass': wings_material(mats['default2'], ks=(0.6, 0.6, 0.6), pr=0.1)}, height=8.0),
     Prop('pole', 'pole.wings', pole, lambda mats: {
         'wood': wings_material(mats['default4'], ks=(0.1, 0.1, 0.1)),
         'metal': wings_material(mats['default'], ks=(0.4, 0.4, 0.4), pm=1, pr=0.45),

@@ -214,7 +214,7 @@ for (const layer of ["back3", "back2", "back", "front"]) {
 
 // Street lamps on the back edge of the road, in the middle of flat cells
 const lampX = [-2, trap - 1, ledge - 1, ledge + 7, pit + 2, hump + 3, trailer + 1, lock + 1, terrace, summit + 1, quay + 1, finish - 1, finish + 2, finish + 5];
-for (const x of lampX) t.prop("lamp", x * Cell, top(t.surface(x)), -10, 1);
+for (const x of lampX) t.prop("lamp", x * Cell, top(t.surface(x)), -10);
 // Utility poles on the back edge of the road, in the middle of flat cells, their cross-arms across the road
 for (const x of [3, ledge + 8, hump + 2, lock, summit, finish + 4]) t.prop("pole", x * Cell, top(t.surface(x)), -11, 1);
 // A fence behind the start area, on the checkered area of the back layer

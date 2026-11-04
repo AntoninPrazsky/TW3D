@@ -1,36 +1,62 @@
-# Materials of lamp; Pm and Pr: metal and roughness (tools/ContentPipeline)
+# Materials of lamp (tools/blender/streetlamp.py); Pm and Pr: metal and roughness (tools/ContentPipeline).
+# The lens "streetlight" shines in its Ke at night only and lights the scene below it (SceneRenderer)
 
-newmtl rust
-Kd 0.4200 0.2100 0.0700
-d 1.0000
-Ks 0.1000 0.1000 0.1000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
+newmtl accent
+Kd 1.000000 0.713330 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
-newmtl rim
-Kd 0.5800 0.2700 0.1500
-d 1.0000
-Ks 0.1000 0.1000 0.1000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
+newmtl head
+Kd 0.820180 0.820180 0.820180
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.400000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
-newmtl door
-Kd 0.3300 0.3200 0.3000
-d 1.0000
-Ks 0.3000 0.3000 0.3000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
-Pm 1
-Pr 0.5
-illum 2
+newmtl pole
+Kd 0.227440 0.227440 0.227440
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Pr 0.450000
+Pm 0.600000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
-newmtl glass
-Kd 0.7899 0.8133 0.6940
-d 0.1467
-Ks 0.6000 0.6000 0.6000
-Ke 0.4739 0.4739 0.4739
-Ns 0.3000
-Pr 0.1
+newmtl streetlight
+Kd 0.900000 0.900000 0.860000
+Ks 0.500000 0.500000 0.500000
+Ke 1.000000 0.860000 0.640000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.200000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
