@@ -61,8 +61,8 @@ the previews of the levels (H while driving) stay at the full resolution.
 ## Sound
 
 The sound effects are synthesized when the game starts, no recorded files: the menus (the
-focus moving, an item chosen, going back), the countdown (3, 2, 1 and the start an octave
-higher), the finish, a lost run (the chord broken downwards), the stars of the results one
+focus moving, an item chosen, going back), the countdown (a beep as each pair of start lights
+comes on and the start an octave higher), the finish, a lost run (the chord broken downwards), the stars of the results one
 after another (a major chord) and a new record, and the cars and wheels changing in the garage. They are pleasant and deep rather
 than bright: struck bars (a marimba) and soft bongs in C major, low, with the octave below
 for body, never a beep; nothing shrill above 5 kHz, but enough between 300 Hz and 4 kHz for
@@ -165,10 +165,12 @@ follows the tutorial of BS3D.
 
 ## A run of a level
 
-A run starts with a countdown (3, 2, 1, Start), while the car is held
-still. The signal lamps of the start gate count it down as in Formula 1: the red lamps come
-on column by column, from the left seen from the car, all five for the last moment, and at
-the start they go out and the green row lights until the run ends. Meanwhile the camera
+A run starts with a countdown of three seconds, while the car is held still. The start
+lights of the start gate count it down as in Formula 1: five pairs of red lamps come on pair
+by pair, from the left seen from the car, one every 0.6 s, and when all five have shone for
+a moment they go out: that is the start. A row of five red lights at the top of the screen, in the place of
+the time, shows the same, with a beep for each pair and a higher tone at the start, and fades
+away after it as the time comes. The start comes always 3 s after the first lights, with no random wait. Meanwhile the camera
 looks at the gate and the car from behind the car, low and from farther away, and comes back
 to its place behind the car as the car drives off, by the time it is under the lamps (a test
 drive from the editor away from the start gate has no such view). The time at the top runs from the start until the car reaches the finish of the

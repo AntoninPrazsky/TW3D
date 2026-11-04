@@ -68,7 +68,7 @@ namespace TW3D.GamePlay
         private Race race;
         //The cards of the tutorial; null when the tutorial is off
         private Tutorial tutorial;
-        //The number of the countdown that last beeped
+        //How many columns of the start lights were on when the countdown last beeped
         private int countdownBeeped;
         //Where the car started (physics x) and how far of the way to the start gate it got (0 to 1): the camera comes back
         //from framing the gate as it does (see StartFraming)
@@ -351,15 +351,15 @@ namespace TW3D.GamePlay
             }
         }
 
-        /// <summary>Beeps each number of the countdown (3, 2, 1) as it appears, and the start an octave higher.</summary>
+        /// <summary>Beeps each column of the start lights as it comes on, and the start (lights out) an octave higher.</summary>
         private void BeepCountdown(RaceState before)
         {
             if (race.State == RaceState.Countdown)
             {
-                int number = (int)MathF.Ceiling(race.Countdown);
-                if (number != countdownBeeped)
+                int lit = race.RedSignals;
+                if (lit != countdownBeeped)
                 {
-                    countdownBeeped = number;
+                    countdownBeeped = lit;
                     Manager.Sounds.Play(Sound.Countdown);
                 }
             }
@@ -471,8 +471,8 @@ namespace TW3D.GamePlay
             renderer.MayDrawSmaller = !developmentKeys.TrackOnly;
             renderer.Begin(camera.View, camera.Projection);
             renderer.SetSky();
-            //The signal lamps of the start gate count the start down, as the numbers in the middle of the screen do
-            renderer.StartLights = new StartLights(race.RedSignals, race.GreenSignal);
+            //The start lights of the start gate count the start down, as those of the display of the run do
+            renderer.StartLights = race.RedSignals;
             if (!developmentKeys.TrackOnly)
                 car.Draw(renderer);
             level.Draw(renderer);

@@ -1,13 +1,6 @@
-# Converted from sg.x, the Wings 3D export of the model; the signal lamps (signalred, signalyellow, signalgreen)
-# shine in their Ke when the game lights them at the start (SceneRenderer.StartLights)
-
-newmtl default2
-Kd 0.24742 0.24742 0.24742
-d 1.0
-Ks 0.0 0.0 0.0
-Ke 0.0 0.0 0.0
-Ns 0.3466666666666667
-illum 2
+# Converted from sg.x, the Wings 3D export of the model; since 2026 the start lights like those of Formula 1: the
+# black modules (housing) with their bezels, and the red lamps (signalred), which shine in their Ke when the game
+# lights them at the start (SceneRenderer.StartLights)
 
 newmtl signalred
 Kd 0.30666666666666664 0.0 0.0
@@ -25,26 +18,29 @@ Ke 0.0 0.0 0.0
 Ns 0.7466666666666667
 illum 2
 
-newmtl signalyellow
-Kd 0.42 0.31919999999999993 0.0
-d 1.0
-Ks 0.0 0.0 0.0
-Ke 1.0 0.72 0.05
-Ns 0.76
-illum 2
-
-newmtl signalgreen
-Kd 0.10756 0.32 0.10756
-d 1.0
-Ks 0.0 0.0 0.0
-Ke 0.12 1.0 0.28
-Ns 0.76
-illum 2
-
 newmtl default7
 Kd 0.22744 0.22744 0.22744
 d 1.0
 Ks 0.06094 0.06094 0.06094
 Ke 0.0 0.0 0.0
 Ns 0.3
+illum 2
+
+newmtl housing
+Kd 0.03 0.03 0.03
+d 1.0
+Ks 0.25 0.25 0.25
+Ke 0.0 0.0 0.0
+Ns 0.4
+Pr 0.45
+illum 2
+
+newmtl bezel
+Kd 0.12 0.12 0.12
+d 1.0
+Ks 0.5 0.5 0.5
+Ke 0.0 0.0 0.0
+Ns 0.6
+Pm 0.6
+Pr 0.35
 illum 2

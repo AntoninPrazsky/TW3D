@@ -40,9 +40,10 @@ has the hub of `wheel.obj`, joining it to the holder; and its tyre was simplifie
 17 220 triangles to 7 000 (`tools/blender/decimate.py`, the whole wheel 8 424 instead of
 18 644), keeping the pattern of the tread. `wheel2.wings` is the wheel as it was.
 `content/car.obj` and `car2.obj` got their lamps in 2026 (the objects `Headlight…` and
-`Taillight…`), which `car.wings` and `car2.wings` do not have. So did the signal lamps of the
-start gate `content/Levels/mod/sg.obj` (the objects `SignalRed1…5`, `SignalYellow1…5` and
-`SignalGreen1…5`, which `sg.wings` has as faces of its other objects).
+`Taillight…`), which `car.wings` and `car2.wings` do not have. The start gate
+`content/Levels/mod/sg.obj` got start lights like those of Formula 1 instead of its traffic
+lights: five black modules with a pair of red lamps each (the objects `SignalRed1a`, `1b` …
+`5b`); `sg.wings` still has the traffic lights of 2015.
 
 `Garage/garage.wings` (September 2015, `NPG/garage/garage.wings`) is the garage scene the
 picture behind the menus of 2016 was rendered from (in Kerkythea), `Garage/garage_no_car.wings`

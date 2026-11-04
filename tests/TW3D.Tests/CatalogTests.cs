@@ -61,19 +61,19 @@ namespace TW3D.Tests
         }
 
         /// <summary>
-        /// The start gate has its signal lamps as objects of their own, five of each colour, in the materials the game
-        /// lights them by (the red ones count the start down column by column, see Race.RedSignals).
+        /// The start gate has start lights like those of Formula 1: five columns of a pair of red lamps, each lamp an object
+        /// of its own in the material the game lights them by (column by column, see Race.RedSignals), and no other.
         /// </summary>
         [Fact]
-        public void TheStartGateHasFiveSignalLampsOfEachColour()
+        public void TheStartGateHasFivePairsOfRedStartLights()
         {
             string[] lines = File.ReadAllLines(Path.Combine(Repository.Content, "Levels", "mod", "sg.obj"));
-            foreach ((string name, string material) in new[] { ("SignalRed", "signalred"), ("SignalYellow", "signalyellow"), ("SignalGreen", "signalgreen") })
-            {
-                List<int> objects = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("o " + name)).ToList();
-                Assert.Equal(Race.SignalColumns, objects.Count);
-                Assert.All(objects, i => Assert.Equal("usemtl " + material, lines[i + 1]));
-            }
+            List<int> lamps = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("o Signal")).ToList();
+            Assert.Equal(2 * Race.SignalColumns, lamps.Count);
+            Assert.All(lamps, i => Assert.Equal("usemtl signalred", lines[i + 1]));
+            for (int column = 1; column <= Race.SignalColumns; column++)
+                foreach (string row in new[] { "a", "b" })
+                    Assert.Contains("o SignalRed" + column + row, lines);
         }
 
         /// <summary>The levels name a prop of the scenery by its model, so no two props share one.</summary>

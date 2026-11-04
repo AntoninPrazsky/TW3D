@@ -34,7 +34,6 @@ namespace TW3D.Tests
         {
             Race race = new Race(10f, true);
             Assert.Equal(1, race.RedSignals);
-            Assert.False(race.GreenSignal);
             //A fifth of the countdown is 0.6 s: a column more after each, all five in the last fifth (looked at in the
             //middles of the halves of the fifths, at 0.15, 0.45, 0.75... s)
             int[] expected = { 1, 1, 2, 2, 3, 3, 4, 4, 5, 5 };
@@ -44,10 +43,9 @@ namespace TW3D.Tests
                 Assert.Equal(expected[i], race.RedSignals);
                 race.Update(0.3f, 0.0, false, false);
             }
-            //Past the countdown: the run started, the red went out and the green is on
+            //Past the countdown: the run started, all the lights went out
             Assert.Equal(RaceState.Racing, race.State);
             Assert.Equal(0, race.RedSignals);
-            Assert.True(race.GreenSignal);
         }
 
         [Fact]
@@ -57,7 +55,6 @@ namespace TW3D.Tests
             race.Update(Step, 5.0, true, false);
             Assert.Equal(RaceState.Finished, race.State);
             Assert.Equal(0, race.RedSignals);
-            Assert.False(race.GreenSignal);
         }
 
         [Fact]

@@ -15,17 +15,9 @@ namespace TW3D.Graphics
         RearLight,
         /// <summary>The lens of a street lamp: it shines at night and lights the scene below it.</summary>
         StreetLight,
-        /// <summary>A signal lamp of the start gate, which shines as <see cref="SceneRenderer.StartLights"/> says.</summary>
-        SignalRed,
-        SignalYellow,
-        SignalGreen
+        /// <summary>A red start light of the start gate, which shines as <see cref="SceneRenderer.StartLights"/> says.</summary>
+        SignalRed
     }
-
-    /// <summary>
-    /// What the signal lamps of the start gate show: how many columns of the red lamps are on (from the left seen by the
-    /// driver, as the lamps of Formula 1 come on), and whether the green lamps are. The yellow lamps stay off.
-    /// </summary>
-    public readonly record struct StartLights(int Red, bool Green);
 
     /// <summary>
     /// Draws the 3D scene of one frame: the models added between <see cref="Begin"/> and <see cref="End"/>,
@@ -39,7 +31,8 @@ namespace TW3D.Graphics
     /// its mesh parts) mirror the sky, the ground and the sun. The lamps of a car (materials named "headlight…" and
     /// "taillight…") shine in their emissive colour ("Ke") only when they are on (<see cref="SetCar"/>), with a glow
     /// around them, and light the scene as spot lights in that colour; each lamp is a mesh of its own, its light
-    /// and its glow are at its middle. The lenses of the street lamps ("streetlight…") of any model shine so at night
+    /// and its glow are at its middle. The start lights of the start gate ("signalred…") shine as a run counts its start
+    /// down (<see cref="StartLights"/>). The lenses of the street lamps ("streetlight…") of any model shine so at night
     /// (when the lighting has the headlights on), and the <see cref="StreetLightCount"/> of them nearest to the camera
     /// light the scene below them.
     /// </remarks>
@@ -148,7 +141,7 @@ namespace TW3D.Graphics
             public float Roughness;
             /// <summary>A lamp, shining in its emissive colour only when it is on.</summary>
             public Lamp Lamp;
-            /// <summary>The column of a signal lamp of the start gate: 0 the leftmost seen by the driver (see <see cref="StartLights"/>).</summary>
+            /// <summary>The column of a start light of the start gate: 0 the leftmost seen by the driver (see <see cref="StartLights"/>).</summary>
             public int Column;
             /// <summary>The emissive colour of the material as it is (for the classic look, which changes it for lamps).</summary>
             public Vector3 ClassicEmissive;
@@ -408,10 +401,11 @@ namespace TW3D.Graphics
         public Color ClearColor { get; set; } = Color.Black;
 
         /// <summary>
-        /// What the signal lamps of the start gates show, for this frame (see Begin, which switches them off): set by a run
-        /// of a level during its countdown and after the start, off everywhere else (the menus, the level editor).
+        /// How many columns of the red start lights of the start gates are on, for this frame (see Begin, which switches
+        /// them off): the columns from the left seen by the driver, as the start lights of Formula 1 come on. Set by a run
+        /// of a level during its countdown; off everywhere else (the menus, the level editor) and when the run starts.
         /// </summary>
-        public StartLights StartLights { get; set; }
+        public int StartLights { get; set; }
 
         /// <summary>Starts a frame seen by a camera.</summary>
         public void Begin(Matrix view, Matrix projection)
@@ -426,7 +420,7 @@ namespace TW3D.Graphics
             sky = false;
             overlay = null;
             ghost = null;
-            StartLights = default;
+            StartLights = 0;
             car = false;
             braking = false;
             Array.Clear(lights);
@@ -554,15 +548,13 @@ namespace TW3D.Graphics
                 case Lamp.Headlight: return lightsOn ? 1f : 0f;
                 case Lamp.RearLight: return braking ? 1f : lightsOn ? RearLightDim : 0f;
                 case Lamp.StreetLight: return Lighting.Headlights ? 1f : 0f;
-                case Lamp.SignalRed: return column < StartLights.Red ? 1f : 0f;
-                case Lamp.SignalYellow: return 0f;
-                case Lamp.SignalGreen: return StartLights.Green ? 1f : 0f;
+                case Lamp.SignalRed: return column < StartLights ? 1f : 0f;
                 default: return 1f;
             }
         }
 
-        /// <summary>A signal lamp of the start gate, which shines by day as well as at night.</summary>
-        private static bool IsSignal(Lamp lamp) => lamp is Lamp.SignalRed or Lamp.SignalYellow or Lamp.SignalGreen;
+        /// <summary>A start light of the start gate, which shines by day as well as at night.</summary>
+        private static bool IsSignal(Lamp lamp) => lamp == Lamp.SignalRed;
 
         /// <summary>
         /// The sky of the <see cref="Lighting"/> is drawn behind everything else, for this frame (see Begin): computed from
@@ -1391,14 +1383,16 @@ namespace TW3D.Graphics
                 }
             }
 
-            //The signal lamps of each colour by their columns: from the one furthest along +z of the model, the leftmost
-            //seen by a driver driving along +x of the physics (towards -x of the scene)
-            foreach (var colour in lamps.Where(lamp => IsSignal(lamp.Part.Lamp)).GroupBy(lamp => lamp.Part.Lamp))
-            {
-                int column = 0;
-                foreach (var lamp in colour.OrderByDescending(lamp => lamp.Bounds.Center.Z))
-                    lamp.Part.Column = column++;
-            }
+            //The start lights by their columns (the lamps one above the other are a column, lit together): from the one
+            //furthest along +z of the model, the leftmost seen by a driver driving along +x of the physics (towards -x of
+            //the scene)
+            var columns = lamps.Where(lamp => IsSignal(lamp.Part.Lamp))
+                .GroupBy(lamp => MathF.Round(lamp.Bounds.Center.Z, 2))
+                .OrderByDescending(column => column.Key)
+                .ToList();
+            for (int column = 0; column < columns.Count; column++)
+                foreach (var lamp in columns[column])
+                    lamp.Part.Column = column;
             data = new ModelData
             {
                 Parts = parts.ToArray(),

@@ -17,10 +17,10 @@ out (it reads only what XNA's `BasicEffect` has), so the models are processed by
 `MtlModelProcessor` of `tools/ContentPipeline`, which reads them from the `.mtl` file
 and keeps them with the model. It also marks the lamps, by the names of their
 materials: the lenses of the headlights of the cars are named `headlight…`, of the rear
-lights `taillight…`, of the street lamp `streetlight…`, the signal lamps of the start gate
-`sg` `signalred…`, `signalyellow…` and `signalgreen…`. Each lamp is an object of its own in
-the `.obj` file (`HeadlightLeft` …, `lens`, `SignalRed1` …), the game finds its middle as the
-middle of the object.
+lights `taillight…`, of the street lamp `streetlight…`, the start lights of the start gate
+`sg` `signalred…`. Each lamp is an object of its own in the `.obj` file (`HeadlightLeft` …,
+`lens`, `SignalRed1a` …), the game finds its middle as the middle of the object; the start
+lights one above the other (`SignalRed1a` and `SignalRed1b`) are a pair, lit together.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
@@ -118,7 +118,7 @@ The content pipeline builds the fonts from TrueType files:
   `art/fonts/Orbitron[wght].ttf`: the ExtraBold weight and the Czech letters Orbitron lacks
   (Ě Č Ř Ů Ť Ď Ň and ě č ř ů ť ď ň, built from its own letters and its caron and ring; ť and
   ď with the caron as an apostrophe); the licence reserves the name Orbitron, so the modified
-  font has another. The menus, their items and the titles (and the big countdown) are written
+  font has another. The menus, their items and the titles (and the big Finish and Game over) are written
   in capitals, as in 2016; the other texts (the tutorial, the results, About) in small letters
   too. The script writes the `.spritefont` files too, in four sizes (20, 40, 80, 160): the
   game draws a text from the smallest size at least as large as the text is on the screen
