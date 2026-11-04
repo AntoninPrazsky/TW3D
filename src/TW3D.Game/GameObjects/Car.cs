@@ -54,7 +54,10 @@ namespace TW3D.GameObjects
         private static readonly Vector3 Forward = -Vector3.UnitX;
 
         private Model carModel;
+        //The wheels on the far side of the car are the models turned around, those on the near side the models mirrored
+        //front to back (built from the same file, see content/Content.mgcb), so that both turn their tread the same way
         private Model frontWheelModel, rearWheelModel;
+        private Model nearFrontWheelModel, nearRearWheelModel;
         private Model holderModel;
 
         //How fast the motors turn the wheels at most (radians per second)
@@ -129,6 +132,8 @@ namespace TW3D.GameObjects
             carModel = screenManager.Content.Load<Model>(Type.Model);
             frontWheelModel = screenManager.Content.Load<Model>(FrontWheels.Model);
             rearWheelModel = screenManager.Content.Load<Model>(RearWheels.Model);
+            nearFrontWheelModel = screenManager.Content.Load<Model>(FrontWheels.MirroredModel);
+            nearRearWheelModel = screenManager.Content.Load<Model>(RearWheels.MirroredModel);
             holderModel = screenManager.Content.Load<Model>("holder");
             topSpeed = Type.TopSpeed;
             this.Type = Type;
@@ -586,14 +591,14 @@ namespace TW3D.GameObjects
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
             renderer.SetCar(carModel, body, Forward, brake);
 
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false);
 
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false);
 
             DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true);

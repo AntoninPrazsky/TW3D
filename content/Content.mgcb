@@ -50,6 +50,13 @@
 /build:wheel.obj
 /build:wheel2.obj
 
+# The wheels mirrored front to back, for the near side of a car: they turn their tread the same
+# way as the wheels on the far side, which are turned around (GameObjects/Car.cs)
+/processorParam:Mirrored=True
+/build:wheel.obj;wheel-mirrored.xnb
+/build:wheel2.obj;wheel2-mirrored.xnb
+/processorParam:Mirrored=False
+
 # Dynamic objects
 /build:Env/bar1.obj
 /build:Env/bar2.obj

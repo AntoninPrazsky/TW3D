@@ -37,6 +37,13 @@ namespace TW3D.Tests
         }
 
         [Fact]
+        public void EveryWheelIsAlsoBuiltMirrored()
+        {
+            HashSet<string> built = Repository.BuiltContent();
+            Assert.All(catalog.Wheels, wheel => Assert.Contains(wheel.Model + ".obj;" + wheel.MirroredModel + ".xnb", built));
+        }
+
+        [Fact]
         public void EveryModelThePhysicsUsesHasACollisionShape()
         {
             CollisionShapes shapes = Repository.LoadCollisionShapes();

@@ -253,7 +253,12 @@ tyres: about 14 kg each off-road (knobby tyres) and 10 kg racing, so a pair of t
 10 and 7 in the catalog.
 
 A new block, object, prop, car or wheel only needs its model in `content/` (and a `/build`
-line in `content/Content.mgcb`) and an entry in the catalog.
+line in `content/Content.mgcb`) and an entry in the catalog. A wheel is built twice: as it is,
+for the far side of a car, where it is turned around, and mirrored front to back (the
+`Mirrored` parameter of the model processor) for the near side, so that the wheels on both
+sides turn their tread the same way. The arrows of a directional tread (the off-road wheel's)
+point to +x on top of the wheel in its model, so that they point forward, the way the wheel
+turns, on both sides of the car.
 
 Pictures of the blocks and objects are in `docs/catalog/`: open
 [`catalog.html`](catalog/catalog.html) in a browser.

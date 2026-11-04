@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using Microsoft.Xna.Framework;
@@ -27,10 +28,21 @@ namespace TW3D.ContentPipeline
         private Dictionary<string, Vector3> finishes;
         private readonly Dictionary<MaterialContent, Vector3> convertedFinishes = new Dictionary<MaterialContent, Vector3>();
 
+        /// <summary>
+        /// Mirrors the model front to back (x to -x; the faces stay turned outwards). A wheel so mirrored turns its
+        /// tread the other way round: the wheels on the near side of a car are mirrored, so that they turn their tread
+        /// the same way as the wheels on the far side, which are the model turned around (see GameObjects/Car.cs).
+        /// </summary>
+        [DisplayName("Mirrored")]
+        [DefaultValue(false)]
+        public bool Mirrored { get; set; }
+
         public override ModelContent Process(NodeContent input, ContentProcessorContext context)
         {
             finishes = ReadFinishes(input.Identity?.SourceFilename, context);
             convertedFinishes.Clear();
+            if (Mirrored)
+                MeshHelper.TransformScene(input, Matrix.CreateScale(-1f, 1f, 1f));
 
             ModelContent model = base.Process(input, context);
             foreach (ModelMeshContent mesh in model.Meshes)

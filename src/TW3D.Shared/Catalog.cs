@@ -150,6 +150,13 @@ namespace TW3D.Shared
         /// <summary>Content name of the model of a wheel (e.g. "wheel").</summary>
         public string Model { get; set; }
 
+        /// <summary>
+        /// Content name of the model mirrored front to back, for the near side of a car: it turns its tread the same way
+        /// as the model turned around on the far side (built from the same file, see content/Content.mgcb).
+        /// </summary>
+        [JsonIgnore]
+        public string MirroredModel => Model + "-mirrored";
+
         /// <summary>Friction of the tyre: its grip on the track.</summary>
         public float Friction { get; set; } = 1f;
 
