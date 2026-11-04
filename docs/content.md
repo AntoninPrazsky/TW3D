@@ -61,9 +61,9 @@ covers the main menu, as the titles of the other menus do.
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
 level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
-through them. The traffic cone (`cone`), the utility pole (`pole`) and the metal fence
-(`fence`) are props the owner released on OpenGameArt in 2016; the street lamp (`lamp`) is a
-modern one of 2026 (below); the other four the owner made for the game in March 2018: the guardrail
+through them. The traffic cone (`cone`) and the utility pole (`pole`) are props the owner
+released on OpenGameArt in 2016; the street lamp (`lamp`) and the metal fence (`fence`) are
+modern ones of 2026 (below); the other four the owner made for the game in March 2018: the guardrail
 (`guardrail`), the thick guardrail with red and white stripes (`guardrail2`), the posts with a
 chain (`chain`) and the judges' stand (`stand`), a two-storey building with a terrace for the
 start or the finish.
@@ -76,8 +76,6 @@ a straight road join, and a piece of the fence and of the chain half a cell (4.5
 to a cell. The foot of every prop is at the origin of its model, and the long side of the
 fence, the chain and the guardrails runs along x, along the road; the rails of the guardrails
 and the terrace of the stand face the camera (-z), so that behind the road they face the road.
-The fence was textured with photos of rust, which are not in the repository; its faces get
-the colours the texture had there, by rules in the script (the steel spikes have their own).
 
 The street lamp is a modern LED street light in the colours of the blocks, built by
 `tools/blender/streetlamp.py` (Blender 4.2, `blender -b --factory-startup --python
@@ -87,11 +85,22 @@ light grey head with cooling fins and yellow strips, tilted up a little; its foo
 origin, 8.7 high, the head 3.5 towards the camera (-z), so that a lamp behind the road leans
 over it. The lens under the head is an object of its own with the material `streetlight…`:
 at night it shines in its emissive colour with a glow, and the four street lamps nearest to
-the camera light the scene below them as spot lights (`SceneRenderer`); by day they are off. The chain
-was modelled link by link (some 3400 faces); the script puts a tube of red and white pieces
-along the curve it hangs in instead, which looks the same from the camera of the game and
-leaves the posts with a chain 835 faces. Run the script after changing the `.wings` files or
-the script and commit its output.
+the camera light the scene below them as spot lights (`SceneRenderer`); by day they are off.
+
+The metal fence is a modern welded mesh fence in the colours of the blocks and of the lamp,
+built the same way by `tools/blender/fence.py`, about 3600 triangles: panels of dark grey wire
+with three V-shaped bends along them, held by clamps to square dark grey posts, each post on a
+base plate with bolts and under a yellow cap; 3.5 high. A piece has half a post at each end,
+cut along the end of the piece: two pieces of a row make one whole post where they meet, and a
+row ends with half a post at either end. It looks the same from both sides, so it can stand
+behind the road, in front of it and across it. The Blender scripts share the materials (`pole`,
+`head` and `accent`: the dark grey, the light grey and the yellow of the blocks), the parts and
+the export in `tools/blender/props.py`; run a script after changing it and commit its output.
+
+The chain was modelled link by link (some 3400 faces); `scenery.py` puts a tube of red and
+white pieces along the curve it hangs in instead, which looks the same from the camera of the
+game and leaves the posts with a chain 835 faces. Run `scenery.py` after changing the `.wings`
+files or the script and commit its output.
 
 ## Images and fonts
 

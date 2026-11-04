@@ -1,12 +1,11 @@
 """Builds the scenery (the static props beside the track) from their Wings 3D files (art/wings/Scenery) into
 content/Scenery: an .obj + .mtl for each prop, in model units at the scale of the blocks (a cell is 9 units, the car is
-8.6 units long), with the foot of the prop at the origin, y up and the long side of a fence or a guardrail along x (along
-the road). Smooth normals by the hard edges of Wings, as the garage has them.
+8.6 units long), with the foot of the prop at the origin, y up and the long side of a guardrail or of the chain along x
+(along the road). Smooth normals by the hard edges of Wings, as the garage has them.
 
-The metal fence was textured with photos of rust, which are not in the repository: the game draws coloured
-polygons, so its faces get the colours the texture had there (sampled once and written down here) by the rules below.
-The street lamp is not built here: it is modern since 2026, built by tools/blender/streetlamp.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the curve it
-hangs in takes its place, which looks the same from the camera of the game.
+The street lamp and the metal fence are not built here: they are modern since 2026, built by tools/blender/streetlamp.py
+and tools/blender/fence.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the
+curve it hangs in takes its place, which looks the same from the camera of the game.
 
     python tools/garagegen/scenery.py
 """
@@ -52,10 +51,6 @@ def cone(face, mats):
 
 def pole(face, mats):
     return {'default': 'metal', 'default2': 'brace', 'default3': 'insulator', 'default4': 'wood'}[face['material']]
-
-def fence(face, mats):
-    # The texture: rusty bars and posts, steel blue spikes on the posts
-    return 'steel' if face['centre'][1] > 1.5 else 'rust'
 
 def guardrail(face, mats):
     return {'chrome': 'steel', 'default2': 'red', 'default3': 'white'}[face['material']]
@@ -113,10 +108,6 @@ PROPS = [
         'metal': wings_material(mats['default'], ks=(0.4, 0.4, 0.4), pm=1, pr=0.45),
         'brace': wings_material(mats['default2'], ks=(0.3, 0.3, 0.3)),
         'insulator': wings_material(mats['default3'], ks=(0.4, 0.4, 0.4), pr=0.3)}, height=20.0),
-    # Half a cell long: two pieces in each cell, end to end, make a fence along the road
-    Prop('fence', 'fence.wings', fence, lambda mats: {
-        'rust': Material((0.54, 0.25, 0.16), (0.1, 0.1, 0.1)),
-        'steel': Material((0.45, 0.47, 0.48), (0.4, 0.4, 0.4), pm=1, pr=0.4)}, length=4.5),
     # The guardrails of 2018 are a cell long already, modelled on the near edge of a road block: centred, and turned so
     # that the rail faces the camera (and the road, when they stand behind it) and the posts are behind it
     Prop('guardrail', 'guardrail.wings', guardrail, lambda mats: {

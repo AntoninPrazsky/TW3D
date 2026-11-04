@@ -65,19 +65,18 @@ them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are
 `content/`.
 
 `Scenery/` holds the props beside the track (see [the scenery](../../docs/content.md#scenery)):
-the four the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
+two of the four the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
 owner's model archive, with OBJ and 3DS exports and renders), and the four made for the game in
 March 2018 (`TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/`). `tools/garagegen/scenery.py`
-builds `content/Scenery/` from them. The texture of the fence (photos of rust) is not here: the game
-draws the props in the colours the textures had. The street lamp of 2016 (`StreetLamp/StreetLamp.wings`, textured by
-`lamp.png`) was replaced in 2026 by a modern one built by `tools/blender/streetlamp.py`; its Wings file is in the
-history of git.
+builds `content/Scenery/` from them. The other two props of 2016 were replaced in 2026 by modern ones
+built in Blender, and their Wings files are in the history of git: the street lamp
+(`StreetLamp/StreetLamp.wings`, textured by `lamp.png`) by `tools/blender/streetlamp.py`, and the metal fence
+(`MetalFence/fence.wings`, textured by photos of rust in `fence.png`) by `tools/blender/fence.py`.
 
 | File | Original file |
 |---|---|
 | `Scenery/cone.wings` | `TrafficCone/TrafficCone.wings` |
 | `Scenery/pole.wings` | `UtilityPole/UtilityPole.wings` |
-| `Scenery/fence.wings` | `MetalFence/fence.wings` (textured by `fence.png`) |
 | `Scenery/guardrail.wings` | `TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/barrier.wings` |
 | `Scenery/guardrail2.wings` | `…/3-2018/barrier_thick.wings` |
 | `Scenery/chain.wings` | `…/3-2018/chains.wings` |

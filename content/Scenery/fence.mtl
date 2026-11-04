@@ -1,19 +1,32 @@
-# Materials of fence; Pm and Pr: metal and roughness (tools/ContentPipeline)
+# Materials of fence (tools/blender/fence.py), those of the street lamp; Pm and Pr: metal and roughness
+# (tools/ContentPipeline)
 
-newmtl rust
-Kd 0.5400 0.2500 0.1600
-d 1.0000
-Ks 0.1000 0.1000 0.1000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
+newmtl accent
+Kd 1.000000 0.713330 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
-newmtl steel
-Kd 0.4500 0.4700 0.4800
-d 1.0000
-Ks 0.4000 0.4000 0.4000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
-Pm 1
-Pr 0.4
-illum 2
+newmtl pole
+Kd 0.227440 0.227440 0.227440
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Pr 0.450000
+Pm 0.600000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
