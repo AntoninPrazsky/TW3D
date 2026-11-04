@@ -105,7 +105,7 @@ namespace TW3D.GameObjects
         //air. Held, they also settle back on two wheels (as at the start, against the body) at this rate (1 / seconds)
         //and at most this fast (radians a second), so that the car does not stay standing on single wheels. Locked,
         //they keep their angle in the world instead, and the body turns freely around them
-        private const float AxleTurnSpeed = 2.5f;
+        private const float AxleTurnSpeed = 2.75f;
         private const float AxleTurnTorque = 20000f;
         private const float AxleStopTime = 0.15f;
         private const float AxleHoldTorque = 2500f;
@@ -499,30 +499,28 @@ namespace TW3D.GameObjects
                 axle.MotorEnabled = holderRotation || !holderRotLockChnage;
             }
 
-            if (brake)
+            //The brake holds the wheels, the lock the axles
+            if (brake != braked)
             {
-                if (!braked)
-                {
-                    foreach (RevoluteJoint joint in wJoints)
-                    {
-                        joint.BodyB.FixedRotation = true;
-                    }
-                    braked = true;
-                }
+                foreach (RevoluteJoint joint in wJoints)
+                    SetFixedRotation(joint.BodyB, brake);
+                braked = brake;
             }
-            else
-            {
-                if (braked)
-                {
-                    foreach (RevoluteJoint joint in wJoints)
-                    {
-                        joint.BodyB.FixedRotation = false;
-                        braked = false;
-                    }
-                }
-            }
-            holderB.FixedRotation = holderRotLockChnage;
-            holderF.FixedRotation = holderRotLockChnage;
+            SetFixedRotation(holderB, holderRotLockChnage);
+            SetFixedRotation(holderF, holderRotLockChnage);
+        }
+
+        /// <summary>
+        /// Keeps a body from turning, or lets it turn again. The physics works the mass of the body out from its shape
+        /// then, so the mass it was given (the catalog's for the wheels) is put back.
+        /// </summary>
+        private static void SetFixedRotation(Body body, bool fixedRotation)
+        {
+            if (body.FixedRotation == fixedRotation)
+                return;
+            float mass = body.Mass;
+            body.FixedRotation = fixedRotation;
+            body.Mass = mass;
         }
         
         /// <summary>Height of the lowest point of the wheels in the 3D world (where the car stands), before <see cref="GameObject.Placement"/>.</summary>
