@@ -156,7 +156,7 @@ namespace TW3D.GamePlay
                 AutoClearForces = true
             });
             camera = new ChaseCamera { MinRotation = -0.5f, MaxRotation = 0.5f };
-            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content);
+            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content) { DeepShadows = true };
             settings.Apply(renderer);
 
             level = testLevel != null

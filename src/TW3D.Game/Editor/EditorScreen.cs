@@ -112,7 +112,8 @@ namespace TW3D.Editor
 
             assets = LevelAssets.Load(Manager.Content);
             //The markers are drawn over the scene with its depth buffer, so the scene is drawn on the screen itself
-            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content) { HorizonDip = SceneRenderer.HighAbove, MayDrawSmaller = false };
+            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content)
+                { HorizonDip = SceneRenderer.HighAbove, DeepShadows = true, MayDrawSmaller = false };
             settings.Apply(renderer);
             camera = new EditorCamera();
             view = new LevelView(assets);
@@ -120,7 +121,8 @@ namespace TW3D.Editor
             placeTool = new BlockTool(camera, report);
             objectTool = new ObjectTool(camera, placeTool, assets, report);
             sceneryTool = new SceneryTool(camera, placeTool, assets, report);
-            selectTool = new SelectTool(camera, placeTool, sceneryTool.Bounds, report);
+            selectTool = new SelectTool(camera, placeTool, sceneryTool.Bounds, report, moved => layer = moved,
+                target => view.HiddenNote(EditorTool.Select, target));
             hiddenGuard = new HiddenLayerGuard(placeTool, report);
             markers = new EditorMarkers(Manager.GraphicsDevice, Manager.Content);
 
@@ -372,11 +374,13 @@ namespace TW3D.Editor
                     placeTool.ToggleRoad();
                 if (input.KeyPressed(Keys.Home))
                     FrameLevel();
-                //The layer being edited: Tab cycles, Right Shift and Right Ctrl toggle as in the editor of 2016
+                //The layer being edited: Tab cycles from the back to the front (Left Shift + Tab the other way), Right
+                //Shift goes a layer further back (from the deepest to the middle) and Right Ctrl toggles the front layer,
+                //as Right Shift and Right Ctrl toggled the back and the front layer in the editor of 2016
                 if (input.KeyPressed(Keys.Tab))
-                    layer = (Layer)(((int)layer + 1) % 3);
+                    layer = (Layer)(((int)layer + (input.IsKeyDown(Keys.LeftShift) ? Layers.Count - 1 : 1)) % Layers.Count);
                 if (input.KeyPressed(Keys.RightShift))
-                    layer = layer == Layer.Back ? Layer.Middle : Layer.Back;
+                    layer = layer == Layer.Back3 ? Layer.Middle : layer.IsBack() ? layer - 1 : Layer.Back;
                 if (RightControlTapped(input))
                     layer = layer == Layer.Front ? Layer.Middle : Layer.Front;
                 for (int i = 0; i < EditorToolKeys.ByTool.Length; i++)

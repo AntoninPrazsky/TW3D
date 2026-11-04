@@ -53,7 +53,7 @@ namespace TW3D.Editor
         private static readonly (string Keys, string Action)[] EverywhereRows =
         {
             ("Right button", "Picks in the Place, Object and Scenery tools; the Select tool does not use it"),
-            ("Left Shift", "With the left button erases (Place tool) or removes (Object and Scenery tools); Right Shift only toggles the back layer"),
+            ("Left Shift", "With the left button erases (Place tool) or removes (Object and Scenery tools); Right Shift only switches to a back layer"),
             ("Ctrl", "With the left button adds to the selection or takes out of it (Select tool); with the wheel shifts a block (Place tool, so it does not zoom)"),
             ("Alt", "With the left button orbits the camera instead of using the tool")
         };
@@ -61,8 +61,8 @@ namespace TW3D.Editor
         private static readonly (string Keys, string Action)[] ToolKeyRows =
         {
             ("B / O / V / P", "The Place tool (blocks) / the Object tool (dynamic objects) / the Select tool (many blocks) / the Scenery tool (props beside the track); View > Tool lists them and the status bar names the active one"),
-            ("Tab", "The next layer: back, middle, front"),
-            ("Right Shift", "Toggles the back layer as soon as it is pressed"),
+            ("Tab / Left Shift + Tab", "The next / previous layer: back 3, back 2, back, middle, front (the back layers are one, two and three cells behind the road)"),
+            ("Right Shift", "A layer further back as soon as it is pressed: from the middle or the front layer the back layer, then back 2, back 3 and the middle layer again"),
             ("Right Ctrl", "Toggles the front layer when it is tapped alone (let go with nothing else done while it was held)"),
             ("R", "Road mode on / off, in any tool: road blocks join the road next to them; red bars mark gaps"),
             ("M", "The mood of the level, in any tool: day, sunset, night")
@@ -103,7 +103,8 @@ namespace TW3D.Editor
             ("PageUp / PageDown", "Shift the selected blocks up / down"),
             ("H", "Mirror the selection left to right, swapping the blocks for their f variants (b2 and b2f); the props turn as their mirror images"),
             ("Delete", "Erase the selected blocks and props"),
-            ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) cell at the cursor cell (the pasted blocks and props are selected; decorations are skipped in the middle layer)")
+            ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) cell at the cursor cell (the pasted blocks and props are selected; decorations are skipped in the middle layer)"),
+            ("Ctrl+PageUp / Ctrl+PageDown", "Move the selection into the layer behind / in front, in the same cells (the props go as far in depth); that layer becomes the active one. Decorations do not go into the middle layer, and the finish stays there")
         };
 
         private static readonly (string Keys, string Action)[] FileKeyRows =
@@ -140,17 +141,17 @@ namespace TW3D.Editor
             ("Inspector", "What the active tool works on: the block at the cursor cell, the selected blocks and props, the selected object with its position to type, or the selected prop with its position, depth and turn (without one, the depth and the turn of the props to be added). View > Inspector"),
             ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there. View > Level"),
             ("Controls", "This window: Help > Controls or F1"),
-            ("View menu", "Also hides the back and front layers (which cannot be edited while hidden), the objects, the scenery, the grid and the gap markers")
+            ("View menu", "Also hides each of the back layers and the front layer (which cannot be edited while hidden), the objects, the scenery, the grid and the gap markers")
         };
 
         private static readonly (string Heading, string Text)[] Guide =
         {
             ("Start", "The car starts at the cell [0, 0], and a new level has its start block there. Build the track to the right of it. The status bar shows the cell under the cursor, the active layer and tool and the chosen block."),
-            ("Choose blocks", "Choose a block in the Palette. The middle layer is the road the car drives on and the blocks that collide; decorations go to the back layer (behind the road) and to the front layer (in front of it): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active."),
+            ("Choose blocks", "Choose a block in the Palette. The middle layer is the road the car drives on and the blocks that collide; decorations go to the three back layers (one, two and three cells behind the road: back, back 2 and back 3) and to the front layer (in front of it; the camera is too near for more): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active. The Select tool moves a selection into another layer with Ctrl+PageUp and Ctrl+PageDown."),
             ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
             ("Put the finish", "Put the cursor on a block of the middle layer and press F: that block is the finish, where the run ends. A level without a finish has no end, and the Level window says so."),
             ("Add objects", "Boxes, bars, ramps and the other dynamic objects are added with the Object tool (O): choose one in the Objects tab of the Palette and click where it is to be, or press Space to drop it onto the block at the cursor cell. Drag an object to move it."),
-            ("Add scenery", "Traffic cones, street lamps, utility poles, fences, guardrails, posts with a chain and a judges' stand stand beside the track without physics: the car drives through them. Choose one in the Scenery tab of the Palette (the Scenery tool, P), set the depth it goes to (PageUp and PageDown, or the Inspector: negative behind the road, positive in front of it; the road reaches 11.25 to either side, the back and front layers the next 22.5) and click where it is to stand, or press Space to stand it on the road at the cursor cell. T turns it. A guardrail is a cell long: Space at every cell of a straight road makes a continuous one; two pieces of the fence or of the chain fill a cell. The Select tool moves, copies and mirrors the props with the blocks of the layer they stand in."),
+            ("Add scenery", "Traffic cones, street lamps, utility poles, fences, guardrails, posts with a chain and a judges' stand stand beside the track without physics: the car drives through them. Choose one in the Scenery tab of the Palette (the Scenery tool, P), set the depth it goes to (PageUp and PageDown, or the Inspector: negative behind the road, positive in front of it; the road reaches 11.25 to either side, each of the other layers the next 22.5) and click where it is to stand, or press Space to stand it on the road at the cursor cell. T turns it. A guardrail is a cell long: Space at every cell of a straight road makes a continuous one; two pieces of the fence or of the chain fill a cell. The Select tool moves, copies and mirrors the props with the blocks of the layer they stand in."),
             ("Test drive", "Press F5 to drive the level at once, from the start (Shift+F5 from the cursor cell). Nothing is saved and no record is kept. Esc brings the editor back as it was, so test often."),
             ("Save", "Press Ctrl+S. A new level asks for a name; the file goes into the levels folder (content/Levels of the repository), where the game finds it: the level select shows it at once. The status bar counts the problems and the road gaps of the level when it is saved."),
             ("Set the level", "In the Level window set the mood (day, sunset or night), the position in the level select (the order) and the par time, the time a good run takes. A level without an order comes after the others in the level select, and the game estimates a par time when the level has none."),

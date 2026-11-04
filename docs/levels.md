@@ -34,13 +34,17 @@ editor out), and a game that is not in a repository uses `%LOCALAPPDATA%/TW3D/Le
 The scene is seen by a free camera: the middle button pans along the track, the wheel zooms
 towards the cursor, Alt + the left button orbits around the point under the cursor,
 W/S/A/D and Q/E fly, the numeric keypad turns, and Home frames the whole level. A level has
-three layers, the back and front layers of decorations and the middle layer, the road the
-car drives on; the layer being edited is changed by Tab, Right Shift toggles the back layer
-as soon as it is pressed and Right Ctrl the front layer when tapped alone. The View menu
-hides the back layer, the
-front layer, the objects and the scenery (they are not drawn and cannot be edited while hidden: the
-status bar says "The back layer is hidden." when a key, a click or a command of the Edit
-menu would change them), the grid around the cursor cell and the red bars of the road gaps;
+five layers a cell apart: the middle layer, the road the car drives on, the three back layers
+of decorations behind it (back, back 2 and back 3, one, two and three cells behind the road)
+and the front layer of decorations in front of it (only one: the camera of the game is 40
+physics units in front of the road, so a second front layer would be behind it). The layer
+being edited is changed by Tab (Left Shift + Tab the other way), Right Shift goes a layer
+further back as soon as it is pressed (from the middle or the front layer to the back layer,
+then back 2, back 3 and the middle layer again) and Right Ctrl toggles the front layer when
+tapped alone. The View menu hides each of the back layers, the front layer, the objects and
+the scenery (they are not drawn and cannot be edited while hidden: the status bar says "The
+back 2 layer is hidden." when a key, a click or a command of the Edit menu would change
+them), the grid around the cursor cell and the red bars of the road gaps;
 nothing hidden is saved or affects the test drive. The lighting is switched by F9 (the
 lighting of 2016), F10 (shadows) and Shift+F10 (ambient occlusion), as in the game, M changes
 the mood of the level, and F11 switches between full screen and a window.
@@ -83,7 +87,7 @@ The **Scenery tool** edits the props of the scenery: traffic cones, street lamps
 poles, fences, guardrails, posts with a chain and a judges' stand, which stand beside the
 track and have no physics (the car drives through them). A guardrail is a cell long, so that
 Space at the cells of a straight road puts a continuous one along it. A prop stands at a depth: negative behind the road, positive in front of it;
-the road reaches 11.25 physics units to either side and the back and front layers the next
+the road reaches 11.25 physics units to either side and each of the other layers the next
 22.5. New props go to the chosen depth (-10 at first: on the road, behind where the car
 drives), and the cursor cell and its grid are on its plane. The left button adds the chosen
 prop at the point under the cursor and selects it, or selects the prop under the cursor, and
@@ -109,8 +113,12 @@ PageDown shift it, Ctrl+C / Ctrl+X / Ctrl+V copy, cut and paste it (the leftmost
 copied cells, the lowest of those if several, goes to the cursor cell; the props keep their
 depth relative to the layer), and H mirrors it left to right, swapping every block for its
 mirrored variant where the catalog has one (`b2` and `b2f`, `s1` and `s1f`...), so that a
-climb becomes a descent, and turning the props as their mirror images. While the View menu
-hides the scenery, the props are left out of the selection.
+climb becomes a descent, and turning the props as their mirror images. Ctrl+PageUp /
+Ctrl+PageDown (Edit > Move to the layer behind / in front) move the selection into the
+next layer behind or in front, in the same cells, the props as far in depth; that layer
+becomes the active one and the selection stays. A block of that layer in a cell they come to
+is erased, decorations do not go into the middle layer and the finish stays there. While the
+View menu hides the scenery, the props are left out of the selection.
 
 ### The windows
 
@@ -224,7 +232,11 @@ Levels are JSON files with one block or object per line:
     {"block":"a1","x":0,"y":0,"shift":0},
     ...
   ],
-  "back": [ ... ],
+  "back": [
+    {"block":"kea1b","x":0,"y":0,"shift":0},
+    {"block":"za","x":4,"y":-1,"shift":0,"depth":2},
+    ...
+  ],
   "front": [ ... ],
   "objects": [
     {"type":"Bar","model":"bar1","x":238,"y":-4},
@@ -246,7 +258,10 @@ Levels are JSON files with one block or object per line:
   [a run of a level](playing.md#a-run-of-a-level)). Without it the game estimates it:
   half a second for each grid cell the finish is from the start (across and up or
   down), at least 10 seconds.
-- `middle`: blocks of the physics layer, `back` and `front`: decoration layers.
+- `middle`: blocks of the physics layer, `back` and `front`: decoration layers. The back
+  layers are one list: `depth` (1 when left out, as in every level made before 2026-11) is
+  how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one
+  depth only, a cell in front of the road.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
   moves the block vertically in steps of 2.5 physics units. `"finish": true` makes a
   block of the middle layer the finish of the level (one at most): the run ends when
@@ -255,8 +270,8 @@ Levels are JSON files with one block or object per line:
 - `scenery` (optional, written only when the level has some): the props beside the track,
   without physics. `model` is a prop of the `scenery` list of the catalog, `x`, `y` where
   its foot stands in physics units, `z` its depth (negative behind the road, positive in
-  front of it; the road of the middle layer reaches 11.25 to either side, the back and front
-  layers stand one cell, 22.5, away from it), and `turn` (0 when left out) the quarter turns
+  front of it; the road of the middle layer reaches 11.25 to either side, the other layers
+  stand a cell, 22.5, apart), and `turn` (0 when left out) the quarter turns
   about the vertical axis, 0 to 3: a fence along the road turned once runs across it. The
   surface of a flat road block is 1.25 above the height of its profile, so a prop standing
   on the road of the start cell has `"y": -1.25`.

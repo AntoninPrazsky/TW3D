@@ -14,11 +14,12 @@ namespace TW3D.GameObjects
     /// <summary>A track block as placed in a level.</summary>
     sealed class TrackBlock
     {
-        public TrackBlock(BlockType type, Model model, Vector2 position)
+        public TrackBlock(BlockType type, Model model, Vector2 position, float depth)
         {
             Type = type;
             Model = model;
             Position = position;
+            Depth = depth;
         }
 
         public BlockType Type { get; }
@@ -28,18 +29,22 @@ namespace TW3D.GameObjects
         /// <summary>Position in physics units, with the vertical shift of the block.</summary>
         public Vector2 Position { get; }
 
+        /// <summary>How far in front of the road the block stands, in physics units: negative behind it, 0 on it.</summary>
+        public float Depth { get; }
+
         /// <summary>The physics body of a block of the middle layer; null for the decoration of the back and front layers.</summary>
         public Body Body { get; set; }
     }
 
     /// <summary>
     /// A level built from its data (its file, see <see cref="LevelFile"/>, or the level editor's): the track blocks of
-    /// the middle layer, which the car drives on, the decoration blocks of the back and front layers behind and in front
-    /// of it, the dynamic objects, and the scenery beside the track (static props without physics).
+    /// the middle layer, which the car drives on, the decoration blocks of the back layers behind it and of the front
+    /// layer in front of it, the dynamic objects, and the scenery beside the track (static props without physics).
     /// </summary>
     class Level : GameObject
     {
-        //Distance of the back and front decoration layers from the middle (physics) layer: one cell
+        //Distance between the layers: the front layer and the first back layer are one cell from the middle (physics)
+        //layer, the deeper back layers a cell further each
         private const float LayerDepth = Units.GridCell;
 
         private readonly List<TrackBlock> middle = new List<TrackBlock>();
@@ -98,13 +103,13 @@ namespace TW3D.GameObjects
             }
 
             foreach (BlockPlacement placement in data.Middle)
-                middle.Add(CreateBlock(placement, assets, true));
+                middle.Add(CreateBlock(placement, assets, 0f, true));
             //A block is as large as its cell, around its position
             Bottom = middle.Count > 0 ? middle.Max(block => block.Position.Y) + Units.GridCell / 2f : 0f;
             foreach (BlockPlacement placement in data.Back)
-                back.Add(CreateBlock(placement, assets, false));
+                back.Add(CreateBlock(placement, assets, -placement.Depth * LayerDepth, false));
             foreach (BlockPlacement placement in data.Front)
-                front.Add(CreateBlock(placement, assets, false));
+                front.Add(CreateBlock(placement, assets, LayerDepth, false));
             foreach (ObjectPlacement placement in data.Objects)
                 objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
                     assets.Catalog.FindObject(placement.Type), placement.Model, assets));
@@ -126,11 +131,12 @@ namespace TW3D.GameObjects
             return new Vector2(placement.X * Units.GridCell, placement.Y * Units.GridCell + placement.Shift * Units.ShiftStep);
         }
 
+        /// <param name="depth">How far in front of the road the block stands (physics units, negative behind it).</param>
         /// <param name="physical">The block is in the middle layer: it takes part in the physics simulation.</param>
-        private TrackBlock CreateBlock(BlockPlacement placement, LevelAssets assets, bool physical)
+        private TrackBlock CreateBlock(BlockPlacement placement, LevelAssets assets, float depth, bool physical)
         {
             BlockType type = assets.Catalog.FindBlock(placement.Block);
-            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement));
+            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement), depth);
             if (physical)
             {
                 block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track);
@@ -158,19 +164,19 @@ namespace TW3D.GameObjects
         public override void Draw(SceneRenderer renderer)
         {
             //Models outside the camera view are skipped by the renderer
-            DrawLayer(renderer, back, -LayerDepth);
-            DrawLayer(renderer, middle, 0f);
-            DrawLayer(renderer, front, LayerDepth);
+            DrawLayer(renderer, back);
+            DrawLayer(renderer, middle);
+            DrawLayer(renderer, front);
             foreach ((Model model, Matrix world) in scenery)
                 renderer.Add(model, world * Placement);
             foreach (TrackProp obj in objects)
                 obj.Draw(renderer);
         }
 
-        private void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer, float depth)
+        private void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer)
         {
             foreach (TrackBlock block in layer)
-                DrawModel(renderer, block.Model, new Vector3(block.Position, depth), 0f, false);
+                DrawModel(renderer, block.Model, new Vector3(block.Position, block.Depth), 0f, false);
         }
     }
 }

@@ -21,6 +21,23 @@ namespace TW3D.Shared
         /// <summary>The finish of the level (a block of the middle layer): the car reaching its cell finishes the level.</summary>
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool Finish { get; set; }
+
+        /// <summary>
+        /// How many cells behind the road a block of the back layer stands: 1 (the default) to
+        /// <see cref="LevelData.BackLayers"/>. The blocks of the middle and the front layer have 1.
+        /// </summary>
+        [JsonIgnore]
+        public int Depth { get; set; } = 1;
+
+        //The depth in the file: left out when it is 1, as in the levels made before there were deeper back layers
+        [JsonInclude]
+        [JsonPropertyName("depth")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        private int? FileDepth
+        {
+            get => Depth == 1 ? null : Depth;
+            set => Depth = value ?? 1;
+        }
     }
 
     /// <summary>A dynamic object.</summary>
@@ -70,13 +87,20 @@ namespace TW3D.Shared
     }
 
     /// <summary>
-    /// A level: track blocks in three layers, dynamic objects and scenery.
-    /// Only the middle layer takes part in the physics simulation; the back and front layers are decoration, and so is
-    /// the scenery.
+    /// A level: track blocks in layers, dynamic objects and scenery. The middle layer is the road; behind it are up to
+    /// <see cref="BackLayers"/> back layers (one list, by the <see cref="BlockPlacement.Depth"/> of the blocks), in front
+    /// of it one front layer. Only the middle layer takes part in the physics simulation; the back and front layers are
+    /// decoration, and so is the scenery.
     /// </summary>
     public sealed class LevelData
     {
         public const int CurrentFormat = 1;
+
+        /// <summary>
+        /// How many layers there are behind the road, a cell apart. In front of it there is only one: the camera is
+        /// 40 physics units in front of the road, so a second front layer would be behind it.
+        /// </summary>
+        public const int BackLayers = 3;
 
         /// <summary>Version of the file format.</summary>
         public int Format { get; set; } = CurrentFormat;
@@ -128,6 +152,10 @@ namespace TW3D.Shared
             CheckLayer(Middle, "middle", true);
             CheckLayer(Back, "back", false);
             CheckLayer(Front, "front", false);
+            foreach (BlockPlacement placement in Back.Where(block => block.Depth < 1 || block.Depth > BackLayers))
+                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] of the back layer has depth {placement.Depth}; the back layers are 1 to {BackLayers} cells behind the road.");
+            foreach (BlockPlacement placement in Middle.Concat(Front).Where(block => block.Depth != 1))
+                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has depth {placement.Depth}, but only the blocks of the back layer can stand deeper.");
             foreach (BlockPlacement placement in Back.Concat(Front).Where(block => block.Finish))
                 problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] is a finish, but only a block of the middle layer can be.");
             if (Middle.Count(block => block.Finish) > 1)

@@ -145,7 +145,7 @@ namespace TW3D.Editor
             if (!overScene || camera.IsDragging)
                 return;
             bool alt = input.IsKeyDown(Keys.LeftAlt) || input.IsKeyDown(Keys.RightAlt);
-            //Right Shift toggles the back layer the moment it is pressed, so only Left Shift makes a stroke erase
+            //Right Shift switches to a back layer the moment it is pressed, so only Left Shift makes a stroke erase
             bool erase = input.IsKeyDown(Keys.LeftShift);
             bool control = input.IsKeyDown(Keys.LeftControl) || input.IsKeyDown(Keys.RightControl);
             if (leftPressed && !alt)
@@ -365,7 +365,7 @@ namespace TW3D.Editor
         private void Choose(BlockType type)
         {
             Block = type.Name;
-            report(type.Collision ? $"Chosen block: {Block}." : $"Chosen block: {Block} (decoration, back or front layer only).");
+            report(type.Collision ? $"Chosen block: {Block}." : $"Chosen block: {Block} (decoration, back or front layers only).");
         }
 
         /// <summary>Takes back the last step of the document and says which.</summary>

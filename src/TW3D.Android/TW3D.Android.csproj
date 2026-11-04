@@ -25,17 +25,15 @@
     <!-- Models and shaders built by the content pipeline, packed in the app as Content/
          (the builds for each runtime run in parallel, so each builds into its own folder) -->
     <MonoGameContentReference Include="$(GameContentDir)Content.mgcb" Link="Content\Content.mgcb" OutputFolder="$(MSBuildProjectName)$(RuntimeIdentifier)" />
-    <!-- The other shared game content (precompiled fonts, levels, the catalog), packed in the app as Content/ -->
+    <!-- The other shared game content (levels, the catalog), packed in the app as Content/ -->
     <AndroidAsset Include="$(GameContentDir)**\*" Exclude="$(ContentPipelineSources)" Link="Assets\Content\%(RecursiveDir)%(Filename)%(Extension)" />
-    <!-- Aether.Physics2D DebugView loads its font as "DiagnosticsFont" -->
-    <AndroidAsset Include="..\..\content\Font.xnb" Link="Assets\Content\DiagnosticsFont.xnb" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.Android" />
     <PackageReference Include="MonoGame.Content.Builder.Task" />
     <PackageReference Include="Aether.Physics2D.MG" />
-    <!-- Its own copy of the debug view font is not used, the game content has it -->
+    <!-- Its own copy of the debug view font is not used, the game content builds it (Fonts/diagnosticsFont.spritefont) -->
     <PackageReference Include="Aether.Physics2D.Diagnostics.MG" ExcludeAssets="contentFiles" />
     <ProjectReference Include="..\TW3D.Shared\TW3D.Shared.csproj" />
     <!-- Built for the content pipeline, which loads it (content/Content.mgcb) -->

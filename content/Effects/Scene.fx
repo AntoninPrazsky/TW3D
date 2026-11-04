@@ -85,12 +85,22 @@ sampler2D NoiseSampler = sampler_state
 	AddressV = Wrap;
 };
 
-// Shadows
+// Shadows. The texture holds two shadow maps: the shadow map, and beside it the deep one, coarser, for what
+// lies deeper than the shadow map reaches (the deeper back layers)
 float4x4 LightViewProjection;
-float ShadowTexel;          // size of a texel of the shadow map (in texture coordinates)
+float2 ShadowTexel;         // size of a texel of the texture (in texture coordinates)
+float2 ShadowScale;         // the part of the texture the shadow map takes
+float ShadowMargin;         // the edge of the shadow map that is not looked up (in its own coordinates)
 float ShadowBias;           // in shadow map depth, for surfaces facing the sun
 float NormalOffset;         // world units the shadow lookup moves along the normal
 float ShadowStrength;       // 0 = no shadows
+float4x4 DeepLightViewProjection;
+float2 DeepShadowScale;
+float2 DeepShadowOffset;    // where the deep shadow map starts in the texture
+float DeepShadowMargin;
+float DeepShadowBias;
+float DeepNormalOffset;
+float DeepShadowStrength;   // 0 = not drawn: what the shadow map does not cover is in the sun
 texture ShadowMap;
 sampler2D ShadowSampler = sampler_state
 {
@@ -142,7 +152,18 @@ struct VertexOutput
 	float3 Shadow : TEXCOORD2;     // texture coordinates and depth in the shadow map
 	float4 Screen : TEXCOORD3;     // position on the screen (clip space)
 	float3 ToCar : TEXCOORD4;
+	float3 DeepShadow : TEXCOORD5; // the same in the deep shadow map
 };
+
+// Where a point is in a shadow map seen by the sun: its coordinates in that map and its depth
+float3 ShadowPosition(float4x4 lightViewProjection, float3 world)
+{
+	float4 shadow = mul(float4(world, 1.0), lightViewProjection);
+	// (w is 1 for the orthographic view of the sun, but dividing by it keeps the whole matrix in the
+	// shader: MonoGame shares the parameter between the shaders and sizes it by its first use)
+	shadow.xyz /= shadow.w;
+	return float3(shadow.x * 0.5 + 0.5, -shadow.y * 0.5 + 0.5, shadow.z);
+}
 
 VertexOutput MainVS(VertexInput input)
 {
@@ -152,11 +173,8 @@ VertexOutput MainVS(VertexInput input)
 	output.Position = mul(world, ViewProjection);
 	output.ToCamera = CameraPosition - world.xyz;
 	output.Normal = normal;
-	float4 shadow = mul(float4(world.xyz + normal * NormalOffset, 1.0), LightViewProjection);
-	// (w is 1 for the orthographic view of the sun, but dividing by it keeps the whole matrix in the
-	// shader: MonoGame shares the parameter between the shaders and sizes it by its first use)
-	shadow.xyz /= shadow.w;
-	output.Shadow = float3(shadow.x * 0.5 + 0.5, -shadow.y * 0.5 + 0.5, shadow.z);
+	output.Shadow = ShadowPosition(LightViewProjection, world.xyz + normal * NormalOffset);
+	output.DeepShadow = ShadowPosition(DeepLightViewProjection, world.xyz + normal * DeepNormalOffset);
 	output.Screen = output.Position;
 	output.ToCar = LightOrigin - world.xyz;
 	return output;
@@ -183,6 +201,21 @@ float SunVisibility(float3 shadow, float bias)
 	return lit / 9.0;
 }
 
+// How much of the sun reaches the point: from the shadow map, or where the deep shadow map is drawn and the
+// shadow map does not cover the point (with the samples around it), from the deep one. One lookup in either
+// case, outside the branches, which a lookup cannot be in.
+float Sunlight(float3 shadow, float3 deepShadow, float facing)
+{
+	bool covers = all(shadow.xy > ShadowMargin) && all(shadow.xy < 1.0 - ShadowMargin) && shadow.z < 1.0;
+	bool near = covers || DeepShadowStrength == 0.0;
+	// Without the deep shadow map, as before it: the edge of the shadow map stretches beyond it
+	float3 nearShadow = float3(clamp(shadow.xy, 0.0, 1.0) * ShadowScale, shadow.z);
+	float3 deep = float3(clamp(deepShadow.xy, DeepShadowMargin, 1.0 - DeepShadowMargin) * DeepShadowScale + DeepShadowOffset, deepShadow.z);
+	float3 lookup = near ? nearShadow : deep;
+	float bias = near ? ShadowBias : DeepShadowBias;
+	return SunVisibility(lookup, bias * (3.0 - 2.0 * facing));
+}
+
 // Filmic curve mapping linear light to 0..1 (approximation of ACES by Krzysztof Narkowicz)
 float3 Filmic(float3 x)
 {
@@ -206,7 +239,7 @@ float4 MainPS(VertexOutput input) : COLOR0
 	float3 view = input.ToCamera / distance;
 
 	float facing = saturate(dot(normal, SunDirection));
-	float visible = SunVisibility(input.Shadow, ShadowBias * (3.0 - 2.0 * facing));
+	float visible = Sunlight(input.Shadow, input.DeepShadow, facing);
 
 	// Ambient occlusion darkens the light of the sky and the ground, and a little the sun,
 	// which makes the contact of objects visible in the sun too

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -8,14 +9,17 @@ using TW3D.Shared;
 namespace TW3D.Editor
 {
     /// <summary>
-    /// The level being edited drawn as the game draws it: the blocks of the three layers, the dynamic objects and the
+    /// The level being edited drawn as the game draws it: the blocks of the layers, the dynamic objects and the
     /// scenery of an <see cref="EditedLevel"/>, with the models of the <see cref="LevelAssets"/> and without the physics.
     /// It draws whatever the document has in every frame. Blocks, objects and props the catalog does not know are left out.
     /// </summary>
     sealed class LevelView : GameObject
     {
-        //Distance of the back and front layers from the middle one (physics units), as in the game's Level
+        //Distance between two layers (physics units), as in the game's Level
         private const float LayerDepth = Units.GridCell;
+
+        //The layers that are drawn, by the Layer enum (View menu); the middle layer always is
+        private readonly bool[] shown = new bool[Layers.Count];
 
         //The models by the name of the block, and by the type and the model of an object the catalog knows
         private readonly Dictionary<string, Model> blockModels = new Dictionary<string, Model>();
@@ -31,16 +35,21 @@ namespace TW3D.Editor
                     objectModels[(type.Type, model)] = assets.ObjectModel(model);
             foreach (SceneryType prop in assets.Catalog.Scenery)
                 sceneryModels[prop.Model] = assets.SceneryModel(prop.Model);
+            Array.Fill(shown, true);
         }
 
         /// <summary>The level drawn.</summary>
         public EditedLevel Level { get; set; }
 
-        /// <summary>The back layer, the front layer and the dynamic objects are drawn (View menu); the middle layer always is.</summary>
-        public bool ShowBack { get; set; } = true;
+        /// <summary>The layer is drawn (View menu); the middle layer always is.</summary>
+        public bool Shows(Layer layer) => layer == Layer.Middle || shown[(int)layer];
 
-        /// <summary>The front layer is drawn.</summary>
-        public bool ShowFront { get; set; } = true;
+        /// <summary>Shows or hides a layer (View menu); the middle layer cannot be hidden.</summary>
+        public void Show(Layer layer, bool show)
+        {
+            if (layer != Layer.Middle)
+                shown[(int)layer] = show;
+        }
 
         /// <summary>The dynamic objects are drawn.</summary>
         public bool ShowObjects { get; set; } = true;
@@ -60,16 +69,11 @@ namespace TW3D.Editor
                 return ShowObjects ? null : "The objects are hidden.";
             if (tool == EditorTool.Scenery)
                 return ShowScenery ? null : "The scenery is hidden.";
-            if (layer == Layer.Back && !ShowBack)
-                return "The back layer is hidden.";
-            return layer == Layer.Front && !ShowFront ? "The front layer is hidden." : null;
+            return Shows(layer) ? null : $"The {layer.Name()} layer is hidden.";
         }
 
-        /// <summary>The depth of a layer in physics units (the back layer is behind the middle one, the front in front of it).</summary>
-        public static float Depth(Layer layer)
-        {
-            return layer == Layer.Back ? -LayerDepth : layer == Layer.Front ? LayerDepth : 0f;
-        }
+        /// <summary>The depth of a layer in physics units (the back layers are behind the middle one, the front in front of it).</summary>
+        public static float Depth(Layer layer) => layer.Cells() * LayerDepth;
 
         /// <summary>The z of a layer in the scene.</summary>
         public static float SceneDepth(Layer layer) => SceneDepth(Depth(layer));
@@ -108,11 +112,9 @@ namespace TW3D.Editor
         {
             if (Level == null)
                 return;
-            if (ShowBack)
-                DrawLayer(renderer, Layer.Back);
-            DrawLayer(renderer, Layer.Middle);
-            if (ShowFront)
-                DrawLayer(renderer, Layer.Front);
+            foreach (Layer layer in Layers.All)
+                if (Shows(layer))
+                    DrawLayer(renderer, layer);
             if (ShowScenery)
             {
                 IReadOnlyList<PlacedScenery> props = Level.Scenery;
@@ -157,7 +159,7 @@ namespace TW3D.Editor
             Vector3 min = new Vector3(float.MaxValue), max = new Vector3(float.MinValue);
             float half = CellSize / 2f;
             bool any = false;
-            foreach (Layer layer in new[] { Layer.Back, Layer.Middle, Layer.Front })
+            foreach (Layer layer in Layers.All)
             {
                 foreach (PlacedBlock block in Level.Blocks(layer))
                 {

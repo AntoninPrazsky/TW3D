@@ -1,6 +1,9 @@
 // Building blocks for level generators: a track builder that keeps the road continuous,
 // and helpers for decorations in the back and front layers.
 //
+// Layers: "middle" (the road, with physics), "back", "back2" and "back3" (one, two and three cells
+// behind the road) and "front" (one cell in front of it; the camera is too near for more).
+//
 // Units: heights are in shift steps (2.5 physics units), y grows downwards, one grid cell is
 // 22.5 physics units = 9 shift steps. A block's "base" is 9 * y + shift, i.e. its vertical
 // position in shift steps.
@@ -30,6 +33,9 @@ function loadProfiles() {
 
 const FlatBlocks = new Set(["a1", "xa1", "sb"]);
 
+// The layers a block can be put in, from the back to the front
+const Layers = ["back3", "back2", "back", "middle", "front"];
+
 class Track {
   /** Starts the road at grid column x with the surface at height h. */
   constructor(x, h) {
@@ -37,6 +43,8 @@ class Track {
     this.h = h;
     this.middle = [];
     this.back = [];
+    this.back2 = [];
+    this.back3 = [];
     this.front = [];
     this.objects = [];
     // Props beside the track, without physics (written only when there are some)
@@ -80,16 +88,27 @@ class Track {
     return this;
   }
 
-  /** A block placed directly by its base, outside the road (walls, gates, decorations); extra fields (e.g. finish) are added to it. */
+  /**
+   * A block placed directly by its base in a layer ("middle", "back", "back2", "back3" or "front"), outside the road
+   * (walls, gates, decorations); extra fields (e.g. finish) are added to it.
+   */
   put(layer, block, x, base, extra = {}) {
+    Track.layer(layer);
     this[layer].push({ ...Track.place(block, x, base), ...extra });
     return this;
   }
 
   /** Removes the blocks of the given type in column x of a layer. */
   remove(layer, block, x) {
+    Track.layer(layer);
     this[layer] = this[layer].filter(b => b.block !== block || b.x !== x);
     return this;
+  }
+
+  /** Checks the name of a layer. */
+  static layer(name) {
+    if (!Layers.includes(name))
+      throw new Error(`No layer "${name}": the layers are ${Layers.join(", ")}`);
   }
 
   obj(type, model, x, y) {
@@ -164,11 +183,11 @@ class Track {
   }
 
   /**
-   * A checkered area next to the road (layer "back" or "front") over columns from..to,
+   * A checkered area next to the road (a back layer or "front") over columns from..to,
    * with triangles at both ends that taper away from the road.
    */
   checkered(layer, from, to, h) {
-    const [left, right] = layer === "back" ? ["xa4", "xa2"] : ["xa3", "xa5"];
+    const [left, right] = layer.startsWith("back") ? ["xa4", "xa2"] : ["xa3", "xa5"];
     this.put(layer, left, from - 1, h).put(layer, right, to + 1, h);
     for (let x = from; x <= to; x++) this.put(layer, "xa1", x, h);
     return this;
@@ -201,15 +220,19 @@ class Track {
     return this[method]("back", ...args)[method]("front", ...args);
   }
 
-  /** The level as JSON in the format of LevelFile.ToJson (one block or object per line). */
+  /**
+   * The level as JSON in the format of LevelFile.ToJson (one block or object per line). The back layers are one list,
+   * from the nearest to the deepest, the deeper ones with their depth, as the level editor writes them.
+   */
   json(order) {
+    const back = this.back.concat(this.back2.map(b => ({ ...b, depth: 2 })), this.back3.map(b => ({ ...b, depth: 3 })));
     const list = (name, items, last) => `  "${name}": [`
       + (items.length ? "\n" + items.map(i => "    " + JSON.stringify(i)).join(",\n") + "\n  ]" : "]")
       + (last ? "\n" : ",\n");
     return "{\n  \"format\": 1,\n" + (order != null ? `  "order": ${order},\n` : "")
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + (this.par != null ? `  "par": ${this.par},\n` : "")
-      + list("middle", this.middle) + list("back", this.back) + list("front", this.front)
+      + list("middle", this.middle) + list("back", back) + list("front", this.front)
       + list("objects", this.objects, this.scenery.length === 0)
       + (this.scenery.length ? list("scenery", this.scenery, true) : "") + "}\n";
   }
