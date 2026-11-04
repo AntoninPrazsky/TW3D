@@ -67,7 +67,9 @@ only faster.
 The models are lit by the game's own shader (`content/Effects/Scene.fx`): the sun with
 its shadows (a shadow map fitted to the part of the scene the camera sees, from the front
 layer to the first back layer, and a coarser one beside it in the same texture for the
-deeper back layers, drawn only while the camera sees something there), the light of
+deeper back layers, drawn only while the camera sees something there; each covers the box
+around that part in the view of the sun, its size of the Shadow detail of Options, its
+edges filtered smoothly, but on phones, whose half precision keeps a coarser filter), the light of
 the sky from above and of the ground from below, darkened in corners and crevices by
 ambient occlusion (`content/Effects/Occlusion.fx`, computed at half the resolution of the
 screen from the normals and depths the camera sees), highlights by the specular colour of

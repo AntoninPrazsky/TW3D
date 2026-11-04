@@ -38,7 +38,8 @@ opens in the web browser (clicked, or chosen by the keys and Enter).
 Full screen or a window (on a desktop, also F11 anywhere in the game; the window opens
 maximized and can be resized), the resolution of the 3D, antialiasing (the multisample antialiasing of the edges: on
 by default, but on a Raspberry Pi; a switch comes with the next start of the game), the look of the game (new, or classic: as the 2016 version looked),
-shadows, ambient occlusion, the frame rate (frames per second in the top left
+shadows, the detail of the shadows (low, medium or high: a shadow map of 1024, 2048 or 4096 texels; high by default on
+a desktop, medium on a phone; a Raspberry Pi keeps low and does not offer the row), ambient occlusion, the frame rate (frames per second in the top left
 corner), the tutorial and the volume of the sound (in tenths; Enter turns it up, round to
 off, left and right turn it down and up). A window was the cure when the game stuttered in
 full screen with one graphics driver (an AMD Radeon with OpenGL, 2026). They are saved in

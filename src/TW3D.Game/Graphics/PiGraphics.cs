@@ -28,7 +28,7 @@ namespace TW3D.Graphics
         /// </summary>
         public const int SceneHeight = 720;
 
-        /// <summary>The size of the shadow map (2048 elsewhere): at 2048 it cost the Pi 5 ms more at 1280×720.</summary>
-        public const int ShadowMapSize = 1024;
+        //The shadow map is 1024 texels (ShadowDetail.Low, which the Pi keeps; the Options menu offers no other there): at
+        //2048 it cost the Pi 5 ms more at 1280×720
     }
 }

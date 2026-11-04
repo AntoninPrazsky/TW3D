@@ -70,8 +70,7 @@ namespace TW3D.Graphics
         //layers next to it lie between these planes (the front layer and the first back layer are 2.25
         //units from the physics plane z = 0, the blocks are 2.25 units deep), at most ShadowDistance from
         //the camera. It reaches this far towards the sun beyond it, for the shadows of objects above the
-        //screen.
-        private static readonly int ShadowMapSize = PiGraphics.Active ? PiGraphics.ShadowMapSize : 2048;
+        //screen. Its size is of the ShadowDetail.
         private const float SceneNearZ = -3.5f;
         private const float SceneFarZ = 3.5f;
         private const float ShadowCasterReach = 10f;
@@ -79,8 +78,14 @@ namespace TW3D.Graphics
         //6.75 units behind the physics plane), for what the shadow map does not reach. Coarser, as what is that
         //deep is far from the camera, and drawn only while something stands there. Both are parts of one texture,
         //the deep one beside the other, so that the shader looks into one texture as before.
-        private const int DeepShadowMapSize = 1024;
         private const float DeepFarZ = 8f;
+        //The part of the scene a shadow map covers is a box in the view of the sun, whose sides grow and shrink in
+        //steps of this many to a doubling (about 4 %), so that a texel keeps its size while the camera turns a little;
+        //a side shrinks only when it is this many times larger than it has to be
+        private const float CoverStepsPerDoubling = 16f;
+        private const float CoverShrink = 1.2f;
+        //The smallest side of that box (world units), for a camera that sees nothing between the planes of the scene
+        private const float MinCoverSize = 0.5f;
         //The texels at the edges of a shadow map that are not looked up: the samples around them would fall outside
         private const float ShadowMargin = 3f;
         //Against shadow acne: the lookup moves this many shadow map texels along the normal,
@@ -191,7 +196,12 @@ namespace TW3D.Graphics
         private readonly EffectTechnique litTechnique, depthTechnique, normalDepthTechnique;
         private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter,
             metallicParameter, roughnessParameter;
-        private readonly RenderTarget2D shadowMap;
+        //The texture of both shadow maps, of the detail it was made for, the sizes of the maps in it, and the sides of the
+        //boxes each of them covered in the last frame (see FitLight)
+        private RenderTarget2D shadowMap;
+        private ShadowDetail shadowMapDetail;
+        private int shadowMapSize, deepShadowMapSize;
+        private Vector2 shadowCover, deepShadowCover;
         //The marks on the track for this frame (see SetMarks) and what draws them
         private VertexPositionColor[] marks;
         private int markTriangles;
@@ -221,7 +231,7 @@ namespace TW3D.Graphics
         private readonly BoundingFrustum lightFrustum = new BoundingFrustum(Matrix.Identity);
         private readonly BoundingFrustum deepLightFrustum = new BoundingFrustum(Matrix.Identity);
         private readonly Vector3[] frustumCorners = new Vector3[8];
-        private readonly Vector3[] sceneCorners = new Vector3[8];
+        private readonly List<Vector3> sceneCorners = new List<Vector3>();
         private readonly Dictionary<Model, ModelData> models = new Dictionary<Model, ModelData>();
         private readonly List<DrawItem> items = new List<DrawItem>();
         //The glows of the shining lamps: a soft round texture added to the screen
@@ -273,7 +283,7 @@ namespace TW3D.Graphics
         {
             this.device = device;
             effect = content.Load<Effect>("Effects/Scene");
-            litTechnique = effect.Techniques["Lit"];
+            litTechnique = effect.Techniques[SmoothShadows ? "Lit" : "LitCoarseShadows"];
             depthTechnique = effect.Techniques["Depth"];
             normalDepthTechnique = effect.Techniques["NormalDepth"];
             occlusionEffect = content.Load<Effect>("Effects/Occlusion");
@@ -291,15 +301,6 @@ namespace TW3D.Graphics
             smokeEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = smokeTexture };
             glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
 
-            //The shadow map on the left, the deep one in the top right corner
-            float width = ShadowMapSize + DeepShadowMapSize, height = ShadowMapSize;
-            shadowMap = new RenderTarget2D(device, (int)width, (int)height, false, SurfaceFormat.Color, DepthFormat.Depth24);
-            effect.Parameters["ShadowTexel"].SetValue(new Vector2(1f / width, 1f / height));
-            effect.Parameters["ShadowScale"].SetValue(new Vector2(ShadowMapSize / width, ShadowMapSize / height));
-            effect.Parameters["DeepShadowScale"].SetValue(new Vector2(DeepShadowMapSize / width, DeepShadowMapSize / height));
-            effect.Parameters["DeepShadowOffset"].SetValue(new Vector2(ShadowMapSize / width, 0f));
-            effect.Parameters["ShadowMargin"].SetValue(ShadowMargin / ShadowMapSize);
-            effect.Parameters["DeepShadowMargin"].SetValue(ShadowMargin / DeepShadowMapSize);
             //Until the deep shadow map is drawn its view is not looked into, but the shader computes it (not divided by 0)
             effect.Parameters["DeepLightViewProjection"].SetValue(Matrix.Identity);
             effect.Parameters["DeepShadowStrength"].SetValue(0f);
@@ -321,6 +322,52 @@ namespace TW3D.Graphics
             effect.Parameters["LightRange"].SetValue(lightRanges);
         }
 
+        /// <summary>
+        /// The shadows are filtered smoothly (technique Lit of Scene.fx): their edges move with the scene, not in the steps
+        /// of the texels of the shadow map. Not on a phone, whose pixel shaders compute in half precision (MonoGame declares
+        /// them mediump on OpenGL ES): a position in a texture thousands of texels wide has no fraction of a texel left there,
+        /// so a phone keeps the coarser filter that does not need it (LitCoarseShadows).
+        /// </summary>
+        private static bool SmoothShadows =>
+#if ANDROID
+            false;
+#else
+            true;
+#endif
+
+        /// <summary>
+        /// (Re)creates the texture of the shadow maps when the <see cref="ShadowDetail"/> changes: the shadow map on the left,
+        /// the deep one in the top right corner.
+        /// </summary>
+        private void UpdateShadowMap()
+        {
+            ShadowDetail detail = ShadowDetails.Valid(ShadowDetail);
+            if (shadowMap != null && detail == shadowMapDetail)
+                return;
+            shadowMap?.Dispose();
+            shadowMapDetail = detail;
+            shadowMapSize = ShadowDetails.MapSize(detail);
+            deepShadowMapSize = ShadowDetails.DeepMapSize(detail);
+            shadowCover = deepShadowCover = Vector2.Zero;
+            shadowMap = new RenderTarget2D(device, shadowMapSize + deepShadowMapSize, shadowMapSize, false, SurfaceFormat.Color, DepthFormat.Depth24);
+        }
+
+        /// <summary>
+        /// Gives the shader the texture of the shadow maps and where the maps are in it; every frame, as the effect is
+        /// shared by all renderers, whose details may differ.
+        /// </summary>
+        private void SetShadowMap()
+        {
+            float width = shadowMap.Width, height = shadowMap.Height;
+            effect.Parameters["ShadowMap"].SetValue(shadowMap);
+            effect.Parameters["ShadowTexel"].SetValue(new Vector2(1f / width, 1f / height));
+            effect.Parameters["ShadowScale"].SetValue(new Vector2(shadowMapSize / width, shadowMapSize / height));
+            effect.Parameters["DeepShadowScale"].SetValue(new Vector2(deepShadowMapSize / width, deepShadowMapSize / height));
+            effect.Parameters["DeepShadowOffset"].SetValue(new Vector2(shadowMapSize / width, 0f));
+            effect.Parameters["ShadowMargin"].SetValue(ShadowMargin / shadowMapSize);
+            effect.Parameters["DeepShadowMargin"].SetValue(ShadowMargin / deepShadowMapSize);
+        }
+
         /// <summary>The cone of a spot light as the shader has it.</summary>
         private static Vector2 Cone(float innerAngle, float outerAngle)
         {
@@ -334,6 +381,9 @@ namespace TW3D.Graphics
 
         /// <summary>The sun casts shadows.</summary>
         public bool Shadows { get; set; } = true;
+
+        /// <summary>The detail of the shadows: the size of the shadow map (see <see cref="ShadowDetails"/>).</summary>
+        public ShadowDetail ShadowDetail { get; set; } = ShadowDetails.Default;
 
         /// <summary>
         /// The deep shadow map is drawn while something the camera sees stands deeper than the shadow map reaches (the
@@ -598,7 +648,7 @@ namespace TW3D.Graphics
         /// </summary>
         public void Dispose()
         {
-            shadowMap.Dispose();
+            shadowMap?.Dispose();
             normalDepthMap?.Dispose();
             occlusionMap?.Dispose();
             blurredOcclusionMap?.Dispose();
@@ -620,6 +670,7 @@ namespace TW3D.Graphics
                 : new Point(device.PresentationParameters.BackBufferWidth, device.PresentationParameters.BackBufferHeight);
             if (!Classic)
             {
+                UpdateShadowMap();
                 if (Shadows)
                     DrawShadowMap();
                 if (AmbientOcclusion)
@@ -950,17 +1001,17 @@ namespace TW3D.Graphics
             device.DepthStencilState = DepthStencilState.Default;
             device.RasterizerState = RasterizerState.CullNone;
 
-            Matrix lightViewProjection = FitLight(SceneFarZ, ShadowMapSize, "", lightFrustum);
+            Matrix lightViewProjection = FitLight(SceneFarZ, shadowMapSize, "", lightFrustum, ref shadowCover);
             if (deep)
             {
                 //The depth pass draws with the matrix of the shadow map it draws into
-                effect.Parameters["LightViewProjection"].SetValue(FitLight(DeepFarZ, DeepShadowMapSize, "Deep", deepLightFrustum));
-                device.Viewport = new Viewport(ShadowMapSize, 0, DeepShadowMapSize, DeepShadowMapSize);
+                effect.Parameters["LightViewProjection"].SetValue(FitLight(DeepFarZ, deepShadowMapSize, "Deep", deepLightFrustum, ref deepShadowCover));
+                device.Viewport = new Viewport(shadowMapSize, 0, deepShadowMapSize, deepShadowMapSize);
                 DrawDepth(deepLightFrustum);
                 effect.Parameters["LightViewProjection"].SetValue(lightViewProjection);
             }
             effect.Parameters["DeepShadowStrength"].SetValue(deep ? 1f : 0f);
-            device.Viewport = new Viewport(0, 0, ShadowMapSize, ShadowMapSize);
+            device.Viewport = new Viewport(0, 0, shadowMapSize, shadowMapSize);
             DrawDepth(lightFrustum);
 
             device.SetRenderTarget(null);
@@ -1065,54 +1116,100 @@ namespace TW3D.Graphics
         /// <param name="size">The size of the shadow map in texels.</param>
         /// <param name="prefix">What the names of the parameters of the shader start with: "" for the shadow map, "Deep" for the deep one.</param>
         /// <param name="light">Gets the view of the sun, to leave out what it does not see.</param>
-        private Matrix FitLight(float farZ, int size, string prefix, BoundingFrustum light)
+        /// <param name="cover">The sides of the box the map covered in the last frame (zero for none); gets those of this one.</param>
+        private Matrix FitLight(float farZ, int size, string prefix, BoundingFrustum light, ref Vector2 cover)
         {
-            //The part of each edge of the camera view that lies between the planes of the scene
-            //(and not too far): the shadow map has to cover the ends of these parts
-            frustum.GetCorners(frustumCorners);
-            for (int i = 0; i < 4; i++)
-            {
-                Vector3 near = frustumCorners[i];
-                Vector3 direction = frustumCorners[i + 4] - near;
-                float end = Math.Min(1f, ShadowDistance / direction.Length());
-                float from = 0f, to = end;
-                if (Math.Abs(direction.Z) > 1e-6f)
-                {
-                    float a = (SceneNearZ - near.Z) / direction.Z;
-                    float b = (farZ - near.Z) / direction.Z;
-                    from = MathHelper.Clamp(Math.Min(a, b), 0f, end);
-                    to = MathHelper.Clamp(Math.Max(a, b), 0f, end);
-                }
-                sceneCorners[i] = near + direction * from;
-                sceneCorners[i + 4] = near + direction * to;
-            }
+            FindSceneCorners(farZ);
 
-            Vector3 center = Vector3.Zero;
-            foreach (Vector3 corner in sceneCorners)
-                center += corner / sceneCorners.Length;
-            float radius = 0f;
-            foreach (Vector3 corner in sceneCorners)
-                radius = Math.Max(radius, Vector3.Distance(center, corner));
-            //In steps, so the size of a texel does not change with every turn of the camera
-            radius = MathF.Ceiling(radius * 2f) / 2f;
-
-            //The sun looks at the sphere around them. Its position is rounded to whole texels of the
-            //shadow map, so the shadows do not flicker when the camera moves.
+            //The map covers the box around them in the view of the sun. (Until 2026-11-04 it covered a sphere around
+            //them, which took more than twice the width of the box on a wide screen: the texels were that much coarser.)
             Matrix lightView = Matrix.CreateLookAt(Vector3.Zero, -Lighting.SunDirection, Vector3.Up);
-            Vector3 lightCenter = Vector3.Transform(center, lightView);
-            float texel = 2f * radius / size;
-            lightCenter.X = MathF.Round(lightCenter.X / texel) * texel;
-            lightCenter.Y = MathF.Round(lightCenter.Y / texel) * texel;
-            float distance = -lightCenter.Z;
-            Matrix lightProjection = Matrix.CreateOrthographicOffCenter(lightCenter.X - radius, lightCenter.X + radius,
-                lightCenter.Y - radius, lightCenter.Y + radius, distance - radius - ShadowCasterReach, distance + radius);
+            Vector3 min = new Vector3(float.MaxValue), max = new Vector3(float.MinValue);
+            foreach (Vector3 corner in sceneCorners)
+            {
+                Vector3 point = Vector3.Transform(corner, lightView);
+                min = Vector3.Min(min, point);
+                max = Vector3.Max(max, point);
+            }
+            //The sides of the box go in steps, so that a texel keeps its size while the camera turns a little; the edge of
+            //the map that is not looked up (and a texel the rounding below may move it by) lies outside the box
+            float usable = 1f - 2f * (ShadowMargin + 1f) / size;
+            cover = new Vector2(CoverSide((max.X - min.X) / usable, cover.X), CoverSide((max.Y - min.Y) / usable, cover.Y));
+            //Its position is rounded to whole texels of the map, so that the shadows do not flicker when the camera moves
+            Vector2 texel = cover / size;
+            float centreX = MathF.Round((min.X + max.X) / 2f / texel.X) * texel.X;
+            float centreY = MathF.Round((min.Y + max.Y) / 2f / texel.Y) * texel.Y;
+            //The sun looks along -z of its view: what is nearest to it has the greatest z
+            float nearest = -max.Z - ShadowCasterReach, furthest = -min.Z;
+            Matrix lightProjection = Matrix.CreateOrthographicOffCenter(centreX - cover.X / 2f, centreX + cover.X / 2f,
+                centreY - cover.Y / 2f, centreY + cover.Y / 2f, nearest, furthest);
 
             Matrix lightViewProjection = lightView * lightProjection;
             light.Matrix = lightViewProjection;
             effect.Parameters[prefix + "LightViewProjection"].SetValue(lightViewProjection);
-            effect.Parameters[prefix + "NormalOffset"].SetValue(NormalOffsetTexels * texel);
-            effect.Parameters[prefix + "ShadowBias"].SetValue(ShadowBiasWorld / (2f * radius + ShadowCasterReach));
+            effect.Parameters[prefix + "NormalOffset"].SetValue(NormalOffsetTexels * Math.Max(texel.X, texel.Y));
+            effect.Parameters[prefix + "ShadowBias"].SetValue(ShadowBiasWorld / (furthest - nearest));
             return lightViewProjection;
+        }
+
+        /// <summary>
+        /// Finds the corners of the part of the scene the camera sees from SceneNearZ to a depth, at most ShadowDistance
+        /// from the camera (along the edges of its view): the corners of the view cut so short that lie between the planes
+        /// of the two depths, and where its edges cross those planes. (Only where the four edges from the camera crossed
+        /// the planes until 2026-11-04: a camera that looks along the road, as during the countdown, has an edge that
+        /// does not reach them, and the scene seen beside that edge was left out.)
+        /// </summary>
+        /// <param name="farZ">How deep the part of the scene reaches (scene z).</param>
+        private void FindSceneCorners(float farZ)
+        {
+            frustum.GetCorners(frustumCorners);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 direction = frustumCorners[i + 4] - frustumCorners[i];
+                frustumCorners[i + 4] = frustumCorners[i] + direction * Math.Min(1f, ShadowDistance / direction.Length());
+            }
+            sceneCorners.Clear();
+            foreach (Vector3 corner in frustumCorners)
+                if (corner.Z >= SceneNearZ && corner.Z <= farZ)
+                    sceneCorners.Add(corner);
+            foreach ((int from, int to) in FrustumEdges)
+            {
+                AddCrossing(frustumCorners[from], frustumCorners[to], SceneNearZ);
+                AddCrossing(frustumCorners[from], frustumCorners[to], farZ);
+            }
+            //A camera that sees nothing between the planes: what it sees nearest, where no shadow matters
+            if (sceneCorners.Count == 0)
+                for (int i = 0; i < 4; i++)
+                    sceneCorners.Add(frustumCorners[i]);
+        }
+
+        /// <summary>Where an edge from a to b crosses the plane of a depth, if it does, is a corner of the part of the scene.</summary>
+        private void AddCrossing(Vector3 a, Vector3 b, float z)
+        {
+            if ((a.Z - z) * (b.Z - z) < 0f)
+                sceneCorners.Add(Vector3.Lerp(a, b, (z - a.Z) / (b.Z - a.Z)));
+        }
+
+        /// <summary>The edges of a view by the corners of BoundingFrustum.GetCorners: the near face, the far face and from one to the other.</summary>
+        private static readonly (int, int)[] FrustumEdges =
+        {
+            (0, 1), (1, 2), (2, 3), (3, 0),
+            (4, 5), (5, 6), (6, 7), (7, 4),
+            (0, 4), (1, 5), (2, 6), (3, 7)
+        };
+
+        /// <summary>
+        /// A side of the box a shadow map covers (see <see cref="FitLight"/>): the side of the last frame while it is long
+        /// enough and not too long, else the step (of <see cref="CoverStepsPerDoubling"/> to a doubling) just long enough.
+        /// </summary>
+        /// <param name="needed">How long the side has to be.</param>
+        /// <param name="last">The side of the last frame; 0 for none.</param>
+        private static float CoverSide(float needed, float last)
+        {
+            needed = Math.Max(needed, MinCoverSize);
+            if (last >= needed && last <= needed * CoverShrink)
+                return last;
+            return MathF.Pow(2f, MathF.Ceiling(MathF.Log2(needed) * CoverStepsPerDoubling) / CoverStepsPerDoubling);
         }
 
         /// <summary>The sky picture tinted by the colours of the light.</summary>
@@ -1179,7 +1276,7 @@ namespace TW3D.Graphics
             effect.Parameters["ViewProjection"].SetValue(view * projection);
             effect.Parameters["CameraPosition"].SetValue(eye);
             effect.Parameters["ShadowStrength"].SetValue(Shadows ? 1f : 0f);
-            effect.Parameters["ShadowMap"].SetValue(shadowMap);
+            SetShadowMap();
             UpdateOcclusionTargets();
             effect.Parameters["OcclusionStrength"].SetValue(AmbientOcclusion ? 1f : 0f);
             effect.Parameters["OcclusionMap"].SetValue(blurredOcclusionMap);

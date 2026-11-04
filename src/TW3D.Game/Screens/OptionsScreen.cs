@@ -6,7 +6,7 @@ using TW3D.Graphics;
 namespace TW3D.Screens
 {
     /// <summary>
-    /// The Options menu: the graphics and display settings, the tutorial and the volume of the sound. Selecting an item (or pressing left or right on it)
+    /// The Options menu: the graphics and display settings (the detail of the shadows too, but on a Raspberry Pi), the tutorial and the volume of the sound. Selecting an item (or pressing left or right on it)
     /// switches its value; the settings are saved at once. The Resolution row steps through the heights the 3D scene may
     /// be drawn at on the screen as it is now (see <see cref="RenderResolution"/>), so it follows the window while the menu
     /// is open.
@@ -74,6 +74,17 @@ namespace TW3D.Screens
                 IsEnabled = () => !settings.Classic,
                 IsSwitch = true
             });
+            //The size of the shadow map: Enter steps it up, round to low, left and right step it down and up. A Raspberry Pi
+            //keeps the low one, its GPU has too little for more
+            if (ShadowDetails.CanChoose)
+                AddItem(new MenuItem
+                {
+                    Text = () => "Shadow detail: " + ShadowDetails.Name(settings.ShadowDetail),
+                    Activate = () => Change(() => settings.ShadowDetail = ShadowDetails.Next(settings.ShadowDetail)),
+                    Adjust = step => Change(() => settings.ShadowDetail = ShadowDetails.Step(settings.ShadowDetail, step)),
+                    IsEnabled = () => !settings.Classic && settings.Shadows,
+                    IsSwitch = true
+                });
             AddItem(new MenuItem
             {
                 Text = () => "Ambient occlusion: " + (settings.AmbientOcclusion ? "On" : "Off"),

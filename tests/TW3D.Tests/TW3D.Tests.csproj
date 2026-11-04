@@ -31,6 +31,9 @@
     <Compile Include="..\..\src\TW3D.Game\Audio\SoundBakes.cs" Link="Game\SoundBakes.cs" />
     <!-- The heights the 3D scene may be drawn at (the Resolution row of the Options menu) -->
     <Compile Include="..\..\src\TW3D.Game\Graphics\RenderResolution.cs" Link="Game\RenderResolution.cs" />
+    <!-- The sizes of the shadow maps (the Shadow detail row of the Options menu), and the Raspberry Pi that keeps the low one -->
+    <Compile Include="..\..\src\TW3D.Game\Graphics\ShadowDetail.cs" Link="Game\ShadowDetail.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\PiGraphics.cs" Link="Game\PiGraphics.cs" />
     <!-- The document of the level editor: the level being edited, with undo and redo -->
     <Compile Include="..\..\src\TW3D.Game\Editor\Layer.cs" Link="Game\Layer.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\EditedLevel.cs" Link="Game\EditedLevel.cs" />

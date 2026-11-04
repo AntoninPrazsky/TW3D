@@ -6,7 +6,8 @@
 // mapped to the screen by a filmic curve; the distance fades into the colour of the sky.
 // Glass (Alpha less than 1) is blended over the scene, less transparent where it shines.
 // Smooth materials (Roughness less than 1) mirror the sky, the ground and the sun; metal
-// (Metallic) only mirrors, in its own colour, like chrome.
+// (Metallic) only mirrors, in its own colour, like chrome. Technique Lit draws all that, technique
+// LitCoarseShadows the same with the coarser filter of the shadows that phones need (see Sunlight).
 //
 // Technique Sky draws the sky behind everything, computed from the direction of each pixel (no
 // picture): a smooth ramp from the horizon up, a glow and a disc of the sun (or the moon), stars,
@@ -186,8 +187,33 @@ float UnpackDepth(float4 packed)
 	return dot(packed, float4(1.0, 1.0 / 255.0, 1.0 / 65025.0, 1.0 / 16581375.0));
 }
 
-// How much of the sun reaches the point: 3 x 3 samples of the shadow map for soft edges
-float SunVisibility(float3 shadow, float bias)
+// How much of the sun reaches the point, smoothly: the 3 x 3 texels around it, each lit or not, weighted as two
+// by two lookups of them filtered bilinearly would weigh them (by how far into its texel the point is), so that the
+// edges of the shadows are soft and move with the point, not in the steps of the texels
+float SmoothSunVisibility(float3 shadow, float bias)
+{
+	float depth = shadow.z - bias;
+	float2 texels = shadow.xy / ShadowTexel;
+	float2 corner = floor(texels);
+	float2 part = texels - corner;
+	float2 centre = (corner + 0.5) * ShadowTexel;
+	float3 weightX = float3(1.0 - part.x, 1.0, part.x);
+	float3 weightY = float3(1.0 - part.y, 1.0, part.y);
+	float lit = 0.0;
+	for (int y = 0; y < 3; y++)
+	{
+		for (int x = 0; x < 3; x++)
+		{
+			float2 offset = float2(x - 1, y - 1) * ShadowTexel;
+			lit += weightX[x] * weightY[y] * step(depth, UnpackDepth(tex2D(ShadowSampler, centre + offset)));
+		}
+	}
+	return lit / 4.0;
+}
+
+// How much of the sun reaches the point, coarsely (on phones, whose half precision has no fraction of a texel
+// left for the smooth filter): 3 x 3 samples of the shadow map around it, a texel and a half apart
+float CoarseSunVisibility(float3 shadow, float bias)
 {
 	float depth = shadow.z - bias;
 	float lit = 0.0;
@@ -204,8 +230,9 @@ float SunVisibility(float3 shadow, float bias)
 
 // How much of the sun reaches the point: from the shadow map, or where the deep shadow map is drawn and the
 // shadow map does not cover the point (with the samples around it), from the deep one. One lookup in either
-// case, outside the branches, which a lookup cannot be in.
-float Sunlight(float3 shadow, float3 deepShadow, float facing)
+// case, outside the branches, which a lookup cannot be in. Smooth or coarse is fixed for each technique (see
+// Shade), so the compiler keeps only one of them.
+float Sunlight(float3 shadow, float3 deepShadow, float facing, bool smooth)
 {
 	bool covers = all(shadow.xy > ShadowMargin) && all(shadow.xy < 1.0 - ShadowMargin) && shadow.z < 1.0;
 	bool near = covers || DeepShadowStrength == 0.0;
@@ -214,7 +241,8 @@ float Sunlight(float3 shadow, float3 deepShadow, float facing)
 	float3 deep = float3(clamp(deepShadow.xy, DeepShadowMargin, 1.0 - DeepShadowMargin) * DeepShadowScale + DeepShadowOffset, deepShadow.z);
 	float3 lookup = near ? nearShadow : deep;
 	float bias = near ? ShadowBias : DeepShadowBias;
-	return SunVisibility(lookup, bias * (3.0 - 2.0 * facing));
+	bias *= 3.0 - 2.0 * facing;
+	return smooth ? SmoothSunVisibility(lookup, bias) : CoarseSunVisibility(lookup, bias);
 }
 
 // Filmic curve mapping linear light to 0..1 (approximation of ACES by Krzysztof Narkowicz)
@@ -233,14 +261,15 @@ float3 Mirrored(float3 direction, float roughness)
 	return lerp(ground, sky, smoothstep(-blur, blur, direction.y));
 }
 
-float4 MainPS(VertexOutput input) : COLOR0
+// The lit colour of a pixel, with the shadows filtered smoothly or coarsely (see Sunlight)
+float4 Shade(VertexOutput input, bool smooth)
 {
 	float3 normal = normalize(input.Normal);
 	float distance = length(input.ToCamera);
 	float3 view = input.ToCamera / distance;
 
 	float facing = saturate(dot(normal, SunDirection));
-	float visible = Sunlight(input.Shadow, input.DeepShadow, facing);
+	float visible = Sunlight(input.Shadow, input.DeepShadow, facing, smooth);
 
 	// Ambient occlusion darkens the light of the sky and the ground, and a little the sun,
 	// which makes the contact of objects visible in the sun too
@@ -288,12 +317,33 @@ float4 MainPS(VertexOutput input) : COLOR0
 	return float4(lerp(color, HazeColor, haze), opacity);
 }
 
+float4 MainPS(VertexOutput input) : COLOR0
+{
+	return Shade(input, true);
+}
+
+float4 CoarseShadowsPS(VertexOutput input) : COLOR0
+{
+	return Shade(input, false);
+}
+
+// The scene lit, with smooth shadows (desktops)
 technique Lit
 {
 	pass P0
 	{
 		VertexShader = compile VS_SHADERMODEL MainVS();
 		PixelShader = compile PS_SHADERMODEL MainPS();
+	}
+};
+
+// The same with the coarse filter of the shadows (phones, see Sunlight)
+technique LitCoarseShadows
+{
+	pass P0
+	{
+		VertexShader = compile VS_SHADERMODEL MainVS();
+		PixelShader = compile PS_SHADERMODEL CoarseShadowsPS();
 	}
 };
 

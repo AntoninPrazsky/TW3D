@@ -68,7 +68,7 @@ CI fails without them and attaches the code it compiled to the run (the artifact
 On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the 3D scene
 at 1280×720 (until another Resolution is chosen in Options), scaled up to the screen, with
 the user interface at the full resolution over it, without multisampling and without ambient occlusion by default (Options can switch them on)
-and with a smaller shadow map: its GPU drew a level at 1920×1080 with the graphics of a
+and with a smaller shadow map (the low Shadow detail, which it keeps): its GPU drew a level at 1920×1080 with the graphics of a
 desktop in 49 ms a frame. A level then holds 60 frames per second, the garage of the menus
 about 45.
 

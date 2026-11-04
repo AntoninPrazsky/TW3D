@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using TW3D.Graphics;
 using TW3D.Shared;
 
@@ -32,6 +33,13 @@ namespace TW3D
         public bool Classic { get; set; }
 
         public bool Shadows { get; set; } = true;
+
+        /// <summary>
+        /// The detail of the shadows (the size of the shadow map, see ShadowDetails): high on a desktop, medium on a phone,
+        /// low on a Raspberry Pi, which keeps it. In the file by its name.
+        /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter<ShadowDetail>))]
+        public ShadowDetail ShadowDetail { get; set; } = ShadowDetails.Default;
 
         /// <summary>
         /// Multisample antialiasing of the screen (the edges of the 3D smooth): on by default, but on a Raspberry Pi, which
@@ -112,6 +120,7 @@ namespace TW3D
         {
             renderer.Classic = Classic;
             renderer.Shadows = Shadows;
+            renderer.ShadowDetail = ShadowDetails.CanChoose ? ShadowDetails.Valid(ShadowDetail) : ShadowDetails.Default;
             renderer.AmbientOcclusion = AmbientOcclusion;
             renderer.Resolution = Resolution;
         }
