@@ -34,7 +34,9 @@ dome is no longer in `content/`.
 from the model in the game.
 
 `content/wheel2.obj` was changed in 2026: its rim is smaller, with a thicker tyre, and it
-has the hub of `wheel.obj`, joining it to the holder. `wheel2.wings` is the wheel as it was.
+has the hub of `wheel.obj`, joining it to the holder; and its tyre was simplified from
+17 220 triangles to 7 000 (`tools/blender/decimate.py`, the whole wheel 8 424 instead of
+18 644), keeping the pattern of the tread. `wheel2.wings` is the wheel as it was.
 `content/car.obj` and `car2.obj` got their lamps in 2026 (the objects `Headlight…` and
 `Taillight…`), which `car.wings` and `car2.wings` do not have.
 

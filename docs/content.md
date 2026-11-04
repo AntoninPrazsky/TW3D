@@ -143,6 +143,17 @@ the metallic and the roughness of the materials are kept. The next build of the 
 builds the changed model and generates its collision shape again (commit
 `content/collision.json` with the model).
 
+`tools/blender/decimate.py` simplifies one material of a model (the tyre of a wheel) to a
+number of triangles in Blender, without its window, and leaves the other materials as they
+are; the Racing wheel (`wheel2.obj`) was made lighter by it:
+
+```sh
+blender -b --factory-startup --python tools/blender/decimate.py -- content/wheel2.obj out.obj default2 7000
+```
+
+Its `.obj` replaces the model's (with the `mtllib` line of the model's `.mtl`, which stays
+as it is).
+
 ## Catalog
 
 `content/catalog.json` lists everything the levels are built from, and the cars, for both
