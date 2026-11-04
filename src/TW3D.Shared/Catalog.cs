@@ -153,8 +153,8 @@ namespace TW3D.Shared
         /// <summary>Friction of the tyre: its grip on the track.</summary>
         public float Friction { get; set; } = 1f;
 
-        /// <summary>Mass of one wheel.</summary>
-        public float Mass { get; set; } = 30f;
+        /// <summary>Mass of one wheel of the physics (a pair of wheels, one on each side of the car).</summary>
+        public float Mass { get; set; } = 10f;
     }
 
     /// <summary>

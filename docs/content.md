@@ -243,7 +243,14 @@ the game and the editor:
   car and y up, one pipe on each side, at z and -z). All cars have the same chassis (the
   holders of the wheels, `holder`), so any wheels fit any car.
 - **wheels**: the wheels of the garage: the name, the model, the friction of the tyre (its
-  grip on the track, whose friction is 1) and the mass of one wheel.
+  grip on the track, whose friction is 1) and the mass of one wheel of the physics (a pair of
+  wheels, one on each side of the car).
+
+The masses are relative to each other, not kilograms. The Buggy is about 3.8 m long and 1.9 m
+wide (a model unit is about 0.44 m), so its body of 200 stands for some 550 kg of a real buggy
+without its wheels. Its wheels are 0.62 m across and 0.32 m wide, light alloy rims with 25-inch
+tyres: about 14 kg each off-road (knobby tyres) and 10 kg racing, so a pair of them weighs
+10 and 7 in the catalog.
 
 A new block, object, prop, car or wheel only needs its model in `content/` (and a `/build`
 line in `content/Content.mgcb`) and an entry in the catalog.
