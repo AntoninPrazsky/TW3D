@@ -95,9 +95,24 @@ namespace TW3D.GameObjects
 
         public bool holderRotation;
         public bool holderRotationDir;
-        private bool holderRotated;
 
         public bool holderRotLockChnage;
+
+        //The axles turn against the body. The player's motor turns them at this speed (radians a second) with at most
+        //this torque, and when let go stops them with it for this long (seconds of the physics). Otherwise they hold
+        //against the body with this much torque: the track turns them where it would lift a wheel off it (a hump, a
+        //step, the start of a slope), but the motors of the wheels and small bumps do not, and they do not spin in the
+        //air. Held, they also settle back on two wheels (as at the start, against the body) at this rate (1 / seconds)
+        //and at most this fast (radians a second), so that the car does not stay standing on single wheels. Locked,
+        //they keep their angle in the world instead, and the body turns freely around them
+        private const float AxleTurnSpeed = 2.5f;
+        private const float AxleTurnTorque = 20000f;
+        private const float AxleStopTime = 0.15f;
+        private const float AxleHoldTorque = 2500f;
+        private const float AxleSettleRate = 3f;
+        private const float AxleSettleSpeed = 1.5f;
+        //How long the axles are still to be stopped by their motor (seconds of the physics)
+        private float axleStopping;
         
         /// <summary>A car of the catalog with its wheels: one kind on the front axle, one on the rear one.</summary>
         public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, CarType Type,
@@ -464,35 +479,24 @@ namespace TW3D.GameObjects
                 Grip(joint.BodyB, MathHelper.Lerp(1f, BurnoutGrip, burnout));
             }
             
-            if (holderRotation)
+            //The axles: turned by the player and stopped when let go, else held against the body, unless they are locked
+            //(their motor would hold the body in the world then)
+            axleStopping = holderRotation ? AxleStopTime : Math.Max(0f, axleStopping - step);
+            bool turning = holderRotation || axleStopping > 0f && !holderRotLockChnage;
+            foreach (WheelJoint axle in new[] { springB, springF })
             {
-                if (!holderRotated) 
+                if (holderRotation)
+                    axle.MotorSpeed = holderRotationDir ? AxleTurnSpeed : -AxleTurnSpeed;
+                else if (turning)
+                    axle.MotorSpeed = 0f;
+                else
                 {
-                    springB.MotorEnabled = true;
-                    springF.MotorEnabled = true;
-                    if (holderRotationDir) 
-                    { 
-                        springB.MotorSpeed = 5f;
-                        springF.MotorSpeed = 5f;
-                    }
-                    else
-                    {
-                        springB.MotorSpeed = -5f;
-                        springF.MotorSpeed = -5f;
-                    }
-                    holderRotated = true;
+                    //How far the axle is turned from standing on two wheels (a third of a turn apart) against the body
+                    float off = (float)Math.IEEERemainder(axle.BodyB.Rotation - axle.BodyA.Rotation, MathHelper.TwoPi / 3f);
+                    axle.MotorSpeed = -MathHelper.Clamp(off * AxleSettleRate, -AxleSettleSpeed, AxleSettleSpeed);
                 }
-            }
-            else
-            {
-                if (holderRotated)
-                {
-                    springB.MotorEnabled = false;
-                    springF.MotorEnabled = false;
-                    springB.MotorSpeed = 0f;
-                    springF.MotorSpeed = 0f;
-                    holderRotated = false;
-                }
+                axle.MaxMotorTorque = turning ? AxleTurnTorque : AxleHoldTorque;
+                axle.MotorEnabled = holderRotation || !holderRotLockChnage;
             }
 
             if (brake)

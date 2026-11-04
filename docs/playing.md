@@ -98,6 +98,14 @@ again and the car shoots off. Letting go of the throttle or braking ends it, and
 come when the wheels do not start spinning within two seconds (the axles turning instead, or
 the car against an obstacle), so it does not get in the way of climbing.
 
+The axles, the triangles of three wheels, turn against the body (`Car`, the `Axle…`
+constants). Let alone, they hold with a firm torque: the track turns them where it would lift
+a wheel off it (a hump, a step, the start of a slope), but the motors of the wheels, small
+bumps and wheels in the air do not, and they settle back on two wheels afterwards, so the car
+does not stay standing on single wheels. ↑ ↓ turn them with a slow, strong motor, which stops
+them when let go. Locked, they keep their angle in the world instead, and the body turns
+freely around them.
+
 The exhaust smokes too (`GameObjects/ExhaustSmoke.cs`): small bluish grey puffs blown out to
 the back from the ends of the two pipes (`exhaust` in the catalog), thin idling, thicker under
 the throttle and a burst when it is pressed; wispier than the smoke of the tyres, they thin
