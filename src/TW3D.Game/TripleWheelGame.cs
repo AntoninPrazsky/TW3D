@@ -29,8 +29,8 @@ namespace TW3D
 #else
         //Samples per pixel of the multisample antialiasing: 8 on Windows, 4 elsewhere, which every OpenGL 3 graphics card
         //takes. MonoGame does not lower the count: SDL makes no window at all with more samples than the card has (the
-        //GPU of a Raspberry Pi 5 has 4)
-        private static readonly int MultiSampleCount = OperatingSystem.IsWindows() ? 8 : 4;
+        //GPU of a Raspberry Pi 5 has 4). None on a Raspberry Pi, which draws the scene smaller instead (see PiGraphics)
+        private static readonly int MultiSampleCount = PiGraphics.Active ? 0 : OperatingSystem.IsWindows() ? 8 : 4;
 #endif
 
         private readonly GraphicsDeviceManager graphics;
@@ -77,8 +77,8 @@ namespace TW3D
             IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = true;
 
-            //Multisample antialiasing; if the graphics card does not support this many samples, MonoGame uses fewer
-            graphics.PreferMultiSampling = true;
+            //Multisample antialiasing (see MultiSampleCount)
+            graphics.PreferMultiSampling = MultiSampleCount > 0;
             graphics.PreparingDeviceSettings += (sender, e) =>
                 e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = MultiSampleCount;
 

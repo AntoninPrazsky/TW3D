@@ -36,9 +36,40 @@ Game arguments for development:
 | `--editor [<level>]` | Opens the level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
 | `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
 
-The game has been tested on Windows. DesktopGL also supports Linux and macOS, but
-the game has not been tested there yet. The level editor is a part of the game and runs
-wherever the game runs; the Android build leaves it out.
+The game runs on Windows and on Linux, a Raspberry Pi 5 included (see below); DesktopGL
+also supports macOS, which has not been tried. The level editor is a part of the game; the
+Android build leaves it out, and it does not run on a Raspberry Pi yet (the `ImGui.NET`
+package has no native library for Linux ARM64).
+
+## Linux and a Raspberry Pi
+
+The same commands build and run the game on Linux, also on a Raspberry Pi 5 (Raspberry Pi
+OS, .NET SDK 10 for ARM64):
+
+```sh
+dotnet tool restore
+dotnet build src/TW3D.Game -c Release
+src/TW3D.Game/bin/Release/net10.0/TW3D
+```
+
+The models, the fonts and the images are built there as on Windows, but the shaders are
+not: the effect compiler of MonoGame needs the shader compiler of Direct3D, which runs only
+on Windows (elsewhere through Wine). Their code for DesktopGL is the same on every system,
+so the content build on Windows keeps it in the repository: `PrecompiledEffectProcessor` of
+`tools/ContentPipeline` compiles `content/Effects/Scene.fx` and writes its code to
+`content/Effects/DesktopGL/Scene.mgfx`, with `Scene.txt` saying which source (a SHA-256)
+and which version of MonoGame it was compiled from. A build elsewhere takes that code, and
+fails with an explanation when the shader has changed since. **A changed shader: build the
+game on Windows and commit the files it rewrites in `content/Effects/DesktopGL` with it.**
+CI fails without them and attaches the code it compiled to the run (the artifact
+`effects-desktopgl`).
+
+On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the 3D scene
+at 1280×720, scaled up to the screen, with the user interface at the full resolution over
+it, without multisampling, without ambient occlusion by default (Options can switch it on)
+and with a smaller shadow map: its GPU drew a level at 1920×1080 with the graphics of a
+desktop in 49 ms a frame. A level then holds 60 frames per second, the garage of the menus
+about 45.
 
 ## Tests and CI
 
@@ -56,7 +87,10 @@ are compiled into it, as they have no MonoGame in them.
 Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in
 Debug and Release, the tests, a check that the collision shapes and the generated
 training levels are what their generators make (`tools/CollisionGen`,
-`tools/levelgen/training*.js`), and the Android build.
+`tools/levelgen/training*.js`) and that the code of the shaders kept for Linux is of
+their sources, the Android build, and the game built and tested on Linux ARM64 (as on a
+Raspberry Pi), which takes the code of the shaders compiled on Windows (see
+[Linux and a Raspberry Pi](#linux-and-a-raspberry-pi)).
 
 ## Android
 

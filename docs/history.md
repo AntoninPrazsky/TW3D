@@ -8,8 +8,8 @@
   [`bachelor-thesis/`](bachelor-thesis/).
 - In 2026 the project was migrated to .NET 10 + MonoGame 3.8 DesktopGL. Since
   then the game runs as a regular desktop application instead of a UWP app.
-  It has been tested on Windows. DesktopGL also supports Linux and macOS, but
-  the game has not been tested there yet.
+  It was tested on Windows; in November 2026 it was made to build and run on
+  Linux, a Raspberry Pi 5 included (see [Building](building.md#linux-and-a-raspberry-pi)).
 - The embedded Farseer Physics 3.5 source code was then replaced by the
   Aether.Physics2D NuGet package. The car handles the same in the first
   seconds of a scripted test drive; later the runs diverge slightly, as is
