@@ -168,7 +168,10 @@ follows the tutorial of BS3D.
 A run starts with a countdown (3, 2, 1, Start), while the car is held
 still. The signal lamps of the start gate count it down as in Formula 1: the red lamps come
 on column by column, from the left seen from the car, all five for the last moment, and at
-the start they go out and the green row lights until the run ends. The time at the top runs from the start until the car reaches the finish of the
+the start they go out and the green row lights until the run ends. Meanwhile the camera
+looks at the gate and the car from behind the car, low and from farther away, and comes back
+to its place behind the car as the car drives off, by the time it is under the lamps (a test
+drive from the editor away from the start gate has no such view). The time at the top runs from the start until the car reaches the finish of the
 level (its finish block, see the [level format](levels.md#level-format)); below it is the
 par time of the level, the time a good run takes. At the left edge in the middle (behind
 the car, which drives to the right, and above the joystick of the on-screen controls) a

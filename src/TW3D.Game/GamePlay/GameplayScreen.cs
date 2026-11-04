@@ -70,6 +70,10 @@ namespace TW3D.GamePlay
         private Tutorial tutorial;
         //The number of the countdown that last beeped
         private int countdownBeeped;
+        //Where the car started (physics x) and how far of the way to the start gate it got (0 to 1): the camera comes back
+        //from framing the gate as it does (see StartFraming)
+        private float framingFrom;
+        private float framingProgress;
         //The sounds of the car and of things hitting each other, and how far the throttle is held (0..1)
         private CarSounds carSounds;
         private ImpactSounds impacts;
@@ -128,6 +132,28 @@ namespace TW3D.GamePlay
             return new GameplayScreen(level, startX, startY, settings, back);
         }
 
+        //How long after the start the camera takes to come back to the car when the start gate stands where the car starts
+        //(seconds); farther, it comes back as the car drives to the gate
+        private const float FramingReturn = 2.2f;
+
+        /// <summary>
+        /// How much the camera frames the signal lamps of the start gate: fully during the countdown, then less and less as
+        /// the car drives to the gate, smoothly, until it follows the car alone once the car is under the lamps. Driving
+        /// back does not bring the framing back.
+        /// </summary>
+        private float StartFraming()
+        {
+            if (!(camera.Framed is Vector2 signals) || race.State == RaceState.Finished || race.State == RaceState.Lost)
+                return 0f;
+            if (race.State == RaceState.Countdown)
+                return 1f;
+            float way = signals.X - framingFrom;
+            float progress = Math.Abs(way) < Units.GridCell ? race.Time / FramingReturn : (followed.X - framingFrom) / way;
+            framingProgress = Math.Max(framingProgress, MathHelper.Clamp(progress, 0f, 1f));
+            float t = framingProgress;
+            return 1f - t * t * (3f - 2f * t);
+        }
+
         /// <summary>
         /// Where the car starts at a cell (physics units): as at the start of the level, moved by the cell and down by the
         /// shift of the block of the middle layer there (the later one of two in a cell, as the editor shows it).
@@ -169,9 +195,12 @@ namespace TW3D.GamePlay
             CarWheels wheels = settings.WheelsOf(carType);
             Vector2 carStart = testLevel != null ? StartAt(testLevel, startX, startY) : CarStart;
             car = new Car(world, Manager, camera, physics, carStart, carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
-            //A test drive may start anywhere in the level, and the camera would fly there from the origin
-            if (testLevel != null)
-                camera.JumpTo(carStart);
+            //During the countdown the camera looks at the signal lamps of the start gate and the car from the side; it
+            //starts there, as a test drive may start anywhere in the level and the camera would fly there from the origin
+            camera.Framed = level.StartSignals(carStart);
+            camera.Framing = 1f;
+            camera.JumpTo(carStart);
+            framingFrom = carStart.X;
             race = new Race(level.Par, level.HasFinish);
 
             debugView = new DebugView(world)
@@ -302,6 +331,7 @@ namespace TW3D.GamePlay
                 followed.Y = Math.Min(followed.Y, level.Bottom);
                 followedRotation = physics.Rotation(car.car);
             }
+            camera.Framing = StartFraming();
             camera.Update(running ? elapsed : 0f, Manager.Viewport, followed, followedRotation);
 
             if (HasFocus)

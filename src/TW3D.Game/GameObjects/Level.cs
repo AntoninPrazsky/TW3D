@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Xna.Framework;
@@ -149,6 +150,52 @@ namespace TW3D.GameObjects
                 block.Body.SetFriction(1f);
             }
             return block;
+        }
+
+        /// <summary>
+        /// The middle of the signal lamps of the start gate nearest to a point (the meshes "Signal…" of a block of the
+        /// middle layer, see SceneRenderer.StartLights), in physics units; null when no block within a few cells of it
+        /// has any.
+        /// </summary>
+        public Vector2? StartSignals(Vector2 near)
+        {
+            Vector2? nearest = null;
+            foreach (TrackBlock block in middle)
+            {
+                if (!(SignalsOf(block.Model) is Vector2 centre))
+                    continue;
+                //A model unit is -2.5 physics units; a turned block has the lamps on its other side
+                Vector2 signals = block.Position + new Vector2(block.Turned ? -centre.X : centre.X, centre.Y) * Units.ModelToPhysics;
+                if (Math.Abs(signals.X - near.X) > SignalsReach)
+                    continue;
+                if (!nearest.HasValue || Vector2.DistanceSquared(signals, near) < Vector2.DistanceSquared(nearest.Value, near))
+                    nearest = signals;
+            }
+            return nearest;
+        }
+
+        //How far from the start (physics units) the signal lamps of a start gate may be to be framed by the camera
+        private const float SignalsReach = 4f * Units.GridCell;
+
+        /// <summary>The middle of the signal lamps of a model in its own units (x, y); null for a model without them.</summary>
+        private static Vector2? SignalsOf(Model model)
+        {
+            Matrix[] transforms = null;
+            Vector3 sum = Vector3.Zero;
+            int count = 0;
+            foreach (ModelMesh mesh in model.Meshes)
+            {
+                if (mesh.Name == null || !mesh.Name.StartsWith("Signal", StringComparison.Ordinal))
+                    continue;
+                if (transforms == null)
+                {
+                    transforms = new Matrix[model.Bones.Count];
+                    model.CopyAbsoluteBoneTransformsTo(transforms);
+                }
+                sum += Vector3.Transform(mesh.BoundingSphere.Center, transforms[mesh.ParentBone.Index]);
+                count++;
+            }
+            return count == 0 ? null : new Vector2(sum.X, sum.Y) / count;
         }
 
         /// <summary>The point (the middle of the car, in physics units) is in the cell of the finish block.</summary>
