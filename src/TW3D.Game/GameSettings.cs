@@ -33,7 +33,8 @@ namespace TW3D
 
         public bool Shadows { get; set; } = true;
 
-        public bool AmbientOcclusion { get; set; } = true;
+        /// <summary>Ambient occlusion: off by default on a Raspberry Pi, where it costs about 5 ms a frame (see PiGraphics).</summary>
+        public bool AmbientOcclusion { get; set; } = !PiGraphics.Active;
 
         /// <summary>Full screen; otherwise a window (on a desktop).</summary>
         public bool FullScreen { get; set; } = true;

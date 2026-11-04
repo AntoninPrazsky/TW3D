@@ -111,7 +111,9 @@ namespace TW3D.Editor
             previousTitle = Manager.Game.Window.Title;
 
             assets = LevelAssets.Load(Manager.Content);
-            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content) { HorizonDip = SceneRenderer.HighAbove, DeepShadows = true };
+            //The markers are drawn over the scene with its depth buffer, so the scene is drawn on the screen itself
+            renderer = new SceneRenderer(Manager.GraphicsDevice, Manager.Content)
+                { HorizonDip = SceneRenderer.HighAbove, DeepShadows = true, MayDrawSmaller = false };
             settings.Apply(renderer);
             camera = new EditorCamera();
             view = new LevelView(assets);

@@ -27,8 +27,10 @@ namespace TW3D
         private const float PhoneUiSize = 2f;
         private const float PhoneControlsSize = 1.5f;
 #else
-        //Samples per pixel of the multisample antialiasing
-        private const int MultiSampleCount = 8;
+        //Samples per pixel of the multisample antialiasing: 8 on Windows, 4 elsewhere, which every OpenGL 3 graphics card
+        //takes. MonoGame does not lower the count: SDL makes no window at all with more samples than the card has (the
+        //GPU of a Raspberry Pi 5 has 4). None on a Raspberry Pi, which draws the scene smaller instead (see PiGraphics)
+        private static readonly int MultiSampleCount = PiGraphics.Active ? 0 : OperatingSystem.IsWindows() ? 8 : 4;
 #endif
 
         private readonly GraphicsDeviceManager graphics;
@@ -75,8 +77,8 @@ namespace TW3D
             IsFixedTimeStep = false;
             graphics.SynchronizeWithVerticalRetrace = true;
 
-            //Multisample antialiasing; if the graphics card does not support this many samples, MonoGame uses fewer
-            graphics.PreferMultiSampling = true;
+            //Multisample antialiasing (see MultiSampleCount)
+            graphics.PreferMultiSampling = MultiSampleCount > 0;
             graphics.PreparingDeviceSettings += (sender, e) =>
                 e.GraphicsDeviceInformation.PresentationParameters.MultiSampleCount = MultiSampleCount;
 
@@ -158,7 +160,21 @@ namespace TW3D
             MaximizeWindow();
         }
 
-        //MonoGame cannot maximize its window, but the window is a window of SDL
+        //MonoGame cannot maximize its window, but the window is a window of SDL. "SDL2" is its name on Windows
+        //(SDL2.dll); on Linux and macOS the library MonoGame ships is named by its version (see ResolveSdl)
+        static TripleWheelGame()
+        {
+            NativeLibrary.SetDllImportResolver(typeof(TripleWheelGame).Assembly, ResolveSdl);
+        }
+
+        private static IntPtr ResolveSdl(string name, System.Reflection.Assembly assembly, DllImportSearchPath? searchPath)
+        {
+            if (name != "SDL2")
+                return IntPtr.Zero;
+            string file = OperatingSystem.IsLinux() ? "libSDL2-2.0.so.0" : OperatingSystem.IsMacOS() ? "libSDL2-2.0.0.dylib" : null;
+            return file != null && NativeLibrary.TryLoad(file, assembly, searchPath, out IntPtr handle) ? handle : IntPtr.Zero;
+        }
+
         [DllImport("SDL2")]
         private static extern void SDL_SetWindowResizable(IntPtr window, int resizable);
 

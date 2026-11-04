@@ -61,7 +61,7 @@ namespace TW3D.Graphics
         //units from the physics plane z = 0, the blocks are 2.25 units deep), at most ShadowDistance from
         //the camera. It reaches this far towards the sun beyond it, for the shadows of objects above the
         //screen.
-        private const int ShadowMapSize = 2048;
+        private static readonly int ShadowMapSize = PiGraphics.Active ? PiGraphics.ShadowMapSize : 2048;
         private const float SceneNearZ = -3.5f;
         private const float SceneFarZ = 3.5f;
         private const float ShadowCasterReach = 10f;
@@ -179,6 +179,11 @@ namespace TW3D.Graphics
         private readonly Texture2D smokeTexture;
         private readonly BasicEffect smokeEffect;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
+        //The scene drawn smaller than the screen and scaled up to it (on a Raspberry Pi, see PiGraphics), and the size the
+        //scene of this frame is drawn at
+        private RenderTarget2D sceneTarget;
+        private SpriteBatch sceneBatch;
+        private Point sceneSize;
         //The corners of the screen, for the passes over the whole screen
         private readonly VertexPositionTexture[] screenQuad =
         {
@@ -245,7 +250,7 @@ namespace TW3D.Graphics
             glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
 
             //The shadow map on the left, the deep one in the top right corner
-            const float width = ShadowMapSize + DeepShadowMapSize, height = ShadowMapSize;
+            float width = ShadowMapSize + DeepShadowMapSize, height = ShadowMapSize;
             shadowMap = new RenderTarget2D(device, (int)width, (int)height, false, SurfaceFormat.Color, DepthFormat.Depth24);
             effect.Parameters["ShadowTexel"].SetValue(new Vector2(1f / width, 1f / height));
             effect.Parameters["ShadowScale"].SetValue(new Vector2(ShadowMapSize / width, ShadowMapSize / height));
@@ -320,6 +325,13 @@ namespace TW3D.Graphics
 
         /// <summary>The dip of the horizon of the levels (radians): about where the picture of the sky of 2016 had it.</summary>
         public const float HighAbove = 0.7f;
+
+        /// <summary>
+        /// The scene may be drawn smaller than the screen and scaled up to it, where the graphics say so (on a Raspberry Pi,
+        /// see <see cref="PiGraphics"/>). Off for a scene that is drawn over afterwards with its depth buffer (the markers
+        /// of the level editor).
+        /// </summary>
+        public bool MayDrawSmaller { get; set; } = true;
 
         /// <summary>Colour of the screen where the scene and the background do not reach.</summary>
         public Color ClearColor { get; set; } = Color.Black;
@@ -466,6 +478,8 @@ namespace TW3D.Graphics
             smokeTexture.Dispose();
             glowTexture.Dispose();
             skyNoise.Dispose();
+            sceneTarget?.Dispose();
+            sceneBatch?.Dispose();
             smokeEffect.Dispose();
             glowEffect.Dispose();
             markEffect?.Dispose();
@@ -474,16 +488,24 @@ namespace TW3D.Graphics
         /// <summary>Draws the frame.</summary>
         public void End()
         {
+            RenderTarget2D target = SceneTarget();
+            sceneSize = target != null ? new Point(target.Width, target.Height)
+                : new Point(device.PresentationParameters.BackBufferWidth, device.PresentationParameters.BackBufferHeight);
             if (!Classic)
             {
                 if (Shadows)
                     DrawShadowMap();
                 if (AmbientOcclusion)
                     DrawOcclusionMap();
-                //Switching render targets may discard the screen
-                if (Shadows || AmbientOcclusion)
-                    device.Clear(ClearColor);
             }
+            if (target != null)
+            {
+                device.SetRenderTarget(target);
+                device.Clear(ClearColor);
+            }
+            //Switching render targets may discard the screen
+            else if (!Classic && (Shadows || AmbientOcclusion))
+                device.Clear(ClearColor);
 
             device.BlendState = BlendState.Opaque;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -503,6 +525,43 @@ namespace TW3D.Graphics
             DrawSmoke();
             DrawLampGlows();
             DrawOverlay();
+            if (target != null)
+                ShowScene(target);
+        }
+
+        /// <summary>
+        /// The target the scene of this frame is drawn into when it is drawn smaller than the screen (see
+        /// <see cref="PiGraphics"/>): the height of <see cref="PiGraphics.SceneHeight"/>, the shape of the screen. Null when
+        /// it is drawn straight on the screen: elsewhere, on a screen no higher than that, into a render target of the caller
+        /// (the previews of the level editor) or into a part of the screen.
+        /// </summary>
+        private RenderTarget2D SceneTarget()
+        {
+            PresentationParameters screen = device.PresentationParameters;
+            Viewport viewport = device.Viewport;
+            int height = PiGraphics.SceneHeight;
+            if (!PiGraphics.Active || !MayDrawSmaller || device.RenderTargetCount > 0 || screen.BackBufferHeight <= height
+                || viewport.X != 0 || viewport.Y != 0 || viewport.Width != screen.BackBufferWidth || viewport.Height != screen.BackBufferHeight)
+                return null;
+
+            int width = Math.Max(1, (int)MathF.Round(screen.BackBufferWidth * (float)height / screen.BackBufferHeight));
+            if (sceneTarget == null || sceneTarget.Width != width || sceneTarget.Height != height)
+            {
+                sceneTarget?.Dispose();
+                sceneTarget = new RenderTarget2D(device, width, height, false, SurfaceFormat.Color, DepthFormat.Depth24,
+                    screen.MultiSampleCount, RenderTargetUsage.DiscardContents);
+            }
+            return sceneTarget;
+        }
+
+        /// <summary>The scene drawn smaller (see <see cref="SceneTarget"/>), scaled up over the whole screen.</summary>
+        private void ShowScene(RenderTarget2D target)
+        {
+            device.SetRenderTarget(null);
+            sceneBatch ??= new SpriteBatch(device);
+            sceneBatch.Begin(SpriteSortMode.Immediate, BlendState.Opaque, SamplerState.LinearClamp, DepthStencilState.None, RasterizerState.CullNone);
+            sceneBatch.Draw(target, new Rectangle(0, 0, device.Viewport.Width, device.Viewport.Height), Color.White);
+            sceneBatch.End();
         }
 
         /// <summary>The overlay over everything drawn so far, in front of it (see <see cref="SetOverlay"/>).</summary>
@@ -829,11 +888,11 @@ namespace TW3D.Graphics
             device.SetRenderTarget(null);
         }
 
-        /// <summary>(Re)creates the textures of the ambient occlusion, at half the size of the screen.</summary>
+        /// <summary>(Re)creates the textures of the ambient occlusion, at half the size the scene is drawn at.</summary>
         private void UpdateOcclusionTargets()
         {
-            int width = Math.Max(1, device.PresentationParameters.BackBufferWidth / 2);
-            int height = Math.Max(1, device.PresentationParameters.BackBufferHeight / 2);
+            int width = Math.Max(1, sceneSize.X / 2);
+            int height = Math.Max(1, sceneSize.Y / 2);
             if (normalDepthMap != null && normalDepthMap.Width == width && normalDepthMap.Height == height)
                 return;
 
