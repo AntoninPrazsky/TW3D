@@ -23,7 +23,8 @@ finger or the mouse) or the arrows next to the name (or left and right) show the
 The car shown is the one to drive. On the right its wheels are chosen, for the front and
 the rear axle each (any wheels fit any car; up and down choose the row, left and right the
 wheels); on the left bars show how fast, heavy and gripping the car is with them. The cars
-differ in their top speed and weight (the Sand Rail is faster and lighter than the Buggy),
+differ in their top speed and weight (the Sand Rail is faster and lighter than the Buggy,
+the Crawler slower and heavier),
 the wheels in their grip and weight (the off-road wheels grip better, the racing ones are
 lighter). The choices are saved with the options, the wheels for each car.
 
@@ -77,7 +78,7 @@ firing with a strong burble at half its rate), is two loops in step, idling and 
 throttle, crossfaded by the throttle and pitched by how fast the wheels turn (those on the
 ground, which follow the car; all of them in the air, so wheels spinning in the air rev it),
 following them. Each car has its own engine in the catalog: the Sand Rail, sportier, sounds
-higher and revs up faster than the Buggy. The motor of the axles hums while they turn; the
+higher and revs up faster than the Buggy, the Crawler deeper and slower. The motor of the axles hums while they turn; the
 lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
 
 The tyres screech while they slip over what they stand on, the track or an object, faster

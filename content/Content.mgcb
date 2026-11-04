@@ -45,6 +45,7 @@
 # Vehicles
 /build:car.obj
 /build:car2.obj
+/build:car3.obj
 /build:holder.obj
 /build:wheel.obj
 /build:wheel2.obj

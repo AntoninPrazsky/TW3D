@@ -69,7 +69,8 @@
   ],
   "cars": [
     { "name": "Buggy", "model": "car", "wheel": "wheel", "mass": 200, "topSpeed": 50, "exhaust": [ 4.28, -0.72, 0.45 ] },
-    { "name": "Sand Rail", "model": "car2", "wheel": "wheel2", "mass": 150, "topSpeed": 62, "enginePitch": 0.4, "engineResponse": 6, "exhaust": [ 4.12, -0.55, 0.93 ] }
+    { "name": "Sand Rail", "model": "car2", "wheel": "wheel2", "mass": 150, "topSpeed": 62, "enginePitch": 0.4, "engineResponse": 6, "exhaust": [ 4.12, -0.55, 0.93 ] },
+    { "name": "Crawler", "model": "car3", "wheel": "wheel", "mass": 240, "topSpeed": 44, "enginePitch": -0.3, "engineResponse": 2, "exhaust": [ 4.02, -0.8, 0.52 ] }
   ],
   "wheels": [
     { "name": "Off-road", "model": "wheel", "friction": 1.2, "mass": 30 },

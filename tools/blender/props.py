@@ -1,5 +1,5 @@
-"""What the Blender scripts of the scenery share (tools/blender/streetlamp.py, fence.py): the empty scene, the materials in
-the colours of the track blocks, simple parts and the export to an .obj + .mtl in content/Scenery.
+"""What the Blender scripts of the props and the cars share (tools/blender/streetlamp.py, fence.py, car3.py): the empty
+scene, the materials in the colours of the track blocks, simple parts and the export to an .obj + .mtl.
 
 Imported at the start of a script run by Blender in the background; importing it empties the scene.
 """
@@ -84,6 +84,51 @@ def polyline(points, radius, mat):
     return tube(points, radius, mat, resolution=0, name="wire")
 
 
+def canonical_normals(path):
+    """Writes the normals of each object of an OBJ file once each, as written in the file, in the order its faces first
+    use them. The exporter writes the same normals in an order (and with repeated values) that can change from run to run
+    for a large model; in this order the file is the same whoever builds it and however often."""
+    with open(path, encoding="utf-8") as f:
+        lines = f.read().split("\n")
+    out, block = [], []
+    written = [0, 0]   # the normals in the file before the block, as read and as written
+
+    def flush():
+        normals = [line for line in block if line.startswith("vn ")]
+        unique, faces = {}, []
+        for line in block:
+            if line.startswith("f "):
+                corners = []
+                for corner in line.split()[1:]:
+                    v, t, n = corner.split("/")
+                    text = normals[int(n) - written[0] - 1]
+                    if text not in unique:
+                        unique[text] = len(unique) + written[1] + 1
+                    corners.append(f"{v}/{t}/{unique[text]}")
+                faces.append("f " + " ".join(corners))
+        first = True
+        for line in block:
+            if line.startswith("vn "):
+                if first:
+                    out.extend(unique)
+                    first = False
+            elif line.startswith("f "):
+                out.append(faces.pop(0))
+            else:
+                out.append(line)
+        written[0] += len(normals)
+        written[1] += len(unique)
+        block.clear()
+
+    for line in lines:
+        if line.startswith("o "):
+            flush()
+        block.append(line)
+    flush()
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
+        f.write("\n".join(out))
+
+
 def export(parts, separate, name, out, headers, smooth_angle=35):
     """Applies the modifiers, joins the parts into one object of the name (the separate objects stay objects of their
     own), smooths them by angle and exports them all as <name>.obj + .mtl into the folder out. The headers (by file name)
@@ -118,6 +163,7 @@ def export(parts, separate, name, out, headers, smooth_angle=35):
     bpy.ops.wm.obj_export(filepath=path, export_materials=True, export_pbr_extensions=True, export_normals=True,
                           export_uv=False, export_triangulated_mesh=True, export_selected_objects=False,
                           apply_modifiers=True)
+    canonical_normals(path)
     for file_name, header in headers.items():
         file = os.path.join(out, file_name)
         with open(file, encoding="utf-8") as f:

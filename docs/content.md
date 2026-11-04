@@ -57,6 +57,29 @@ it out, so that it keeps its place whatever the camera and the shape of the wind
 over everything else, turned a little towards the middle of the frame and swaying; it slides up out of the frame when another screen
 covers the main menu, as the titles of the other menus do.
 
+## The cars
+
+The Buggy (`car`, 2014) and the Sand Rail (`car2`) were modelled in Wings 3D
+([`art/wings/`](../art/wings/README.md)). The third car, the Crawler (`car3`, 2026), is a blue
+rock crawler built by `tools/blender/car3.py` (Blender 4.2, `blender -b --factory-startup
+--python tools/blender/car3.py`), 11 920 triangles, about as many as the Sand Rail: an
+exoskeleton cage of blue tubes over two seats, a short blue hood with the turbo standing out
+of it, a tube bumper with a winch, rock sliders along the sides, coil-overs with orange
+springs at both axles, and a rack at the back with the fuel cell and a spare wheel standing
+across the car under an orange strap. Its engine with the turbo and the cooler, the seats, the
+steering wheel, the pedals, the gear lever and the fuel cell are the Buggy's parts, which the
+script takes from `content/car.obj` and recolours; the spare is the off-road wheel with fewer
+triangles. Its lamps are objects of their own: round headlights beside the grille, taillights
+on the rear bumper.
+
+All cars share the chassis (`GameObjects/Car.cs`): the holders of the wheels turn about pivots
+3.6 model units in front of the middle of the body and 3.0 behind it, 1.25 below it, so a
+body keeps clear of the holders' plates and the wheels as they turn. A car collides with the
+outline of its whole model (see the [collision shapes](#collision-shapes)), so the Crawler is
+no lower and no higher than the Buggy (1.21 from the middle; its axles pass a little above
+the pivots) and fits where the Buggy fits. Run the script after changing it or `car.obj` and
+commit its output.
+
 ## Scenery
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
@@ -93,9 +116,10 @@ with three V-shaped bends along them, held by clamps to square dark grey posts, 
 base plate with bolts and under a yellow cap; 3.5 high. A piece has half a post at each end,
 cut along the end of the piece: two pieces of a row make one whole post where they meet, and a
 row ends with half a post at either end. It looks the same from both sides, so it can stand
-behind the road, in front of it and across it. The Blender scripts share the materials (`pole`,
-`head` and `accent`: the dark grey, the light grey and the yellow of the blocks), the parts and
-the export in `tools/blender/props.py`; run a script after changing it and commit its output.
+behind the road, in front of it and across it. The Blender scripts (also that of the
+Crawler) share the materials (`pole`, `head` and `accent`: the dark grey, the light grey and the
+yellow of the blocks), the parts and the export in `tools/blender/props.py`; run a script after
+changing it and commit its output.
 
 The chain was modelled link by link (some 3400 faces); `scenery.py` puts a tube of red and
 white pieces along the curve it hangs in instead, which looks the same from the camera of the
