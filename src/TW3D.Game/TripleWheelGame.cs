@@ -168,7 +168,7 @@ namespace TW3D
         }
 
         //MonoGame cannot maximize its window, but the window is a window of SDL. "SDL2" is its name on Windows
-        //(SDL2.dll); on Linux and macOS the library MonoGame ships is named by its version (see ResolveSdl)
+        //(SDL2.dll); on Linux the library MonoGame ships is named by its version (see ResolveSdl)
         static TripleWheelGame()
         {
             NativeLibrary.SetDllImportResolver(typeof(TripleWheelGame).Assembly, ResolveSdl);
@@ -178,7 +178,7 @@ namespace TW3D
         {
             if (name != "SDL2")
                 return IntPtr.Zero;
-            string file = OperatingSystem.IsLinux() ? "libSDL2-2.0.so.0" : OperatingSystem.IsMacOS() ? "libSDL2-2.0.0.dylib" : null;
+            string file = OperatingSystem.IsLinux() ? "libSDL2-2.0.so.0" : null;
             return file != null && NativeLibrary.TryLoad(file, assembly, searchPath, out IntPtr handle) ? handle : IntPtr.Zero;
         }
 

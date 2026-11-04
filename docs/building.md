@@ -37,8 +37,8 @@ Game arguments for development:
 | `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
 | `--render <height>` | Draws the 3D scene at the height of the Resolution row of Options nearest to the one given (e.g. `--render 720`), whatever Options say, without saving it (for tests and screenshots); the row cannot be changed meanwhile |
 
-The game runs on Windows and on Linux, a Raspberry Pi 5 included (see below); DesktopGL
-also supports macOS, which has not been tried. The level editor is a part of the game; the
+The game runs on Windows and on Linux, a Raspberry Pi 5 included (see below); there will be
+no macOS version (the owner's decision). The level editor is a part of the game; the
 Android build leaves it out, and it does not run on a Raspberry Pi yet (the `ImGui.NET`
 package has no native library for Linux ARM64).
 

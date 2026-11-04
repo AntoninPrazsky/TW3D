@@ -12,7 +12,7 @@ namespace TW3D.ContentPipeline
     /// The effect processor of MonoGame, which also keeps the compiled code of each effect for DesktopGL in the
     /// repository, for the builds that cannot compile it. The effect compiler of MonoGame runs only on Windows
     /// (it needs the shader compiler of Direct3D; elsewhere it runs it through Wine), so the game could not be built
-    /// on Linux or macOS, a Raspberry Pi included. The code for DesktopGL (OpenGL) is the same on every system, so
+    /// on Linux, a Raspberry Pi included. The code for DesktopGL (OpenGL) is the same on every system, so
     /// the build on Windows writes it next to the effect: <c>Effects/DesktopGL/Scene.mgfx</c> for
     /// <c>Effects/Scene.fx</c>, with <c>Scene.txt</c>, which says which source it was compiled from (a SHA-256 of the
     /// effect with LF line endings) and by which version of MonoGame. A build elsewhere takes that code when it

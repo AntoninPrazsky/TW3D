@@ -16,7 +16,7 @@
 #---------------------------------- Content ---------------------------------#
 
 # Shaders. The processor of tools/ContentPipeline compiles them and keeps their code for DesktopGL in Effects/DesktopGL,
-# which the builds on Linux and macOS (a Raspberry Pi) take: the effect compiler runs only on Windows. A changed shader:
+# which the builds on Linux (a Raspberry Pi) take: the effect compiler runs only on Windows. A changed shader:
 # build on Windows and commit the files it writes there too.
 /importer:EffectImporter
 /processor:PrecompiledEffectProcessor
