@@ -110,7 +110,11 @@ The content pipeline builds the images from PNG files:
   arrows and the on-screen controls). They were precompiled `.xnb` files of XNA 4.0 whose
   sources were lost; in 2026 they were loaded and written as PNG, their colours no longer
   premultiplied by alpha (the pipeline premultiplies them again, which gives the same
-  pictures to a rounding). Three images nothing drew any more were left out.
+  pictures to a rounding). Three images nothing drew any more were left out. The logo of
+  the start was white on an opaque near-black background, which showed as a dark rectangle
+  while the logo faded into the main menu; its background is transparent since 2026, the
+  alpha of every pixel taken from its brightness and its colour the white of the logo, so
+  that on black it looks as it did.
 - the previews of the levels in the level select (`Levels/levimgs/*.png`, 700 × 394):
   screenshots of the track alone, taken in a Debug build with H, which hides the car and
   everything over the level while driving. The previews of 2016 were taken again in 2026,
