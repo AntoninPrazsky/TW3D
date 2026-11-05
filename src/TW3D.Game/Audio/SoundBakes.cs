@@ -84,7 +84,7 @@ namespace TW3D.Audio
             Sound.EngineLoad => 0.5f,
             Sound.AxleMotor => 0.35f,
             Sound.Skid => 0.45f,
-            Sound.Suspension => 0.34f,
+            Sound.Suspension => 0.45f,
             Sound.AxleLock => 0.55f,
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,
@@ -350,24 +350,28 @@ namespace TW3D.Audio
 
         /// <summary>
         /// The shock absorbers creaking at a stroke of the spring, high like the springs of an old car: a bush sticking and
-        /// slipping. Every slip knocks the strut (a click ringing a few of its resonances, high in the middle), and the slips
-        /// come at a rate that glides as the stroke goes, a few hundred a second, so they run into a squeaky tone with a
-        /// rasp: each slip comes a little early or late and knocks a little harder or softer. Louder after a longer stick
-        /// (a slower rate). Each take glides its own way: up and back a little, high and clean, up and down (eek-ook),
-        /// and rough. (The first version, random clicks under noise, crackled like a radio off its station; of the second,
-        /// the owner wanted something between a buzzing creak and a clean squeak, higher.)
+        /// slipping. Every slip knocks the strut (a click ringing three of its resonances, high in the middle), and the
+        /// slips come at a rate that glides up and back down as the stroke goes (eek-ook), a few hundred a second, so they
+        /// run into a squeaky tone with a rasp: each slip comes a little early or late and knocks a little harder or
+        /// softer, louder after a longer stick (a slower rate). The takes glide a little higher or lower and last a little
+        /// longer or shorter. (The first version, random clicks under noise, crackled like a radio off its station; the
+        /// owner chose this one in the fourth round, between a buzzing creak and a clean squeak, higher.)
         /// </summary>
         private static float[] Suspension(int variant)
         {
-            //The rate of the slips at the start, in the middle and at the end (a second), how far each slip is early or
-            //late and how much harder or softer it knocks (shares), the resonances and the length
-            (float from, float middle, float to, float jitter, float rasp, Mode[] modes, float length) = variant switch
+            //The rate of the slips at the start, in the middle and at the end (a second), and the length
+            (float from, float middle, float to, float length) = variant switch
             {
-                1 => (250f, 420f, 340f, 0.015f, 0.1f, new[] { new Mode(1300f, 40f, 1f), new Mode(2000f, 55f, 0.6f), new Mode(2900f, 90f, 0.3f) }, 0.38f),
-                2 => (220f, 400f, 200f, 0.025f, 0.15f, new[] { new Mode(900f, 45f, 0.8f), new Mode(1500f, 50f, 1f), new Mode(2300f, 80f, 0.4f) }, 0.42f),
-                3 => (300f, 380f, 340f, 0.03f, 0.25f, new[] { new Mode(1200f, 50f, 1f), new Mode(1800f, 60f, 0.8f), new Mode(2600f, 90f, 0.35f) }, 0.36f),
-                _ => (180f, 320f, 260f, 0.02f, 0.1f, new[] { new Mode(1100f, 45f, 1f), new Mode(1700f, 60f, 0.7f), new Mode(2500f, 90f, 0.35f) }, 0.4f)
+                1 => (200f, 370f, 190f, 0.4f),
+                2 => (240f, 430f, 215f, 0.44f),
+                3 => (210f, 390f, 230f, 0.38f),
+                _ => (220f, 400f, 200f, 0.42f)
             };
+            //How far each slip is early or late and how much harder or softer it knocks (shares), the resonances
+            const float jitter = 0.025f, rasp = 0.15f;
+            float tune = Tune(variant);
+            Mode[] modes = Tuned(tune, (900f, 45f, 0.8f), (1500f, 50f, 1f), (2300f, 80f, 0.4f));
+            int seed = 71 + variant * 4;
             float[] force = Synth.Buffer(length);
             double phase = 0.0;
             int slip = 0;
@@ -375,13 +379,13 @@ namespace TW3D.Audio
             {
                 float t = (float)i / Synth.SampleRate, along = t / length;
                 float rate = along < 0.5f ? from + (middle - from) * along * 2f : middle + (to - middle) * (along - 0.5f) * 2f;
-                phase += rate * (1f + jitter * Synth.Noise(slip, 71)) / Synth.SampleRate;
+                phase += rate * (1f + jitter * Synth.Noise(slip, seed)) / Synth.SampleRate;
                 if (phase >= 1.0)
                 {
                     phase -= 1.0;
                     //The creak swells in and dies away with the stroke
                     float swell = Math.Min(1f, t / 0.04f) * Math.Min(1f, (length - t) / 0.12f);
-                    force[i] += swell * MathF.Sqrt(100f / rate) * (1f + rasp * Synth.Noise(slip, 72));
+                    force[i] += swell * MathF.Sqrt(100f / rate) * (1f + rasp * Synth.Noise(slip, seed + 1));
                     slip++;
                 }
             }
@@ -492,22 +496,29 @@ namespace TW3D.Audio
         }
 
         /// <summary>
-        /// The tyres landing or hitting something: a soft, deep thud. The tyres squash for a while (a long, soft contact),
-        /// which booms the car on them and the air in them (their lowest modes; driven a little, so that the boom gains
-        /// the harmonics small speakers play) and hardly rings anything higher; the rubber whumps (low noise swelling and
-        /// dying smoothly); a moment later the suspension takes the blow and knocks the frame dully (a contact ringing
+        /// The tyres landing or hitting something: a soft, deep thud, and the car bouncing once more on its tyres. The
+        /// tyres squash for a while (a long, soft contact, and a weaker one as the car comes down again), which booms the
+        /// car on them and the air in them (their lowest modes; driven a little, so that the boom gains the harmonics small
+        /// speakers play) and hardly rings anything higher; the rubber whumps at each (low noise swelling and dying
+        /// smoothly); a moment after the first the suspension takes the blow and knocks the frame dully (a contact ringing
         /// many heavily damped modes in the low middle), and a loose part rattles twice. All of it is muffled above
-        /// 1.2 kHz. (The first version, four fading tones, rang like a drum; the second, bursts of noise with sharp edges,
-        /// cracked like wood being split. Of the candidates of the third, the owner found this one the closest.)
+        /// 1.2 kHz. The takes bounce a little sooner or later. (The first version, four fading tones, rang like a drum;
+        /// the second, bursts of noise with sharp edges, cracked like wood being split. The owner chose this one in the
+        /// fourth round, the thud of the third with the bounce.)
         /// </summary>
         private static float[] ImpactTyres(int variant)
         {
             float[] signal = Synth.Buffer(0.4f);
             float tune = Tune(variant);
             int seed = 41 + variant * 8;
-            Strike(signal, 0f, 0.01f, 1f, Tuned(tune, (75f, 24f, 1f), (110f, 30f, 0.6f), (160f, 38f, 0.35f), (225f, 45f, 0.5f)));
+            float bounce = 0.07f + variant switch { 1 => 0.008f, 2 => -0.006f, 3 => 0.004f, _ => 0f };
+            float[] squash = Synth.Buffer(0.4f);
+            Synth.AddContact(squash, 0f, 0.01f, 1f);
+            Synth.AddContact(squash, bounce, 0.01f, 0.35f);
+            Synth.AddResonance(signal, squash, Tuned(tune, (75f, 24f, 1f), (110f, 30f, 0.6f), (160f, 38f, 0.35f), (225f, 45f, 0.5f)));
             Synth.Saturate(signal, 1.2f);
             Synth.AddNoise(signal, 0f, 0.12f, 3.5f, 0.006f, 40f, 300f * tune, 180f * tune, 0.7f, seed);
+            Synth.AddNoise(signal, bounce, 0.08f, 1.5f, 0.006f, 45f, 300f * tune, 180f * tune, 0.7f, seed + 11);
             Strike(signal, 0.012f + 0.003f * variant, 0.004f, 0.15f, Modes(30, 180f * tune, 600f * tune, 110f, 60f, 0.3f, seed + 2));
             float[] rattle = Synth.Buffer(0.4f);
             Synth.AddContact(rattle, 0.06f + 0.01f * variant, 0.0006f, 0.06f);

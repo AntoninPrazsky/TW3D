@@ -93,8 +93,8 @@ lock of the axles clunks (softer as it opens); the brake grabs the wheels of a m
 
 The shock absorbers creak at each stroke of the springs of the axles (`GamePlay/SpringCreak.cs`,
 from `Car.SpringSpeed`), high like the springs of an old car: a bush sticking and slipping, a
-few hundred slips a second at a gliding rate, each knocking the strut, so they run into a
-squeaky tone with a rasp; four takes glide differently. A stroke is a spring moving one way
+few hundred slips a second at a rate gliding up and back down (eek-ook), each knocking the
+strut, so they run into a squeaky tone with a rasp; four takes glide a little differently. A stroke is a spring moving one way
 faster than 2 physics units a second (a flat road, a car at rest or pushing against a step
 move them at most about 1); it creaks once it has passed its fastest, as loud as that was, the
 loudest from 14 (humps move the springs 1 to 3.5, steps of the stairs and landings 4 to 22),
@@ -144,7 +144,7 @@ short and hard, and every mode of the body rings from it and dies away at its ow
 modes close together and out of tune with each other sound like a thing, a few far apart like
 an instrument. The tyres landing or hitting something thud: a deep boom of the car on its
 tyres, the rubber whumping, a moment later the frame knocking dully and a loose part
-rattling, all muffled above 1.2 kHz. The body hitting the track or an object crunches: its
+rattling, and the car bouncing once more on its tyres, all muffled above 1.2 kHz. The body hitting the track or an object crunches: its
 heavy frame booms, many damped modes of the frame and the sheet metal crunch at once and the
 frame scrapes over the road for a moment. A metal object clangs like a steel drum and bounces
 once or twice more; a plastic barrel knocks, its wall dying away almost at once over a low
