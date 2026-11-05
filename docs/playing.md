@@ -11,10 +11,11 @@ Mouse (click, wheel and dragging in the level select), arrow keys and Enter, a
 gamepad (D-pad, A) or touch. Esc (the gamepad Back button, the back gesture or
 button of a phone) goes back; in the main menu it quits the game.
 
-A Debug build of the game has a *Level editor* item in the main menu, which opens the
-[level editor](levels.md#level-editor) on the level edited last, or a new level (Esc returns
-to the menu, asking first when there are unsaved changes); a Release
-build opens the editor only with the `--editor` argument.
+On a computer the main menu has a *Level editor* item in the top right corner, which opens
+the [level editor](levels.md#level-editor) on the level edited last, or a new level (Esc
+returns to the menu, asking first when there are unsaved changes). It saves the levels in
+`%LOCALAPPDATA%\TW3D\Levels` (`~/.local/share/TW3D/Levels` on Linux), and its test drive
+(F5) drives them. A phone and a Raspberry Pi have no editor.
 
 ## Garage
 

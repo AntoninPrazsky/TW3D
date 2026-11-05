@@ -27,7 +27,9 @@
 - The level editor of 2016 (a Windows program with the keyboard as its only control)
   was replaced by an editor inside the game, driven by the mouse, with a palette of the
   blocks, a test drive and help in English (see [Levels](levels.md#level-editor)). It
-  runs wherever the game runs; the Czech documentation of the old one stays in
+  runs wherever the game runs on a desktop (not yet on a Raspberry Pi) and is in the
+  main menu of every desktop build, for the players too; the Czech documentation of the
+  old one stays in
   [`bachelor-thesis/`](bachelor-thesis/).
 
 ## Roadmap

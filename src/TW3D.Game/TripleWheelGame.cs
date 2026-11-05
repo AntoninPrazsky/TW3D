@@ -249,10 +249,11 @@ namespace TW3D
             menu.AddItem("Options", () => screens.Add(new OptionsScreen(settings, ApplyDisplayMode, antialiasing)));
 #endif
             menu.AddItem("Exit", Exit);
-#if DEBUG && !ANDROID
-            //A Debug build has the level editor in the menu too (the sixth place, in the top right corner), for
-            //development; a Release build opens it only by --editor
-            menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false, editorLevels)));
+#if !ANDROID
+            //The level editor, for the players too (the sixth place, in the top right corner), where it runs: not on a
+            //Raspberry Pi (see EditorScreen.CanRun); Android leaves it out
+            if (EditorScreen.CanRun)
+                menu.AddItem("Level editor", () => screens.Add(new EditorScreen(settings, null, standalone: false, editorLevels)));
 #endif
 
             screens.Add(background);

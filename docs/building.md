@@ -40,7 +40,8 @@ Game arguments for development:
 The game runs on Windows and on Linux, a Raspberry Pi 5 included (see below); there will be
 no macOS version (the owner's decision). The level editor is a part of the game; the
 Android build leaves it out, and it does not run on a Raspberry Pi yet (the `ImGui.NET`
-package has no native library for Linux ARM64).
+package has no native library for Linux ARM64): there the main menu has no *Level editor*
+and `--editor` quits with a message.
 
 ## Linux and a Raspberry Pi
 

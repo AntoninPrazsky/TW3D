@@ -1,6 +1,8 @@
 using System;
+using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework;
 using TW3D.Audio;
+using TW3D.Editor;
 using TW3D.GamePlay;
 using TW3D.Graphics;
 
@@ -17,7 +19,7 @@ namespace TW3D
         ///   --tutorial demo shows every lesson in turn, each done by itself after a while (for screenshots)
         ///   --sounds folder writes the sound effects as WAV files into the folder and quits (to listen to them)
         ///   --editor [level] opens the level editor instead of the game, with a level (a name in the levels folder or a file;
-        ///                   without one the last level edited)
+        ///                   without one the last level edited); where it does not run (a Raspberry Pi), quits with a message
         ///   --levels folder the levels folder of the editor, instead of content/Levels of the repository
         ///   --render height draws the 3D scene at the height of the Resolution row nearest to it (e.g. --render 720), whatever
         ///                   the Options menu says, without saving it
@@ -56,6 +58,13 @@ namespace TW3D
             if (editorLevel != null && editorLevel.StartsWith("--"))
                 editorLevel = null;
             string editorLevels = ArgumentValue(args, "--levels");
+            if (editor && !EditorScreen.CanRun)
+            {
+                Console.Error.WriteLine("The level editor does not run on this computer: the ImGui.NET package has no native library for it"
+                    + " (" + RuntimeInformation.RuntimeIdentifier + ").");
+                Environment.ExitCode = 1;
+                return;
+            }
 
             using (var game = new TripleWheelGame(windowSize, ArgumentValue(args, "--level"), editor, editorLevel, editorLevels))
                 game.Run();

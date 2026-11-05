@@ -9,7 +9,7 @@ namespace TW3D.Screens
     /// <summary>
     /// The main menu: the 3D logo of the game (its lettering) in the top left corner (drawn in the garage behind the
     /// menus, see <see cref="GarageScene.Title"/>), two items in the middle of the left and right half, a row of items at
-    /// the bottom and a place in the top right corner, level with the logo (the level editor of a Debug build).
+    /// the bottom and a place in the top right corner, level with the logo (the level editor, on a desktop).
     /// Items and the logo are positioned relative to the screen edges and scaled with the user interface, so the layout
     /// works on any aspect ratio. The logo slides up out of the frame as the menu goes, as the titles of the other menus do.
     /// </summary>

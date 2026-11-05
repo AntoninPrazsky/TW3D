@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using ImGuiNET;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -24,8 +25,8 @@ namespace TW3D.Editor
     /// the <see cref="PaletteWindow"/> with the <see cref="BlockPreviews"/>, the <see cref="InspectorWindow"/>, the
     /// <see cref="LevelWindow"/> with the <see cref="LevelReport"/> of its problems, the <see cref="HelpWindow"/>, the
     /// <see cref="FileDialogs"/> of the session). The screen builds the parts, routes the input to the camera and the active tool and draws them in their order. Opened
-    /// by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu of a Debug build
-    /// (leaving it goes back to the menu). The scene gets the mouse and the keys only when the interface does not want
+    /// by <c>--editor [level]</c>, alone on the screen stack (leaving it quits), or from the main menu (leaving it goes
+    /// back to the menu), where it <see cref="CanRun"/>. The scene gets the mouse and the keys only when the interface does not want
     /// them (the cursor over a window, a text field being typed in) and no dialog is open. F5 drives the level in the
     /// game: a test drive of the <see cref="GameplayScreen"/> covers the editor, which waits under it as it is.
     /// </summary>
@@ -89,6 +90,24 @@ namespace TW3D.Editor
         //the middle of drawing the interface
         private bool driving;
         private Cell? driveRequested;
+
+        //The native library of Dear ImGui, loaded as ImGui.NET loads it
+        private const string ImGuiLibrary = "cimgui";
+        private static bool? canRun;
+
+        /// <summary>
+        /// The editor runs on this computer: the native library of Dear ImGui loads. The <c>ImGui.NET</c> package has it
+        /// for Windows and Linux on x64, not for Linux on ARM64 (a Raspberry Pi), where the main menu has no editor and
+        /// <c>--editor</c> quits with a message. Loaded once, and kept for the editor.
+        /// </summary>
+        public static bool CanRun
+        {
+            get
+            {
+                canRun ??= NativeLibrary.TryLoad(ImGuiLibrary, typeof(ImGui).Assembly, null, out _);
+                return canRun.Value;
+            }
+        }
 
         /// <param name="level">A level name (a file of the levels folder without the extension) or a level file; null = the last level, or a new one.</param>
         /// <param name="standalone">The editor is alone (opened by --editor): leaving it quits the game instead of going back to the menu.</param>

@@ -3,7 +3,9 @@
 ## Level editor
 
 The level editor is a part of the game: the level is drawn exactly as in the game, a
-test drive starts in the same window, and it runs wherever the game runs. It is driven by
+test drive starts in the same window, and it runs wherever the game runs on a desktop:
+on Windows and on Linux, but not yet on a Raspberry Pi (the `ImGui.NET` package has no
+native library for Linux on ARM64) and not on a phone. It is driven by
 the mouse, with a user interface of [Dear ImGui](https://github.com/ocornut/imgui) over
 the scene. F1 (Help > Controls) lists every control in the editor itself and has a short
 guide to building a level; the tables there are the reference, this section describes the
@@ -20,14 +22,18 @@ dotnet run --project src/TW3D.Game -- --editor lock     # a level of content/Lev
 dotnet run --project src/TW3D.Game -- --editor --levels ../scratch-levels   # another levels folder
 ```
 
-A Debug build of the game also has it in the main menu (*Level editor*, in the top right
-corner; the level edited last or a new level; Esc returns to the menu). The Android build
-leaves the editor out.
+The main menu of the game has it too (*Level editor*, in the top right corner; the level
+edited last or a new level; Esc returns to the menu), in a Debug and a Release build alike,
+so that the players can build levels of their own. The Android build leaves the editor out;
+on a Raspberry Pi the main menu has no *Level editor* and `--editor` quits with a message.
 
 The editor opens and saves levels in the levels folder: `content/Levels` of the repository
 (found above the program, where `TW3D.slnx` is), so that the levels of the game are edited
 in place; `--levels <folder>` gives another folder (a scratch folder is the way to try the
-editor out), and a game that is not in a repository uses `%LOCALAPPDATA%/TW3D/Levels`.
+editor out), and a game that is not in a repository (a downloaded game) uses
+`%LOCALAPPDATA%/TW3D/Levels` (`~/.local/share/TW3D/Levels` on Linux). The level select
+lists the levels of the game only, so a level of a player is driven by the test drive of
+the editor (F5).
 
 ### The screen
 
