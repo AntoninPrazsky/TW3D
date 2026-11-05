@@ -1,11 +1,12 @@
 """Blender (background): builds the second car of the garage, the red Sand Rail, and exports it as content/car2.obj + .mtl.
 
-A single-seater racer on the chassis all cars share: a red tube frame with a low, pointed nose between the front wheels,
-the blown engine with its red stacks standing open in front of the cockpit, a teal bubble canopy under three arches, a
-swept tail with twin fins carrying the wing, side pipes along the sills to the tail, and a battery box behind the seat.
-The engine with its stacks, the radiator, the seat, the steering wheel with the pedals and the battery box are the parts
-of the Sand Rail of 2014/15 (tools/blender/car2_parts.obj, cut from the old content/car2.obj; the rest was modelled
-again). About 11 000 triangles.
+A single-seater convertible racer on the chassis all cars share: a red tube frame with open ends and a low, pointed nose
+between the front wheels, the blown engine with its red stacks in front of a finned radiator, two wide faceted pods
+either side of an open cockpit with a low raked windscreen, a red roll hoop behind the seat with stays to the tail frame,
+a swept tail with twin fins carrying the wing, coil-overs at both axles, side pipes along the sills to the tail, and a
+battery box in the tail frame. The engine with its stacks, the seat, the steering wheel with the pedals and the battery
+box are the parts of the Sand Rail of 2014/15 (tools/blender/car2_parts.obj, cut from the old content/car2.obj; the rest
+was modelled again). About 9 500 triangles.
 
 The model units are those of the cars: the front towards -x, y up in the OBJ file, the middle of the body at the origin.
 The holders of the wheels (Car.cs) turn about pivots at x = -3.6 (front) and 3.0 (rear), 1.25 below the middle; their
@@ -203,10 +204,10 @@ def nose():
         rod((-3.55, s * 0.52, -0.9), (-4.15, s * 0.1, -0.74), 0.045)
         prism([(-4.05, -1.01), (-3.45, -1.01), (-3.4, -0.78)], s * 0.93, s * 0.97, ACCENT, 0.01)
     # the frame round the radiator, a grille over it
-    pipe([(-4.24, -0.46, -0.72), (-4.24, 0.46, -0.72), (-4.24, 0.46, -0.2), (-4.24, -0.46, -0.2), (-4.24, -0.46, -0.72)], 0.04, RED, 0.06, False)
-    blk((-4.26, 0, -0.46), (0.04, 0.84, 0.5), BLACK, 0.005)
-    for k in range(5):
-        blk((-4.29, 0, -0.68 + k * 0.1), (0.03, 0.8, 0.025), STEEL, 0.003)
+    pipe([(-4.31, -0.46, -0.72), (-4.31, 0.46, -0.72), (-4.31, 0.46, -0.2), (-4.31, -0.46, -0.2), (-4.31, -0.46, -0.72)], 0.04, RED, 0.06, False)
+    blk((-4.02, 0, -0.46), (0.5, 0.82, 0.5), FRAME, 0.01)
+    for k in range(6):
+        blk((-4.29, 0, -0.68 + k * 0.095), (0.03, 0.8, 0.022), STEEL, 0.003)
     blk((-4.0, 0, -1.04), (0.7, 1.6, 0.05), BLACK, 0.015)
 
 
@@ -247,7 +248,7 @@ def pods():
             blk((-0.5 + 0.28 * k, s * 1.31, -0.28), (0.12, 0.04, 0.34), BLACK, 0.005)
         blk((0.1, s * 1.31, -0.9), (3.4, 0.04, 0.07), ACCENT, 0.005)
     # the dash between the pods, its face towards the cockpit at x = -1.45
-    loft([(-1.95, -0.5, 0.0, 0.6, 0.6, 0.6), (-1.3, -0.5, 0.12, 0.6, 0.57, 0.6)], RED, 0.02, 1)
+    loft([(-1.95, -0.5, 0.0, 0.8, 0.8, 0.8), (-1.3, -0.5, 0.12, 0.8, 0.76, 0.8)], RED, 0.02, 1)
 
 
 # The driver's parts of the old car are moved forward by this much (the seat, the steering wheel, the pedals): the seat
@@ -265,36 +266,21 @@ def driver(found):
     blk((-1.24, 0.0, -0.3), (0.06, 0.55, 0.4), FRAME, 0.01)
     # the floor under the seat and the footwell: the seat (bottom at -0.51) stands on it
     blk((-0.1, 0, -0.535), (3.9, 1.2, 0.05), FRAME, 0.01)
-    loft([(0.3, -0.5, 0.6, 0.55, 0.28, 0.5), (1.0, -0.5, 0.5, 0.58, 0.3, 0.52), (1.75, -0.5, 0.22, 0.52, 0.3, 0.48)], RED, 0.02, 1)
+    loft([(0.25, -0.5, 0.62, 0.56, 0.3, 0.52), (0.9, -0.5, 0.5, 0.58, 0.32, 0.54), (1.95, -0.5, 0.3, 0.55, 0.32, 0.5)], RED, 0.02, 1)
     for s in (-1, 1):
         blk((-0.25, s * 0.45, -0.49), (0.8, 0.06, 0.04), FRAME, 0.005)       # the rails the seat is bolted to
         blk((0.0, s * 0.62, -0.3), (0.5, 0.03, 0.4), BLACK, 0.005)           # the inner sides of the cockpit by the seat
 
 
-CANOPY = [(-1.9, 0.02, 0.26, 0.78, 0.74, 0.78), (-0.85, -0.1, 1.0, 0.8, 0.44, 0.78), (0.6, -0.1, 1.07, 0.8, 0.4, 0.78),
-          (1.95, 0.0, 0.46, 0.64, 0.4, 0.62)]
-
-
-def canopy_section(x, grow=0.02):
-    """The outline of the canopy at x (from the left foot over the top to the right foot), a little outside the glass."""
-    for a, b in zip(CANOPY, CANOPY[1:]):
-        if a[0] <= x <= b[0]:
-            t = (x - a[0]) / (b[0] - a[0])
-            zb, zt, hb, ht, hm = (a[i] + (b[i] - a[i]) * t for i in range(1, 6))
-            zm = zb + (zt - zb) * 0.45
-            g = grow
-            return [(x, -hb - g, zb), (x, -hm - g, zm), (x, -ht - g, zt + g), (x, ht + g, zt + g), (x, hm + g, zm), (x, hb + g, zb)]
-    raise ValueError(x)
-
-
-def canopy():
-    loft(CANOPY, GLASS, None, 1)
-    for x in (-1.8, -0.85, 0.6, 1.93):
-        pipe(canopy_section(x), 0.045, ACCENT, 0.2)
+def windscreen():
+    """A low raked windscreen across the dash in a frame of the red tubes of the car, a roll hoop behind the seat of the
+    same tubes with two stays back to the hoop of the tail frame."""
+    prism([(-1.78, 0.1), (-1.2, 0.62), (-1.16, 0.6), (-1.74, 0.08)], -0.7, 0.7, GLASS, None)
+    pipe([(-1.8, -0.72, 0.06), (-1.2, -0.7, 0.64), (-1.2, 0.7, 0.64), (-1.8, 0.72, 0.06)], 0.045, RED, 0.12)
+    pipe([(0.45, -0.66, -0.14), (0.45, -0.54, 0.7), (0.45, -0.34, 1.02), (0.45, 0.34, 1.02), (0.45, 0.54, 0.7), (0.45, 0.66, -0.14)], 0.075, RED, 0.3)
     for s in (-1, 1):
-        # the roof edge and the belt, the tubes that hold the glass
-        pipe([canopy_section(x)[3 if s > 0 else 2] for x in (-1.89, -0.85, 0.6, 1.93)], 0.045, ACCENT, 0.5)
-        pipe([canopy_section(x)[5 if s > 0 else 0] for x in (-1.89, 1.93)], 0.045, ACCENT, 0.1)
+        pipe([(0.45, s * 0.34, 1.02), (1.25, s * 0.44, 0.8), (1.95, s * 0.5, 0.52)], 0.06, RED, 0.4, False)
+        rod((0.45, s * 0.64, -0.12), (1.1, s * 0.52, 0.3), 0.045)
 
 
 # ---- the tail: an open frame behind the roll hoop with the battery box in it, a louvred deck, a diffuser, two swept fins
@@ -366,7 +352,7 @@ def build():
     nose()
     pods()
     driver(found)
-    canopy()
+    windscreen()
     tail()
     exhausts()
     lights()

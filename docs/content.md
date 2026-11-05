@@ -106,20 +106,21 @@ covers the main menu, as the titles of the other menus do.
 The Buggy (`car`, 2014) was modelled in Wings 3D ([`art/wings/`](../art/wings/README.md)). The
 Sand Rail (`car2`, a single-seater racer of 2014, remodelled in 2026) is red, built by
 `tools/blender/car2.py` (Blender 4.2, `blender -b --factory-startup --python
-tools/blender/car2.py`), 10 502 triangles: a red tube frame with open ends, two wide faceted
-pods with sloping shoulders either side of a narrow cockpit (an intake, vents and a strip of the
-secondary colour on each), a low glass canopy over the cockpit (a raked windscreen, a flat roof)
-under arches that follow its surface, in the cockpit the seat on the floor with a headrest behind
-it, the steering wheel on a column that goes into the dash and the pedals held by a plate on it,
-the blown engine with its red stacks and the radiator in a frame open at the front, a splitter,
-coil-overs at both axles with white springs, two pipes along the sills to the tail, a battery box
-in the open tail frame under a louvred deck, and two swept fins carrying the wing. The red frame,
-the pods and the fins are its `primary` paint, the arches, the wing and the strips its `secondary`
-one (#46). The engine with its stacks, the radiator, the seat, the steering wheel with the pedals
-and the battery box are the parts of the car of 2014/15, which the script takes from
-`tools/blender/car2_parts.obj` (cut from the old `content/car2.obj`) and moves into the new
-cockpit; the rest is new. Its lamps are objects of their own: slim headlights either side of the
-radiator, taillights on the endplates of the wing. The third car, the Crawler (`car3`, 2026), is a blue
+tools/blender/car2.py`), 9 482 triangles: a red tube frame with open ends, two wide faceted pods
+with sloping shoulders either side of an open cockpit (an intake, vents and a strip of the
+secondary colour on each), a low raked windscreen on the dash in a frame of the red tubes, a red
+roll hoop behind the seat with two stays to the hoop of the tail frame and a tonneau between
+them; in the cockpit the seat on the floor, the steering wheel on a column that goes into the dash
+and the pedals held by a plate on it; the blown engine with its red stacks in front of a finned
+radiator in a frame open at the front, a splitter, coil-overs at both axles with white springs,
+two pipes along the sills to the tail, a battery box in the open tail frame under a louvred deck,
+and two swept fins carrying the wing. (It had a glass canopy with white arches over the cockpit
+for a while, which did not belong to the frame.) The red frame, the pods and the fins are its
+`primary` paint, the wing and the strips its `secondary` one (#46). The engine with its stacks,
+the seat, the steering wheel with the pedals and the battery box are the parts of the car of
+2014/15, which the script takes from `tools/blender/car2_parts.obj` (cut from the old
+`content/car2.obj`) and moves into the new cockpit; the rest is new. Its lamps are objects of
+their own: slim headlights either side of the radiator, taillights on the endplates of the wing. The third car, the Crawler (`car3`, 2026), is a blue
 rock crawler built by `tools/blender/car3.py` (Blender 4.2, `blender -b --factory-startup
 --python tools/blender/car3.py`), 13 106 triangles, a little more than the Sand Rail: an
 exoskeleton cage of blue tubes over two seats, a short blue hood with the turbo standing out
