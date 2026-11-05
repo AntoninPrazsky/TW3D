@@ -27,9 +27,9 @@ left bars show how fast, heavy and gripping the car is with them, and under them
 and the secondary colour of its paint are chosen (up and down choose the row, left and right
 or the arrows the wheels or the colour). The colours go round a palette of twelve, with
 *Original* first, the colour the car was made in; a swatch shows each. The primary colour is
-the body (the frame of the Sand Rail, the hood and the panels of the Crawler), the secondary
-one the roof of the Buggy, the arches of the Sand Rail over its canopy and the cage of the
-Crawler; the colours are only for the looks. The cars
+the body (the frame and the pods of the Sand Rail, the hood and the panels of the Crawler), the
+secondary one the roof of the Buggy, the arches, the wing and the strips of the Sand Rail and the
+cage of the Crawler; the colours are only for the looks. The cars
 differ in their top speed and weight (the Sand Rail is faster and lighter than the Buggy,
 the Crawler slower and heavier),
 the wheels in their grip and weight (the off-road wheels grip better, the racing ones are

@@ -39,8 +39,12 @@ from the model in the game.
 has the hub of `wheel.obj`, joining it to the holder; and its tyre was simplified from
 17 220 triangles to 7 000 (`tools/blender/decimate.py`, the whole wheel 8 424 instead of
 18 644), keeping the pattern of the tread. `wheel2.wings` is the wheel as it was.
-`content/car.obj` and `car2.obj` got their lamps in 2026 (the objects `Headlight…` and
-`Taillight…`), which `car.wings` and `car2.wings` do not have. The third car, the Crawler
+`content/car.obj` got its lamps in 2026 (the objects `Headlight…` and `Taillight…`), which
+`car.wings` does not have. `content/car2.obj` was remodelled in 2026 by `tools/blender/car2.py`
+(the red Sand Rail with a glass canopy, a tube frame and a wing), which takes its engine with the
+stacks, the radiator, the seat, the steering wheel, the pedals and the battery box from
+`tools/blender/car2_parts.obj`, parts cut from the old model; `car2.wings` is the Sand Rail of
+2014/15 and its tyre `wheel2.wings` was not changed by it. The third car, the Crawler
 (`content/car3.obj`, 2026), has no Wings file: `tools/blender/car3.py` builds it in Blender and
 takes the Buggy's engine, seats, steering wheel, pedals, gear lever and fuel cell from
 `content/car.obj`. The start gate `content/Levels/mod/sg.obj` first got start lights like those
