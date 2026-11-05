@@ -177,7 +177,6 @@ def underframe():
         blk((-0.03, s * 0.62, -0.92), (7.5, 0.14, 0.14), RED, 0.02)
     for x in (-2.5, -1.7, -0.2, 1.2, 2.2, 3.3):
         blk((x, 0, -0.92), (0.12, 1.38, 0.12), FRAME, 0.01)
-    blk((-0.05, 0, -0.62), (3.9, 1.2, 0.05), FRAME, 0.01)         # the floor of the cockpit the seat stands on
     for x in (REAR, FRONT):
         cyl((x, -1.0, -1.06), (x, 1.0, -1.06), 0.09, STEEL, 10)
         blk((x, 0.0, -1.06), (0.5, 0.45, 0.28), FRAME, 0.05, 2)
@@ -209,23 +208,71 @@ def nose():
     for k in range(5):
         blk((-4.29, 0, -0.68 + k * 0.1), (0.03, 0.8, 0.025), STEEL, 0.003)
     blk((-4.0, 0, -1.04), (0.7, 1.6, 0.05), BLACK, 0.015)
-    loft([(-2.0, -0.7, 0.14, 0.93, 0.9, 0.93), (-1.5, -0.7, 0.3, 0.95, 0.8, 0.96)], RED, 0.03, 2)
 
 
-# ---- the pods either side of the cockpit: faceted red sides with an intake each, a strip of the secondary colour along the sill
+# ---- the cabin: two wide pods with sloping shoulders either side of a narrow cockpit, a dash across its front with the
+# steering column and the pedal box on it, and a low glass canopy over the cockpit under arches that follow its surface
+POD = [(0.6, -1.0), (1.3, -1.0), (1.3, -0.35), (0.8, 0.1), (0.6, 0.1)]                   # the section of a pod: (y, z)
+POD_STATIONS = [(-1.95, 0.6, 0.3), (-1.55, 0.92, 0.22), (-0.5, 1.0, 0.2), (0.9, 1.0, 0.2), (1.55, 0.95, 0.22), (2.05, 0.66, 0.36)]
+
+
 def pods():
     for s in (-1, 1):
-        prism([(-1.9, -1.0), (-1.9, -0.42), (-1.45, -0.1), (1.0, -0.1), (1.55, -0.16), (2.05, -0.45), (2.05, -1.0)], s * 0.6, s * 1.3, RED, 0.05, 1)
-        blk((-1.93, s * 0.95, -0.62), (0.08, 0.5, 0.36), BLACK, 0.01)               # the intake
+        bm = bmesh.new()
+        rings = []
+        for x, width, drop in POD_STATIONS:
+            ring = []
+            for y, z in POD:
+                y2 = 0.6 + (y - 0.6) * width
+                z2 = z - drop * max(0.0, (z + 0.35) / 0.45)
+                ring.append(bm.verts.new((x, s * y2, z2)))
+            rings.append(ring)
+        n = len(POD)
+        for r0, r1 in zip(rings, rings[1:]):
+            for i in range(n):
+                j = (i + 1) % n
+                bm.faces.new((r0[i], r0[j], r1[j], r1[i]))
+        bm.faces.new(rings[0][::-1])
+        bm.faces.new(rings[-1])
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        mesh = bpy.data.meshes.new("pod")
+        bm.to_mesh(mesh)
+        bm.free()
+        obj = bpy.data.objects.new("pod", mesh)
+        scene.collection.objects.link(obj)
+        add(finish(obj, RED, None))
+        # the intake on the front of the flank, the vents behind the shoulder, the strip of the secondary colour along the sill
+        blk((-1.45, s * 1.02, -0.62), (0.5, 0.05, 0.34), BLACK, 0.01)
         for k in range(3):
-            blk((-1.0 + 0.3 * k, s * 1.31, -0.35), (0.14, 0.04, 0.3), BLACK, 0.005)  # the vents of the flank
+            blk((-0.5 + 0.28 * k, s * 1.31, -0.28), (0.12, 0.04, 0.34), BLACK, 0.005)
         blk((0.1, s * 1.31, -0.9), (3.4, 0.04, 0.07), ACCENT, 0.005)
+    # the dash between the pods, its face towards the cockpit at x = -1.45
+    loft([(-1.95, -0.5, 0.0, 0.6, 0.6, 0.6), (-1.3, -0.5, 0.12, 0.6, 0.57, 0.6)], RED, 0.02, 1)
 
 
-# ---- the canopy: a glass bubble from the cowl over the whole cockpit, under arches that follow its surface
-CANOPY = [(-1.98, 0.17, 0.25, 0.91, 0.88, 0.91), (-1.5, 0.3, 0.52, 0.94, 0.8, 0.95), (-0.9, -0.12, 0.8, 0.97, 0.62, 0.97),
-          (-0.2, -0.12, 1.03, 0.98, 0.5, 0.96), (0.7, -0.12, 1.06, 0.98, 0.48, 0.95), (1.4, -0.12, 0.76, 0.92, 0.5, 0.88),
-          (1.9, -0.12, 0.42, 0.82, 0.55, 0.8)]
+# The driver's parts of the old car are moved forward by this much (the seat, the steering wheel, the pedals): the seat
+# stands on the floor of the cockpit, the steering column and the pedals are held by the dash
+DRIVER = -0.45
+
+
+def driver(found):
+    for name, o in found.items():
+        if name in ("seat", "steering") or name.startswith("pedal"):
+            o.location.x += DRIVER
+    # the column goes on into the dash through a collar, the pedals are held by a plate on it
+    cyl((-1.17, 0.0, -0.24), (-1.29, 0.0, -0.33), 0.045, STEEL, 8)
+    cyl((-1.27, 0.0, -0.31), (-1.21, 0.0, -0.27), 0.085, FRAME, 10)
+    blk((-1.24, 0.0, -0.3), (0.06, 0.55, 0.4), FRAME, 0.01)
+    # the floor under the seat and the footwell: the seat (bottom at -0.51) stands on it
+    blk((-0.1, 0, -0.535), (3.9, 1.2, 0.05), FRAME, 0.01)
+    loft([(0.3, -0.5, 0.6, 0.55, 0.28, 0.5), (1.0, -0.5, 0.5, 0.58, 0.3, 0.52), (1.75, -0.5, 0.22, 0.52, 0.3, 0.48)], RED, 0.02, 1)
+    for s in (-1, 1):
+        blk((-0.25, s * 0.45, -0.49), (0.8, 0.06, 0.04), FRAME, 0.005)       # the rails the seat is bolted to
+        blk((0.0, s * 0.62, -0.3), (0.5, 0.03, 0.4), BLACK, 0.005)           # the inner sides of the cockpit by the seat
+
+
+CANOPY = [(-1.9, 0.02, 0.26, 0.78, 0.74, 0.78), (-0.85, -0.1, 1.0, 0.8, 0.44, 0.78), (0.6, -0.1, 1.07, 0.8, 0.4, 0.78),
+          (1.95, 0.0, 0.46, 0.64, 0.4, 0.62)]
 
 
 def canopy_section(x, grow=0.02):
@@ -242,12 +289,12 @@ def canopy_section(x, grow=0.02):
 
 def canopy():
     loft(CANOPY, GLASS, None, 1)
-    for x in (-1.5, -0.2, 0.7, 1.4, 1.88):
-        pipe(canopy_section(x), 0.05, ACCENT, 0.2)
+    for x in (-1.8, -0.85, 0.6, 1.93):
+        pipe(canopy_section(x), 0.045, ACCENT, 0.2)
     for s in (-1, 1):
         # the roof edge and the belt, the tubes that hold the glass
-        pipe([canopy_section(x)[3 if s > 0 else 2] for x in (-1.97, -1.5, -0.9, -0.2, 0.7, 1.4, 1.88)], 0.05, ACCENT, 0.5)
-        pipe([canopy_section(x)[5 if s > 0 else 0] for x in (-0.9, 1.88)], 0.05, ACCENT, 0.1)
+        pipe([canopy_section(x)[3 if s > 0 else 2] for x in (-1.89, -0.85, 0.6, 1.93)], 0.045, ACCENT, 0.5)
+        pipe([canopy_section(x)[5 if s > 0 else 0] for x in (-1.89, 1.93)], 0.045, ACCENT, 0.1)
 
 
 # ---- the tail: an open frame behind the roll hoop with the battery box in it, a louvred deck, a diffuser, two swept fins
@@ -318,6 +365,7 @@ def build():
     underframe()
     nose()
     pods()
+    driver(found)
     canopy()
     tail()
     exhausts()
