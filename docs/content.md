@@ -43,11 +43,12 @@ tools/blender/gates.py`; run it after changing it and commit its output). It is 
 on the race tracks: two round-chord lattice legs and a lattice beam across the road, joined at
 the top of the legs by cast aluminium corners (flanges with bolts where the lattice joins, an
 access hatch on the outside, plates on the front and the back, a lifting eye on top) with a knee
-brace under each, the legs on base plates with anchor bolts and ribs and wrapped at the foot in a
-yellow protector with black straps, a cable conduit up one leg and along the beam. The start gate
+brace under each. A leg stands on a yellow pedestal with black straps on a base plate with anchor
+bolts; the lattice is bolted to a steel mounting plate on the pedestal, each chord in a sleeve with
+a rib. A cable conduit runs up one leg and along the beam. The start gate
 has a black light housing on the front of its beam held by straps, and in it the start lights;
-the finish gate has a photo-finish camera under the middle of its beam. 12 200 triangles for the
-start gate, 9 200 for the finish gate, 6 600 and 6 800 for the signs (these are not meant to be
+the finish gate has a photo-finish camera under the middle of its beam. 12 400 triangles for the
+start gate, 9 400 for the finish gate, 6 600 and 6 800 for the signs (these are not meant to be
 as light as the old ones: they are four blocks in a level). The gate stands 1.2 from the edge of
 its cell, as the old one did, with its legs at |z| = 7 beyond the lane of the cars, and the front
 (the start lights, the sign) towards +x, where the car comes from.

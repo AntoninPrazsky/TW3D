@@ -41,6 +41,8 @@ XC = -3.3             # where the gate stands in its cell
 LEG = 7.0             # |y| of the legs
 NODE = 1.4            # the corner castings
 BEAM_Z = TOP - NODE / 2   # the middle of the beam, the castings' top is at the top of the cell
+PEDESTAL = 1.7        # the height of the yellow pedestal of a leg
+MOUNT = FEET + 0.34 + PEDESTAL + 0.14   # where the lattice of a leg starts: on the mounting plate
 WIDTH = 1.1           # the section of the legs and the beam
 POST = 5.7            # |y| of the posts of the sign
 POST_TOP = TOP + 3.7  # the middle of the top beam of the sign
@@ -217,8 +219,8 @@ def casting(centre, size, eye=True, hatch=1):
     flange((cx, cy, cz - h - 0.05), (0, 0, -1), size * 0.93)
     if hatch:
         flange((cx, cy - hatch * (h + 0.05), cz), (0, -hatch, 0), size * 0.93)
-        disc_centre = Vector((cx, cy + hatch * (h + 0.02), cz))
-        cyl(disc_centre - Vector((0, hatch * 0.02, 0)), disc_centre + Vector((0, hatch * 0.05, 0)), size * 0.3, ALU, 14)
+        disc_centre = Vector((cx, cy + hatch * (h + 0.07), cz))     # the face of the hatch, 0.07 off the casting
+        cyl(Vector((cx, cy + hatch * (h - 0.02), cz)), disc_centre, size * 0.3, ALU, 14)
         for k in range(6):
             a = math.tau * k / 6
             bolt(disc_centre + Vector((math.cos(a), 0, math.sin(a))) * size * 0.22, (0, hatch, 0), 0.04, 0.05)
@@ -257,7 +259,8 @@ def reset():
 
 
 def foot(s):
-    """The base of a leg: a plate with anchor bolts and four ribs to the chords, in a yellow protector with black stripes."""
+    """The foot of a leg: a base plate with anchor bolts, a yellow pedestal with black straps on it, and on top of that a
+    steel mounting plate with a sleeve and a rib at each chord of the leg, which stands on it."""
     y = s * LEG
     blk((0, y, FEET + 0.17), (2.7, 2.7, 0.34), PLATE, 0.05, 2)
     for dx, dy in ((1.1, 0), (-1.1, 0), (0, 1.1), (0, -1.1)):
@@ -265,27 +268,33 @@ def foot(s):
         cyl(p, p + Vector((0, 0, 0.32)), 0.07, BOLT, 8)                            # the stud
         cyl(p + Vector((0, 0, 0.08)), p + Vector((0, 0, 0.26)), 0.16, BOLT, 6)      # the nut
         cyl(p, p + Vector((0, 0, 0.05)), 0.24, BOLT, 10)                           # the washer
-    for a in (-1, 1):
-        for b in (-1, 1):
-            gusset(Vector((a * 0.88, y + b * 0.88, FEET + 0.34)), (a, b), 0.5, 0.9, 0.07, ALU)
     z0 = FEET + 0.34
-    blk((0, y, z0 + 0.85), (1.75, 1.75, 1.7), PAD, 0.28, 3)
+    blk((0, y, z0 + PEDESTAL / 2), (1.75, 1.75, PEDESTAL), PAD, 0.16, 3)
     for z in (z0 + 0.35, z0 + 0.85, z0 + 1.35):
         blk((0, y, z), (1.79, 1.79, 0.1), PAD_STRIPE, 0.04, 2)
+    top = z0 + PEDESTAL
+    blk((0, y, top + 0.07), (1.4, 1.4, 0.14), CAST, 0.02, 2)
+    for dx, dy in ((0.62, 0), (-0.62, 0), (0, 0.62), (0, -0.62)):
+        bolt((dx, y + dy, top + 0.14), (0, 0, 1), 0.07, 0.07)
+    for a in (-1, 1):
+        for b in (-1, 1):
+            p = Vector((a * WIDTH / 2, y + b * WIDTH / 2, top + 0.14))
+            cyl(p, p + Vector((0, 0, 0.32)), 0.19, CAST, 8)                         # the sleeve the chord comes out of
+            gusset(Vector((a * 0.64, y + b * 0.64, top + 0.14)), (a, b), 0.24, 0.55, 0.06, CAST)
 
 
 def conduit(s):
     """A cable conduit: a junction box at the foot of a leg, up its back outer chord and along the back of the beam to the
     middle, held by clips."""
     y = s * (LEG + 0.55)
-    blk((-0.92, y, FEET + 0.34 + 2.15), (0.4, 0.55, 0.6), GRAPHITE, 0.03)
+    blk((-0.92, y, MOUNT + 0.5), (0.4, 0.55, 0.6), GRAPHITE, 0.03)
     x, top = -0.83, BEAM_Z - WIDTH / 2
     r = 0.07
-    cyl((x, y, FEET + 0.34 + 2.4), (x, y, top), r, CABLE, 8)
+    cyl((x, y, MOUNT + 0.75), (x, y, top), r, CABLE, 8)
     cyl((x, y, top), (x, 0.0, top), r, CABLE, 8)
     bpy.ops.mesh.primitive_uv_sphere_add(segments=8, ring_count=5, radius=r * 1.15, location=(x, y, top))
     add(finish(bpy.context.active_object, CABLE))
-    for z in (-0.6, 1.2, 2.6):
+    for z in (-0.5, 1.5, 2.5):                  # between the collars of the chord (at its nodes), not in their planes
         blk((x + 0.14, y, z), (0.3, 0.18, 0.1), GRAPHITE, 0.01)
     for yy in (s * 5.2, s * 3.0, s * 0.8):
         blk((x + 0.14, yy, top), (0.3, 0.12, 0.2), GRAPHITE, 0.01)
@@ -307,7 +316,7 @@ def gate(start):
     front of the beam, the light housing of the start gate or the photo-finish camera of the finish gate."""
     low = BEAM_Z - NODE / 2
     for s in (-1, 1):
-        truss((0, s * LEG, FEET + 0.34), (0, s * LEG, low - 0.1), WIDTH)
+        truss((0, s * LEG, MOUNT), (0, s * LEG, low - 0.1), WIDTH)
         foot(s)
         casting((0, s * LEG, BEAM_Z), NODE, True, s)
         knee(s)
