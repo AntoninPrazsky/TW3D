@@ -18,17 +18,18 @@ namespace TW3D.ContentPipeline
     /// the lenses of the headlights of a car are named "headlight…", of the rear lights "taillight…", of a street
     /// lamp "streetlight…", the red start lights of the start gate "signalred…", the lit windows of a building
     /// "windowlit…", and the parts that can be painted: the paint of a car "primary…" and "secondary…", the rims of a wheel
-    /// "rim…". It keeps them in the Tag of the mesh parts of the material as a Vector4: metallic, roughness, lamp
-    /// (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp, 4 = start light, 5 = lit window) and paint (0 = none,
-    /// 1 = primary, 2 = secondary, 3 = rim). A material with none of them gets no tag. It can also mirror a model and keep
-    /// its triangles (the parameters Mirrored and Surface).
+    /// "rim…", and the parts drawn as a surface of a block by the shader (Effects/Surfaces.fxh): "asphalt…" and
+    /// "earth…". It keeps them in the Tag of the mesh parts of the material as a float[]: metallic, roughness, lamp
+    /// (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp, 4 = start light, 5 = lit window), paint (0 = none,
+    /// 1 = primary, 2 = secondary, 3 = rim) and surface (0 = none, 1 = asphalt, 2 = earth). A material with none of them
+    /// gets no tag. It can also mirror a model and keep its triangles (the parameters Mirrored and Surface).
     /// </summary>
     [ContentProcessor(DisplayName = "Model - TW3D (metal and lamps from MTL)")]
     public class MtlModelProcessor : ModelProcessor
     {
         //Of the materials of the MTL file, by name; then of the materials the base processor made of them
-        private Dictionary<string, Vector4> finishes;
-        private readonly Dictionary<MaterialContent, Vector4> convertedFinishes = new Dictionary<MaterialContent, Vector4>();
+        private Dictionary<string, float[]> finishes;
+        private readonly Dictionary<MaterialContent, float[]> convertedFinishes = new Dictionary<MaterialContent, float[]>();
 
         /// <summary>
         /// Mirrors the model front to back (x to -x; the faces stay turned outwards). A wheel so mirrored turns its
@@ -66,7 +67,7 @@ namespace TW3D.ContentPipeline
             {
                 foreach (ModelMeshPartContent part in mesh.MeshParts)
                 {
-                    if (part.Material != null && convertedFinishes.TryGetValue(part.Material, out Vector4 finish))
+                    if (part.Material != null && convertedFinishes.TryGetValue(part.Material, out float[] finish))
                         part.Tag = finish;
                 }
             }
@@ -92,15 +93,15 @@ namespace TW3D.ContentPipeline
         protected override MaterialContent ConvertMaterial(MaterialContent material, ContentProcessorContext context)
         {
             MaterialContent converted = base.ConvertMaterial(material, context);
-            if (material.Name != null && finishes.TryGetValue(material.Name, out Vector4 finish))
+            if (material.Name != null && finishes.TryGetValue(material.Name, out float[] finish))
                 convertedFinishes[converted] = finish;
             return converted;
         }
 
-        /// <summary>Reads the metal, the roughness, the lamps and the paint of the materials from the MTL files of an OBJ model.</summary>
-        private static Dictionary<string, Vector4> ReadFinishes(string modelFile, ContentProcessorContext context)
+        /// <summary>Reads the metal, the roughness, the lamps, the paint and the surfaces of the materials from the MTL files of an OBJ model.</summary>
+        private static Dictionary<string, float[]> ReadFinishes(string modelFile, ContentProcessorContext context)
         {
-            Dictionary<string, Vector4> finishes = new Dictionary<string, Vector4>();
+            Dictionary<string, float[]> finishes = new Dictionary<string, float[]>();
             if (modelFile == null || !string.Equals(Path.GetExtension(modelFile), ".obj", StringComparison.OrdinalIgnoreCase))
                 return finishes;
 
@@ -118,7 +119,7 @@ namespace TW3D.ContentPipeline
             return finishes;
         }
 
-        private static void ReadMaterials(string materialFile, Dictionary<string, Vector4> finishes)
+        private static void ReadMaterials(string materialFile, Dictionary<string, float[]> finishes)
         {
             string name = null;
             float? metallic = null, roughness = null;
@@ -135,9 +136,11 @@ namespace TW3D.ContentPipeline
                 float paint = name.StartsWith("primary", StringComparison.OrdinalIgnoreCase) ? 1f
                     : name.StartsWith("secondary", StringComparison.OrdinalIgnoreCase) ? 2f
                     : name.StartsWith("rim", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
+                float surface = name.StartsWith("asphalt", StringComparison.OrdinalIgnoreCase) ? 1f
+                    : name.StartsWith("earth", StringComparison.OrdinalIgnoreCase) ? 2f : 0f;
                 //Neither metallic nor rough, as the materials without them are drawn
-                if (metallic != null || roughness != null || lamp != 0f || paint != 0f)
-                    finishes[name] = new Vector4(metallic ?? 0f, roughness ?? 1f, lamp, paint);
+                if (metallic != null || roughness != null || lamp != 0f || paint != 0f || surface != 0f)
+                    finishes[name] = new[] { metallic ?? 0f, roughness ?? 1f, lamp, paint, surface };
             }
 
             foreach (string line in File.ReadLines(materialFile))

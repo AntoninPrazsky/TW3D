@@ -59,8 +59,9 @@ not: the effect compiler of MonoGame needs the shader compiler of Direct3D, whic
 on Windows (elsewhere through Wine). Their code for DesktopGL is the same on every system,
 so the content build on Windows keeps it in the repository: `PrecompiledEffectProcessor` of
 `tools/ContentPipeline` compiles `content/Effects/Scene.fx` and writes its code to
-`content/Effects/DesktopGL/Scene.mgfx`, with `Scene.txt` saying which source (a SHA-256)
-and which version of MonoGame it was compiled from. A build elsewhere takes that code, and
+`content/Effects/DesktopGL/Scene.mgfx`, with `Scene.txt` saying which source (a SHA-256
+of the effect and of the files it includes, `Surfaces.fxh`) and which version of MonoGame it
+was compiled from. A build elsewhere takes that code, and
 fails with an explanation when the shader has changed since. **A changed shader: build the
 game on Windows and commit the files it rewrites in `content/Effects/DesktopGL` with it.**
 CI fails without them and attaches the code it compiled to the run (the artifact

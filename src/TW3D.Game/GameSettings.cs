@@ -43,6 +43,13 @@ namespace TW3D
         public ShadowDetail ShadowDetail { get; set; } = ShadowDetails.Default;
 
         /// <summary>
+        /// The detail of the surfaces of the blocks (see SurfaceDetails): high on a desktop, medium on a phone, low on a
+        /// Raspberry Pi, which keeps it. In the file by its name.
+        /// </summary>
+        [JsonConverter(typeof(JsonStringEnumConverter<SurfaceDetail>))]
+        public SurfaceDetail SurfaceDetail { get; set; } = SurfaceDetails.Default;
+
+        /// <summary>
         /// Multisample antialiasing of the screen (the edges of the 3D smooth): on by default, but on a Raspberry Pi, which
         /// draws the scene smaller instead (see PiGraphics).
         /// </summary>

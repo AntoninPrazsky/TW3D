@@ -28,6 +28,14 @@ metal and roughness. A new car or new wheels name their paint and rims so to be 
 windows of a building that are lit at night are `windowlit…` (the judges' stand): they shine
 evenly, without a glow, and light nothing, so they need no objects of their own.
 
+A part can also be a **surface**, whose detail the shader draws per pixel (see
+[surfaces](architecture.md#surfaces)): a material named `asphalt…` or `earth…` (the names of
+`Graphics/Surface`). Its colour (`Kd`) is the base colour of the surface, which the shader varies
+by the noise of the surfaces and lights with a relief of its own; the shape stays that of the
+model. No model of the game has a surface yet: the track styles (#56, #57) bring them. Until
+then the development key T draws the grey road of the classic blocks as the test surfaces, and
+`tools/CatalogRender` renders a block so (`render --surface asphalt`).
+
 The models of the dynamic objects are built with the parameter `Surface` of the processor:
 it keeps their triangles in the model (its `Tag`), as the game cannot read the vertices back
 from the graphics card on Android. The skid marks of the tyres lie on that surface

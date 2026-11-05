@@ -12,7 +12,16 @@ dotnet run --project tools/CatalogRender -- render --out some/folder kea1e
 
 # compares renders of all blocks in content/catalog.json with their catalog images
 dotnet run --project tools/CatalogRender -- check
+
+# the blocks drawn by the renderer of the game, their road as a test surface (asphalt, earth)
+dotnet run --project tools/CatalogRender -- render --out some/folder --surface asphalt a1 b2
 ```
+
+With `--surface` the image is not one of the catalog: the block is drawn by the renderer of the
+game (`SceneRenderer`, the light of a day, without the shadows and the ambient occlusion,
+whose render targets would take the place of the image's), the grey of its road as the
+surface (`SceneRenderer.TestSurface`, see the surfaces in `docs/architecture.md`), with the
+selector over it as usual.
 
 A new block also needs a row in `docs/catalog/catalog.html` (and the row *Turns* when it has
 `"turns": true`: a turned block has no image of its own).

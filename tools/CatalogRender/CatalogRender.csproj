@@ -13,6 +13,16 @@
     <!-- The lighting of the 2016 version, shared with the game and the level editor -->
     <Compile Include="..\..\src\TW3D.Game\Graphics\Lighting.cs" Link="Lighting.cs" />
     <Compile Include="..\..\src\TW3D.Game\Graphics\SkyLook.cs" Link="SkyLook.cs" />
+    <!-- The renderer of the game, for the images of the blocks with a test surface (render with the option surface) -->
+    <Compile Include="..\..\src\TW3D.Game\Graphics\SceneRenderer.cs" Link="SceneRenderer.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\Paint.cs" Link="Paint.cs" />
+    <Compile Include="..\..\src\TW3D.Game\CarColours.cs" Link="CarColours.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\ShadowDetail.cs" Link="ShadowDetail.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\PiGraphics.cs" Link="PiGraphics.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\RenderResolution.cs" Link="RenderResolution.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\Surface.cs" Link="Surface.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceDetail.cs" Link="SurfaceDetail.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceNoise.cs" Link="SurfaceNoise.cs" />
   </ItemGroup>
 
   <ItemGroup>

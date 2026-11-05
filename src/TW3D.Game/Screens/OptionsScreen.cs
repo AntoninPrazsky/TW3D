@@ -85,6 +85,16 @@ namespace TW3D.Screens
                     IsEnabled = () => !settings.Classic && settings.Shadows,
                     IsSwitch = true
                 });
+            //The detail of the surfaces of the blocks, stepped as the shadow detail is. A Raspberry Pi keeps the low one
+            if (SurfaceDetails.CanChoose)
+                AddItem(new MenuItem
+                {
+                    Text = () => "Surface detail: " + SurfaceDetails.Name(settings.SurfaceDetail),
+                    Activate = () => Change(() => settings.SurfaceDetail = SurfaceDetails.Next(settings.SurfaceDetail)),
+                    Adjust = step => Change(() => settings.SurfaceDetail = SurfaceDetails.Step(settings.SurfaceDetail, step)),
+                    IsEnabled = () => !settings.Classic,
+                    IsSwitch = true
+                });
             AddItem(new MenuItem
             {
                 Text = () => "Ambient occlusion: " + (settings.AmbientOcclusion ? "On" : "Off"),

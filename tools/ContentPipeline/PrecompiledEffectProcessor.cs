@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.Xna.Framework.Content.Pipeline;
 using Microsoft.Xna.Framework.Content.Pipeline.Graphics;
 using Microsoft.Xna.Framework.Content.Pipeline.Processors;
@@ -47,6 +49,8 @@ namespace TW3D.ContentPipeline
                     //The effect is built again when the kept code changes
                     context.AddDependency(codeFile);
                     context.AddDependency(stampFile);
+                    foreach (string include in Includes(source))
+                        context.AddDependency(include);
                     context.Logger.Log($"{Path.GetFileName(source)}: the code compiled on Windows ({codeFile})");
                     return new CompiledEffectContent(File.ReadAllBytes(codeFile));
                 }
@@ -80,13 +84,16 @@ namespace TW3D.ContentPipeline
         }
 
         /// <summary>
-        /// What the kept code was compiled from: the source (a SHA-256 of the effect, its line endings LF, as git
-        /// checks it out on Windows with CRLF and elsewhere with LF) and the version of MonoGame (a new version may
-        /// read only the code of its own compiler).
+        /// What the kept code was compiled from: the source (a SHA-256 of the effect and of the files it includes, their
+        /// line endings LF, as git checks them out on Windows with CRLF and elsewhere with LF) and the version of MonoGame
+        /// (a new version may read only the code of its own compiler).
         /// </summary>
         private static string Stamp(string source)
         {
             string text = Normalized(File.ReadAllText(source));
+            //The files it includes follow it, each once, in the order they are first included
+            foreach (string include in Includes(source))
+                text += "\n#include \"" + Path.GetFileName(include) + "\"\n" + Normalized(File.ReadAllText(include));
             string hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(text))).ToLowerInvariant();
             Version version = typeof(EffectProcessor).Assembly.GetName().Version;
             return "The code compiled for DesktopGL in " + Path.GetFileNameWithoutExtension(source) + ".mgfx, by the build on " +
@@ -94,6 +101,31 @@ namespace TW3D.ContentPipeline
                 "Source: " + Path.GetFileName(source) + ", SHA-256 with LF line endings " + hash + "\n" +
                 "MonoGame: " + version + "\n";
         }
+
+        /// <summary>
+        /// The files an effect includes (<c>#include "name"</c>, next to the file that includes it), and the files they
+        /// include, each once, in the order they are first included.
+        /// </summary>
+        private static List<string> Includes(string source)
+        {
+            List<string> includes = new List<string>();
+            AddIncludes(source, includes);
+            return includes;
+        }
+
+        private static void AddIncludes(string file, List<string> includes)
+        {
+            foreach (Match match in IncludePattern.Matches(File.ReadAllText(file)))
+            {
+                string include = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(file), match.Groups[1].Value));
+                if (includes.Contains(include) || !File.Exists(include))
+                    continue;
+                includes.Add(include);
+                AddIncludes(include, includes);
+            }
+        }
+
+        private static readonly Regex IncludePattern = new Regex(@"^[ \t]*#[ \t]*include[ \t]+""([^""]+)""", RegexOptions.Multiline);
 
         private static string Normalized(string text) => text.Replace("\r\n", "\n");
     }

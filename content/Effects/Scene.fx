@@ -9,6 +9,10 @@
 // (Metallic) only mirrors, in its own colour, like chrome. Technique Lit draws all that, technique
 // LitCoarseShadows the same with the coarser filter of the shadows that phones need (see Sunlight).
 //
+// A part whose material names a surface (asphalt, earth) is drawn by a technique of its surface and of the detail of
+// the surfaces, as Lit<Surface><Detail> and LitCoarseShadows<Surface><Detail> (LitAsphaltMedium): the same light, with
+// the colour and the relief of the surface computed per pixel (Surfaces.fxh).
+//
 // Technique Sky draws the sky behind everything, computed from the direction of each pixel (no
 // picture): a smooth ramp from the horizon up, a glow and a disc of the sun (or the moon), stars,
 // clouds on a plane high above (from a noise texture the renderer generates), distant hills along
@@ -137,6 +141,25 @@ float Alpha;                // opacity (1 = opaque; glass is less)
 float Metallic;             // 1 = metal: no diffuse light, mirrors in its own colour
 float Roughness;            // 0 = a perfect mirror, 1 = mirrors nothing (most materials)
 
+// Per model part with a surface (Surfaces.fxh)
+float3 SurfaceOrigin;       // the middle of the cell of the level grid the block is in
+float SurfaceCell;          // the size of a cell
+float4 SurfaceSeedsLow;     // the random values of the lower corners of the cell: (x-, z-), (x+, z-), (x-, z+), (x+, z+)
+float4 SurfaceSeedsHigh;    // the same of the upper corners
+// The noise of the surfaces (Graphics/SurfaceNoise.cs): it tiles, with mipmaps
+texture SurfaceNoise;
+sampler2D SurfaceSampler = sampler_state
+{
+	Texture = <SurfaceNoise>;
+	MinFilter = Linear;
+	MagFilter = Linear;
+	MipFilter = Linear;
+	AddressU = Wrap;
+	AddressV = Wrap;
+};
+
+#include "Surfaces.fxh"
+
 struct VertexInput
 {
 	float4 Position : POSITION0;
@@ -155,6 +178,8 @@ struct VertexOutput
 	float4 Screen : TEXCOORD3;     // position on the screen (clip space)
 	float3 ToCar : TEXCOORD4;
 	float3 DeepShadow : TEXCOORD5; // the same in the deep shadow map
+	float3 Local : TEXCOORD6;      // the position in cells from the middle of the block's cell (a surface, Surfaces.fxh)
+	float4 Plane : TEXCOORD7;      // the coordinates of the lookups of the noise of a surface
 };
 
 // Where a point is in a shadow map seen by the sun: its coordinates in that map and its depth
@@ -179,6 +204,8 @@ VertexOutput MainVS(VertexInput input)
 	output.DeepShadow = ShadowPosition(DeepLightViewProjection, world.xyz + normal * DeepNormalOffset);
 	output.Screen = output.Position;
 	output.ToCar = LightOrigin - world.xyz;
+	// Read only by the techniques of the surfaces
+	SurfaceCoordinates(world.xyz, normal, output.Local, output.Plane);
 	return output;
 }
 
@@ -261,15 +288,28 @@ float3 Mirrored(float3 direction, float roughness)
 	return lerp(ground, sky, smoothstep(-blur, blur, direction.y));
 }
 
-// The lit colour of a pixel, with the shadows filtered smoothly or coarsely (see Sunlight)
-float4 Shade(VertexOutput input, bool smooth)
+// The lit colour of a pixel, with the shadows filtered smoothly or coarsely (see Sunlight), of a surface (or
+// SURFACE_NONE, the plain colour of the material) at a detail; all three are numbers written in the technique
+float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 {
 	float3 normal = normalize(input.Normal);
 	float distance = length(input.ToCamera);
 	float3 view = input.ToCamera / distance;
 
+	// The shadows and the rim by the face, the rest of the light by the relief of its surface (a rim of the relief would
+	// sparkle all over a face seen at a grazing angle)
+	float3 face = normal;
+	float visible = Sunlight(input.Shadow, input.DeepShadow, saturate(dot(face, SunDirection)), smooth);
+	float3 albedo = DiffuseColor;
+	float specular = Specular;
+	if (surface != SURFACE_NONE)
+	{
+		SurfaceLook look = SurfaceOf(SurfaceSampler, surface, detail, DiffuseColor, normal, input.Plane, input.Local);
+		albedo = look.Albedo;
+		normal = look.Normal;
+		specular *= look.Shine;
+	}
 	float facing = saturate(dot(normal, SunDirection));
-	float visible = Sunlight(input.Shadow, input.DeepShadow, facing, smooth);
 
 	// Ambient occlusion darkens the light of the sky and the ground, and a little the sun,
 	// which makes the contact of objects visible in the sun too
@@ -278,9 +318,9 @@ float4 Shade(VertexOutput input, bool smooth)
 	float sunlit = lerp(1.0, visible, ShadowStrength) * lerp(1.0, occlusion, 0.5);
 	float sun = facing * sunlit;
 
-	float highlight = pow(saturate(dot(normal, normalize(SunDirection + view))), 40.0) * Specular * sun;
+	float highlight = pow(saturate(dot(normal, normalize(SunDirection + view))), 40.0) * specular * sun;
 	float3 ambient = lerp(GroundLight, SkyLight, normal.y * 0.5 + 0.5) * occlusion;
-	float rim = pow(1.0 - saturate(dot(normal, view)), 4.0) * occlusion;
+	float rim = pow(1.0 - saturate(dot(face, view)), 4.0) * occlusion;
 
 	// The mirror image of the surroundings, with the sun as a glint, sharper and brighter the smoother
 	// the surface. Metal mirrors all the light in its own colour (blurred if rough), other materials
@@ -288,7 +328,7 @@ float4 Shade(VertexOutput input, bool smooth)
 	// light, its glint takes the place of the highlight.
 	float smoothness = 1.0 - Roughness;
 	float3 reflected = reflect(-view, normal);
-	float3 reflectance = lerp(0.04, DiffuseColor, Metallic);
+	float3 reflectance = lerp(0.04, albedo, Metallic);
 	reflectance += (1.0 - reflectance) * pow(1.0 - saturate(dot(normal, view)), 5.0);
 	float glintPower = exp2(4.0 + smoothness * 7.0);
 	float glint = pow(saturate(dot(reflected, SunDirection)), glintPower) * glintPower * 0.05 * sunlit;
@@ -308,7 +348,7 @@ float4 Shade(VertexOutput input, bool smooth)
 		spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
 	}
 
-	float3 light = DiffuseColor * diffuse * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
+	float3 light = albedo * diffuse * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;
@@ -319,12 +359,12 @@ float4 Shade(VertexOutput input, bool smooth)
 
 float4 MainPS(VertexOutput input) : COLOR0
 {
-	return Shade(input, true);
+	return Shade(input, true, SURFACE_NONE, SURFACE_LOW);
 }
 
 float4 CoarseShadowsPS(VertexOutput input) : COLOR0
 {
-	return Shade(input, false);
+	return Shade(input, false, SURFACE_NONE, SURFACE_LOW);
 }
 
 // The scene lit, with smooth shadows (desktops)
@@ -346,6 +386,15 @@ technique LitCoarseShadows
 		PixelShader = compile PS_SHADERMODEL CoarseShadowsPS();
 	}
 };
+
+// The techniques of the surfaces: Lit<Surface><Detail> with the smooth shadows, LitCoarseShadows<Surface><Detail> with
+// the coarse ones (see Shade)
+#define SURFACE_TECHNIQUE(name, smooth, surface, detail) 	float4 name##PS(VertexOutput input) : COLOR0 	{ 		return Shade(input, smooth, surface, detail); 	} 	technique name 	{ 		pass P0 		{ 			VertexShader = compile VS_SHADERMODEL MainVS(); 			PixelShader = compile PS_SHADERMODEL name##PS(); 		} 	};
+
+#define SURFACE_TECHNIQUES(name, surface) 	SURFACE_TECHNIQUE(Lit##name##Low, true, surface, SURFACE_LOW) 	SURFACE_TECHNIQUE(Lit##name##Medium, true, surface, SURFACE_MEDIUM) 	SURFACE_TECHNIQUE(Lit##name##High, true, surface, SURFACE_HIGH) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##Low, false, surface, SURFACE_LOW) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##Medium, false, surface, SURFACE_MEDIUM) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##High, false, surface, SURFACE_HIGH)
+
+SURFACE_TECHNIQUES(Asphalt, SURFACE_ASPHALT)
+SURFACE_TECHNIQUES(Earth, SURFACE_EARTH)
 
 struct DepthOutput
 {

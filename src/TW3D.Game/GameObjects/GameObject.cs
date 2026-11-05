@@ -51,9 +51,11 @@ namespace TW3D.GameObjects
 
         /// <summary>Adds a model to the scene, at a position and rotation of the physics world.</summary>
         /// <param name="paint">The colours of its painted parts; by default their own.</param>
-        public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, Paint paint = default)
+        /// <param name="block">The model is a block of a level (see <see cref="SceneRenderer.TestSurface"/>).</param>
+        public void DrawModel(SceneRenderer renderer, Model model, Vector3 modelPosition, float modelRotation, bool flip, Paint paint = default,
+            bool block = false)
         {
-            renderer.Add(model, ModelWorld(modelPosition, modelRotation, flip) * Placement, paint);
+            renderer.Add(model, ModelWorld(modelPosition, modelRotation, flip) * Placement, paint, block);
         }
 
         /// <summary>World matrix of a model at a position and rotation of the physics world.</summary>

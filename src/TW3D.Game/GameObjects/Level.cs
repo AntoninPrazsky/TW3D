@@ -241,7 +241,7 @@ namespace TW3D.GameObjects
         private void DrawLayer(SceneRenderer renderer, List<TrackBlock> layer)
         {
             foreach (TrackBlock block in layer)
-                DrawModel(renderer, block.Model, new Vector3(block.Position, block.Depth), 0f, block.Turned);
+                DrawModel(renderer, block.Model, new Vector3(block.Position, block.Depth), 0f, block.Turned, block: true);
         }
     }
 }

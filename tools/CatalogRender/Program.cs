@@ -12,7 +12,9 @@ namespace TW3D.CatalogRender
 {
     /// <summary>
     /// Renders images of track blocks for the block catalog (docs/catalog/bl) the way the 2016 images look:
-    /// the block with the selector of the level editor, in the editor's lighting, on a gray background.
+    /// the block with the selector of the level editor, in the editor's lighting, on a gray background. With a test
+    /// surface (render --surface) the block is drawn by the renderer of the game instead, in its light, the road of the
+    /// classic block as that surface (see SceneRenderer.TestSurface).
     /// </summary>
     internal sealed class CatalogRenderer : Game
     {
@@ -45,6 +47,9 @@ namespace TW3D.CatalogRender
         private readonly GraphicsDeviceManager graphics;
         private RenderTarget2D target;
         private Model selector;
+        private SceneRenderer renderer;
+        //The surface the road of the blocks is drawn as (render --surface); none for the images of the catalog
+        private Surface surface;
 
         public int ExitCode { get; private set; }
 
@@ -79,7 +84,10 @@ namespace TW3D.CatalogRender
             Exit();
         }
 
-        /// <summary>render [--out folder] block...: writes the images of the blocks (by default into the catalog).</summary>
+        /// <summary>
+        /// render [--out folder] [--surface name] block...: writes the images of the blocks (by default into the catalog),
+        /// with a test surface on their road if one is named.
+        /// </summary>
         private void Render()
         {
             string folder = CatalogImages;
@@ -88,11 +96,28 @@ namespace TW3D.CatalogRender
             {
                 if (arguments[i] == "--out" && i + 1 < arguments.Length)
                     folder = arguments[++i];
+                else if (arguments[i] == "--surface" && i + 1 < arguments.Length)
+                {
+                    if (!Enum.TryParse(arguments[++i], true, out surface) || surface == Surface.None)
+                        throw new ArgumentException($"Unknown surface \"{arguments[i]}\": " + string.Join(", ", Enum.GetNames<Surface>().Skip(1)) + ".");
+                }
                 else
                     blocks.Add(arguments[i]);
             }
             if (blocks.Count == 0)
                 throw new ArgumentException("No blocks to render.");
+            if (surface != Surface.None)
+            {
+                //Without the shadows and the ambient occlusion, whose render targets would take the place of the target of the image
+                renderer = new SceneRenderer(GraphicsDevice, Content)
+                {
+                    Shadows = false,
+                    AmbientOcclusion = false,
+                    MayDrawSmaller = false,
+                    SurfaceDetail = SurfaceDetail.High,
+                    TestSurface = surface
+                };
+            }
 
             Directory.CreateDirectory(folder);
             foreach (string block in blocks)
@@ -161,7 +186,17 @@ namespace TW3D.CatalogRender
             {
                 throw new ArgumentException($"Block \"{block}\" has no model (content/Levels/mod/{block}.xnb).");
             }
-            DrawModel(model, view, projection);
+            if (renderer != null)
+            {
+                renderer.Begin(view, projection);
+                renderer.Add(model, Matrix.CreateScale(Units.ModelToScene), block: true);
+                renderer.End();
+                GraphicsDevice.BlendState = BlendState.Opaque;
+                GraphicsDevice.DepthStencilState = DepthStencilState.Default;
+                GraphicsDevice.RasterizerState = RasterizerState.CullCounterClockwise;
+            }
+            else
+                DrawModel(model, view, projection);
             DrawModel(selector, view, projection);
             GraphicsDevice.SetRenderTarget(null);
 
@@ -241,7 +276,7 @@ namespace TW3D.CatalogRender
         {
             if (args.Length == 0 || (args[0] != "render" && args[0] != "check"))
             {
-                Console.WriteLine("Usage: CatalogRender render [--out folder] block...");
+                Console.WriteLine("Usage: CatalogRender render [--out folder] [--surface asphalt|earth] block...");
                 Console.WriteLine("       CatalogRender check");
                 return 2;
             }

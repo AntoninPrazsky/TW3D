@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using TW3D.Shared;
 
 namespace TW3D.Graphics
 {
@@ -39,7 +40,9 @@ namespace TW3D.Graphics
     /// light the scene below them. The lit windows of a building ("windowlit…") shine at night too, evenly, without a
     /// glow, and light nothing: by day they are the glass they are made of. The painted parts of a model (the paint of a
     /// car, the rims of a wheel, see <see cref="PaintPart"/>) are drawn in the colours of the <see cref="Paint"/> the model
-    /// is added with, the colours chosen in the garage.
+    /// is added with, the colours chosen in the garage. A part whose material names a <see cref="Surface"/> ("asphalt…",
+    /// "earth…") is drawn by the technique of its surface at the <see cref="SurfaceDetail"/>, its colour and relief computed
+    /// per pixel from the noise of <see cref="SurfaceNoise"/>, laid on it by the cell of the level grid the model stands in.
     /// </remarks>
     public sealed class SceneRenderer : IDisposable
     {
@@ -70,6 +73,12 @@ namespace TW3D.Graphics
         private const int SkyNoiseSize = 256;
         private static readonly int[] CloudPeriods = { 64, 32, 16, 8 };
         private static readonly Vector2 CloudWind = new Vector2(0.004f, 0.0015f);
+        //The surfaces (see Surface): their noise is laid on a model by the cells of the level grid (scene units)
+        private const float SurfaceCell = Units.GridCell * Units.PhysicsToScene;
+        //The grey of the road of the classic blocks (as their materials have it, sRGB), which TestSurface draws as a
+        //surface, and the colour the test earth has there instead
+        private const float ClassicRoadGrey = 0.22744f;
+        private static readonly Vector3 TestEarthColour = new Vector3(0.38f, 0.3f, 0.22f);
 
         //The shadow map covers the part of the scene the camera sees: the 3D models of the road and of the
         //layers next to it lie between these planes (the front layer and the first back layer are 2.25
@@ -157,6 +166,10 @@ namespace TW3D.Graphics
             public PaintPart Paint;
             /// <summary>The emissive colour of the material as it is (for the classic look, which changes it for lamps).</summary>
             public Vector3 ClassicEmissive;
+            /// <summary>The surface the part is drawn as, named by its material; <see cref="Surface.None"/> for its plain colour.</summary>
+            public Surface Surface;
+            /// <summary>The material is the grey of the road of the classic blocks (see <see cref="TestSurface"/>).</summary>
+            public bool ClassicRoad;
 
             public bool IsTransparent => Alpha < 1f;
         }
@@ -188,16 +201,18 @@ namespace TW3D.Graphics
 
         private readonly struct DrawItem
         {
-            public DrawItem(ModelData model, Matrix world, Paint paint)
+            public DrawItem(ModelData model, Matrix world, Paint paint, bool block)
             {
                 Model = model;
                 World = world;
                 Paint = paint;
+                Block = block;
             }
 
             public ModelData Model { get; }
             public Matrix World { get; }
             public Paint Paint { get; }
+            public bool Block { get; }
         }
 
         private readonly GraphicsDevice device;
@@ -205,6 +220,11 @@ namespace TW3D.Graphics
         private readonly EffectTechnique litTechnique, depthTechnique, normalDepthTechnique;
         private readonly EffectParameter worldParameter, diffuseParameter, emissiveParameter, specularParameter, alphaParameter,
             metallicParameter, roughnessParameter;
+        //The techniques of the surfaces, by the surface and the detail (with the filter of the shadows of litTechnique), the
+        //parameters of the cell of a model drawn as a surface, and the noise the surfaces are drawn from
+        private readonly EffectTechnique[,] surfaceTechniques;
+        private readonly EffectParameter surfaceOriginParameter, surfaceSeedsLowParameter, surfaceSeedsHighParameter;
+        private readonly Texture2D surfaceNoise;
         //The texture of both shadow maps, of the detail it was made for, the sizes of the maps in it, and the sides of the
         //boxes each of them covered in the last frame (see FitLight)
         private RenderTarget2D shadowMap;
@@ -304,6 +324,17 @@ namespace TW3D.Graphics
             alphaParameter = effect.Parameters["Alpha"];
             metallicParameter = effect.Parameters["Metallic"];
             roughnessParameter = effect.Parameters["Roughness"];
+            Surface[] surfaces = Enum.GetValues<Surface>();
+            SurfaceDetail[] details = Enum.GetValues<SurfaceDetail>();
+            surfaceTechniques = new EffectTechnique[surfaces.Length, details.Length];
+            foreach (Surface surface in surfaces)
+                if (surface != Surface.None)
+                    foreach (SurfaceDetail detail in details)
+                        surfaceTechniques[(int)surface, (int)detail] = effect.Techniques[(SmoothShadows ? "Lit" : "LitCoarseShadows") + surface + detail];
+            surfaceOriginParameter = effect.Parameters["SurfaceOrigin"];
+            surfaceSeedsLowParameter = effect.Parameters["SurfaceSeedsLow"];
+            surfaceSeedsHighParameter = effect.Parameters["SurfaceSeedsHigh"];
+            surfaceNoise = CreateSurfaceNoise(device);
 
             glowTexture = CreateGlowTexture(device);
             smokeTexture = CreateSmokeTexture(device);
@@ -394,6 +425,16 @@ namespace TW3D.Graphics
 
         /// <summary>The detail of the shadows: the size of the shadow map (see <see cref="ShadowDetails"/>).</summary>
         public ShadowDetail ShadowDetail { get; set; } = ShadowDetails.Default;
+
+        /// <summary>The detail of the surfaces (see <see cref="Surface"/> and <see cref="SurfaceDetails"/>).</summary>
+        public SurfaceDetail SurfaceDetail { get; set; } = SurfaceDetails.Default;
+
+        /// <summary>
+        /// For development (T while driving): the road of the classic blocks (the parts of the grey of its material, in the
+        /// models added as blocks) drawn as this surface, to try the surfaces out on any level before the blocks have looks
+        /// of their own (#58). <see cref="Surface.None"/> draws them as they are.
+        /// </summary>
+        public Surface TestSurface { get; set; }
 
         /// <summary>
         /// The deep shadow map is drawn while something the camera sees stands deeper than the shadow map reaches (the
@@ -529,9 +570,10 @@ namespace TW3D.Graphics
 
         /// <summary>Adds a model to the scene.</summary>
         /// <param name="paint">The colours of its painted parts (the paint of a car, the rims of a wheel); by default their own.</param>
-        public void Add(Model model, Matrix world, Paint paint = default)
+        /// <param name="block">The model is a block of a level (see <see cref="TestSurface"/>).</param>
+        public void Add(Model model, Matrix world, Paint paint = default, bool block = false)
         {
-            items.Add(new DrawItem(GetModelData(model), world, paint));
+            items.Add(new DrawItem(GetModelData(model), world, paint, block));
         }
 
         /// <summary>The colour of the material of a painted part of a model (the colour it has without a paint); null if it has none.</summary>
@@ -539,7 +581,7 @@ namespace TW3D.Graphics
         {
             foreach (ModelMesh mesh in model.Meshes)
                 foreach (ModelMeshPart part in mesh.MeshParts)
-                    if ((PaintPart)(int)Finish(part).W == paint && part.Effect is BasicEffect material)
+                    if ((PaintPart)(int)Finish(part)[3] == paint && part.Effect is BasicEffect material)
                         return material.DiffuseColor;
             return null;
         }
@@ -677,6 +719,7 @@ namespace TW3D.Graphics
             smokeTexture.Dispose();
             glowTexture.Dispose();
             skyNoise.Dispose();
+            surfaceNoise.Dispose();
             sceneTarget?.Dispose();
             sceneBatch?.Dispose();
             smokeEffect.Dispose();
@@ -924,6 +967,16 @@ namespace TW3D.Graphics
                 pixels[i] = new Color((clouds[i] - least) / (most - least), (float)random.NextDouble(), 0f);
             Texture2D texture = new Texture2D(device, size, size, false, SurfaceFormat.Color);
             texture.SetData(pixels);
+            return texture;
+        }
+
+        /// <summary>The noise of the surfaces (see <see cref="SurfaceNoise"/>), with its mipmaps.</summary>
+        private static Texture2D CreateSurfaceNoise(GraphicsDevice device)
+        {
+            byte[][] levels = SurfaceNoise.Levels;
+            Texture2D texture = new Texture2D(device, SurfaceNoise.Size, SurfaceNoise.Size, true, SurfaceFormat.Color);
+            for (int level = 0; level < Math.Min(levels.Length, texture.LevelCount); level++)
+                texture.SetData(level, null, levels[level], 0, levels[level].Length);
             return texture;
         }
 
@@ -1302,6 +1355,8 @@ namespace TW3D.Graphics
             UpdateOcclusionTargets();
             effect.Parameters["OcclusionStrength"].SetValue(AmbientOcclusion ? 1f : 0f);
             effect.Parameters["OcclusionMap"].SetValue(blurredOcclusionMap);
+            effect.Parameters["SurfaceNoise"].SetValue(surfaceNoise);
+            effect.Parameters["SurfaceCell"].SetValue(SurfaceCell);
             effect.CurrentTechnique = litTechnique;
             EffectPass pass = litTechnique.Passes[0];
 
@@ -1313,7 +1368,7 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                     if (!part.IsTransparent)
-                        DrawLitPart(part, part.Transform * item.World, pass, paint: item.Paint);
+                        DrawLitPart(part, part.Transform * item.World, pass, paint: item.Paint, block: item.Block);
             }
 
             DrawMarks();
@@ -1342,13 +1397,29 @@ namespace TW3D.Graphics
             device.DepthStencilState = DepthStencilState.Default;
         }
 
+        /// <param name="pass">The pass of the plain parts; a part with a surface is drawn by the technique of its surface.</param>
         /// <param name="alpha">A part of its own opacity it is drawn with (the see-through model).</param>
         /// <param name="glow">Light added to its own (the see-through model).</param>
         /// <param name="paint">The colours of the painted parts of its model.</param>
-        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default, Paint paint = default)
+        /// <param name="block">Its model is a block of a level (see <see cref="TestSurface"/>).</param>
+        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default, Paint paint = default,
+            bool block = false)
         {
+            Vector3 diffuse = paint.Of(part.Paint) is Vector3 colour ? ToLinear(colour) : part.Diffuse;
+            Surface surface = part.Surface;
+            if (block && part.ClassicRoad && TestSurface != Surface.None)
+            {
+                surface = TestSurface;
+                if (surface == Surface.Earth)
+                    diffuse = ToLinear(TestEarthColour);
+            }
+            if (surface != Surface.None)
+            {
+                pass = surfaceTechniques[(int)surface, (int)SurfaceDetails.Valid(SurfaceDetail)].Passes[0];
+                SetSurfaceCell(world.Translation);
+            }
             worldParameter.SetValue(world);
-            diffuseParameter.SetValue(paint.Of(part.Paint) is Vector3 colour ? ToLinear(colour) : part.Diffuse);
+            diffuseParameter.SetValue(diffuse);
             emissiveParameter.SetValue((part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp, part.Column) * LampBrightness)) + glow);
             specularParameter.SetValue(part.Specular);
             alphaParameter.SetValue(part.Alpha * alpha);
@@ -1356,6 +1427,21 @@ namespace TW3D.Graphics
             roughnessParameter.SetValue(part.Roughness);
             pass.Apply();
             DrawPart(part.MeshPart);
+        }
+
+        /// <summary>
+        /// Lays the noise of the surfaces on a model by the cell of the level grid it stands in (the nearest to its origin):
+        /// the middle of the cell, and the random values of its corners, which the cells around it share.
+        /// </summary>
+        private void SetSurfaceCell(Vector3 origin)
+        {
+            int x = (int)MathF.Round(origin.X / SurfaceCell), y = (int)MathF.Round(origin.Y / SurfaceCell), z = (int)MathF.Round(origin.Z / SurfaceCell);
+            surfaceOriginParameter.SetValue(new Vector3(x, y, z) * SurfaceCell);
+            //A cell's corners are x and x + 1 (at the lower x and the higher one), the same of y and z
+            surfaceSeedsLowParameter.SetValue(new Vector4(SurfaceNoise.CornerSeed(x, y, z), SurfaceNoise.CornerSeed(x + 1, y, z),
+                SurfaceNoise.CornerSeed(x, y, z + 1), SurfaceNoise.CornerSeed(x + 1, y, z + 1)));
+            surfaceSeedsHighParameter.SetValue(new Vector4(SurfaceNoise.CornerSeed(x, y + 1, z), SurfaceNoise.CornerSeed(x + 1, y + 1, z),
+                SurfaceNoise.CornerSeed(x, y + 1, z + 1), SurfaceNoise.CornerSeed(x + 1, y + 1, z + 1)));
         }
 
         /// <summary>Finds the transparent parts of the visible models and sorts them from the back to the front.</summary>
@@ -1488,7 +1574,8 @@ namespace TW3D.Graphics
                 {
                     BasicEffect material = (BasicEffect)meshPart.Effect;
                     Vector3 specular = material.SpecularColor;
-                    Vector4 finish = Finish(meshPart);
+                    float[] finish = Finish(meshPart);
+                    Vector3 grey = material.DiffuseColor - new Vector3(ClassicRoadGrey);
                     parts.Add(new ModelPart
                     {
                         Transform = transform,
@@ -1501,10 +1588,12 @@ namespace TW3D.Graphics
                         ClassicEmissive = material.EmissiveColor,
                         Specular = (specular.X + specular.Y + specular.Z) / 3f * SpecularStrength,
                         Alpha = material.Alpha,
-                        Metallic = finish.X,
-                        Roughness = finish.Y,
-                        Lamp = (Lamp)(int)finish.Z,
-                        Paint = (PaintPart)(int)finish.W
+                        Metallic = finish[0],
+                        Roughness = finish[1],
+                        Lamp = (Lamp)(int)finish[2],
+                        Paint = (PaintPart)(int)finish[3],
+                        Surface = (Surface)(int)finish[4],
+                        ClassicRoad = MathF.Abs(grey.X) + MathF.Abs(grey.Y) + MathF.Abs(grey.Z) < 0.003f
                     });
                     if (parts[parts.Count - 1].Lamp != Lamp.None && parts[parts.Count - 1].Lamp != Lamp.WindowLit)
                         lamps.Add((parts[parts.Count - 1], meshBounds, material.EmissiveColor));
@@ -1533,14 +1622,16 @@ namespace TW3D.Graphics
 
         /// <summary>
         /// What the content pipeline keeps of the material of a mesh part beyond BasicEffect (tools/ContentPipeline):
-        /// metallic, roughness, the lamp (the number of a <see cref="Lamp"/>: 0 = none, 1 = headlight, 2 = rear light, ...)
-        /// and the painted part (the number of a <see cref="PaintPart"/>). A model built before the paint has three of them.
+        /// metallic, roughness, the lamp (the number of a <see cref="Lamp"/>: 0 = none, 1 = headlight, 2 = rear light, ...),
+        /// the painted part (the number of a <see cref="PaintPart"/>) and the surface (the number of a <see cref="Surface"/>).
+        /// A model built before the surfaces has the first four of them, before the paint the first three.
         /// </summary>
-        private static Vector4 Finish(ModelMeshPart part)
+        private static float[] Finish(ModelMeshPart part)
         {
-            return part.Tag is Vector4 finish ? finish
-                : part.Tag is Vector3 old ? new Vector4(old, 0f)
-                : new Vector4(0f, 1f, 0f, 0f);
+            return part.Tag is float[] finish && finish.Length >= 5 ? finish
+                : part.Tag is Vector4 old ? new[] { old.X, old.Y, old.Z, old.W, 0f }
+                : part.Tag is Vector3 older ? new[] { older.X, older.Y, older.Z, 0f, 0f }
+                : new[] { 0f, 1f, 0f, 0f, 0f };
         }
 
         private static Vector3 ToLinear(Vector3 color)

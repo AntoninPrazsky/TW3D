@@ -13,8 +13,9 @@ namespace TW3D.GamePlay
     /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9, F10, Shift+F10) and the mood of the level (M)
     /// to compare them, the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home), and the
     /// track alone (H: the car and everything over the level hidden, for the previews of the levels in the level
-    /// select), and the car turned onto its roof (U, to try out the Game over on the roof). They change only the level
-    /// being played; the Options menu sets the look for good.
+    /// select), the car turned onto its roof (U, to try out the Game over on the roof) and the road of the blocks drawn as
+    /// a test surface (T: asphalt, earth, as it is; see SceneRenderer.TestSurface). They change only the level being
+    /// played; the Options menu sets the look for good.
     /// </summary>
     sealed class DevelopmentKeys
     {
@@ -84,6 +85,10 @@ namespace TW3D.GamePlay
             //The car onto its roof, to try out how a run on the roof is lost
             if (input.KeyPressed(Keys.U))
                 turnOver();
+
+            //The road of the blocks as each test surface in turn, then as it is
+            if (input.KeyPressed(Keys.T))
+                renderer.TestSurface = (Surface)(((int)renderer.TestSurface + 1) % Enum.GetValues<Surface>().Length);
 
             //The moods of the levels, to try them on any level
             if (input.KeyPressed(Keys.M))

@@ -33,7 +33,7 @@ physics bodies.
 | `Screens/` | Screen stack (`ScreenManager`), the fonts (`GameFonts`; `GameFont`: the font of the menus in several sizes, drawn from the one that fits), the items of a menu and their focus (`MenuItems`) and the logo, background, main menu, level select, garage, about, options, pause and results screens |
 | `GamePlay/` | `GameplayScreen`: one level with the car, physics, camera and debug view, also the test drive of the level editor (the level from memory, from any cell, without the tutorial and the records); `Race`: a run of the level (countdown, time, finish) and `RaceHud`, what it shows on the screen, and `Speedometer`, the dial of the speed in km/h drawn by the code; `CarDrag`: the car dragged by hand; `DevelopmentKeys`: the keys for development; `Tutorial`: the lessons of the tutorial and their state, and `TutorialCard`, its card on the screen; `PhysicsClock`: fixed-step simulation; `RaceScore`: the score and stars of a run |
 | `GameObjects/` | The car, the level (built from a level file, or the level editor's data in a test drive, and `LevelAssets`: the catalog, the models of its blocks, objects and scenery and the collision shapes, loaded once; `SceneryProp` places a prop of the scenery), dynamic objects, the skid marks of the tyres (`SkidMarks`), the smoke of the tyres and the exhaust (`TyreSmoke`, `ExhaustSmoke`, both clouds of `Smoke`) and the 3D garage behind the menus with the 3D logo of the main menu (`GarageScene`) |
-| `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting, shadows and the sky; `Lighting` and `SkyLook`: the moods; `Paint`: the colours the painted parts of a model are drawn in; `SettingsGraphics`: what the settings set up in it), frame rate counter |
+| `Graphics/` | Camera following the car (3D view and debug view), the renderer of the 3D scene (`SceneRenderer`: lighting, shadows and the sky; `Lighting` and `SkyLook`: the moods; `Paint`: the colours the painted parts of a model are drawn in; `Surface`, `SurfaceNoise` and `SurfaceDetail`: the surfaces drawn per pixel; `SettingsGraphics`: what the settings set up in it), frame rate counter |
 | `Input/` | Unified keyboard / mouse / touch / gamepad input (with the device used last) and the on-screen controls |
 | `Audio/` | The sound effects: `Synth` (the arithmetic of tones, noise, filters and reverb), `SoundBakes` (the recipes), `GameSounds` (played by the screens) |
 | `Editor/` | The level editor (`--editor`), left out of the Android build. The document: `EditedLevel` (the level being edited, without MonoGame, every change a command with undo), `LevelReport` and `RoadGap` (its problems and the gaps of its road). The screen: `EditorScreen` (routes the input and draws the parts), `EditorCamera` (the free camera driven by the mouse), `LevelView` (the level drawn without physics), `EditorMarkers` (the cursor, the grid, the finish and the selections drawn over the scene) and `HiddenLayerGuard`. The tools: `BlockTool` (Place), `ObjectTool`, `SelectTool` and `SceneryTool`, with `EditorTool` and `ChosenObject`. The windows: `PaletteWindow`, `InspectorWindow`, `LevelWindow`, `HelpWindow`, `StatusBar`, `EditorMenus` and `InterfaceLayout` (the font, the style and the dock space). The session: `LevelSession` (opens, saves and guards the level), `LevelFolder`, `FileDialogs`, `PendingAction` and `EditorSettings` (the recent levels and the camera), and `TestDriveStart` (hands the level to a `GameplayScreen`). The previews: `BlockPreviews` (the turning 3D images of the palette) and `ModelBounds`. The renderer of ImGui: `ImGuiRenderer` (Dear ImGui drawn by MonoGame, from the `ImGui.NET` package). |
@@ -101,7 +101,40 @@ The 2016 version lit the models by three coloured directional lights of
 `BasicEffect` (F9 switches to it). The level editor draws the level the same way as the
 game (`SceneRenderer` is shared; F9 and F10 work there too, M switches the mood of the
 level, which is saved with it), CatalogRender with the 2016
-lighting, as the catalog images were taken so.
+lighting, as the catalog images were taken so (and with the renderer of the game for the
+images of a test surface, `render --surface`).
+
+### Surfaces
+
+A part of a model whose material names a surface (`asphalt…`, `earth…`, `Graphics/Surface`) gets
+its detail per pixel (#58): its colour varies (patches, the stones of the aggregate, clods,
+pebbles) and its relief tilts the normal, so that it catches the light; its shape, the light and
+the shadows stay those of the scene, and the shadow map, the rim and the ambient occlusion keep
+the normal of the face. The detail is computed, not a picture of a surface: a small texture of
+noise the game computes when it starts (`Graphics/SurfaceNoise`: mottle, the slope of a grain
+and cellular noise of points of many sizes, 256 × 256 texels with their mipmaps, the same every
+time), which the shader composes into a surface (`content/Effects/Surfaces.fxh`, included by
+`Scene.fx`). A texture, not noise computed in the shader as in BS3D, because a phone's pixel
+shader computes in half precision, where hashes fall apart into patterns; a lookup costs
+little on the phone and the Pi, and the mipmaps fade the detail out in the distance instead of
+letting it shimmer (the edges of the stones are softened by the footprint of the pixel, as
+multisampling smooths only the edges of polygons).
+
+The noise is laid on a face by the cell of the level grid the model stands in: the vertex
+shader passes the position from the middle of that cell (`SurfaceOrigin`), in numbers small
+enough for half precision, and the face takes the noise on the plane it is turned to most
+(the top on x and z, the front on x and y, the sides on z and y), once per cell and four times
+per cell (the coarse and the fine lookup). The noise repeats exactly once per cell, so a surface
+joins the surface of the next block without a seam, a turned block included; what varies from
+block to block comes from random values of the corners of the cells (`SurfaceNoise.CornerSeed`),
+which neighbours share, blended across the cell. Each surface has a technique for each detail
+(the Surface detail of Options: Low one lookup and no relief, Medium two, High three) and each
+filter of the shadows, `Lit<Surface><Detail>` and `LitCoarseShadows<Surface><Detail>`, so that
+nothing branches in the pixel shader (Shader Model 3.0 refuses a derivative in a branch).
+
+The two surfaces of today are tests of the machinery, a plain grainy asphalt and a plain earth;
+the looks of the track styles are made in #56 and #57, which also add their surfaces (a kerb,
+grass) as further techniques.
 
 ### The sky
 
