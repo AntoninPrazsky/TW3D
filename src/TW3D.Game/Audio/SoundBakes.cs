@@ -84,7 +84,7 @@ namespace TW3D.Audio
             Sound.EngineLoad => 0.5f,
             Sound.AxleMotor => 0.35f,
             Sound.Skid => 0.45f,
-            Sound.Suspension => 0.45f,
+            Sound.Suspension => 0.225f,
             Sound.AxleLock => 0.55f,
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,

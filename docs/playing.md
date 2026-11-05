@@ -103,8 +103,8 @@ physics units a second (a flat road, a car at rest or pushing against a step mov
 most about 1); it creaks once it has passed its fastest, the louder the faster it was, at its
 loudest from 14 (humps move the springs 1 to 3.5, steps of the stairs and landings 4 to 22),
 and that axle not again for 0.3 s. Even a soft creak plays at 0.6 of its volume, so that the
-engine does not leave only its squeak to be heard; at its loudest it is no louder than the
-engine under the throttle.
+engine does not leave only its squeak to be heard; the owner then had the whole creak halved
+(0.225), so even at its loudest it stays well under the engine under the throttle.
 
 The tyres screech while they slip over what they stand on, the track or an object, faster
 than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or wheels
