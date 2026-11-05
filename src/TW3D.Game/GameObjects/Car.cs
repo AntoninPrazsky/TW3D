@@ -90,11 +90,40 @@ namespace TW3D.GameObjects
         private bool driving;
         private float mostSpinning;
         private double lastUpdate;
+        //Braking ends a launch: the tyres do not spin up as at a launch (LaunchSlip) until the throttle is let go or the
+        //car goes faster than LaunchSpeed
+        private bool launchBraked;
 
         public float acceleration;
 
         public bool brake;
-        private bool braked;
+
+        //The brake works against the turning of each wheel in the world (as the old brake, which held the wheels still,
+        //did), with a torque that builds up over this long after it is pressed (seconds of the physics) to this much at
+        //most: more than any tyre grips, so a hard brake would lock the wheels. The ABS does not let it: a wheel on the
+        //ground turning slower than it would roll by this share of its speed over the ground is about to lock, so its
+        //brake lets go until the tyre nearly rolls again (slips less than this share), then grabs again with this share
+        //of the torque it locked at, building up again by this share a second. The wheels so lock only for a moment, and
+        //brake better than sliding: a tyre slipping more than the ABS lets it grips less, locked only this share of its
+        //grip. Below this speed of the car (physics units a second) the ABS is off, and a wheel the brake has stopped
+        //(turning slower than this, radians a second) is held still until the brake is let go: the car stands on a
+        //slope, and climbs stairs on braked wheels turning the axles, as with the old brake
+        private const float BrakeTorque = 6000f;
+        private const float BrakeBuildTime = 0.25f;
+        private const float AbsLockSlip = 0.2f;
+        private const float AbsRollSlip = 0.1f;
+        private const float AbsRegrab = 0.85f;
+        private const float AbsBuildRate = 1.5f;
+        private const float SlideGrip = 0.8f;
+        private const float AbsSpeed = 6f;
+        private const float HoldTurn = 0.5f;
+        //How far the brake has built up (0 to 1); for each wheel (in the order of the wheels) its brake against the world,
+        //the most of the built up brake the ABS lets it have, whether the ABS has let it go and whether it is held still
+        private float brakePressure;
+        private readonly FrictionJoint[] brakes = new FrictionJoint[WheelCount];
+        private readonly float[] absShare = new float[WheelCount];
+        private readonly bool[] absLetGo = new bool[WheelCount];
+        private readonly bool[] held = new bool[WheelCount];
 
         public bool holderRotation;
         public bool holderRotationDir;
@@ -319,6 +348,15 @@ namespace TW3D.GameObjects
             wheels = new[] { wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF };
             rearSide = WheelsCentre(false, false).Z;
             frontSide = WheelsCentre(true, false).Z;
+
+            //The brakes hold the wheels against the world (a body that does not move), only against turning
+            Body still = world.CreateBody();
+            for (int i = 0; i < wheels.Length; i++)
+            {
+                brakes[i] = new FrictionJoint(still, wheels[i], wheels[i].Position, true) { MaxForce = 0f, MaxTorque = 0f };
+                world.Add(brakes[i]);
+                absShare[i] = 1f;
+            }
         }
 
         /// <summary>
@@ -362,15 +400,16 @@ namespace TW3D.GameObjects
 
         /// <summary>
         /// Whether a wheel stands on something, and how much faster its tyre turns than it would rolling over it (physics
-        /// units a second; less than 0 turning slower).
+        /// units a second; less than 0 turning slower), and how fast the wheel moves over it.
         /// </summary>
-        private bool Spinning(Body wheel, out float spinning)
+        private bool Spinning(Body wheel, out float spinning, out float speed)
         {
             spinning = 0f;
+            speed = 0f;
             if (!Ground(wheel, out Vector2 point, out Body ground, out _))
                 return false;
-            Vector2 over = wheel.LinearVelocity - ground.GetLinearVelocityFromWorldPoint(point);
-            spinning = Math.Abs(wheel.AngularVelocity - ground.AngularVelocity) * WheelRadius - over.Length();
+            speed = (wheel.LinearVelocity - ground.GetLinearVelocityFromWorldPoint(point)).Length();
+            spinning = Math.Abs(wheel.AngularVelocity - ground.AngularVelocity) * WheelRadius - speed;
             return true;
         }
 
@@ -544,22 +583,39 @@ namespace TW3D.GameObjects
                     burnoutLeft = 0f;
             }
             float burnout = MathHelper.Clamp(burnoutLeft / (BurnoutTime * BurnoutFade), 0f, 1f);
+            if (brake)
+                launchBraked = true;
+            else if (!drive || Speed >= LaunchSpeed)
+                launchBraked = false;
 
-            float allowed = GripSlip + LaunchSlip * MathHelper.Clamp(1f - Speed / LaunchSpeed, 0f, 1f);
+            float allowed = GripSlip + (launchBraked ? 0f : LaunchSlip * MathHelper.Clamp(1f - Speed / LaunchSpeed, 0f, 1f));
+            bool abs = Speed >= AbsSpeed;
+            bool standing = false;
+            foreach (Body wheel in wheels)
+                standing |= Ground(wheel, out _, out _, out _);
             mostSpinning = 0f;
             foreach (RevoluteJoint joint in wJoints)
             {
+                //The brake cuts the drive of a wheel (the throttle fades out slowly after it is let go), unless it holds
+                //the wheel still: the motor then turns the axle around it, as with the old brake
                 joint.MotorSpeed = motorSpeed;
-                joint.MotorEnabled = drive;
-                float torque = 1f;
-                if (Spinning(joint.BodyB, out float spinning))
+                joint.MotorEnabled = drive && (!brake || held[Array.IndexOf(wheels, joint.BodyB)]);
+                float torque = 1f, grip = MathHelper.Lerp(1f, BurnoutGrip, burnout);
+                if (Spinning(joint.BodyB, out float spinning, out float speed))
                 {
                     mostSpinning = Math.Max(mostSpinning, spinning);
                     if (burnout <= 0f)
                         torque = MathHelper.Clamp(1f - (spinning - allowed) / SlipFade, 0f, 1f);
+                    if (brake && abs && speed > 0f)
+                        grip *= MathHelper.Lerp(1f, SlideGrip, MathHelper.Clamp((-spinning / speed - AbsLockSlip) / (1f - AbsLockSlip), 0f, 1f));
                 }
+                //A wheel lifted off the ground while the car stands on its others (the front one of a triangle under the
+                //throttle) does not spin up faster either than it could on the ground at the speed of the car: it would
+                //screech and smoke as it touched the ground again, as if the burnout went on
+                else if (burnout <= 0f && standing)
+                    torque = MathHelper.Clamp(1f - (Math.Abs(joint.BodyB.AngularVelocity) * WheelRadius - Speed - allowed) / SlipFade, 0f, 1f);
                 joint.MaxMotorTorque = MotorTorque * torque;
-                Grip(joint.BodyB, MathHelper.Lerp(1f, BurnoutGrip, burnout));
+                Grip(joint.BodyB, grip);
             }
             
             //The axles: turned by the player and stopped when let go, else held against the body, unless they are locked
@@ -582,15 +638,60 @@ namespace TW3D.GameObjects
                 axle.MotorEnabled = holderRotation || !holderRotLockChnage;
             }
 
-            //The brake holds the wheels, the lock the axles
-            if (brake != braked)
-            {
-                foreach (RevoluteJoint joint in wJoints)
-                    SetFixedRotation(joint.BodyB, brake);
-                braked = brake;
-            }
+            Brake(step, abs);
+
+            //The lock holds the axles
             SetFixedRotation(holderB, holderRotLockChnage);
             SetFixedRotation(holderF, holderRotLockChnage);
+        }
+
+        /// <summary>
+        /// The brake (see <see cref="BrakeTorque"/>): builds up while it is pressed, and each wheel gets as much of it as
+        /// its ABS lets it, or is held still once the car is slow and the wheel has stopped.
+        /// </summary>
+        /// <param name="step">Seconds of the physics since the last update.</param>
+        /// <param name="abs">Whether the car goes fast enough for the ABS.</param>
+        private void Brake(float step, bool abs)
+        {
+            brakePressure = brake ? Math.Min(1f, brakePressure + step / BrakeBuildTime) : 0f;
+            for (int i = 0; i < wheels.Length; i++)
+            {
+                Body wheel = wheels[i];
+                if (!brake)
+                {
+                    held[i] = false;
+                    absLetGo[i] = false;
+                    absShare[i] = 1f;
+                }
+                else if (!held[i])
+                {
+                    float share = Math.Min(brakePressure, absShare[i]);
+                    if (!abs)
+                    {
+                        absLetGo[i] = false;
+                        absShare[i] = 1f;
+                        held[i] = Math.Abs(wheel.AngularVelocity) < HoldTurn;
+                    }
+                    //In the air the wheel keeps what the ABS did with it
+                    else if (Spinning(wheel, out float spinning, out float speed) && speed > 0f)
+                    {
+                        float slip = -spinning / speed;
+                        if (absLetGo[i])
+                            absLetGo[i] = slip > AbsRollSlip;
+                        else if (slip >= AbsLockSlip)
+                        {
+                            absLetGo[i] = true;
+                            absShare[i] = share * AbsRegrab;
+                        }
+                        else
+                            absShare[i] = Math.Min(1f, absShare[i] + AbsBuildRate * step);
+                    }
+                }
+                //The brake is held where the wheel is, so the joint has no length (it only works against turning)
+                brakes[i].LocalAnchorA = wheel.Position;
+                brakes[i].MaxTorque = brake && !held[i] && !absLetGo[i] ? BrakeTorque * Math.Min(brakePressure, absShare[i]) : 0f;
+                SetFixedRotation(wheel, held[i]);
+            }
         }
 
         /// <summary>

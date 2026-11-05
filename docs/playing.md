@@ -107,21 +107,41 @@ engine does not leave only its squeak to be heard; the owner then had the whole 
 (0.225), so even at its loudest it stays well under the engine under the throttle.
 
 The tyres screech while they slip over what they stand on, the track or an object, faster
-than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or wheels
-spinning at a launch or landing from a jump; louder and higher the faster they slip. Where they
+than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding (with the ABS only
+short chirps), or wheels spinning at a launch or landing from a jump; louder and higher the
+faster they slip. Where they
 slip, they leave dark skid marks (`GameObjects/SkidMarks.cs`: under the wheels on both sides
 of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
 fading away after 20 seconds), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: big
 soft puffs rising and thinning out, their colour a greyed haze of the level's light). The car
 has traction control: a wheel on the ground spinning faster than it rolls gets less torque, so
-it grips instead of spinning (the motors never hold the wheels back, and wheels in the air
-spin up freely); only at a launch the tyres may spin up for a moment, less the faster the car
-goes. A launch (the throttle pressed with the car standing, not braked) is a burnout: the
-motors spin the wheels with all their torque and the tyres grip little, so the wheels really
-spin, screeching and smoking, while the car creeps; after about a second of spinning they grip
-again and the car shoots off. Letting go of the throttle or braking ends it, and it does not
-come when the wheels do not start spinning within two seconds (the axles turning instead, or
-the car against an obstacle), so it does not get in the way of climbing.
+it grips instead of spinning (the motors never hold the wheels back). A wheel lifted off the
+ground while the car stands on its others, like the front wheel of a triangle under the
+throttle, does not spin up faster than it could on the ground either, so it does not screech
+as it comes down again; only with the whole car in the air the wheels spin up freely. Only at a
+launch the tyres may spin up for a moment, less the faster the car goes. A launch (the throttle
+pressed with the car standing, not braked) is a burnout: the motors spin the wheels with all
+their torque and the tyres grip little, so the wheels really spin, screeching and smoking,
+while the car creeps; after about a second of spinning they grip again and the car shoots off.
+Letting go of the throttle or braking ends it, and it does not come when the wheels do not
+start spinning within two seconds (the axles turning instead, or the car against an obstacle),
+so it does not get in the way of climbing. Braking ends the whole launch: let go of the brake
+with the throttle held, the car pulls away gripping, without spinning its tyres, until the
+throttle is let go or the car is going faster than the launch.
+
+The brake (`Car.Brake`, the `Brake…` and `Abs…` constants) works against the turning of each
+wheel with a torque that builds up over a moment (a sixth of a second of real time) and cuts
+the drive of the wheels it brakes. It is strong enough to lock any wheel, but the car has ABS:
+a wheel on the ground turning a fifth slower than it would roll is about to lock, so its brake
+lets go until the tyre nearly rolls again, then grabs again a little softer than it locked and
+builds up again. So the wheels lock only for a moment, several times a second, the tyres chirp
+and leave dashed skid marks. A locked tyre grips only 0.8 of its grip, a rolling one fully, so
+the ABS brakes better than locked wheels would; in tests on the flat the cars stopped 5–7 %
+slower than with the brake before the ABS (2026-11), which held the wheels still and let the
+tyres slide at their full grip. Below 6 physics units a second (about 5 km/h) the ABS is off: a
+wheel the brake has stopped is then held still until the brake is let go, as before, so the
+car stands on a slope and climbs stairs on braked wheels while the axles turn (the motor of a
+held wheel turns the axle around it).
 
 The axles, the triangles of three wheels, turn against the body (`Car`, the `Axle…`
 constants). Let alone, they hold with a firm torque: the track turns them where it would lift
