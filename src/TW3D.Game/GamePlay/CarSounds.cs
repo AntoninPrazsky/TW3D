@@ -47,6 +47,8 @@ namespace TW3D.GamePlay
         //Null without an audio device
         private readonly SoundEffectInstance idle, load, axles, skid;
         private readonly SpringCreak rearSpring = new SpringCreak(RearCreakPitch), frontSpring = new SpringCreak(FrontCreakPitch);
+        //How long no axle may creak, while one creak plays (seconds): two at once, at their two pitches, sang like a voice
+        private float creakQuiet;
         private float pitch = float.NaN;
         private float throttle;
         private float axlesLevel;
@@ -99,10 +101,9 @@ namespace TW3D.GamePlay
             skidLevel = MathHelper.Lerp(skidLevel, slip > 0f ? MathHelper.Lerp(0.3f, 1f, skidShare) : 0f, fade);
             Set(skid, Sound.Skid, skidLevel, MathHelper.Lerp(-0.2f, 0.2f, skidShare));
 
-            if (rearSpring.Update(car.SpringSpeed(false), elapsed, out float creakVolume, out float creakPitch))
-                sounds.Play(Sound.Suspension, creakPitch, creakVolume);
-            if (frontSpring.Update(car.SpringSpeed(true), elapsed, out creakVolume, out creakPitch))
-                sounds.Play(Sound.Suspension, creakPitch, creakVolume);
+            creakQuiet -= elapsed;
+            Creak(rearSpring, car.SpringSpeed(false), elapsed);
+            Creak(frontSpring, car.SpringSpeed(true), elapsed);
 
             if (lockAxles != locked)
             {
@@ -116,6 +117,16 @@ namespace TW3D.GamePlay
             if (brake && !braked && car.Speed >= BrakeMinSpeed)
                 sounds.Play(Sound.Brake, 0f, MathHelper.Lerp(0.4f, 1f, MathHelper.Clamp((car.Speed - BrakeMinSpeed) / (BrakeFullSpeed - BrakeMinSpeed), 0f, 1f)));
             braked = brake;
+        }
+
+        /// <summary>Follows the spring of an axle and plays its creak, unless another creak still plays.</summary>
+        private void Creak(SpringCreak spring, float speed, float elapsed)
+        {
+            if (spring.Update(speed, elapsed, out float volume, out float creakPitch) && creakQuiet <= 0f)
+            {
+                sounds.Play(Sound.Suspension, creakPitch, volume);
+                creakQuiet = SpringCreak.QuietTime;
+            }
         }
 
         private SoundEffectInstance[] Loops => new[] { idle, load, axles, skid };
