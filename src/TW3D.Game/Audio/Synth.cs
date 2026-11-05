@@ -1,8 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace TW3D.Audio
 {
+    /// <summary>A mode of resonance of a body (see <see cref="Synth.AddResonance"/>).</summary>
+    /// <param name="Hz">The frequency it rings at.</param>
+    /// <param name="Decay">How fast it dies away (1 / seconds).</param>
+    /// <param name="Amplitude">How loud a push of 1 as short as a sample rings it.</param>
+    public readonly record struct Mode(float Hz, float Decay, float Amplitude);
+
     /// <summary>
     /// The arithmetic the sound effects are made of (see <see cref="SoundBakes"/>): tones and noise added into a buffer of
     /// samples, filters, a reverb and the conversion to 16-bit PCM. Mono at <see cref="SampleRate"/>, values -1..1.
@@ -71,6 +78,50 @@ namespace TW3D.Audio
                 z1 = -a1 * y + z2;
                 z2 = b2 * x - a2 * y;
                 signal[first + i] += (float)y * amplitude * Envelope(t, length, attack, decay);
+            }
+        }
+
+        /// <summary>
+        /// Adds a contact into a force (see <see cref="AddResonance"/>): a half sine of force, carrying the same push however
+        /// long it lasts. A long contact is soft (a tyre squashing), a short one hard (steel on steel).
+        /// </summary>
+        /// <param name="start">When the contact starts (seconds).</param>
+        /// <param name="contact">How long it lasts (seconds); at least a sample.</param>
+        /// <param name="push">How much it pushes: a push of 1 as short as a sample rings a mode as loud as its amplitude.</param>
+        public static void AddContact(float[] force, float start, float contact, float push)
+        {
+            int first = (int)(start * SampleRate);
+            int count = Math.Max(1, (int)(contact * SampleRate));
+            float total = 0f;
+            for (int i = 0; i < count; i++)
+                total += MathF.Sin(MathF.PI * (i + 0.5f) / count);
+            for (int i = 0; i < count && first + i < force.Length; i++)
+                force[first + i] += push / total * MathF.Sin(MathF.PI * (i + 0.5f) / count);
+        }
+
+        /// <summary>
+        /// Adds a body ringing from a force (modal synthesis): each mode of the body is a resonator the force drives,
+        /// ringing on and dying away at its own rate. A push as short as a sample rings a mode as loud as its amplitude; a
+        /// longer contact rings the high modes less (its force has little in it faster than itself), which makes a soft hit
+        /// dull and a hard one bright. Modes above the highest frequency the samples hold are left out.
+        /// </summary>
+        public static void AddResonance(float[] signal, float[] force, IEnumerable<Mode> modes)
+        {
+            foreach (Mode mode in modes)
+            {
+                if (mode.Hz <= 0f || mode.Hz >= SampleRate * 0.45f)
+                    continue;
+                //A two-pole resonator: its answer to a single sample of 1 is r^n sin((n + 1) w) / sin w
+                double w = 2.0 * Math.PI * mode.Hz / SampleRate, r = Math.Exp(-mode.Decay / SampleRate);
+                double c1 = 2.0 * r * Math.Cos(w), c2 = -r * r, gain = mode.Amplitude * Math.Sin(w);
+                double y1 = 0.0, y2 = 0.0;
+                for (int i = 0; i < signal.Length && i < force.Length; i++)
+                {
+                    double y = force[i] + c1 * y1 + c2 * y2;
+                    signal[i] += (float)(gain * y);
+                    y2 = y1;
+                    y1 = y;
+                }
             }
         }
 
@@ -166,13 +217,25 @@ namespace TW3D.Audio
         }
 
         /// <summary>A second-order low-pass (Butterworth): what is above the cutoff is rolled off.</summary>
-        /// <param name="loop">The sound is a loop: the filter runs on from its end into its start, so it has no seam.</param>
-        public static void LowPass(float[] signal, float cutoffHz, bool loop = false)
+        public static void LowPass(float[] signal, float cutoffHz)
         {
             double w = 2.0 * Math.PI * cutoffHz / SampleRate, cos = Math.Cos(w), alpha = Math.Sin(w) / (2.0 * 0.70710678);
             double a0 = 1.0 + alpha;
             double b0 = (1.0 - cos) / 2.0 / a0;
-            Filter(signal, b0, (1.0 - cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, loop);
+            Filter(signal, b0, (1.0 - cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, false);
+        }
+
+        /// <summary>
+        /// Drives the sound into a soft clip: scaled to peak at 1, then rounded off by a tanh (peaking at 1 again). Its
+        /// loudest part gains harmonics, which let small speakers that drop a low boom still play its pitch.
+        /// </summary>
+        /// <param name="drive">How hard: about 1 rounds the peaks a little, 3 squashes them.</param>
+        public static void Saturate(float[] signal, float drive)
+        {
+            Normalize(signal, 1f);
+            float scale = 1f / MathF.Tanh(drive);
+            for (int i = 0; i < signal.Length; i++)
+                signal[i] = MathF.Tanh(signal[i] * drive) * scale;
         }
 
         /// <summary>

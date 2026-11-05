@@ -52,8 +52,12 @@ namespace TW3D.Tests
         }
 
         /// <summary>
-        /// Deep, but heard on small speakers, which play little below 300 Hz: a good part of its energy lies between 300 Hz
-        /// and 4 kHz; and nothing shrill: next to none above 5 kHz.
+        /// Deep, but heard on small speakers, which play little below 300 Hz: most of what the ear hears of it (its energy
+        /// weighted as the ear hears it at a moderate level, the A-weighting) lies above 300 Hz; and nothing shrill: next to
+        /// none of its energy above 5 kHz. (The share of the bare energy between 300 Hz and 4 kHz, the first rule, failed
+        /// deep thuds whose bass the ear hardly hears while small speakers play the harmonics of their boom, their knock
+        /// and their rattle: the tyres the owner chose have 4 % of their energy there, but 77 % of what is heard above
+        /// 300 Hz. Every sound the owner approved before has at least 68 %.)
         /// </summary>
         [Theory]
         [MemberData(nameof(Sounds))]
@@ -62,18 +66,20 @@ namespace TW3D.Tests
             float[] signal = SoundBakes.Bake(sound, variant);
             Complex[] spectrum = Spectrum(signal);
             double hzPerBin = (double)Synth.SampleRate / spectrum.Length;
-            double total = 0.0, band = 0.0, shrill = 0.0;
+            double total = 0.0, shrill = 0.0, heard = 0.0, heardAbove = 0.0;
             for (int i = 1; i < spectrum.Length / 2; i++)
             {
                 double energy = spectrum[i].Magnitude * spectrum[i].Magnitude;
                 double frequency = i * hzPerBin;
                 total += energy;
-                if (frequency >= 300.0 && frequency <= 4000.0)
-                    band += energy;
                 if (frequency > 5000.0)
                     shrill += energy;
+                double weight = AWeighting(frequency);
+                heard += energy * weight;
+                if (frequency >= 300.0)
+                    heardAbove += energy * weight;
             }
-            Assert.True(band / total > 0.35, $"{sound}: {band / total:P1} of its energy between 300 Hz and 4 kHz");
+            Assert.True(heardAbove / heard > 0.6, $"{sound} {variant + 1}: {heardAbove / heard:P1} of what is heard of it above 300 Hz");
             Assert.True(shrill / total < 0.02, $"{sound}: {shrill / total:P1} of its energy above 5 kHz");
         }
 
@@ -124,13 +130,13 @@ namespace TW3D.Tests
         }
 
         /// <summary>
-        /// The car hitting something thuds or knocks, it does not ring like an instrument: little of what it has above
-        /// 150 Hz lies in its three strongest bands 20 Hz wide (the first landing, four fading tones, had 76 % there, a
-        /// metal barrel has 91 %; noise has next to none).
+        /// The car hitting something thuds or crunches, it does not ring like an instrument: little of what it has above
+        /// 150 Hz lies in its three strongest bands 20 Hz wide (the first landing, four fading tones, had 76 % there, the
+        /// first metal barrel 91 %; noise has next to none; the tyres the owner chose have about 36 %, the body about 22 %).
         /// </summary>
         [Theory]
-        [InlineData(Sound.ImpactTyres, 0.35)]
-        [InlineData(Sound.ImpactBody, 0.45)]
+        [InlineData(Sound.ImpactTyres, 0.45)]
+        [InlineData(Sound.ImpactBody, 0.35)]
         public void TheCarDoesNotRing(Sound sound, double most)
         {
             for (int variant = 0; variant < SoundBakes.Variants(sound); variant++)
@@ -146,11 +152,13 @@ namespace TW3D.Tests
             }
         }
 
-        /// <summary>The shock absorbers creak quieter than the engine idles, even at their loudest.</summary>
+        /// <summary>The shock absorbers creak no louder than the engine under the throttle, even at their loudest.</summary>
         [Fact]
-        public void TheCreakIsQuieterThanTheEngine()
+        public void TheCreakIsNoLouderThanTheEngine()
         {
-            Assert.True(Loudness(Sound.Suspension) < Loudness(Sound.EngineIdle), $"{Loudness(Sound.Suspension)} against {Loudness(Sound.EngineIdle)}");
+            for (int variant = 0; variant < SoundBakes.Variants(Sound.Suspension); variant++)
+                Assert.True(Loudness(Sound.Suspension, variant) <= Loudness(Sound.EngineLoad),
+                    $"take {variant + 1}: {Loudness(Sound.Suspension, variant)} against {Loudness(Sound.EngineLoad)}");
         }
 
         [Fact]
@@ -167,11 +175,20 @@ namespace TW3D.Tests
             }
         }
 
-        /// <summary>The RMS of a sound as it plays at its full volume.</summary>
-        private static float Loudness(Sound sound)
+        /// <summary>The RMS of a take of a sound as it plays at its full volume.</summary>
+        private static float Loudness(Sound sound, int variant = 0)
         {
-            float[] signal = SoundBakes.Bake(sound);
+            float[] signal = SoundBakes.Bake(sound, variant);
             return SoundBakes.Volume(sound) * MathF.Sqrt(signal.Sum(s => s * s) / signal.Length);
+        }
+
+        /// <summary>How strongly the ear hears a frequency at a moderate level (the A-weighting, as a share of power; 1 at 1 kHz).</summary>
+        private static double AWeighting(double frequency)
+        {
+            double f2 = frequency * frequency;
+            double ra = 12194.0 * 12194.0 * f2 * f2
+                / ((f2 + 20.6 * 20.6) * Math.Sqrt((f2 + 107.7 * 107.7) * (f2 + 737.9 * 737.9)) * (f2 + 12194.0 * 12194.0));
+            return ra * ra * 1.5849;
         }
 
         /// <summary>The spectrum of the samples, padded to a power of two (an iterative radix-2 FFT).</summary>

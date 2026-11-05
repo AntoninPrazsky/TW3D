@@ -84,7 +84,7 @@ level fits the catalog, has a finish and a preview and is written as `LevelFile`
 it; every model of the catalog exists and is built, and the physics has its collision
 shape), the score of a run, the rules of the tutorial and the sound effects (each peaks at 0.9,
 ends quietly, is heard on small speakers and is not shrill; the car thuds rather than rings, and
-its shock absorbers creak only when their springs move fast). The files of the game it tests
+its shock absorbers creak once for each fast stroke of their springs). The files of the game it tests
 are compiled into it, as they have no MonoGame in them.
 
 Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in

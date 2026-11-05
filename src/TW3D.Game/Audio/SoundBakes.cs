@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace TW3D.Audio
 {
@@ -30,7 +32,7 @@ namespace TW3D.Audio
         AxleMotor,
         /// <summary>The tyres screeching (a loop) while the braked wheels slide.</summary>
         Skid,
-        /// <summary>The shock absorbers creaking (a loop) while the spring of an axle moves fast; one plays for each axle.</summary>
+        /// <summary>The shock absorbers of an axle creaking as its spring moves fast, once for each stroke.</summary>
         Suspension,
         /// <summary>The axles locked (and, higher and softer, unlocked).</summary>
         AxleLock,
@@ -82,7 +84,7 @@ namespace TW3D.Audio
             Sound.EngineLoad => 0.5f,
             Sound.AxleMotor => 0.35f,
             Sound.Skid => 0.45f,
-            Sound.Suspension => 0.45f,
+            Sound.Suspension => 0.34f,
             Sound.AxleLock => 0.55f,
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,
@@ -94,13 +96,15 @@ namespace TW3D.Audio
         };
 
         /// <summary>The sound loops (played on and on, its pitch and volume changed as it plays).</summary>
-        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid or Sound.Suspension;
+        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid;
 
         /// <summary>
-        /// How many takes of a sound are baked, each with its own noise and a little higher or lower; one of them plays at
-        /// random, so a run up the stairs does not repeat one sample step after step.
+        /// How many takes of a sound are baked, each struck at another spot (the modes of its body as loud as there) and a
+        /// little higher or lower; one of them plays at random, so a run up the stairs does not repeat one sample step after
+        /// step.
         /// </summary>
-        public static int Variants(Sound sound) => sound is Sound.ImpactTyres or Sound.ImpactBody ? 4 : 1;
+        public static int Variants(Sound sound) =>
+            sound is Sound.ImpactTyres or Sound.ImpactBody or Sound.ImpactMetal or Sound.ImpactPlastic or Sound.Suspension ? 4 : 1;
 
         /// <summary>
         /// How far (octaves) a sound's pitch may be nudged at random: the noises and the knocks, so no two sound the same;
@@ -111,6 +115,7 @@ namespace TW3D.Audio
             Sound.GarageSwitch or Sound.AxleLock => 0.03f,
             Sound.Brake => 0.05f,
             Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactTyres or Sound.ImpactBody => 0.08f,
+            Sound.Suspension => 0.05f,
             _ => 0f
         };
 
@@ -136,12 +141,12 @@ namespace TW3D.Audio
                 Sound.EngineLoad => Engine(load: true),
                 Sound.AxleMotor => AxleMotor(),
                 Sound.Skid => Skid(),
-                Sound.Suspension => Suspension(),
+                Sound.Suspension => Suspension(variant),
                 Sound.AxleLock => AxleLock(),
                 Sound.Brake => Brake(),
-                Sound.ImpactMetal => ImpactMetal(),
+                Sound.ImpactMetal => ImpactMetal(variant),
                 Sound.ImpactWood => ImpactWood(),
-                Sound.ImpactPlastic => ImpactPlastic(),
+                Sound.ImpactPlastic => ImpactPlastic(variant),
                 Sound.ImpactTyres => ImpactTyres(variant),
                 Sound.ImpactBody => ImpactBody(variant),
                 _ => throw new ArgumentOutOfRangeException(nameof(sound))
@@ -344,44 +349,46 @@ namespace TW3D.Audio
         }
 
         /// <summary>
-        /// The shock absorbers creaking: a rubber bush sticking and slipping, a train of small ticks at a rate wandering
-        /// between about 30 and 80 a second, each ringing three resonances of the strut for a moment (a croak, not a
-        /// whistle), and a breath of the oil. A loop (see <see cref="LoopLength"/>): the wandering adds up to a whole
-        /// number of ticks, and the resonances ring on from its end into its start. Played louder and faster the faster
-        /// the spring moves, so each stroke starts the creak at another place of the loop.
+        /// The shock absorbers creaking at a stroke of the spring, high like the springs of an old car: a bush sticking and
+        /// slipping. Every slip knocks the strut (a click ringing a few of its resonances, high in the middle), and the slips
+        /// come at a rate that glides as the stroke goes, a few hundred a second, so they run into a squeaky tone with a
+        /// rasp: each slip comes a little early or late and knocks a little harder or softer. Louder after a longer stick
+        /// (a slower rate). Each take glides its own way: up and back a little, high and clean, up and down (eek-ook),
+        /// and rough. (The first version, random clicks under noise, crackled like a radio off its station; of the second,
+        /// the owner wanted something between a buzzing creak and a clean squeak, higher.)
         /// </summary>
-        private static float[] Suspension()
+        private static float[] Suspension(int variant)
         {
-            float[] ticks = Synth.Buffer(LoopLength);
-            double phase = 0.0;
-            int tick = 0;
-            for (int i = 0; i < ticks.Length; i++)
+            //The rate of the slips at the start, in the middle and at the end (a second), how far each slip is early or
+            //late and how much harder or softer it knocks (shares), the resonances and the length
+            (float from, float middle, float to, float jitter, float rasp, Mode[] modes, float length) = variant switch
             {
-                float t = (float)i / Synth.SampleRate;
-                float rate = 55f + 14f * MathF.Sin(2f * MathF.PI * 2f * t + 0.3f) + 8f * MathF.Sin(2f * MathF.PI * 5f * t + 1.9f)
-                    + 4f * MathF.Sin(2f * MathF.PI * 11f * t + 0.7f);
-                phase += rate / Synth.SampleRate;
+                1 => (250f, 420f, 340f, 0.015f, 0.1f, new[] { new Mode(1300f, 40f, 1f), new Mode(2000f, 55f, 0.6f), new Mode(2900f, 90f, 0.3f) }, 0.38f),
+                2 => (220f, 400f, 200f, 0.025f, 0.15f, new[] { new Mode(900f, 45f, 0.8f), new Mode(1500f, 50f, 1f), new Mode(2300f, 80f, 0.4f) }, 0.42f),
+                3 => (300f, 380f, 340f, 0.03f, 0.25f, new[] { new Mode(1200f, 50f, 1f), new Mode(1800f, 60f, 0.8f), new Mode(2600f, 90f, 0.35f) }, 0.36f),
+                _ => (180f, 320f, 260f, 0.02f, 0.1f, new[] { new Mode(1100f, 45f, 1f), new Mode(1700f, 60f, 0.7f), new Mode(2500f, 90f, 0.35f) }, 0.4f)
+            };
+            float[] force = Synth.Buffer(length);
+            double phase = 0.0;
+            int slip = 0;
+            for (int i = 0; i < force.Length; i++)
+            {
+                float t = (float)i / Synth.SampleRate, along = t / length;
+                float rate = along < 0.5f ? from + (middle - from) * along * 2f : middle + (to - middle) * (along - 0.5f) * 2f;
+                phase += rate * (1f + jitter * Synth.Noise(slip, 71)) / Synth.SampleRate;
                 if (phase >= 1.0)
                 {
                     phase -= 1.0;
-                    ticks[i] = 0.55f + 0.45f * Synth.Noise(tick++, 31);
+                    //The creak swells in and dies away with the stroke
+                    float swell = Math.Min(1f, t / 0.04f) * Math.Min(1f, (length - t) / 0.12f);
+                    force[i] += swell * MathF.Sqrt(100f / rate) * (1f + rasp * Synth.Noise(slip, 72));
+                    slip++;
                 }
             }
-
-            float[] signal = Synth.Buffer(LoopLength);
-            foreach ((float hz, float q, float gain) in new[] { (210f, 3f, 0.5f), (640f, 9f, 1f), (1150f, 12f, 0.8f), (1900f, 8f, 0.35f) })
-            {
-                float[] ring = (float[])ticks.Clone();
-                Synth.BandPass(ring, hz, q, loop: true);
-                //A tick rings the softer the narrower and the lower the band: each resonance as loud as its gain says
-                for (int i = 0; i < signal.Length; i++)
-                    signal[i] += ring[i] * gain * q * 1000f / hz;
-            }
-            Synth.Normalize(signal, 1f);
-            float[] oil = Synth.LoopNoise(signal.Length, 500f, 0.9f, seed: 32);
-            for (int i = 0; i < signal.Length; i++)
-                signal[i] += oil[i] * 0.05f;
-            Synth.LowPass(signal, 3500f, loop: true);
+            float[] signal = Synth.Buffer(length);
+            Synth.AddResonance(signal, force, modes);
+            Synth.LowPass(signal, 4000f);
+            Synth.FadeOut(signal, 0.03f);
             return signal;
         }
 
@@ -423,23 +430,6 @@ namespace TW3D.Audio
             return signal;
         }
 
-        /// <summary>Metal hit: a hollow bonk (the uneven partials of a drum or a box of steel), its weight and the hit.</summary>
-        private static float[] ImpactMetal()
-        {
-            float[] signal = Synth.Buffer(1f);
-            const float body = 300f;
-            Synth.AddTone(signal, 0f, 0.9f, body, body * 0.98f, 0.6f, 0.001f, 7f, 1f, 0.3f);
-            Synth.AddTone(signal, 0f, 0.7f, body * 2.32f, body * 2.3f, 0.35f, 0.001f, 10f, 1f);
-            Synth.AddTone(signal, 0f, 0.5f, body * 3.9f, body * 3.88f, 0.18f, 0.001f, 16f, 1f);
-            Synth.AddTone(signal, 0f, 0.3f, body * 5.4f, body * 5.38f, 0.08f, 0.0005f, 24f, 1f);
-            Synth.AddTone(signal, 0f, 0.25f, body / 2f, body / 2.3f, 0.45f, 0.002f, 18f, 1f);
-            Synth.AddNoise(signal, 0f, 0.015f, 1f, 0.0005f, 300f, 900f, 900f, 1.2f, seed: 8);
-            Synth.LowPass(signal, 3000f);
-            Synth.Reverb(signal, 0.4f, 0.15f, 0.4f);
-            Synth.FadeOut(signal, 0.1f);
-            return signal;
-        }
-
         /// <summary>Wood hit: the knock of a crate, two resonances of its boards and its weight.</summary>
         private static float[] ImpactWood()
         {
@@ -453,23 +443,7 @@ namespace TW3D.Audio
             return signal;
         }
 
-        /// <summary>
-        /// Plastic hit: the dull bomp of a hollow plastic barrel, its air booming briefly and the slap of its wall; no
-        /// ringing, plastic does not ring.
-        /// </summary>
-        private static float[] ImpactPlastic()
-        {
-            float[] signal = Synth.Buffer(0.35f);
-            Synth.AddTone(signal, 0f, 0.3f, 250f, 215f, 0.6f, 0.002f, 26f, 1f, 0.6f, 0.25f);
-            Synth.AddTone(signal, 0f, 0.2f, 540f, 500f, 0.35f, 0.001f, 40f, 1f);
-            Synth.AddTone(signal, 0f, 0.25f, 125f, 110f, 0.2f, 0.003f, 20f, 1f);
-            Synth.AddNoise(signal, 0f, 0.02f, 0.9f, 0.001f, 150f, 800f, 650f, 1f, seed: 13);
-            Synth.LowPass(signal, 2500f);
-            Synth.FadeOut(signal, 0.05f);
-            return signal;
-        }
-
-        /// <summary>How much higher or lower each variant of a sound is tuned (see <see cref="Variants"/>).</summary>
+        /// <summary>How much higher or lower each take of a sound is tuned (see <see cref="Variants"/>).</summary>
         private static float Tune(int variant) => variant switch
         {
             1 => 0.94f,
@@ -479,47 +453,133 @@ namespace TW3D.Audio
         };
 
         /// <summary>
-        /// The tyres landing or hitting: a soft, deep thud of rubber, over in a tenth of a second and never ringing (the
-        /// first version, four fading tones, rang like a drum or a piece of metal): the thump of the car's weight on the
-        /// tyres (a low tone falling as they squash), the dull knock of the suspension taking it (noise in a low band), the
-        /// tread slapping the road (a burst of brighter noise) and a loose part of the frame rattling once or twice after
-        /// it. Each variant has its own noise and is tuned a little higher or lower.
+        /// The modes of a body (see <see cref="Synth.AddResonance"/>): this many, spread between two frequencies as the modes
+        /// of a plate or a shell lie (evenly, each a little off its place), the higher ones softer by the tilt (amplitude
+        /// falling as frequency^-tilt) and dying faster. The seed picks where each lies and how loud it is, as another spot
+        /// of the same body struck would. Many modes close together and out of tune with each other sound like a thing; a
+        /// few far apart, like an instrument.
+        /// </summary>
+        /// <param name="decay">How fast the lowest of them dies away (1 / seconds).</param>
+        /// <param name="decayPerKhz">How much faster each kilohertz higher dies away.</param>
+        private static Mode[] Modes(int count, float lowHz, float highHz, float decay, float decayPerKhz, float tilt, int seed)
+        {
+            Mode[] modes = new Mode[count];
+            for (int k = 0; k < count; k++)
+            {
+                float hz = lowHz + (highHz - lowHz) * (k + 0.5f + 0.45f * Synth.Noise(k, seed)) / count;
+                float loudness = (0.6f + 0.4f * Synth.Noise(k, seed + 1)) * MathF.Pow(hz / lowHz, -tilt);
+                float dying = (decay + decayPerKhz * (hz - lowHz) / 1000f) * (1f + 0.15f * Synth.Noise(k, seed + 2));
+                modes[k] = new Mode(hz, dying, loudness);
+            }
+            return modes;
+        }
+
+        /// <summary>A few modes given one by one (frequency, decay, amplitude), tuned by a take's tuning.</summary>
+        private static Mode[] Tuned(float tune, params (float Hz, float Decay, float Amplitude)[] modes)
+        {
+            Mode[] tuned = new Mode[modes.Length];
+            for (int i = 0; i < modes.Length; i++)
+                tuned[i] = new Mode(modes[i].Hz * tune, modes[i].Decay, modes[i].Amplitude);
+            return tuned;
+        }
+
+        /// <summary>Adds a body struck once: a contact (see <see cref="Synth.AddContact"/>) ringing its modes.</summary>
+        private static void Strike(float[] signal, float start, float contact, float push, IEnumerable<Mode> modes)
+        {
+            float[] force = Synth.Buffer(signal.Length / (float)Synth.SampleRate);
+            Synth.AddContact(force, start, contact, push);
+            Synth.AddResonance(signal, force, modes);
+        }
+
+        /// <summary>
+        /// The tyres landing or hitting something: a soft, deep thud. The tyres squash for a while (a long, soft contact),
+        /// which booms the car on them and the air in them (their lowest modes; driven a little, so that the boom gains
+        /// the harmonics small speakers play) and hardly rings anything higher; the rubber whumps (low noise swelling and
+        /// dying smoothly); a moment later the suspension takes the blow and knocks the frame dully (a contact ringing
+        /// many heavily damped modes in the low middle), and a loose part rattles twice. All of it is muffled above
+        /// 1.2 kHz. (The first version, four fading tones, rang like a drum; the second, bursts of noise with sharp edges,
+        /// cracked like wood being split. Of the candidates of the third, the owner found this one the closest.)
         /// </summary>
         private static float[] ImpactTyres(int variant)
         {
-            float[] signal = Synth.Buffer(0.35f);
+            float[] signal = Synth.Buffer(0.4f);
             float tune = Tune(variant);
-            int seed = 40 + variant * 8;
-            Synth.AddTone(signal, 0f, 0.22f, 110f * tune, 55f * tune, 0.5f, 0.004f, 24f, 1f, 0.45f, 0.15f);
-            Synth.AddNoise(signal, 0f, 0.16f, 4.5f, 0.002f, 30f, 400f * tune, 230f * tune, 1.1f, seed);
-            Synth.AddNoise(signal, 0f, 0.05f, 2.5f, 0.0006f, 80f, 1000f * tune, 650f * tune, 0.8f, seed + 1);
-            float rattle = 0.045f + 0.012f * variant;
-            Synth.AddNoise(signal, rattle, 0.03f, 1.2f, 0.0004f, 140f, 1900f * tune, 1700f * tune, 3f, seed + 2);
-            Synth.AddNoise(signal, rattle + 0.035f, 0.025f, 0.7f, 0.0004f, 160f, 2300f * tune, 2100f * tune, 3f, seed + 3);
-            Synth.LowPass(signal, 2800f);
+            int seed = 41 + variant * 8;
+            Strike(signal, 0f, 0.01f, 1f, Tuned(tune, (75f, 24f, 1f), (110f, 30f, 0.6f), (160f, 38f, 0.35f), (225f, 45f, 0.5f)));
+            Synth.Saturate(signal, 1.2f);
+            Synth.AddNoise(signal, 0f, 0.12f, 3.5f, 0.006f, 40f, 300f * tune, 180f * tune, 0.7f, seed);
+            Strike(signal, 0.012f + 0.003f * variant, 0.004f, 0.15f, Modes(30, 180f * tune, 600f * tune, 110f, 60f, 0.3f, seed + 2));
+            float[] rattle = Synth.Buffer(0.4f);
+            Synth.AddContact(rattle, 0.06f + 0.01f * variant, 0.0006f, 0.06f);
+            Synth.AddContact(rattle, 0.115f + 0.007f * variant, 0.0006f, 0.045f);
+            Synth.AddResonance(signal, rattle, Modes(10, 1200f * tune, 3000f * tune, 120f, 30f, 0.2f, seed + 6));
+            Synth.LowPass(signal, 1200f);
             Synth.FadeOut(signal, 0.05f);
             return signal;
         }
 
         /// <summary>
-        /// The body of the car hitting the track or an object: a harder knock than the tyres, with a little of the clank of
-        /// its steel frame, but short (far less ringing than a barrel of steel): a low knock, three uneven partials of the
-        /// frame dying in a few hundredths of a second, the crunch of the hit (a burst of noise) and the frame scraping for
-        /// a moment. Each variant has its own noise and is tuned a little higher or lower.
+        /// The body of the car hitting the track or an object: a crunch, harder than the tyres. The steel frame lands (a
+        /// short contact booming its heavy low modes), a sharper contact crunches many damped modes of the frame and the
+        /// sheet metal at once (close together and out of tune with each other, so it clanks like a car, not a bell), and
+        /// the frame scrapes over the road for a moment (noise in a band, grainy). (The second version, three partials,
+        /// sounded like a bamboo stick hitting a plastic bucket; the owner chose this one of three candidates.)
         /// </summary>
         private static float[] ImpactBody(int variant)
         {
-            float[] signal = Synth.Buffer(0.4f);
+            float[] signal = Synth.Buffer(0.45f);
             float tune = Tune(variant);
-            int seed = 80 + variant * 8;
-            Synth.AddTone(signal, 0f, 0.2f, 150f * tune, 115f * tune, 0.6f, 0.002f, 30f, 1f, 0.4f);
-            Synth.AddTone(signal, 0f, 0.15f, 480f * tune, 470f * tune, 0.35f, 0.0008f, 40f, 1f);
-            Synth.AddTone(signal, 0f, 0.1f, 1170f * tune, 1160f * tune, 0.18f, 0.0005f, 60f, 1f);
-            Synth.AddTone(signal, 0f, 0.08f, 1930f * tune, 1920f * tune, 0.08f, 0.0005f, 80f, 1f);
-            Synth.AddNoise(signal, 0f, 0.05f, 3f, 0.0005f, 70f, 1500f * tune, 900f * tune, 0.8f, seed);
-            Synth.AddNoise(signal, 0.01f, 0.25f, 0.8f, 0.01f, 14f, 800f * tune, 600f * tune, 1.2f, seed + 1);
-            Synth.LowPass(signal, 3200f);
+            int seed = 85 + variant * 8;
+            Strike(signal, 0f, 0.004f, 1f, Tuned(tune, (90f, 45f, 1f), (140f, 50f, 0.7f), (210f, 55f, 0.5f)));
+            Strike(signal, 0f, 0.001f, 0.6f, Modes(60, 250f * tune, 2500f * tune, 60f, 40f, 0.3f, seed));
+            float[] scrape = Synth.Buffer(0.45f);
+            Synth.AddNoise(scrape, 0.01f, 0.16f, 2f, 0.005f, 18f, 900f * tune, 700f * tune, 0.8f, seed + 1);
+            for (int i = 0; i < scrape.Length; i++)
+                signal[i] += scrape[i] * (0.35f + 0.65f * MathF.Abs(Synth.Noise(i / 110, seed + 2)));
+            Synth.LowPass(signal, 4500f);
             Synth.FadeOut(signal, 0.06f);
+            return signal;
+        }
+
+        /// <summary>
+        /// Metal hit (barrels, containers, ramps): a steel drum hitting the ground and bouncing twice quickly, clang-a-lang.
+        /// Each hard, short contact rings many modes close together and out of tune with each other (a few stronger low
+        /// ones give the body of the hollow drum), the higher dying faster, and the mass of the thing thumps the ground.
+        /// The takes bounce a little differently, one only once. Heavier things play it lower (see ImpactSounds). (The
+        /// first version, five partials, sounded like a musical instrument; the owner chose this one of three candidates.)
+        /// </summary>
+        private static float[] ImpactMetal(int variant)
+        {
+            float[] signal = Synth.Buffer(0.9f);
+            float tune = Tune(variant);
+            int seed = 127 + variant * 8;
+            float bounce = 0.045f + variant switch { 1 => -0.007f, 2 => 0.007f, 3 => -0.003f, _ => 0f };
+            float[] force = Synth.Buffer(0.9f);
+            Synth.AddContact(force, 0f, 0.0008f, 1f);
+            Synth.AddContact(force, bounce, 0.0008f, 0.45f);
+            if (variant != 3)
+                Synth.AddContact(force, bounce + 0.04f, 0.0008f, 0.2f);
+            Synth.AddResonance(signal, force, Tuned(tune, (170f, 16f, 0.8f), (247f, 18f, 0.6f), (318f, 20f, 0.5f)));
+            Synth.AddResonance(signal, force, Modes(48, 360f * tune, 4500f * tune, 18f, 14f, 0.5f, seed));
+            Strike(signal, 0f, 0.005f, 0.8f, Tuned(tune, (72f, 30f, 1f), (108f, 36f, 0.6f)));
+            Synth.LowPass(signal, 4500f);
+            Synth.FadeOut(signal, 0.12f);
+            return signal;
+        }
+
+        /// <summary>
+        /// Plastic hit (the barrels): a knock of a hollow plastic drum, brighter than its boom. A fairly hard contact rings
+        /// the wall's many modes, which die away almost at once (plastic does not ring), over one low mode of the air
+        /// inside. Nothing glides (gliding tones creaked like a chair in the first version); the owner chose this one of
+        /// three candidates.
+        /// </summary>
+        private static float[] ImpactPlastic(int variant)
+        {
+            float[] signal = Synth.Buffer(0.35f);
+            float tune = Tune(variant);
+            Strike(signal, 0f, 0.0015f, 1f, Tuned(tune, (140f, 35f, 0.4f)).Concat(Modes(30, 280f * tune, 3000f * tune, 50f, 40f, 0.4f, 165 + variant * 8)));
+            Synth.LowPass(signal, 3500f);
+            Synth.FadeOut(signal, 0.05f);
             return signal;
         }
 
