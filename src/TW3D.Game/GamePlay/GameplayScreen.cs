@@ -194,7 +194,10 @@ namespace TW3D.GamePlay
             CarType carType = catalog.FindCar(settings.Car);
             CarWheels wheels = settings.WheelsOf(carType);
             Vector2 carStart = testLevel != null ? StartAt(testLevel, startX, startY) : CarStart;
-            car = new Car(world, Manager, camera, physics, carStart, carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear));
+            car = new Car(world, Manager, camera, physics, carStart, carType, catalog.FindWheel(wheels.Front), catalog.FindWheel(wheels.Rear))
+            {
+                Colours = settings.ColoursOf(carType.Model)
+            };
             //During the countdown the camera looks at the signal lamps of the start gate and the car from the side; it
             //starts there, as a test drive may start anywhere in the level and the camera would fly there from the origin
             camera.Framed = level.StartSignals(carStart);

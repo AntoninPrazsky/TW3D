@@ -649,30 +649,34 @@ namespace TW3D.GameObjects
                 return false;
         }
 
+        /// <summary>The colours of the car (its paint and the rims of its axles); null for the original ones.</summary>
+        public CarColours Colours { get; set; }
+
         public override void Draw(SceneRenderer renderer)
         {
-            DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false);
+            Paint paint = Paint.Body(Colours), rear = Paint.Wheels(Colours, false), front = Paint.Wheels(Colours, true);
+            DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false, paint);
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
             renderer.SetCar(carModel, body, Forward, brake);
 
-            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false);
-            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false);
-            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false, rear);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false, rear);
+            DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false, rear);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false);
 
-            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false);
-            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false);
-            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false, front);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false, front);
+            DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false, front);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false);
 
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true);
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true);
-            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true, rear);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true, rear);
+            DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true, rear);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true);
 
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true);
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true);
-            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true, front);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true, front);
+            DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true, front);
             DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true);
         }
     }

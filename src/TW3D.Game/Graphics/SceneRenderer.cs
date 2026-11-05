@@ -37,7 +37,9 @@ namespace TW3D.Graphics
     /// down (<see cref="StartLights"/>). The lenses of the street lamps ("streetlight…") of any model shine so at night
     /// (when the lighting has the headlights on), and the <see cref="StreetLightCount"/> of them nearest to the camera
     /// light the scene below them. The lit windows of a building ("windowlit…") shine at night too, evenly, without a
-    /// glow, and light nothing: by day they are the glass they are made of.
+    /// glow, and light nothing: by day they are the glass they are made of. The painted parts of a model (the paint of a
+    /// car, the rims of a wheel, see <see cref="PaintPart"/>) are drawn in the colours of the <see cref="Paint"/> the model
+    /// is added with, the colours chosen in the garage.
     /// </remarks>
     public sealed class SceneRenderer : IDisposable
     {
@@ -151,6 +153,8 @@ namespace TW3D.Graphics
             public Lamp Lamp;
             /// <summary>The column of a start light of the start gate: 0 the leftmost seen by the driver (see <see cref="StartLights"/>).</summary>
             public int Column;
+            /// <summary>A part drawn in the colour of the paint of its model, if the paint has one for it.</summary>
+            public PaintPart Paint;
             /// <summary>The emissive colour of the material as it is (for the classic look, which changes it for lamps).</summary>
             public Vector3 ClassicEmissive;
 
@@ -184,14 +188,16 @@ namespace TW3D.Graphics
 
         private readonly struct DrawItem
         {
-            public DrawItem(ModelData model, Matrix world)
+            public DrawItem(ModelData model, Matrix world, Paint paint)
             {
                 Model = model;
                 World = world;
+                Paint = paint;
             }
 
             public ModelData Model { get; }
             public Matrix World { get; }
+            public Paint Paint { get; }
         }
 
         private readonly GraphicsDevice device;
@@ -242,7 +248,8 @@ namespace TW3D.Graphics
         private readonly Texture2D glowTexture;
         private readonly List<VertexPositionColorTexture> glowVertices = new List<VertexPositionColorTexture>();
         //The transparent parts of the visible models, drawn after the others
-        private readonly List<(ModelPart Part, Matrix World, float Distance)> transparentParts = new List<(ModelPart, Matrix, float)>();
+        private readonly List<(ModelPart Part, Matrix World, float Distance, Paint Paint)> transparentParts =
+            new List<(ModelPart, Matrix, float, Paint)>();
 
         private Matrix view;
         private Matrix projection;
@@ -521,9 +528,20 @@ namespace TW3D.Graphics
         }
 
         /// <summary>Adds a model to the scene.</summary>
-        public void Add(Model model, Matrix world)
+        /// <param name="paint">The colours of its painted parts (the paint of a car, the rims of a wheel); by default their own.</param>
+        public void Add(Model model, Matrix world, Paint paint = default)
         {
-            items.Add(new DrawItem(GetModelData(model), world));
+            items.Add(new DrawItem(GetModelData(model), world, paint));
+        }
+
+        /// <summary>The colour of the material of a painted part of a model (the colour it has without a paint); null if it has none.</summary>
+        public static Vector3? MaterialColour(Model model, PaintPart paint)
+        {
+            foreach (ModelMesh mesh in model.Meshes)
+                foreach (ModelMeshPart part in mesh.MeshParts)
+                    if ((PaintPart)(int)Finish(part).W == paint && part.Effect is BasicEffect material)
+                        return material.DiffuseColor;
+            return null;
         }
 
         /// <summary>
@@ -1295,7 +1313,7 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                     if (!part.IsTransparent)
-                        DrawLitPart(part, part.Transform * item.World, pass);
+                        DrawLitPart(part, part.Transform * item.World, pass, paint: item.Paint);
             }
 
             DrawMarks();
@@ -1303,8 +1321,8 @@ namespace TW3D.Graphics
             //Glass over what is behind it, without hiding it from the glass further back
             device.BlendState = BlendState.NonPremultiplied;
             device.DepthStencilState = DepthStencilState.DepthRead;
-            foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
-                DrawLitPart(part, world, pass);
+            foreach ((ModelPart part, Matrix world, float distance, Paint paint) in transparentParts)
+                DrawLitPart(part, world, pass, paint: paint);
 
             if (ghost != null)
             {
@@ -1326,10 +1344,11 @@ namespace TW3D.Graphics
 
         /// <param name="alpha">A part of its own opacity it is drawn with (the see-through model).</param>
         /// <param name="glow">Light added to its own (the see-through model).</param>
-        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default)
+        /// <param name="paint">The colours of the painted parts of its model.</param>
+        private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default, Paint paint = default)
         {
             worldParameter.SetValue(world);
-            diffuseParameter.SetValue(part.Diffuse);
+            diffuseParameter.SetValue(paint.Of(part.Paint) is Vector3 colour ? ToLinear(colour) : part.Diffuse);
             emissiveParameter.SetValue((part.Lamp == Lamp.None ? part.Emissive : part.Emissive * (LampGlow(part.Lamp, part.Column) * LampBrightness)) + glow);
             specularParameter.SetValue(part.Specular);
             alphaParameter.SetValue(part.Alpha * alpha);
@@ -1353,7 +1372,7 @@ namespace TW3D.Graphics
                         continue;
                     Matrix world = part.Transform * item.World;
                     float distance = Vector3.DistanceSquared(world.Translation, eye);
-                    transparentParts.Add((part, world, distance));
+                    transparentParts.Add((part, world, distance, item.Paint));
                 }
             }
             transparentParts.Sort((a, b) => b.Distance.CompareTo(a.Distance));
@@ -1370,7 +1389,7 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                     if (!part.IsTransparent)
-                        DrawClassicPart(part, part.Transform * item.World);
+                        DrawClassicPart(part, part.Transform * item.World, paint: item.Paint);
             }
 
             //BasicEffect multiplies its colour by its alpha
@@ -1378,8 +1397,8 @@ namespace TW3D.Graphics
 
             device.BlendState = BlendState.AlphaBlend;
             device.DepthStencilState = DepthStencilState.DepthRead;
-            foreach ((ModelPart part, Matrix world, float distance) in transparentParts)
-                DrawClassicPart(part, world);
+            foreach ((ModelPart part, Matrix world, float distance, Paint paint) in transparentParts)
+                DrawClassicPart(part, world, paint: paint);
 
             if (ghost != null)
             {
@@ -1399,7 +1418,8 @@ namespace TW3D.Graphics
 
         /// <param name="alpha">A part of its own opacity it is drawn with (the see-through model).</param>
         /// <param name="glow">Light added to its own (the see-through model).</param>
-        private void DrawClassicPart(ModelPart part, Matrix world, float alpha = 1f, Vector3 glow = default)
+        /// <param name="paint">The colours of the painted parts of its model.</param>
+        private void DrawClassicPart(ModelPart part, Matrix world, float alpha = 1f, Vector3 glow = default, Paint paint = default)
         {
             BasicEffect basic = part.Effect;
             Lighting.ApplyClassic(basic);
@@ -1413,6 +1433,10 @@ namespace TW3D.Graphics
                 basic.Alpha = part.Alpha * alpha;
                 basic.EmissiveColor = emissive + glow;
             }
+            Vector3? painted = paint.Of(part.Paint);
+            Vector3 diffuse = basic.DiffuseColor;
+            if (painted.HasValue)
+                basic.DiffuseColor = painted.Value;
             basic.View = view;
             basic.Projection = projection;
             basic.World = world;
@@ -1423,6 +1447,8 @@ namespace TW3D.Graphics
                 basic.Alpha = part.Alpha;
                 basic.EmissiveColor = emissive;
             }
+            if (painted.HasValue)
+                basic.DiffuseColor = diffuse;
         }
 
         /// <summary>Models whose bounding sphere is completely outside the camera view are not drawn.</summary>
@@ -1462,7 +1488,7 @@ namespace TW3D.Graphics
                 {
                     BasicEffect material = (BasicEffect)meshPart.Effect;
                     Vector3 specular = material.SpecularColor;
-                    Vector3 finish = Finish(meshPart);
+                    Vector4 finish = Finish(meshPart);
                     parts.Add(new ModelPart
                     {
                         Transform = transform,
@@ -1477,7 +1503,8 @@ namespace TW3D.Graphics
                         Alpha = material.Alpha,
                         Metallic = finish.X,
                         Roughness = finish.Y,
-                        Lamp = (Lamp)(int)finish.Z
+                        Lamp = (Lamp)(int)finish.Z,
+                        Paint = (PaintPart)(int)finish.W
                     });
                     if (parts[parts.Count - 1].Lamp != Lamp.None && parts[parts.Count - 1].Lamp != Lamp.WindowLit)
                         lamps.Add((parts[parts.Count - 1], meshBounds, material.EmissiveColor));
@@ -1506,11 +1533,14 @@ namespace TW3D.Graphics
 
         /// <summary>
         /// What the content pipeline keeps of the material of a mesh part beyond BasicEffect (tools/ContentPipeline):
-        /// metallic, roughness and the lamp (the number of a <see cref="Lamp"/>: 0 = none, 1 = headlight, 2 = rear light, ...).
+        /// metallic, roughness, the lamp (the number of a <see cref="Lamp"/>: 0 = none, 1 = headlight, 2 = rear light, ...)
+        /// and the painted part (the number of a <see cref="PaintPart"/>). A model built before the paint has three of them.
         /// </summary>
-        private static Vector3 Finish(ModelMeshPart part)
+        private static Vector4 Finish(ModelMeshPart part)
         {
-            return part.Tag is Vector3 finish ? finish : new Vector3(0f, 1f, 0f);
+            return part.Tag is Vector4 finish ? finish
+                : part.Tag is Vector3 old ? new Vector4(old, 0f)
+                : new Vector4(0f, 1f, 0f, 0f);
         }
 
         private static Vector3 ToLinear(Vector3 color)

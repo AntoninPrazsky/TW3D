@@ -26,8 +26,10 @@ from props import ROOT, material, finish, box, tube, export, scene
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = args[0] if args else os.path.join(ROOT, 'content')
 
-# ---- materials: the blue of the car with orange accents, dark and metal parts, and the colours of the Buggy's parts
-BLUE = material("blue", (0.02, 0.24, 0.8), metallic=0.35, roughness=0.35)
+# ---- materials: the blue of the car with orange accents, dark and metal parts, and the colours of the Buggy's parts.
+# The paint is "primary" (the hood and the body panels) and "secondary" (the cage), which the garage colours (#46)
+BLUE = material("primary", (0.02, 0.24, 0.8), metallic=0.35, roughness=0.35)
+CAGE = material("secondary", (0.02, 0.24, 0.8), metallic=0.35, roughness=0.35)
 FRAME = material("frame", (0.14, 0.14, 0.15), metallic=0.6, roughness=0.45)
 ORANGE = material("orange", (1.0, 0.42, 0.0), roughness=0.4)
 BLACK = material("black", (0.04, 0.04, 0.045), roughness=0.7)
@@ -41,7 +43,7 @@ SEAT = material("seat", (0.0, 0.2, 0.51333), roughness=0.6)
 LENS = material("lens", (0.85, 0.87, 0.9), metallic=0.5, roughness=0.15)
 
 # The materials of the Buggy's parts become these
-BUGGY = {"default": ALU, "default10": ORANGE, "default19": CHROME, "default2": SEAT, "default20": BLACK, "default3": BLUE,
+BUGGY = {"default": ALU, "default10": ORANGE, "default19": CHROME, "default2": SEAT, "default20": BLACK, "primary": BLUE,
          "default5": LIGHT, "default6": DARKMETAL, "default7": ENGINE, "default8": STEEL, "default9": ALU}
 
 # The axles pass a little above the pivots, so that nothing of the body is lower than the Buggy's (-1.21): the car
@@ -163,7 +165,7 @@ def buggy_parts():
         o.select_set(True)
         bpy.ops.object.material_slot_remove_unused()
         for slot in o.material_slots:
-            slot.material = BUGGY.get(slot.material.name, slot.material)
+            slot.material = BUGGY.get(slot.material.name.split(".")[0], slot.material)
     return loose
 
 
@@ -281,17 +283,17 @@ for s in (-1, 1):
 # ---- the cage of blue tubes: the side hoops over the seats, the roof, the front tubes along the hood, the rear tubes
 # down to the bumper, door bars
 R = 0.075
-both([(-2.05, 0.95, -0.82), (-2.05, 0.97, 0.18), (-1.1, 1.12, 1.07), (0.95, 1.12, 1.1), (1.55, 1.12, 0.45), (1.55, 1.12, -0.82)], R, BLUE, 0.3)
-both([(1.55, 1.12, 0.45), (3.0, 1.0, 0.2), (3.88, 0.95, -0.1), (3.88, 0.95, -0.82)], R, BLUE, 0.25)
-both([(-2.05, 0.97, 0.18), (-3.0, 0.93, 0.25), (-4.0, 0.9, -0.05), (-4.05, 0.98, -0.6)], 0.06, BLUE, 0.25)
-both([(-2.05, 0.96, -0.3), (-0.6, 1.15, -0.3), (1.55, 1.14, -0.3)], 0.06, BLUE, 0.3)
-both([(-1.4, 1.1, -0.28), (-0.4, 1.12, 0.55)], 0.05, BLUE)
-both([(1.55, 1.1, 0.4), (3.85, 0.93, -0.78)], 0.05, BLUE)
+both([(-2.05, 0.95, -0.82), (-2.05, 0.97, 0.18), (-1.1, 1.12, 1.07), (0.95, 1.12, 1.1), (1.55, 1.12, 0.45), (1.55, 1.12, -0.82)], R, CAGE, 0.3)
+both([(1.55, 1.12, 0.45), (3.0, 1.0, 0.2), (3.88, 0.95, -0.1), (3.88, 0.95, -0.82)], R, CAGE, 0.25)
+both([(-2.05, 0.97, 0.18), (-3.0, 0.93, 0.25), (-4.0, 0.9, -0.05), (-4.05, 0.98, -0.6)], 0.06, CAGE, 0.25)
+both([(-2.05, 0.96, -0.3), (-0.6, 1.15, -0.3), (1.55, 1.14, -0.3)], 0.06, CAGE, 0.3)
+both([(-1.4, 1.1, -0.28), (-0.4, 1.12, 0.55)], 0.05, CAGE)
+both([(1.55, 1.1, 0.4), (3.85, 0.93, -0.78)], 0.05, CAGE)
 for x, z in ((-1.1, 1.07), (0.95, 1.1), (1.55, 0.45), (-2.05, 0.18)):
-    cyl((x, -1.12 if x > -2 else -0.97, z), (x, 1.12 if x > -2 else 0.97, z), R, BLUE)
-cyl((3.88, -0.95, -0.12), (3.88, 0.95, -0.12), R, BLUE)
-pipe([(-1.1, -1.12, 1.07), (0.95, 1.12, 1.1)], 0.05, BLUE)
-pipe([(1.55, -1.1, 0.45), (0.95, 1.1, 1.1)], 0.05, BLUE)
+    cyl((x, -1.12 if x > -2 else -0.97, z), (x, 1.12 if x > -2 else 0.97, z), R, CAGE)
+cyl((3.88, -0.95, -0.12), (3.88, 0.95, -0.12), R, CAGE)
+pipe([(-1.1, -1.12, 1.07), (0.95, 1.12, 1.1)], 0.05, CAGE)
+pipe([(1.55, -1.1, 0.45), (0.95, 1.1, 1.1)], 0.05, CAGE)
 # The roof: a dark plate with ribs, and a light bar on the front roof tube
 blk((-0.05, 0, 1.16), (1.9, 2.1, 0.03), FRAME, bevel=0.01)
 for k in range(4):
@@ -334,7 +336,7 @@ def spare(centre):
             v.co.y -= 1.785
         o.data.transform(Matrix.Translation(centre))
         for slot in o.material_slots:
-            slot.material = {"default11": BLACK, "default12": DARKMETAL}.get(slot.material.name.split('.')[0], slot.material)
+            slot.material = {"rim": BLACK, "default12": DARKMETAL}.get(slot.material.name.split('.')[0], slot.material)
         # Fewer triangles than the wheel: a spare is seen from far
         mod = o.modifiers.new("decimate", 'DECIMATE')
         mod.ratio = 0.33

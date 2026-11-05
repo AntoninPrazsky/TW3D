@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using TW3D.GameObjects;
 using TW3D.Audio;
+using TW3D.Graphics;
 using TW3D.Input;
 using TW3D.Shared;
 
@@ -15,9 +16,11 @@ namespace TW3D.Screens
     /// The garage: the camera of the 3D garage behind the menus (<see cref="GarageScene"/>) comes to the car on the
     /// lift. The arrows next to the name of the car (or left and right, or dragging the car sideways) move the row of
     /// cars, so that the next or the previous car of the catalog comes onto the lift; the car on the lift is the one
-    /// chosen. On the right the wheels of its front and rear axle are chosen (any wheels fit any car), the camera
-    /// looking at the wheels of the axle being chosen; on the left bars show how fast, heavy and gripping the car is
-    /// with them. Everything chosen is saved at once.
+    /// chosen. On the right the wheels of its front and rear axle are chosen (any wheels fit any car) and the colour of
+    /// their rims, the camera looking at the wheels of the axle being chosen; on the left bars show how fast, heavy and
+    /// gripping the car is with them, and under them the primary and secondary colour of its paint are chosen. The
+    /// colours go round the palette of <see cref="PaintColours"/>, Original (the car as it was made) first; they only
+    /// look. Everything chosen is saved at once, the colours by the car.
     /// </summary>
     public sealed class GarageScreen : Screen
     {
@@ -38,6 +41,10 @@ namespace TW3D.Screens
         private const float LabelScale = 0.4f;
         private const float SmallArrowScale = 0.42f;
         private const float RowGap = 36f;
+        //The gap between the wheels and the rims of an axle, and between the two paints (reference pixels); the swatch of
+        //a colour, to the height of its name
+        private const float PairGap = 10f;
+        private const float SwatchSize = 0.7f;
         private const float BarWidth = 260f;
         private const float BarHeight = 14f;
         private const float BarRate = 10f;
@@ -47,21 +54,34 @@ namespace TW3D.Screens
         private const float TitleSlide = 140f;
         private const float TextSlide = 320f;
 
-        //What the arrows and keys change: the wheels of an axle or the car
+        //What the arrows and keys change: a colour of the paint, the wheels of an axle or their rims, or the car; up and
+        //down go through them in this order
         private enum Row
         {
+            Primary,
+            Secondary,
             FrontWheels,
+            FrontRims,
             RearWheels,
+            RearRims,
             Car
         }
 
-        /// <summary>The choice of the wheels of an axle: its label and its value between two arrows.</summary>
-        private sealed class WheelChoice
+        private const int RowCount = (int)Row.Car + 1;
+
+        /// <summary>A choice of the garage: its label and its value between two arrows (the paints on the left, the wheels on the right).</summary>
+        private sealed class Choice
         {
             public Row Row;
             public string Label;
             public Vector2 LabelPosition;
             public Rectangle Left, Right, Value;
+
+            /// <summary>A colour, shown with a swatch, rather than wheels.</summary>
+            public bool IsColour => Row != Row.FrontWheels && Row != Row.RearWheels;
+
+            /// <summary>In the column on the left (the paints), sliding out to the left.</summary>
+            public bool OnLeft => Row == Row.Primary || Row == Row.Secondary;
         }
 
         private static readonly string[] StatNames = { "Speed", "Weight", "Grip" };
@@ -72,10 +92,14 @@ namespace TW3D.Screens
         private List<CarType> cars;
         private int selected;
         private Row focus = Row.Car;
-        private readonly WheelChoice[] wheelChoices =
+        private readonly Choice[] choices =
         {
-            new WheelChoice { Row = Row.FrontWheels, Label = "Front wheels" },
-            new WheelChoice { Row = Row.RearWheels, Label = "Rear wheels" }
+            new Choice { Row = Row.Primary, Label = "Primary colour" },
+            new Choice { Row = Row.Secondary, Label = "Secondary colour" },
+            new Choice { Row = Row.FrontWheels, Label = "Front wheels" },
+            new Choice { Row = Row.FrontRims, Label = "Front rims" },
+            new Choice { Row = Row.RearWheels, Label = "Rear wheels" },
+            new Choice { Row = Row.RearRims, Label = "Rear rims" }
         };
         //The bars as drawn (following the values of the car shown)
         private readonly float[] bars = new float[StatNames.Length];
@@ -172,6 +196,61 @@ namespace TW3D.Screens
             Manager.Sounds.Play(Sound.GarageSwitch, 0.4f);
         }
 
+        /// <summary>The key of the colour of a row in the colours of a car (see <see cref="PaintColours"/>).</summary>
+        private static string ColourKey(CarColours colours, Row row)
+        {
+            switch (row)
+            {
+                case Row.Primary: return colours.Primary;
+                case Row.Secondary: return colours.Secondary;
+                case Row.FrontRims: return colours.FrontRims;
+                default: return colours.RearRims;
+            }
+        }
+
+        /// <summary>Gives the car shown the next (or previous) colour of the palette in a colour row.</summary>
+        private void ChangeColour(Row row, int direction)
+        {
+            CarType car = cars[selected];
+            CarColours colours = settings.ColoursOf(car.Model).Clone();
+            string next = PaintColours.Step(ColourKey(colours, row), direction);
+            switch (row)
+            {
+                case Row.Primary: colours.Primary = next; break;
+                case Row.Secondary: colours.Secondary = next; break;
+                case Row.FrontRims: colours.FrontRims = next; break;
+                default: colours.RearRims = next; break;
+            }
+            settings.Colours[car.Model] = colours;
+            settings.Save();
+            Manager.Sounds.Play(Sound.GarageSwitch, 0.4f);
+        }
+
+        /// <summary>Changes what a row chooses: the wheels of an axle or a colour.</summary>
+        private void Change(Row row, int direction)
+        {
+            if (row == Row.FrontWheels || row == Row.RearWheels)
+                ChangeWheels(row, direction);
+            else
+                ChangeColour(row, direction);
+        }
+
+        /// <summary>
+        /// The colour a colour row shows in its swatch: the colour chosen, or for Original the colour of the material in the
+        /// model (of the car, or of the wheels of the axle); null when the model has no such part.
+        /// </summary>
+        private Color? SwatchColour(Row row, PaintColour colour)
+        {
+            if (!colour.IsOriginal)
+                return new Color(colour.R, colour.G, colour.B);
+            CarType car = cars[selected];
+            CarWheels wheels = settings.WheelsOf(car);
+            string model = row == Row.FrontRims ? wheels.Front : row == Row.RearRims ? wheels.Rear : car.Model;
+            PaintPart part = row == Row.Primary ? PaintPart.Primary : row == Row.Secondary ? PaintPart.Secondary : PaintPart.Rim;
+            Vector3? original = SceneRenderer.MaterialColour(Manager.Content.Load<Model>(model), part);
+            return original.HasValue ? new Color(original.Value) : null;
+        }
+
         public override void Update(GameTime gameTime)
         {
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -193,8 +272,8 @@ namespace TW3D.Screens
             //The camera of the garage comes to the car as the screen appears, and goes back as it disappears
             scene.Focus = Visibility;
             scene.Scroll = scroll;
-            scene.View = focus == Row.FrontWheels ? GarageScene.CarView.FrontWheels
-                : focus == Row.RearWheels ? GarageScene.CarView.RearWheels : GarageScene.CarView.Whole;
+            scene.View = focus == Row.FrontWheels || focus == Row.FrontRims ? GarageScene.CarView.FrontWheels
+                : focus == Row.RearWheels || focus == Row.RearRims ? GarageScene.CarView.RearWheels : GarageScene.CarView.Whole;
         }
 
         public override void HandleInput(InputState input, GameTime gameTime)
@@ -205,9 +284,9 @@ namespace TW3D.Screens
 
             Vector2 pointer = input.PointerPosition;
             if (input.UpPressed)
-                focus = (Row)(((int)focus + 2) % 3);
+                focus = (Row)(((int)focus + RowCount - 1) % RowCount);
             else if (input.DownPressed)
-                focus = (Row)(((int)focus + 1) % 3);
+                focus = (Row)(((int)focus + 1) % RowCount);
 
             int keys = input.LeftPressed ? -1 : input.RightPressed ? 1 : 0;
             if (keys != 0)
@@ -215,7 +294,7 @@ namespace TW3D.Screens
                 if (focus == Row.Car)
                     Show(keys);
                 else
-                    ChangeWheels(focus, keys);
+                    Change(focus, keys);
                 return;
             }
 
@@ -225,13 +304,13 @@ namespace TW3D.Screens
                     Show(-1);
                 else if (rightArrow.Contains(pointer))
                     Show(1);
-                foreach (WheelChoice choice in wheelChoices)
+                foreach (Choice choice in choices)
                 {
                     int direction = choice.Left.Contains(pointer) ? -1 : choice.Right.Contains(pointer) || choice.Value.Contains(pointer) ? 1 : 0;
                     if (direction != 0)
                     {
                         focus = choice.Row;
-                        ChangeWheels(choice.Row, direction);
+                        Change(choice.Row, direction);
                     }
                 }
             }
@@ -242,11 +321,11 @@ namespace TW3D.Screens
             }
         }
 
-        /// <summary>Back, the arrows or a wheel choice is at the position.</summary>
+        /// <summary>Back, the arrows or a choice is at the position.</summary>
         private bool IsButton(Vector2 position)
         {
             return leftArrow.Contains(position) || rightArrow.Contains(position) || back.Contains(position)
-                || wheelChoices.Any(choice => choice.Left.Contains(position) || choice.Right.Contains(position) || choice.Value.Contains(position));
+                || choices.Any(choice => choice.Left.Contains(position) || choice.Right.Contains(position) || choice.Value.Contains(position));
         }
 
         /// <summary>Moves the row of cars with the pointer dragging it (pressed outside the buttons); true while it does.</summary>
@@ -330,34 +409,56 @@ namespace TW3D.Screens
             back = backText;
             back.Inflate(padding, padding);
 
-            //The wheels on the right, in the middle of the height: a label over the value between two arrows, the value
-            //as wide as the widest name of wheels
+            //The choices: a label over the value between two arrows. On the right, in the middle of the height, the wheels
+            //and the rims of the front axle, then of the rear one, the values as wide as the widest name of wheels or of a
+            //colour with its swatch; on the left the bars, and under them the two paints
             float labelHeight = font.MeasureString("M").Y * LabelScale * uiScale;
             float valueHeight = font.MeasureString("M").Y * ValueScale * uiScale;
-            float valueWidth = catalog.Wheels.Max(wheel => font.MeasureString(Caps(wheel.Name)).X) * ValueScale * uiScale;
             Point smallArrow = (new Vector2(arrowTexture.Height, arrowTexture.Width) * SmallArrowScale * uiScale).ToPoint();
             float smallSpacing = ArrowSpacing * 0.6f * uiScale;
+            float colourWidth = PaintColours.All.Max(colour => font.MeasureString(Caps(colour.Name)).X) * ValueScale * uiScale
+                + valueHeight * SwatchSize + smallSpacing / 2f;
+            float rightWidth = Math.Max(colourWidth, catalog.Wheels.Max(wheel => font.MeasureString(Caps(wheel.Name)).X) * ValueScale * uiScale);
+            //On the left the labels of the paints are longer than the names of the colours: the arrows keep out of them
+            float leftWidth = Math.Max(colourWidth, choices.Where(c => c.OnLeft).Max(c => font.MeasureString(Caps(c.Label)).X) * LabelScale * uiScale);
             float rowHeight = labelHeight + valueHeight;
             float gap = RowGap * uiScale;
-            float top = (safe.Top + safe.Bottom) / 2f - (2f * rowHeight + gap) / 2f;
-            for (int i = 0; i < wheelChoices.Length; i++)
+            float pairGap = PairGap * uiScale;
+            float middle = (safe.Top + safe.Bottom) / 2f;
+
+            float top = middle - (4f * rowHeight + 2f * pairGap + gap) / 2f;
+            Place(Row.FrontWheels, top, false, rightWidth);
+            Place(Row.FrontRims, top + rowHeight + pairGap, false, rightWidth);
+            Place(Row.RearWheels, top + 2f * rowHeight + pairGap + gap, false, rightWidth);
+            Place(Row.RearRims, top + 3f * rowHeight + 2f * pairGap + gap, false, rightWidth);
+
+            float statsHeight = StatNames.Length * (labelHeight + BarHeight * uiScale) + (StatNames.Length - 1) * gap / 2f;
+            float leftTop = middle - (statsHeight + gap + 2f * rowHeight + pairGap) / 2f;
+            statsPosition = new Vector2(safe.Left, leftTop);
+            Place(Row.Primary, leftTop + statsHeight + gap, true, leftWidth);
+            Place(Row.Secondary, leftTop + statsHeight + gap + rowHeight + pairGap, true, leftWidth);
+
+            void Place(Row row, float y, bool onLeft, float valueWidth)
             {
-                WheelChoice choice = wheelChoices[i];
-                float y = top + i * (rowHeight + gap);
-                float valueCenterY = y + labelHeight + valueHeight / 2f;
-                choice.Right = new Rectangle(safe.Right - smallArrow.X, (int)(valueCenterY - smallArrow.Y / 2f), smallArrow.X, smallArrow.Y);
-                float valueRight = choice.Right.X - smallSpacing;
-                choice.Value = new Rectangle((int)(valueRight - valueWidth), (int)(y + labelHeight), (int)valueWidth, (int)valueHeight);
-                choice.Left = new Rectangle((int)(choice.Value.X - smallSpacing) - smallArrow.X, choice.Right.Y, smallArrow.X, smallArrow.Y);
+                Choice choice = choices.First(c => c.Row == row);
+                int arrowY = (int)(y + labelHeight + valueHeight / 2f - smallArrow.Y / 2f);
+                if (onLeft)
+                {
+                    choice.Left = new Rectangle(safe.Left, arrowY, smallArrow.X, smallArrow.Y);
+                    choice.Value = new Rectangle((int)(choice.Left.Right + smallSpacing), (int)(y + labelHeight), (int)valueWidth, (int)valueHeight);
+                    choice.Right = new Rectangle((int)(choice.Value.Right + smallSpacing), arrowY, smallArrow.X, smallArrow.Y);
+                }
+                else
+                {
+                    choice.Right = new Rectangle(safe.Right - smallArrow.X, arrowY, smallArrow.X, smallArrow.Y);
+                    choice.Value = new Rectangle((int)(choice.Right.X - smallSpacing - valueWidth), (int)(y + labelHeight), (int)valueWidth, (int)valueHeight);
+                    choice.Left = new Rectangle((int)(choice.Value.X - smallSpacing) - smallArrow.X, arrowY, smallArrow.X, smallArrow.Y);
+                }
                 float labelWidth = font.MeasureString(Caps(choice.Label)).X * LabelScale * uiScale;
                 choice.LabelPosition = new Vector2(choice.Value.Center.X - labelWidth / 2f, y);
-                choice.Left.Inflate(padding, padding / 2);
-                choice.Right.Inflate(padding, padding / 2);
+                choice.Left.Inflate(padding, padding / 4);
+                choice.Right.Inflate(padding, padding / 4);
             }
-
-            //The bars on the left, in the middle of the height
-            float statHeight = labelHeight + BarHeight * uiScale;
-            statsPosition = new Vector2(safe.Left, (safe.Top + safe.Bottom) / 2f - (StatNames.Length * statHeight + (StatNames.Length - 1) * gap / 2f) / 2f);
         }
 
         public override void Draw(GameTime gameTime)
@@ -388,18 +489,39 @@ namespace TW3D.Screens
             DrawArrow(leftArrow, -MathHelper.PiOver2, ArrowScale, pointer, slide, alpha, HasCar(-1));
             DrawArrow(rightArrow, MathHelper.PiOver2, ArrowScale, pointer, slide, alpha, HasCar(1));
 
-            //The wheels of the car shown, the chosen row in yellow
+            //The wheels and the colours of the car shown, the chosen row in yellow; a colour with a swatch before its name
             CarWheels chosen = settings.WheelsOf(cars[selected]);
-            foreach (WheelChoice choice in wheelChoices)
+            CarColours colours = settings.ColoursOf(cars[selected].Model);
+            foreach (Choice choice in choices)
             {
-                Manager.DrawShadowedText(font, Caps(choice.Label), choice.LabelPosition - new Vector2(slide, 0f), Color.LightGray * alpha, shadow, LabelScale * uiScale);
-                string name = Caps(catalog.FindWheel(choice.Row == Row.FrontWheels ? chosen.Front : chosen.Rear).Name);
+                float offset = choice.OnLeft ? slide : -slide;
+                Manager.DrawShadowedText(font, Caps(choice.Label), choice.LabelPosition + new Vector2(offset, 0f), Color.LightGray * alpha, shadow, LabelScale * uiScale);
+                string name;
+                Color? swatch = null;
+                if (choice.IsColour)
+                {
+                    PaintColour colour = PaintColours.Find(ColourKey(colours, choice.Row));
+                    name = Caps(colour.Name);
+                    swatch = SwatchColour(choice.Row, colour);
+                }
+                else
+                    name = Caps(catalog.FindWheel(choice.Row == Row.FrontWheels ? chosen.Front : chosen.Rear).Name);
                 float nameWidth = font.MeasureString(name).X * ValueScale * uiScale;
+                float swatchSize = choice.Value.Height * SwatchSize;
+                float swatchWidth = swatch.HasValue ? swatchSize + ArrowSpacing * 0.3f * uiScale : 0f;
+                float x = choice.Value.Center.X - (swatchWidth + nameWidth) / 2f + offset;
+                if (swatch.HasValue)
+                {
+                    Rectangle box = new Rectangle((int)x, (int)(choice.Value.Center.Y - swatchSize / 2f), (int)swatchSize, (int)swatchSize);
+                    Manager.SpriteBatch.Draw(Manager.Pixel, box, shadow);
+                    box.Inflate(-Math.Max(1, (int)(2f * uiScale)), -Math.Max(1, (int)(2f * uiScale)));
+                    Manager.SpriteBatch.Draw(Manager.Pixel, box, swatch.Value * alpha);
+                }
                 bool highlighted = focus == choice.Row || (choice.Value.Contains(pointer) && HasFocus);
-                Manager.DrawShadowedText(font, name, new Vector2(choice.Value.Center.X - nameWidth / 2f - slide, choice.Value.Y),
+                Manager.DrawShadowedText(font, name, new Vector2(x + swatchWidth, choice.Value.Y),
                     (highlighted ? MainMenuScreen.Yellow : Color.White) * alpha, shadow, ValueScale * uiScale);
-                DrawArrow(choice.Left, -MathHelper.PiOver2, SmallArrowScale, pointer, -slide, alpha);
-                DrawArrow(choice.Right, MathHelper.PiOver2, SmallArrowScale, pointer, -slide, alpha);
+                DrawArrow(choice.Left, -MathHelper.PiOver2, SmallArrowScale, pointer, offset, alpha);
+                DrawArrow(choice.Right, MathHelper.PiOver2, SmallArrowScale, pointer, offset, alpha);
             }
 
             //The bars: speed, weight and grip

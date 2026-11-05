@@ -13,7 +13,7 @@ namespace TW3D.GameObjects
     /// <summary>
     /// The 3D garage behind the menus (content/Garage, built from the Wings 3D files of 2015–2016): a hall with a lift in
     /// its middle, the car chosen in the garage on the lift with its wheels, the other cars in a row along the axis of
-    /// the lift in the order of the catalog, and the sky of a day behind the windows. The camera slowly drifts around the view
+    /// the lift in the order of the catalog, each in the colours chosen for it, and the sky of a day behind the windows. The camera slowly drifts around the view
     /// of the menu, or, as <see cref="Focus"/> grows, sweeps around the car on the lift (the garage screen), or comes to
     /// the wheels of one of its axles (<see cref="View"/>). The main menu shows the 3D logo of the game in it
     /// (<see cref="Title"/>): placed against the frame, not against the hall, so that it keeps its place in the picture
@@ -272,6 +272,7 @@ namespace TW3D.GameObjects
             {
                 Car preview = Preview(car);
                 preview.Placement = Turned * Matrix.CreateTranslation(RowAxis * offset);
+                preview.Colours = settings.ColoursOf(car.Model);
                 preview.Draw(renderer);
             }
             renderer.End();

@@ -20,7 +20,11 @@ materials: the lenses of the headlights of the cars are named `headlight…`, of
 lights `taillight…`, of the street lamp `streetlight…`, the start lights of the start gate
 `sg` `signalred…`. Each lamp is an object of its own in the `.obj` file (`HeadlightLeft` …,
 `lens`, `SignalRed1a` …), the game finds its middle as the middle of the object; the start
-lights one above the other (`SignalRed1a` and `SignalRed1b`) are a pair, lit together. The
+lights one above the other (`SignalRed1a` and `SignalRed1b`) are a pair, lit together.
+The parts the player paints in the garage are marked the same way: the two paints of a car
+`primary…` and `secondary…`, the rims of a wheel `rim…`. The game draws them in the colours
+chosen (`Graphics/Paint`), or in their own colour (`Kd`) for *Original*; they keep their
+metal and roughness. A new car or new wheels name their paint and rims so to be coloured. The
 windows of a building that are lit at night are `windowlit…` (the judges' stand): they shine
 evenly, without a glow, and light nothing, so they need no objects of their own.
 
@@ -68,11 +72,18 @@ rock crawler built by `tools/blender/car3.py` (Blender 4.2, `blender -b --factor
 exoskeleton cage of blue tubes over two seats, a short blue hood with the turbo standing out
 of it, a tube bumper with a winch, rock sliders along the sides, coil-overs with orange
 springs at both axles, and a rack at the back with the fuel cell and a spare wheel standing
-across the car under an orange strap. Its engine with the turbo and the cooler, the seats, the
+across the car under an orange strap. Its hood and body panels are its `primary` paint, the
+cage its `secondary` one (#46). Its engine with the turbo and the cooler, the seats, the
 steering wheel, the pedals, the gear lever and the fuel cell are the Buggy's parts, which the
 script takes from `content/car.obj` and recolours; the spare is the off-road wheel with fewer
 triangles. Its lamps are objects of their own: round headlights beside the grille, taillights
 on the rear bumper.
+
+The paint of the Buggy is its body (`primary`) and its roof panel (`secondary`); of the Sand
+Rail its red frame (`primary`) and the arches of the frame over the canopy (`secondary`); the
+rims of both wheels are `rim`. The materials were renamed in 2026 (#46) from the names Wings
+3D gave them (`default3`, `default2`, `default11`, `default6`), and the roof and the arches
+split off as their own material; the faces and the shapes are the same.
 
 All cars share the chassis (`GameObjects/Car.cs`): the holders of the wheels turn about pivots
 3.6 model units in front of the middle of the body and 3.0 behind it, 1.25 below it, so a

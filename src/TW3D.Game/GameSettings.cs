@@ -18,8 +18,9 @@ namespace TW3D
     }
 
     /// <summary>
-    /// The settings of the game: the graphics and display options (the Options menu) and the car and its wheels chosen
-    /// in the garage, saved in the user's application data.
+    /// The settings of the game: the graphics and display options (the Options menu) and the car, its wheels and its
+    /// colours chosen in the garage, saved in the user's application data. A renderer is set up by them in
+    /// Graphics/SettingsGraphics (this file has no MonoGame in it, so that the tests compile it).
     /// </summary>
     public sealed class GameSettings
     {
@@ -84,16 +85,31 @@ namespace TW3D
                 : new CarWheels { Front = car.Wheel, Rear = car.Wheel };
         }
 
+        /// <summary>
+        /// The colours chosen in the garage for the cars, by the models of their bodies (a car that is not in the catalog
+        /// any more keeps its entry, unused).
+        /// </summary>
+        public Dictionary<string, CarColours> Colours { get; set; } = new Dictionary<string, CarColours>();
+
+        /// <summary>The colours chosen for a car (by the model of its body); the original colours if none were chosen.</summary>
+        public CarColours ColoursOf(string car)
+        {
+            return car != null && Colours.TryGetValue(car, out CarColours colours) && colours != null ? colours : new CarColours();
+        }
+
         private static string FilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TW3D", "settings.json");
 
         /// <summary>The saved settings; the defaults if there are none or they cannot be read.</summary>
-        public static GameSettings Load()
+        public static GameSettings Load() => Load(FilePath);
+
+        /// <summary>The settings saved in a file; the defaults if there is none or it cannot be read.</summary>
+        public static GameSettings Load(string file)
         {
             try
             {
-                if (File.Exists(FilePath))
-                    return JsonSerializer.Deserialize<GameSettings>(File.ReadAllText(FilePath), JsonOptions) ?? new GameSettings();
+                if (File.Exists(file))
+                    return JsonSerializer.Deserialize<GameSettings>(File.ReadAllText(file), JsonOptions) ?? new GameSettings();
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException || e is JsonException)
             {
@@ -102,27 +118,20 @@ namespace TW3D
             return new GameSettings();
         }
 
-        public void Save()
+        public void Save() => Save(FilePath);
+
+        /// <summary>Saves the settings into a file.</summary>
+        public void Save(string file)
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(FilePath));
-                File.WriteAllText(FilePath, JsonSerializer.Serialize(this, JsonOptions));
+                Directory.CreateDirectory(Path.GetDirectoryName(file));
+                File.WriteAllText(file, JsonSerializer.Serialize(this, JsonOptions));
             }
             catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
             {
                 Debug.WriteLine("Settings not saved: " + e.Message);
             }
-        }
-
-        /// <summary>Sets up a renderer by the settings.</summary>
-        public void Apply(SceneRenderer renderer)
-        {
-            renderer.Classic = Classic;
-            renderer.Shadows = Shadows;
-            renderer.ShadowDetail = ShadowDetails.CanChoose ? ShadowDetails.Valid(ShadowDetail) : ShadowDetails.Default;
-            renderer.AmbientOcclusion = AmbientOcclusion;
-            renderer.Resolution = Resolution;
         }
     }
 }
