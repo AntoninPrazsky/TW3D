@@ -206,6 +206,20 @@ namespace TW3D.GameObjects
             return point.X >= min.X && point.X <= max.X && point.Y >= min.Y && point.Y <= max.Y;
         }
 
+        /// <summary>
+        /// The surface of the model of a body of the level, in the coordinates of the model; null for the track and for the
+        /// objects whose models have none (see <see cref="ModelSurface"/>).
+        /// </summary>
+        public ModelSurface SurfaceOf(Body body)
+        {
+            foreach (TrackProp obj in objects)
+            {
+                if (obj.Body == body)
+                    return obj.Surface;
+            }
+            return null;
+        }
+
         public override void Update()
         {
             foreach (TrackProp obj in objects)

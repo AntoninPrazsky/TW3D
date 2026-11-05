@@ -224,7 +224,7 @@ namespace TW3D.GamePlay
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
             carSounds = new CarSounds(Manager.Sounds, car);
-            skidMarks = new SkidMarks();
+            skidMarks = new SkidMarks(physics, level.SurfaceOf);
             smoke = new TyreSmoke();
             exhaust = new ExhaustSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);

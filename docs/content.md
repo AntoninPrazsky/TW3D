@@ -28,6 +28,13 @@ metal and roughness. A new car or new wheels name their paint and rims so to be 
 windows of a building that are lit at night are `windowlit…` (the judges' stand): they shine
 evenly, without a glow, and light nothing, so they need no objects of their own.
 
+The models of the dynamic objects are built with the parameter `Surface` of the processor:
+it keeps their triangles in the model (its `Tag`), as the game cannot read the vertices back
+from the graphics card on Android. The skid marks of the tyres lie on that surface
+(`Graphics/ModelSurface`): where a mark grows, rays across the tyre find the model under it, so
+a mark follows the rims of a barrel and ends where the barrel ends. A new object model gets it
+by being listed with the others in `content/Content.mgcb`.
+
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
 converted to OBJ: the same polygons, normals and material colours, in the

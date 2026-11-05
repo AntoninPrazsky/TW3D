@@ -18,6 +18,9 @@ namespace TW3D.GameObjects
 
         public Body Body { get; }
 
+        /// <summary>The surface of its model, which the skid marks lie on; null if the model has none.</summary>
+        public ModelSurface Surface { get; }
+
         /// <param name="modelName">One of the models of the object type.</param>
         public TrackProp(World world, ScreenManager screenManager, ChaseCamera camera, PhysicsClock physics, Vector2 position,
             ObjectType type, string modelName, LevelAssets assets)
@@ -28,6 +31,7 @@ namespace TW3D.GameObjects
             this.physics = physics;
             this.position = position;
             model = assets.ObjectModel(modelName);
+            Surface = assets.ObjectSurface(modelName);
 
             switch (type.Shape)
             {

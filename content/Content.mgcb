@@ -59,7 +59,8 @@
 /build:wheel3.obj;wheel3-mirrored.xnb
 /processorParam:Mirrored=False
 
-# Dynamic objects
+# Dynamic objects, with their triangles for the skid marks of the tyres to lie on (GameObjects/SkidMarks.cs)
+/processorParam:Surface=True
 /build:Env/bar1.obj
 /build:Env/bar2.obj
 /build:Env/box.obj
@@ -68,6 +69,7 @@
 /build:Env/mov1.obj
 /build:Env/rm.obj
 /build:Env/tb1.obj
+/processorParam:Surface=False
 
 # The 3D garage behind the menus and the 3D logo of the main menu
 /build:Garage/garage.obj

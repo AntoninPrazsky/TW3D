@@ -112,7 +112,9 @@ short chirps), or wheels spinning at a launch or landing from a jump; louder and
 faster they slip. Where they
 slip, they leave dark skid marks (`GameObjects/SkidMarks.cs`: under the wheels on both sides
 of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
-fading away after 20 seconds), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: big
+fading away after 20 seconds; on an object they lie on the surface of its model, over its rims,
+and end where it ends, so they do not hang in the air past the ends of a barrel, which is shorter
+than the car is wide), and slipping hard they smoke (`GameObjects/TyreSmoke.cs`: big
 soft puffs rising and thinning out, their colour a greyed haze of the level's light). The car
 has traction control: a wheel on the ground spinning faster than it rolls gets less torque, so
 it grips instead of spinning (the motors never hold the wheels back). A wheel lifted off the

@@ -19,7 +19,8 @@ namespace TW3D.GameObjects
     /// <param name="Point">Where it touches the ground (physics coordinates).</param>
     /// <param name="Ground">What it stands on: the track or an object.</param>
     /// <param name="Speed">How fast the tyre slips over it (physics units a second).</param>
-    readonly record struct WheelSlip(int Wheel, Vector2 Point, Body Ground, float Speed);
+    /// <param name="Up">The way from the ground to the middle of the wheel (a unit vector, physics coordinates).</param>
+    readonly record struct WheelSlip(int Wheel, Vector2 Point, Body Ground, float Speed, Vector2 Up);
 
     class Car : GameObject
     {
@@ -369,7 +370,7 @@ namespace TW3D.GameObjects
             for (int i = 0; i < wheels.Length; i++)
             {
                 if (Ground(wheels[i], out Vector2 point, out Body ground, out float slip) && slip >= minSpeed)
-                    slipping.Add(new WheelSlip(i, point, ground, slip));
+                    slipping.Add(new WheelSlip(i, point, ground, slip, Vector2.Normalize(wheels[i].Position - point)));
             }
         }
 

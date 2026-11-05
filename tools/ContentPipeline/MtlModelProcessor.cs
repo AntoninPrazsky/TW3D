@@ -20,7 +20,8 @@ namespace TW3D.ContentPipeline
     /// "windowlit…", and the parts that can be painted: the paint of a car "primary…" and "secondary…", the rims of a wheel
     /// "rim…". It keeps them in the Tag of the mesh parts of the material as a Vector4: metallic, roughness, lamp
     /// (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp, 4 = start light, 5 = lit window) and paint (0 = none,
-    /// 1 = primary, 2 = secondary, 3 = rim). A material with none of them gets no tag.
+    /// 1 = primary, 2 = secondary, 3 = rim). A material with none of them gets no tag. It can also mirror a model and keep
+    /// its triangles (the parameters Mirrored and Surface).
     /// </summary>
     [ContentProcessor(DisplayName = "Model - TW3D (metal and lamps from MTL)")]
     public class MtlModelProcessor : ModelProcessor
@@ -38,14 +39,29 @@ namespace TW3D.ContentPipeline
         [DefaultValue(false)]
         public bool Mirrored { get; set; }
 
+        /// <summary>
+        /// Keeps the triangles of the model in the Tag of the model, as a Vector3[] of their corners (three a triangle,
+        /// in the coordinates of the model), for the game to find where its surface is: the skid marks of the tyres lie
+        /// on it (Graphics/ModelSurface.cs in the game). The game cannot read the vertices back from the graphics card
+        /// on Android.
+        /// </summary>
+        [DisplayName("Surface")]
+        [DefaultValue(false)]
+        public bool Surface { get; set; }
+
         public override ModelContent Process(NodeContent input, ContentProcessorContext context)
         {
             finishes = ReadFinishes(input.Identity?.SourceFilename, context);
             convertedFinishes.Clear();
             if (Mirrored)
                 MeshHelper.TransformScene(input, Matrix.CreateScale(-1f, 1f, 1f));
+            List<Vector3> triangles = null;
+            if (Surface)
+                AddTriangles(input, triangles = new List<Vector3>());
 
             ModelContent model = base.Process(input, context);
+            if (triangles != null)
+                model.Tag = triangles.ToArray();
             foreach (ModelMeshContent mesh in model.Meshes)
             {
                 foreach (ModelMeshPartContent part in mesh.MeshParts)
@@ -55,6 +71,22 @@ namespace TW3D.ContentPipeline
                 }
             }
             return model;
+        }
+
+        /// <summary>Adds the corners of the triangles of the meshes of a node and its children, where the model has them.</summary>
+        private static void AddTriangles(NodeContent node, List<Vector3> triangles)
+        {
+            if (node is MeshContent mesh)
+            {
+                Matrix transform = mesh.AbsoluteTransform;
+                foreach (GeometryContent geometry in mesh.Geometry)
+                {
+                    foreach (int index in geometry.Indices)
+                        triangles.Add(Vector3.Transform(geometry.Vertices.Positions[index], transform));
+                }
+            }
+            foreach (NodeContent child in node.Children)
+                AddTriangles(child, triangles);
         }
 
         protected override MaterialContent ConvertMaterial(MaterialContent material, ContentProcessorContext context)
