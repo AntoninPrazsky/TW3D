@@ -36,6 +36,16 @@ mirrored the z axis). Builds of the converted models were checked against the
 2016 `.xnb` files: the same surfaces and colours, they look the same. The
 original Wings 3D files are in [`art/wings/`](../art/wings/README.md).
 
+One block is modern since 2026: the railing `za`, a decoration of the layers behind the
+road (no collision), built by `tools/blender/railing.py` in the colours of the street lamp
+and the fence (below), about 1800 triangles. It is a glass railing: two square dark grey
+posts on base plates with bolts under yellow caps, a light grey top rail over them, and a
+see-through glass panel held by clamps in two light grey rails, the lower one with a yellow
+stripe. Each piece is a span of its own, a little short of the edges of its cell, so a row
+of them is a row of spans with small gaps (the owner's choice); it stands at the near edge
+of its cell, its foot on the top of a road block, 4.6 high, as the railing of 2014–2015 (a
+bent grey tube) did.
+
 ## The garage
 
 The garage behind the menus (`content/Garage/`) is 3D since 2026; in 2016 it was a

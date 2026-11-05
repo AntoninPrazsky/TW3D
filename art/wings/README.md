@@ -46,7 +46,9 @@ takes the Buggy's engine, seats, steering wheel, pedals, gear lever and fuel cel
 `content/car.obj`. The start gate
 `content/Levels/mod/sg.obj` got start lights like those of Formula 1 instead of its traffic
 lights: five black modules with a pair of red lamps each (the objects `SignalRed1a`, `1b` …
-`5b`); `sg.wings` still has the traffic lights of 2015.
+`5b`); `sg.wings` still has the traffic lights of 2015. The railing block
+`content/Levels/mod/za.obj` was replaced in 2026 by a modern glass railing built by
+`tools/blender/railing.py`; its `Levels/mod/za.wings` (a bent grey tube) is in the history of git.
 
 `Garage/garage.wings` (September 2015, `NPG/garage/garage.wings`) is the garage scene the
 picture behind the menus of 2016 was rendered from (in Kerkythea), `Garage/garage_no_car.wings`
