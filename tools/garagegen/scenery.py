@@ -3,8 +3,8 @@ content/Scenery: an .obj + .mtl for each prop, in model units at the scale of th
 8.6 units long), with the foot of the prop at the origin, y up and the long side of a guardrail or of the chain along x
 (along the road). Smooth normals by the hard edges of Wings, as the garage has them.
 
-The street lamp, the metal fence and the judges' stand are not built here: they are modern since 2026, built by
-tools/blender/streetlamp.py, fence.py and stand.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the
+The street lamp, the metal fence, the judges' stand and the utility pole are not built here: they are modern since
+2026, built by tools/blender/streetlamp.py, fence.py, stand.py and pole.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the
 curve it hangs in takes its place, which looks the same from the camera of the game.
 
     python tools/garagegen/scenery.py
@@ -48,9 +48,6 @@ class Prop:
 def cone(face, mats):
     # Orange plastic with white reflective bands
     return 'orange' if face['material'] == 'default2' else 'white'
-
-def pole(face, mats):
-    return {'default': 'metal', 'default2': 'brace', 'default3': 'insulator', 'default4': 'wood'}[face['material']]
 
 def guardrail(face, mats):
     return {'chrome': 'steel', 'default2': 'red', 'default3': 'white'}[face['material']]
@@ -99,11 +96,6 @@ PROPS = [
     Prop('cone', 'cone.wings', cone, lambda mats: {
         'orange': wings_material(mats['default2'], ks=(0.3, 0.3, 0.3), pr=0.5),
         'white': wings_material(mats['default3'], ks=(0.3, 0.3, 0.3), pr=0.5)}, height=1.6),
-    Prop('pole', 'pole.wings', pole, lambda mats: {
-        'wood': wings_material(mats['default4'], ks=(0.1, 0.1, 0.1)),
-        'metal': wings_material(mats['default'], ks=(0.4, 0.4, 0.4), pm=1, pr=0.45),
-        'brace': wings_material(mats['default2'], ks=(0.3, 0.3, 0.3)),
-        'insulator': wings_material(mats['default3'], ks=(0.4, 0.4, 0.4), pr=0.3)}, height=20.0),
     # The guardrails of 2018 are a cell long already, modelled on the near edge of a road block: centred, and turned so
     # that the rail faces the camera (and the road, when they stand behind it) and the posts are behind it
     Prop('guardrail', 'guardrail.wings', guardrail, lambda mats: {

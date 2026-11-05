@@ -1,36 +1,62 @@
-# Materials of pole; Pm and Pr: metal and roughness (tools/ContentPipeline)
+# Materials of pole (tools/blender/pole.py), those of the street lamp and the fence and the light blue of the
+# insulators; Pm and Pr: metal and roughness (tools/ContentPipeline)
 
-newmtl wood
-Kd 0.6867 0.5195 0.4316
-d 1.0000
-Ks 0.1000 0.1000 0.1000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
+newmtl accent
+Kd 1.000000 0.713330 0.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.500000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
-newmtl metal
-Kd 0.6270 0.6270 0.6270
-d 1.0000
-Ks 0.4000 0.4000 0.4000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
-Pm 1
-Pr 0.45
+newmtl head
+Kd 0.820180 0.820180 0.820180
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
-
-newmtl brace
-Kd 0.9734 0.9734 0.9734
-d 1.0000
-Ks 0.3000 0.3000 0.3000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
-illum 2
+Pr 0.400000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
 
 newmtl insulator
-Kd 0.4139 0.2003 0.1187
-d 1.0000
-Ks 0.4000 0.4000 0.4000
-Ke 0.0000 0.0000 0.0000
-Ns 0.3000
-Pr 0.3
+Kd 0.450000 0.720000 0.880000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
 illum 2
+Pr 0.200000
+Pm 0.000000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000
+
+newmtl pole
+Kd 0.227440 0.227440 0.227440
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Pr 0.450000
+Pm 0.600000
+Ps 0.000000
+Pc 0.000000
+Pcr 0.030000
+aniso 0.000000
+anisor 0.000000

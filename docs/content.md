@@ -97,16 +97,16 @@ commit its output.
 
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
 level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
-through them. The traffic cone (`cone`) and the utility pole (`pole`) are props the owner
-released on OpenGameArt in 2016; the street lamp (`lamp`), the metal fence (`fence`) and the
-judges' stand (`stand`), a race control building for the start or the finish, are modern ones
+through them. The traffic cone (`cone`) is a prop the owner released on OpenGameArt in
+2016; the street lamp (`lamp`), the metal fence (`fence`), the judges' stand (`stand`), a race
+control building for the start or the finish, and the utility pole (`pole`) are modern ones
 of 2026 (below); the other three the owner made for the game in March 2018: the guardrail
 (`guardrail`), the thick guardrail with red and white stripes (`guardrail2`) and the posts with a
 chain (`chain`).
 
 `tools/garagegen/scenery.py` (Python 3 with NumPy) builds them from their Wings 3D files in
 `art/wings/Scenery/`, with smooth normals by the hard edges of Wings, at the scale of the
-blocks: the cone is 1.6 model units high (the car is 2.4), the pole 20 (over two cells); a guardrail is a cell long (9), so that the pieces in a row along
+blocks: the cone is 1.6 model units high (the car is 2.4); a guardrail is a cell long (9), so that the pieces in a row along
 a straight road join, and a piece of the fence and of the chain half a cell (4.5), two pieces
 to a cell. The foot of every prop is at the origin of its model, and the long side of the
 fence, the chain and the guardrails runs along x, along the road; the rails of the guardrails
@@ -140,6 +140,15 @@ the roof; an open steel stair with yellow nosings up the side (on the right as s
 road). It keeps the footprint of the stand of 2018 (25.7 × 12.9) and its height (12 with the
 mast), its foot in the middle of the footprint and the terrace towards the camera (-z). Its
 windows are `windowlit`: light blue glass by day, lit warm from within at night.
+
+The utility pole is a modern power pole built by `tools/blender/pole.py`, about 3900
+triangles: a slim tapered dark grey steel pole on a base plate with bolts and a sleeve, a
+yellow band low on it and step bolts up its sides, a light grey crossarm with yellow ends on
+two braces at the top with four light blue insulators standing on it, and halfway up a light
+grey pole transformer with dark grey fins, two bushings and a yellow plate, which shows what
+the pole is also from the end of its crossarm. It is 20 high (over two cells), the crossarm 9
+long along x, its foot at the origin, as the pole of 2016 was; the poles of the docks stand
+behind the road turned across it.
 
 The Blender scripts (also that of the Crawler) share the materials (`pole`, `head` and `accent`: the dark grey, the light grey and the
 yellow of the blocks), the parts and the export in `tools/blender/props.py`; run a script after
