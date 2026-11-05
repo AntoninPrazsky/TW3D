@@ -36,6 +36,23 @@ mirrored the z axis). Builds of the converted models were checked against the
 2016 `.xnb` files: the same surfaces and colours, they look the same. The
 original Wings 3D files are in [`art/wings/`](../art/wings/README.md).
 
+The gates are modern since 2026: the start gate `sg` and the finish gate `g`, each with the
+sign above it in the cell above (`st2` with the lettering START, `st` with a chequered panel),
+built by `tools/blender/gates.py` (Blender 4.2, `blender -b --factory-startup --python
+tools/blender/gates.py`; run it after changing it and commit its output): a truss gantry as on
+the race tracks, two lattice legs on base plates and a lattice beam across the road with black
+corner nodes, 1776 to 2228 triangles a gate and about 1800 a sign. The gate stands 1.2 from the edge of
+its cell, as the old one did, with its legs at |z| = 7 beyond the lane of the cars, and the front
+(the start lights, the sign) towards +x, where the car comes from. The start gate carries the
+start lights on the front of its beam, five columns of two red lamps, each lamp an object of its
+own named `SignalRed<column><a|b>` in the material `signalred`, which the game lights column by
+column (above); the lamps and everything else of the gate in the lane hang above y = 2.4, so
+nothing of it is in the way of a car. The sign is a black panel in a lattice frame. The lettering
+START is that of the Wings model of 2015 (`tools/blender/start_letters.json`, taken from
+`art/wings/Levels/mod/st2.wings`), a little larger and with a raised edge; the chequered pattern
+of the finish sign, the two chequered flags on its gate and the rest are made by the script.
+The gate and its sign are two blocks, as they always were, so no level changed.
+
 One block is modern since 2026: the railing `za`, a decoration of the layers behind the
 road (no collision), built by `tools/blender/railing.py` in the colours of the street lamp
 and the fence (below), about 1800 triangles. It is a glass railing: two square dark grey

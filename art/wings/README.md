@@ -43,10 +43,13 @@ has the hub of `wheel.obj`, joining it to the holder; and its tyre was simplifie
 `Taillight…`), which `car.wings` and `car2.wings` do not have. The third car, the Crawler
 (`content/car3.obj`, 2026), has no Wings file: `tools/blender/car3.py` builds it in Blender and
 takes the Buggy's engine, seats, steering wheel, pedals, gear lever and fuel cell from
-`content/car.obj`. The start gate
-`content/Levels/mod/sg.obj` got start lights like those of Formula 1 instead of its traffic
-lights: five black modules with a pair of red lamps each (the objects `SignalRed1a`, `1b` …
-`5b`); `sg.wings` still has the traffic lights of 2015. The railing block
+`content/car.obj`. The start gate `content/Levels/mod/sg.obj` first got start lights like those
+of Formula 1 instead of its traffic lights (five black modules with a pair of red lamps each,
+the objects `SignalRed1a`, `1b` … `5b`), and in 2026 it was replaced, with the finish gate `g` and
+the signs `st2` and `st`, by truss gantries built by `tools/blender/gates.py`; the Wings files
+`sg.wings`, `g.wings`, `st2.wings` and `st.wings` (the gates of 2015, with the traffic lights) are
+what they were, and the lettering START of `st2.wings` lives on in the new sign
+(`tools/blender/start_letters.json`). The railing block
 `content/Levels/mod/za.obj` was replaced in 2026 by a modern glass railing built by
 `tools/blender/railing.py`; its `Levels/mod/za.wings` (a bent grey tube) is in the history of git.
 

@@ -75,9 +75,18 @@ namespace TW3D.Tests
         public void TheStartGateHasFivePairsOfRedStartLights()
         {
             string[] lines = File.ReadAllLines(Path.Combine(Repository.Content, "Levels", "mod", "sg.obj"));
-            List<int> lamps = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("o Signal")).ToList();
+            List<int> objects = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("o ")).ToList();
+            List<int> lamps = objects.Where(i => lines[i].StartsWith("o Signal")).ToList();
             Assert.Equal(2 * Race.SignalColumns, lamps.Count);
-            Assert.All(lamps, i => Assert.Equal("usemtl signalred", lines[i + 1]));
+            //A lamp is in the material "signalred" only, and no other object of the gate is
+            Assert.All(objects, i =>
+            {
+                int end = objects.FirstOrDefault(j => j > i, lines.Length);
+                string[] materials = lines.Skip(i).Take(end - i).Where(line => line.StartsWith("usemtl")).Distinct().ToArray();
+                Assert.Equal(lines[i].StartsWith("o Signal"), materials.Contains("usemtl signalred"));
+                if (lines[i].StartsWith("o Signal"))
+                    Assert.Single(materials);
+            });
             for (int column = 1; column <= Race.SignalColumns; column++)
                 foreach (string row in new[] { "a", "b" })
                     Assert.Contains("o SignalRed" + column + row, lines);
