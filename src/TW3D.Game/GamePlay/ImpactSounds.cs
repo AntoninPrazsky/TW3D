@@ -11,19 +11,24 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// The sounds of things hitting each other. For every contact the physics solves (Aether's post-solve), the impulse
-    /// tells how much the contact changed the speed of each body; the hardest hit of a frame for each sound (the car, a
-    /// metal object, a wooden one) is heard, as loud as it was, and that body not again until a moment later. A body
-    /// resting on another is pushed a little every step, far below what is heard. The bodies are told apart by their tag:
-    /// the parts of the car carry the car, the dynamic objects their type (with its material); the track carries nothing.
+    /// tells how much the contact changed the speed of each body; the hardest hit of a frame for each sound (the tyres of
+    /// the car, its body, a metal object, a wooden one, a plastic one) is heard, as loud as it was, and that body not again
+    /// until a moment later. A body resting on another is pushed a little every step, far below what is heard. The bodies
+    /// are told apart by their tag: the parts of the car carry the car, the dynamic objects their type (with its
+    /// material); the track carries nothing.
     /// </summary>
     sealed class ImpactSounds : IDisposable
     {
         //A hit changing the speed of a body by this much is heard, and at its loudest from this much (physics units a
-        //second). The car hits harder: its light wheels take every bump of the road (measured: driving on a flat road
-        //changes their speed by about 3 a step, a landing by 100 to 250); a barrel pushed by the car keeps touching it.
-        //With these, the car is heard about once a second over humps and once a step up stairs.
-        private const float CarMinChange = 30f;
-        private const float CarFullChange = 150f;
+        //second). The tyres hit harder: the light wheels take every bump of the road (measured: driving on a flat road
+        //changes their speed by about 3 a step, a hump by 10 to 30, a step of the stairs by 30 to 100, a landing by 60 to
+        //250); with these they are heard about once a second over humps and once a step up stairs. The heavy body hits
+        //softer: when it touches the track (on stairs, landing badly) its speed changes by 10 to 30. A barrel pushed by
+        //the car keeps touching it.
+        private const float TyresMinChange = 30f;
+        private const float TyresFullChange = 150f;
+        private const float BodyMinChange = 8f;
+        private const float BodyFullChange = 40f;
         private const float ObjectMinChange = 12f;
         private const float ObjectFullChange = 60f;
         //The softest hit heard, as a share of the sound's volume
@@ -34,10 +39,16 @@ namespace TW3D.GamePlay
         private const float BakedMass = 60f;
         private const float LowestPitch = -0.8f;
         private const float HighestPitch = 0.5f;
+        //A car this heavy (its body, kg) thuds as baked; twice as heavy, this much lower (octaves): the Crawler a little
+        //deeper, the Sand Rail a little higher than the Buggy
+        private const float BakedCarMass = 200f;
+        private const float CarPitchPerDoubling = 0.3f;
+
+        private static readonly Sound[] Sounds = { Sound.ImpactTyres, Sound.ImpactBody, Sound.ImpactMetal, Sound.ImpactWood, Sound.ImpactPlastic };
 
         private readonly World world;
         private readonly GameSounds sounds;
-        //The hardest hit of each body in this frame (the parts of the car as one body), and how long each must stay quiet
+        //The hardest hit of each body in this frame (the wheels of the car as one body), and how long each must stay quiet
         private readonly Dictionary<object, (float Change, float Mass, Sound Sound)> hits = new Dictionary<object, (float, float, Sound)>();
         private readonly Dictionary<object, float> quiet = new Dictionary<object, float>();
         private readonly List<object> keys = new List<object>();
@@ -68,11 +79,20 @@ namespace TW3D.GamePlay
                 return;
             Sound sound;
             object key;
+            float mass;
             switch (body.Tag)
             {
+                //The body of the car (the axles touch nothing) knocks, its wheels thud: the body is heard by itself, the
+                //wheels as one
+                case Car car when body == car.car:
+                    sound = Sound.ImpactBody;
+                    key = body;
+                    mass = car.Type.Mass;
+                    break;
                 case Car car:
-                    sound = Sound.ImpactCar;
+                    sound = Sound.ImpactTyres;
                     key = car;
+                    mass = car.Type.Mass;
                     break;
                 case ObjectType type:
                     sound = type.Material switch
@@ -82,13 +102,14 @@ namespace TW3D.GamePlay
                         _ => Sound.ImpactMetal
                     };
                     key = body;
+                    mass = body.Mass;
                     break;
                 default:
                     return;
             }
             float change = impulse / body.Mass;
             if (!hits.TryGetValue(key, out var hit) || change > hit.Change)
-                hits[key] = (change, body.Mass, sound);
+                hits[key] = (change, mass, sound);
         }
 
         /// <summary>Sounds the hardest hits of the frame; called after the physics has advanced.</summary>
@@ -106,10 +127,14 @@ namespace TW3D.GamePlay
                     quiet.Remove(key);
             }
 
-            foreach (Sound sound in new[] { Sound.ImpactCar, Sound.ImpactMetal, Sound.ImpactWood, Sound.ImpactPlastic })
+            foreach (Sound sound in Sounds)
             {
-                float min = sound == Sound.ImpactCar ? CarMinChange : ObjectMinChange;
-                float full = sound == Sound.ImpactCar ? CarFullChange : ObjectFullChange;
+                (float min, float full) = sound switch
+                {
+                    Sound.ImpactTyres => (TyresMinChange, TyresFullChange),
+                    Sound.ImpactBody => (BodyMinChange, BodyFullChange),
+                    _ => (ObjectMinChange, ObjectFullChange)
+                };
                 object hardest = null;
                 float change = min, mass = 0f;
                 foreach (KeyValuePair<object, (float Change, float Mass, Sound Sound)> hit in hits)
@@ -123,7 +148,9 @@ namespace TW3D.GamePlay
                     continue;
 
                 float volume = MathHelper.Lerp(SoftestVolume, 1f, MathHelper.Clamp((change - min) / (full - min), 0f, 1f));
-                float pitch = sound == Sound.ImpactCar ? 0f : MathHelper.Clamp(-0.5f * MathF.Log2(mass / BakedMass), LowestPitch, HighestPitch);
+                float pitch = sound is Sound.ImpactTyres or Sound.ImpactBody
+                    ? -CarPitchPerDoubling * MathF.Log2(mass / BakedCarMass)
+                    : MathHelper.Clamp(-0.5f * MathF.Log2(mass / BakedMass), LowestPitch, HighestPitch);
                 sounds.Play(sound, pitch, volume);
                 quiet[hardest] = QuietTime;
             }

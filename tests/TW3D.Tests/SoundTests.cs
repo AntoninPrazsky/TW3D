@@ -11,15 +11,19 @@ namespace TW3D.Tests
     /// <summary>
     /// The sound effects (Audio/SoundBakes and Audio/Synth): what the rules of the sounds ask that arithmetic can tell.
     /// Whether a sound is right is for the ear; these catch a recipe gone wrong (silence, clipping, a click at the end,
-    /// a hiss, a sound all in the bass small speakers drop, notes out of tune).
+    /// a hiss, a sound all in the bass small speakers drop, notes out of tune, the car ringing like a note when it lands).
     /// </summary>
     public class SoundTests
     {
-        public static IEnumerable<object[]> Sounds => Enum.GetValues<Sound>().Select(sound => new object[] { sound });
+        //Every take of every sound (see SoundBakes.Variants)
+        public static IEnumerable<object[]> Sounds => Takes(sound => true);
 
-        public static IEnumerable<object[]> OneShots => Enum.GetValues<Sound>().Where(sound => !SoundBakes.IsLoop(sound)).Select(sound => new object[] { sound });
+        public static IEnumerable<object[]> OneShots => Takes(sound => !SoundBakes.IsLoop(sound));
 
-        public static IEnumerable<object[]> Loops => Enum.GetValues<Sound>().Where(SoundBakes.IsLoop).Select(sound => new object[] { sound });
+        public static IEnumerable<object[]> Loops => Takes(SoundBakes.IsLoop);
+
+        private static IEnumerable<object[]> Takes(Func<Sound, bool> which) => Enum.GetValues<Sound>().Where(which)
+            .SelectMany(sound => Enumerable.Range(0, SoundBakes.Variants(sound)).Select(variant => new object[] { sound, variant }));
 
         //The sounds that are notes: they stay in tune
         private static readonly Sound[] Notes =
@@ -29,9 +33,9 @@ namespace TW3D.Tests
 
         [Theory]
         [MemberData(nameof(Sounds))]
-        public void PeaksAtNineTenthsWithoutGaps(Sound sound)
+        public void PeaksAtNineTenthsWithoutGaps(Sound sound, int variant)
         {
-            float[] signal = SoundBakes.Bake(sound);
+            float[] signal = SoundBakes.Bake(sound, variant);
             Assert.All(signal, sample => Assert.True(float.IsFinite(sample)));
             Assert.Equal(0.9f, signal.Max(Math.Abs), 3);
         }
@@ -39,9 +43,9 @@ namespace TW3D.Tests
         /// <summary>A sound cut off loud clicks: its last 5 ms are quiet.</summary>
         [Theory]
         [MemberData(nameof(OneShots))]
-        public void EndsQuietly(Sound sound)
+        public void EndsQuietly(Sound sound, int variant)
         {
-            float[] signal = SoundBakes.Bake(sound);
+            float[] signal = SoundBakes.Bake(sound, variant);
             int tail = Synth.SampleRate / 200;
             float rms = MathF.Sqrt(signal.Skip(signal.Length - tail).Sum(s => s * s) / tail);
             Assert.True(rms < 0.01f, $"{sound} ends at RMS {rms}");
@@ -53,9 +57,9 @@ namespace TW3D.Tests
         /// </summary>
         [Theory]
         [MemberData(nameof(Sounds))]
-        public void IsHeardOnSmallSpeakersAndNotShrill(Sound sound)
+        public void IsHeardOnSmallSpeakersAndNotShrill(Sound sound, int variant)
         {
-            float[] signal = SoundBakes.Bake(sound);
+            float[] signal = SoundBakes.Bake(sound, variant);
             Complex[] spectrum = Spectrum(signal);
             double hzPerBin = (double)Synth.SampleRate / spectrum.Length;
             double total = 0.0, band = 0.0, shrill = 0.0;
@@ -89,9 +93,9 @@ namespace TW3D.Tests
         /// <summary>A loop clicks where its end meets its start unless the step there is like any other step of it.</summary>
         [Theory]
         [MemberData(nameof(Loops))]
-        public void LoopsWithoutASeam(Sound sound)
+        public void LoopsWithoutASeam(Sound sound, int variant)
         {
-            float[] signal = SoundBakes.Bake(sound);
+            float[] signal = SoundBakes.Bake(sound, variant);
             float largestStep = 0f;
             for (int i = 1; i < signal.Length; i++)
                 largestStep = Math.Max(largestStep, Math.Abs(signal[i] - signal[i - 1]));
@@ -106,6 +110,49 @@ namespace TW3D.Tests
                 Assert.Equal(0f, SoundBakes.Nudge(sound));
         }
 
+        /// <summary>The takes of a sound differ, or a run up the stairs would repeat one sample step after step.</summary>
+        [Fact]
+        public void TheTakesOfASoundDiffer()
+        {
+            foreach (Sound sound in Enum.GetValues<Sound>().Where(sound => SoundBakes.Variants(sound) > 1))
+            {
+                float[][] takes = Enumerable.Range(0, SoundBakes.Variants(sound)).Select(variant => SoundBakes.Bake(sound, variant)).ToArray();
+                for (int a = 0; a < takes.Length; a++)
+                    for (int b = a + 1; b < takes.Length; b++)
+                        Assert.False(takes[a].SequenceEqual(takes[b]), $"{sound}: takes {a + 1} and {b + 1} are the same");
+            }
+        }
+
+        /// <summary>
+        /// The car hitting something thuds or knocks, it does not ring like an instrument: little of what it has above
+        /// 150 Hz lies in its three strongest bands 20 Hz wide (the first landing, four fading tones, had 76 % there, a
+        /// metal barrel has 91 %; noise has next to none).
+        /// </summary>
+        [Theory]
+        [InlineData(Sound.ImpactTyres, 0.35)]
+        [InlineData(Sound.ImpactBody, 0.45)]
+        public void TheCarDoesNotRing(Sound sound, double most)
+        {
+            for (int variant = 0; variant < SoundBakes.Variants(sound); variant++)
+            {
+                Complex[] spectrum = Spectrum(SoundBakes.Bake(sound, variant));
+                double hzPerBin = (double)Synth.SampleRate / spectrum.Length;
+                int width = (int)Math.Ceiling(20.0 / hzPerBin);
+                List<double> bands = new List<double>();
+                for (int first = (int)Math.Ceiling(150.0 / hzPerBin); first + width <= spectrum.Length / 2; first += width)
+                    bands.Add(Enumerable.Range(first, width).Sum(i => spectrum[i].Magnitude * spectrum[i].Magnitude));
+                double strongest = bands.OrderByDescending(energy => energy).Take(3).Sum() / bands.Sum();
+                Assert.True(strongest < most, $"{sound} {variant + 1}: {strongest:P0} in its three strongest bands");
+            }
+        }
+
+        /// <summary>The shock absorbers creak quieter than the engine idles, even at their loudest.</summary>
+        [Fact]
+        public void TheCreakIsQuieterThanTheEngine()
+        {
+            Assert.True(Loudness(Sound.Suspension) < Loudness(Sound.EngineIdle), $"{Loudness(Sound.Suspension)} against {Loudness(Sound.EngineIdle)}");
+        }
+
         [Fact]
         public void AWavFileHoldsTheSamples()
         {
@@ -118,6 +165,13 @@ namespace TW3D.Tests
                 Assert.Equal("RIFF", System.Text.Encoding.ASCII.GetString(wav, 0, 4));
                 Assert.Equal(Synth.SampleRate, BitConverter.ToInt32(wav, 24));
             }
+        }
+
+        /// <summary>The RMS of a sound as it plays at its full volume.</summary>
+        private static float Loudness(Sound sound)
+        {
+            float[] signal = SoundBakes.Bake(sound);
+            return SoundBakes.Volume(sound) * MathF.Sqrt(signal.Sum(s => s * s) / signal.Length);
         }
 
         /// <summary>The spectrum of the samples, padded to a power of two (an iterative radix-2 FFT).</summary>

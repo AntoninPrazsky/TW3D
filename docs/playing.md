@@ -91,6 +91,16 @@ following them. Each car has its own engine in the catalog: the Sand Rail, sport
 higher and revs up faster than the Buggy, the Crawler deeper and slower. The motor of the axles hums while they turn; the
 lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
 
+The shock absorbers creak as the springs of the axles move (`GamePlay/SpringCreak.cs`, from
+`Car.SpringSpeed`): a mild croak of a rubber bush sticking and slipping (a train of small
+ticks ringing three resonances of the strut), a loop for each axle, the rear one a little lower
+than the front one. It is silent while a spring moves slower than 1.5 physics units a second
+(a flat road, a car at rest or pushing against a step move them at most about 1), soft over
+humps (1 to 3.5) and loudest from 14 (steps of the stairs and landings move them 4 to 22).
+It comes at once and dies away over about a fifth of a second, so a quick stroke is heard;
+the faster the spring moves, the faster and higher it creaks, a compression a little lower
+than a rebound. Even at its loudest it is quieter than the engine idling.
+
 The tyres screech while they slip over what they stand on, the track or an object, faster
 than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or wheels
 spinning at a launch or landing from a jump; louder and higher the faster they slip. Where they
@@ -125,11 +135,19 @@ with its own look.
 The loops last a second and every part of them is a whole number of hertz, so they loop
 without a seam; they pause with the game. Things hitting each other are heard too
 (`GamePlay/ImpactSounds.cs`): from the impulse of every contact the physics solves, how much
-it changed the speed of each body; the hardest hit of a frame for the car, a metal object, a
-wooden one and a plastic one (the barrels: a dull bomp) sounds, as loud as it was (an object lower the heavier it is), each body not again
-for 0.15 s. The car's light wheels take every bump of the road, so the car is heard from a
-change of 30 physics units a second, an object from 12: about once a second over humps and
-once a step up stairs. What an object is made of is in the catalog (see
+it changed the speed of each body; the hardest hit of a frame for the tyres of the car, its
+body, a metal object, a wooden one and a plastic one (the barrels: a dull bomp) sounds, as loud
+as it was (an object lower the heavier it is), each body not again for 0.15 s. The tyres
+landing or hitting something thud softly, a deep whump of rubber over in a tenth of a second
+(the weight on the squashing tyres, the suspension taking it, the tread slapping the road and
+a loose part rattling), without the ringing tones of the first version, which sounded like a
+drum. The body hitting the track or an object knocks harder, with a little of the clank of its
+frame. Both are baked in four takes with their own noise and tuning (`SoundBakes.Variants`),
+one played at random, and a heavier car plays lower: the Crawler a little deeper, the Sand
+Rail a little higher than the Buggy. The car's light wheels take every bump of the road, so
+the tyres are heard from a change of 30 physics units a second; the heavy body changes its
+speed less, so it is heard from 8, an object from 12: about once a second over humps and once
+a step up stairs. What an object is made of is in the catalog (see
 [Game content](content.md#catalog)).
 
 ## Driving

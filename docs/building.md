@@ -32,7 +32,7 @@ Game arguments for development:
 | `--level <name>` | Skips the menu and loads the level directly (the file name in `content/Levels` without `.json`, e.g. `lock`). Esc returns to the menu. |
 | `--tutorial` | Shows the tutorial's lessons of each level again, learnt or not, saving nothing |
 | `--tutorial demo` | Shows every lesson of the tutorial in turn on any level, each done by itself after two seconds (for screenshots), saving nothing |
-| `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them |
+| `--sounds <folder>` | Writes every sound effect as a WAV file into the folder and quits, to listen to them (a sound of a few takes, such as the landing of the car, as a file for each, numbered from 1) |
 | `--editor [<level>]` | Opens the level editor (see [Levels](levels.md#level-editor)) instead of the game, in a window: with a level name of the levels folder (`lock`) or a level file; without one, the level edited last (a new level when there is none) |
 | `--levels <folder>` | The levels folder of the editor, where it opens and saves levels, instead of `content/Levels` of the repository (e.g. a scratch folder for trying the editor out) |
 | `--render <height>` | Draws the 3D scene at the height of the Resolution row of Options nearest to the one given (e.g. `--render 720`), whatever Options say, without saving it (for tests and screenshots); the row cannot be changed meanwhile |
@@ -83,7 +83,8 @@ dotnet test TW3D.slnx
 level fits the catalog, has a finish and a preview and is written as `LevelFile` writes
 it; every model of the catalog exists and is built, and the physics has its collision
 shape), the score of a run, the rules of the tutorial and the sound effects (each peaks at 0.9,
-ends quietly, is heard on small speakers and is not shrill). The files of the game it tests
+ends quietly, is heard on small speakers and is not shrill; the car thuds rather than rings, and
+its shock absorbers creak only when their springs move fast). The files of the game it tests
 are compiled into it, as they have no MonoGame in them.
 
 Every push runs `.github/workflows/build.yml` on GitHub Actions: the solution built in

@@ -29,6 +29,8 @@
     <Compile Include="..\..\src\TW3D.Game\Input\CarControl.cs" Link="Game\CarControl.cs" />
     <Compile Include="..\..\src\TW3D.Game\Audio\Synth.cs" Link="Game\Synth.cs" />
     <Compile Include="..\..\src\TW3D.Game\Audio\SoundBakes.cs" Link="Game\SoundBakes.cs" />
+    <!-- How loud and how high the shock absorbers creak from how fast their springs move -->
+    <Compile Include="..\..\src\TW3D.Game\GamePlay\SpringCreak.cs" Link="Game\SpringCreak.cs" />
     <!-- The heights the 3D scene may be drawn at (the Resolution row of the Options menu) -->
     <Compile Include="..\..\src\TW3D.Game\Graphics\RenderResolution.cs" Link="Game\RenderResolution.cs" />
     <!-- The sizes of the shadow maps (the Shadow detail row of the Options menu), and the Raspberry Pi that keeps the low one -->

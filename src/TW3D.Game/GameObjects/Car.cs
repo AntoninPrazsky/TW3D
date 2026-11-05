@@ -432,6 +432,20 @@ namespace TW3D.GameObjects
             }
         }
 
+        /// <summary>
+        /// How fast the spring of an axle (the rear or the front one) moves, in physics units a second: more than 0 while it
+        /// compresses (the axle rising into the body), less than 0 while it rebounds.
+        /// </summary>
+        public float SpringSpeed(bool front)
+        {
+            WheelJoint spring = front ? springF : springB;
+            //The axle's point of the joint against the point of the body where it is, along the axis of the spring (up the
+            //body), which turns with the body
+            Vector2 anchor = spring.WorldAnchorB;
+            Vector2 axis = car.GetWorldVector(spring.LocalXAxis);
+            return Vector2.Dot(spring.BodyB.GetLinearVelocityFromWorldPoint(anchor) - car.GetLinearVelocityFromWorldPoint(anchor), axis);
+        }
+
         /// <summary>How fast the axles turn against the body (radians per second).</summary>
         public float AxleSpin => (Math.Abs(holderB.AngularVelocity - car.AngularVelocity) + Math.Abs(holderF.AngularVelocity - car.AngularVelocity)) / 2f;
 

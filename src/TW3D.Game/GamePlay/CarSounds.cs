@@ -10,8 +10,9 @@ namespace TW3D.GamePlay
     /// <summary>
     /// The sounds of the car while it is driven: the engine (two loops in step, idling and under the throttle, pitched by
     /// how fast the wheels turn, so spinning wheels rev it), the motor of the axles while they turn, the lock of the axles,
-    /// the brake grabbing the wheels of a moving car and the tyres screeching while they slip (sliding braked or
-    /// spinning). The loops pause with the game.
+    /// the brake grabbing the wheels of a moving car, the tyres screeching while they slip (sliding braked or spinning)
+    /// and the shock absorbers of each axle creaking while its spring moves fast (see <see cref="SpringCreak"/>). The
+    /// loops pause with the game.
     /// </summary>
     sealed class CarSounds : IDisposable
     {
@@ -37,11 +38,15 @@ namespace TW3D.GamePlay
         //The axles unlocked sound higher and softer than locked
         private const float UnlockPitch = 0.4f;
         private const float UnlockVolume = 0.5f;
+        //The rear axle creaks a little lower than the front one (octaves)
+        private const float RearCreakPitch = -0.06f;
+        private const float FrontCreakPitch = 0.06f;
 
         private readonly GameSounds sounds;
         private readonly Car car;
         //Null without an audio device
-        private readonly SoundEffectInstance idle, load, axles, skid;
+        private readonly SoundEffectInstance idle, load, axles, skid, rearCreak, frontCreak;
+        private readonly SpringCreak rearSpring = new SpringCreak(RearCreakPitch), frontSpring = new SpringCreak(FrontCreakPitch);
         private float pitch = float.NaN;
         private float throttle;
         private float axlesLevel;
@@ -56,6 +61,8 @@ namespace TW3D.GamePlay
             load = sounds.Loop(Sound.EngineLoad);
             axles = sounds.Loop(Sound.AxleMotor);
             skid = sounds.Loop(Sound.Skid);
+            rearCreak = sounds.Loop(Sound.Suspension);
+            frontCreak = sounds.Loop(Sound.Suspension);
         }
 
         /// <param name="elapsed">Real seconds since the last update.</param>
@@ -94,6 +101,11 @@ namespace TW3D.GamePlay
             skidLevel = MathHelper.Lerp(skidLevel, slip > 0f ? MathHelper.Lerp(0.3f, 1f, skidShare) : 0f, fade);
             Set(skid, Sound.Skid, skidLevel, MathHelper.Lerp(-0.2f, 0.2f, skidShare));
 
+            rearSpring.Update(car.SpringSpeed(false), elapsed);
+            frontSpring.Update(car.SpringSpeed(true), elapsed);
+            Set(rearCreak, Sound.Suspension, rearSpring.Level, rearSpring.Pitch);
+            Set(frontCreak, Sound.Suspension, frontSpring.Level, frontSpring.Pitch);
+
             if (lockAxles != locked)
             {
                 if (lockAxles)
@@ -108,7 +120,7 @@ namespace TW3D.GamePlay
             braked = brake;
         }
 
-        private SoundEffectInstance[] Loops => new[] { idle, load, axles, skid };
+        private SoundEffectInstance[] Loops => new[] { idle, load, axles, skid, rearCreak, frontCreak };
 
         /// <summary>Sets a loop's volume (a share of the sound's own) and pitch, and starts or resumes it.</summary>
         private static void Set(SoundEffectInstance loop, Sound sound, float level, float loopPitch)

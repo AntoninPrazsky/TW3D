@@ -97,18 +97,10 @@ namespace TW3D.Audio
         /// </summary>
         public static float[] LoopNoise(int length, float frequency, float q, int seed)
         {
-            double w = 2.0 * Math.PI * frequency / SampleRate, alpha = Math.Sin(w) / (2.0 * q), a0 = 1.0 + alpha;
-            double b0 = alpha / a0, b2 = -alpha / a0, a1 = -2.0 * Math.Cos(w) / a0, a2 = (1.0 - alpha) / a0;
-            double z1 = 0.0, z2 = 0.0;
             float[] noise = new float[length];
-            for (int pass = 0; pass < 2; pass++)
-                for (int i = 0; i < length; i++)
-                {
-                    double x = Noise(i, seed), y = b0 * x + z1;
-                    z1 = -a1 * y + z2;
-                    z2 = b2 * x - a2 * y;
-                    noise[i] = (float)y;
-                }
+            for (int i = 0; i < length; i++)
+                noise[i] = Noise(i, seed);
+            BandPass(noise, frequency, q, loop: true);
             Normalize(noise, 1f);
             return noise;
         }
@@ -174,19 +166,43 @@ namespace TW3D.Audio
         }
 
         /// <summary>A second-order low-pass (Butterworth): what is above the cutoff is rolled off.</summary>
-        public static void LowPass(float[] signal, float cutoffHz)
+        /// <param name="loop">The sound is a loop: the filter runs on from its end into its start, so it has no seam.</param>
+        public static void LowPass(float[] signal, float cutoffHz, bool loop = false)
         {
             double w = 2.0 * Math.PI * cutoffHz / SampleRate, cos = Math.Cos(w), alpha = Math.Sin(w) / (2.0 * 0.70710678);
             double a0 = 1.0 + alpha;
-            double b0 = (1.0 - cos) / 2.0 / a0, b1 = (1.0 - cos) / a0, b2 = b0, a1 = -2.0 * cos / a0, a2 = (1.0 - alpha) / a0;
+            double b0 = (1.0 - cos) / 2.0 / a0;
+            Filter(signal, b0, (1.0 - cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, loop);
+        }
+
+        /// <summary>
+        /// A second-order band-pass (constant peak gain): what is near the middle passes, the rest is rolled off. Struck by
+        /// a click, it rings at the middle for a moment, the longer the narrower it is.
+        /// </summary>
+        /// <param name="q">How narrow the band is: 0.7 is wide, 3 is nearly a whistle.</param>
+        /// <param name="loop">The sound is a loop: the filter runs on from its end into its start, so it has no seam.</param>
+        public static void BandPass(float[] signal, float hz, float q, bool loop = false)
+        {
+            double w = 2.0 * Math.PI * hz / SampleRate, alpha = Math.Sin(w) / (2.0 * q), a0 = 1.0 + alpha;
+            Filter(signal, alpha / a0, 0.0, -alpha / a0, -2.0 * Math.Cos(w) / a0, (1.0 - alpha) / a0, loop);
+        }
+
+        /// <summary>
+        /// A biquad filter (transposed direct form II) over the sound, in place. For a loop it first runs over the whole
+        /// sound once without keeping it, so it starts with what its end leaves ringing.
+        /// </summary>
+        private static void Filter(float[] signal, double b0, double b1, double b2, double a1, double a2, bool loop)
+        {
             double z1 = 0.0, z2 = 0.0;
-            for (int i = 0; i < signal.Length; i++)
-            {
-                double x = signal[i], y = b0 * x + z1;
-                z1 = b1 * x - a1 * y + z2;
-                z2 = b2 * x - a2 * y;
-                signal[i] = (float)y;
-            }
+            for (int pass = loop ? 0 : 1; pass < 2; pass++)
+                for (int i = 0; i < signal.Length; i++)
+                {
+                    double x = signal[i], y = b0 * x + z1;
+                    z1 = b1 * x - a1 * y + z2;
+                    z2 = b2 * x - a2 * y;
+                    if (pass == 1)
+                        signal[i] = (float)y;
+                }
         }
 
         /// <summary>Scales the sound so its loudest sample reaches the peak.</summary>

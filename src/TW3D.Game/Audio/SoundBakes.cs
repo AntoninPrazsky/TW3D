@@ -30,6 +30,8 @@ namespace TW3D.Audio
         AxleMotor,
         /// <summary>The tyres screeching (a loop) while the braked wheels slide.</summary>
         Skid,
+        /// <summary>The shock absorbers creaking (a loop) while the spring of an axle moves fast; one plays for each axle.</summary>
+        Suspension,
         /// <summary>The axles locked (and, higher and softer, unlocked).</summary>
         AxleLock,
         /// <summary>The brake grabbing the wheels of a moving car.</summary>
@@ -40,8 +42,10 @@ namespace TW3D.Audio
         ImpactWood,
         /// <summary>A plastic object hitting something: the barrels.</summary>
         ImpactPlastic,
-        /// <summary>The car hitting something or landing.</summary>
-        ImpactCar
+        /// <summary>The tyres of the car landing or hitting something: a soft thud of rubber.</summary>
+        ImpactTyres,
+        /// <summary>The body of the car hitting the track or an object: a harder knock of its frame.</summary>
+        ImpactBody
     }
 
     /// <summary>
@@ -78,17 +82,25 @@ namespace TW3D.Audio
             Sound.EngineLoad => 0.5f,
             Sound.AxleMotor => 0.35f,
             Sound.Skid => 0.45f,
+            Sound.Suspension => 0.45f,
             Sound.AxleLock => 0.55f,
             Sound.Brake => 0.5f,
             Sound.ImpactMetal => 0.8f,
             Sound.ImpactWood => 0.7f,
             Sound.ImpactPlastic => 0.7f,
-            Sound.ImpactCar => 0.7f,
+            Sound.ImpactTyres => 0.8f,
+            Sound.ImpactBody => 0.7f,
             _ => 0.5f
         };
 
         /// <summary>The sound loops (played on and on, its pitch and volume changed as it plays).</summary>
-        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid;
+        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid or Sound.Suspension;
+
+        /// <summary>
+        /// How many takes of a sound are baked, each with its own noise and a little higher or lower; one of them plays at
+        /// random, so a run up the stairs does not repeat one sample step after step.
+        /// </summary>
+        public static int Variants(Sound sound) => sound is Sound.ImpactTyres or Sound.ImpactBody ? 4 : 1;
 
         /// <summary>
         /// How far (octaves) a sound's pitch may be nudged at random: the noises and the knocks, so no two sound the same;
@@ -98,13 +110,16 @@ namespace TW3D.Audio
         {
             Sound.GarageSwitch or Sound.AxleLock => 0.03f,
             Sound.Brake => 0.05f,
-            Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactCar => 0.08f,
+            Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactTyres or Sound.ImpactBody => 0.08f,
             _ => 0f
         };
 
         /// <summary>The samples of a sound (see <see cref="Synth"/>), peaking at 0.9.</summary>
-        public static float[] Bake(Sound sound)
+        /// <param name="variant">Which take of the sound, 0 to <see cref="Variants"/> - 1.</param>
+        public static float[] Bake(Sound sound, int variant = 0)
         {
+            if (variant < 0 || variant >= Variants(sound))
+                throw new ArgumentOutOfRangeException(nameof(variant));
             float[] signal = sound switch
             {
                 Sound.MenuMove => MenuMove(),
@@ -121,12 +136,14 @@ namespace TW3D.Audio
                 Sound.EngineLoad => Engine(load: true),
                 Sound.AxleMotor => AxleMotor(),
                 Sound.Skid => Skid(),
+                Sound.Suspension => Suspension(),
                 Sound.AxleLock => AxleLock(),
                 Sound.Brake => Brake(),
                 Sound.ImpactMetal => ImpactMetal(),
                 Sound.ImpactWood => ImpactWood(),
                 Sound.ImpactPlastic => ImpactPlastic(),
-                Sound.ImpactCar => ImpactCar(),
+                Sound.ImpactTyres => ImpactTyres(variant),
+                Sound.ImpactBody => ImpactBody(variant),
                 _ => throw new ArgumentOutOfRangeException(nameof(sound))
             };
             Synth.Normalize(signal, 0.9f);
@@ -326,6 +343,48 @@ namespace TW3D.Audio
             return signal;
         }
 
+        /// <summary>
+        /// The shock absorbers creaking: a rubber bush sticking and slipping, a train of small ticks at a rate wandering
+        /// between about 30 and 80 a second, each ringing three resonances of the strut for a moment (a croak, not a
+        /// whistle), and a breath of the oil. A loop (see <see cref="LoopLength"/>): the wandering adds up to a whole
+        /// number of ticks, and the resonances ring on from its end into its start. Played louder and faster the faster
+        /// the spring moves, so each stroke starts the creak at another place of the loop.
+        /// </summary>
+        private static float[] Suspension()
+        {
+            float[] ticks = Synth.Buffer(LoopLength);
+            double phase = 0.0;
+            int tick = 0;
+            for (int i = 0; i < ticks.Length; i++)
+            {
+                float t = (float)i / Synth.SampleRate;
+                float rate = 55f + 14f * MathF.Sin(2f * MathF.PI * 2f * t + 0.3f) + 8f * MathF.Sin(2f * MathF.PI * 5f * t + 1.9f)
+                    + 4f * MathF.Sin(2f * MathF.PI * 11f * t + 0.7f);
+                phase += rate / Synth.SampleRate;
+                if (phase >= 1.0)
+                {
+                    phase -= 1.0;
+                    ticks[i] = 0.55f + 0.45f * Synth.Noise(tick++, 31);
+                }
+            }
+
+            float[] signal = Synth.Buffer(LoopLength);
+            foreach ((float hz, float q, float gain) in new[] { (210f, 3f, 0.5f), (640f, 9f, 1f), (1150f, 12f, 0.8f), (1900f, 8f, 0.35f) })
+            {
+                float[] ring = (float[])ticks.Clone();
+                Synth.BandPass(ring, hz, q, loop: true);
+                //A tick rings the softer the narrower and the lower the band: each resonance as loud as its gain says
+                for (int i = 0; i < signal.Length; i++)
+                    signal[i] += ring[i] * gain * q * 1000f / hz;
+            }
+            Synth.Normalize(signal, 1f);
+            float[] oil = Synth.LoopNoise(signal.Length, 500f, 0.9f, seed: 32);
+            for (int i = 0; i < signal.Length; i++)
+                signal[i] += oil[i] * 0.05f;
+            Synth.LowPass(signal, 3500f, loop: true);
+            return signal;
+        }
+
         /// <summary>The motor of the axles: an electric hum and its harmonics, and the whine of its gears. A loop.</summary>
         private static float[] AxleMotor()
         {
@@ -410,16 +469,56 @@ namespace TW3D.Audio
             return signal;
         }
 
-        /// <summary>The car hitting or landing: the thump of the tyres, the body, and its frame rattling.</summary>
-        private static float[] ImpactCar()
+        /// <summary>How much higher or lower each variant of a sound is tuned (see <see cref="Variants"/>).</summary>
+        private static float Tune(int variant) => variant switch
         {
-            float[] signal = Synth.Buffer(0.5f);
-            Synth.AddTone(signal, 0f, 0.4f, 130f, 100f, 0.4f, 0.002f, 16f, 1f, 0.6f, 0.25f);
-            Synth.AddTone(signal, 0f, 0.3f, 340f, 320f, 0.55f, 0.001f, 22f, 1f, 0.25f);
-            Synth.AddTone(signal, 0f, 0.2f, 610f, 610f, 0.25f, 0.001f, 32f, 1f);
-            Synth.AddTone(signal, 0f, 0.15f, 1130f, 1130f, 0.07f, 0.0005f, 50f, 1f);
-            Synth.AddNoise(signal, 0f, 0.015f, 0.8f, 0.0005f, 300f, 700f, 700f, 1f, seed: 10);
-            Synth.LowPass(signal, 3000f);
+            1 => 0.94f,
+            2 => 1.05f,
+            3 => 0.98f,
+            _ => 1f
+        };
+
+        /// <summary>
+        /// The tyres landing or hitting: a soft, deep thud of rubber, over in a tenth of a second and never ringing (the
+        /// first version, four fading tones, rang like a drum or a piece of metal): the thump of the car's weight on the
+        /// tyres (a low tone falling as they squash), the dull knock of the suspension taking it (noise in a low band), the
+        /// tread slapping the road (a burst of brighter noise) and a loose part of the frame rattling once or twice after
+        /// it. Each variant has its own noise and is tuned a little higher or lower.
+        /// </summary>
+        private static float[] ImpactTyres(int variant)
+        {
+            float[] signal = Synth.Buffer(0.35f);
+            float tune = Tune(variant);
+            int seed = 40 + variant * 8;
+            Synth.AddTone(signal, 0f, 0.22f, 110f * tune, 55f * tune, 0.5f, 0.004f, 24f, 1f, 0.45f, 0.15f);
+            Synth.AddNoise(signal, 0f, 0.16f, 4.5f, 0.002f, 30f, 400f * tune, 230f * tune, 1.1f, seed);
+            Synth.AddNoise(signal, 0f, 0.05f, 2.5f, 0.0006f, 80f, 1000f * tune, 650f * tune, 0.8f, seed + 1);
+            float rattle = 0.045f + 0.012f * variant;
+            Synth.AddNoise(signal, rattle, 0.03f, 1.2f, 0.0004f, 140f, 1900f * tune, 1700f * tune, 3f, seed + 2);
+            Synth.AddNoise(signal, rattle + 0.035f, 0.025f, 0.7f, 0.0004f, 160f, 2300f * tune, 2100f * tune, 3f, seed + 3);
+            Synth.LowPass(signal, 2800f);
+            Synth.FadeOut(signal, 0.05f);
+            return signal;
+        }
+
+        /// <summary>
+        /// The body of the car hitting the track or an object: a harder knock than the tyres, with a little of the clank of
+        /// its steel frame, but short (far less ringing than a barrel of steel): a low knock, three uneven partials of the
+        /// frame dying in a few hundredths of a second, the crunch of the hit (a burst of noise) and the frame scraping for
+        /// a moment. Each variant has its own noise and is tuned a little higher or lower.
+        /// </summary>
+        private static float[] ImpactBody(int variant)
+        {
+            float[] signal = Synth.Buffer(0.4f);
+            float tune = Tune(variant);
+            int seed = 80 + variant * 8;
+            Synth.AddTone(signal, 0f, 0.2f, 150f * tune, 115f * tune, 0.6f, 0.002f, 30f, 1f, 0.4f);
+            Synth.AddTone(signal, 0f, 0.15f, 480f * tune, 470f * tune, 0.35f, 0.0008f, 40f, 1f);
+            Synth.AddTone(signal, 0f, 0.1f, 1170f * tune, 1160f * tune, 0.18f, 0.0005f, 60f, 1f);
+            Synth.AddTone(signal, 0f, 0.08f, 1930f * tune, 1920f * tune, 0.08f, 0.0005f, 80f, 1f);
+            Synth.AddNoise(signal, 0f, 0.05f, 3f, 0.0005f, 70f, 1500f * tune, 900f * tune, 0.8f, seed);
+            Synth.AddNoise(signal, 0.01f, 0.25f, 0.8f, 0.01f, 14f, 800f * tune, 600f * tune, 1.2f, seed + 1);
+            Synth.LowPass(signal, 3200f);
             Synth.FadeOut(signal, 0.06f);
             return signal;
         }
