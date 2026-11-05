@@ -92,15 +92,19 @@ higher and revs up faster than the Buggy, the Crawler deeper and slower. The mot
 lock of the axles clunks (softer as it opens); the brake grabs the wheels of a moving car.
 
 The shock absorbers creak at each stroke of the springs of the axles (`GamePlay/SpringCreak.cs`,
-from `Car.SpringSpeed`), high like the springs of an old car: a bush sticking and slipping, a
-few hundred slips a second at a rate gliding up and back down (eek-ook), each knocking the
-strut, so they run into a squeaky tone with a rasp; four takes glide a little differently. A stroke is a spring moving one way
-faster than 2 physics units a second (a flat road, a car at rest or pushing against a step
-move them at most about 1); it creaks once it has passed its fastest, as loud as that was, the
+from `Car.SpringSpeed`): metal sticking and slipping at two spots, the spring and its bush,
+each ringing many close modes of its own metal. The slips follow the speed of the stroke: single
+clicks run into a squeak of up to 400 a second and fall apart into clicks again; each slip comes
+a little early or late and knocks harder or softer, the body of the car sounds them below and
+the bush rubs between them. Eight takes, played as they are: never pitched (pitched by the
+axle and the stroke, the creak sounded robotic in the game), and never two at once (the two
+axles creaking together sang like a voice). A stroke is a spring moving one way faster than 2
+physics units a second (a flat road, a car at rest or pushing against a step move them at
+most about 1); it creaks once it has passed its fastest, the louder the faster it was, at its
 loudest from 14 (humps move the springs 1 to 3.5, steps of the stairs and landings 4 to 22),
-and that axle not again for 0.3 s. Each axle creaks by itself, the rear one a little lower than
-the front one, a compression lower than a rebound and a faster stroke higher. Even at its
-loudest it is no louder than the engine under the throttle.
+and that axle not again for 0.3 s. Even a soft creak plays at 0.6 of its volume, so that the
+engine does not leave only its squeak to be heard; at its loudest it is no louder than the
+engine under the throttle.
 
 The tyres screech while they slip over what they stand on, the track or an object, faster
 than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding, or wheels

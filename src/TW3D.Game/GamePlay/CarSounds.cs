@@ -38,16 +38,13 @@ namespace TW3D.GamePlay
         //The axles unlocked sound higher and softer than locked
         private const float UnlockPitch = 0.4f;
         private const float UnlockVolume = 0.5f;
-        //The rear axle creaks a little lower than the front one (octaves)
-        private const float RearCreakPitch = -0.06f;
-        private const float FrontCreakPitch = 0.06f;
 
         private readonly GameSounds sounds;
         private readonly Car car;
         //Null without an audio device
         private readonly SoundEffectInstance idle, load, axles, skid;
-        private readonly SpringCreak rearSpring = new SpringCreak(RearCreakPitch), frontSpring = new SpringCreak(FrontCreakPitch);
-        //How long no axle may creak, while one creak plays (seconds): two at once, at their two pitches, sang like a voice
+        private readonly SpringCreak rearSpring = new SpringCreak(), frontSpring = new SpringCreak();
+        //How long no axle may creak, while one creak plays (seconds): two at once sang like a voice
         private float creakQuiet;
         private float pitch = float.NaN;
         private float throttle;
@@ -122,9 +119,9 @@ namespace TW3D.GamePlay
         /// <summary>Follows the spring of an axle and plays its creak, unless another creak still plays.</summary>
         private void Creak(SpringCreak spring, float speed, float elapsed)
         {
-            if (spring.Update(speed, elapsed, out float volume, out float creakPitch) && creakQuiet <= 0f)
+            if (spring.Update(speed, elapsed, out float volume) && creakQuiet <= 0f)
             {
-                sounds.Play(Sound.Suspension, creakPitch, volume);
+                sounds.Play(Sound.Suspension, 0f, volume);
                 creakQuiet = SpringCreak.QuietTime;
             }
         }

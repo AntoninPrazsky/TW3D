@@ -116,6 +116,17 @@ namespace TW3D.Tests
                 Assert.Equal(0f, SoundBakes.Nudge(sound));
         }
 
+        /// <summary>
+        /// The creak of the springs plays as it is, never pitched: pitched by the axle, the stroke and at random, its metal
+        /// sounded robotic in the game. Its takes make it vary instead.
+        /// </summary>
+        [Fact]
+        public void TheCreakIsNotPitched()
+        {
+            Assert.Equal(0f, SoundBakes.Nudge(Sound.Suspension));
+            Assert.True(SoundBakes.Variants(Sound.Suspension) >= 8);
+        }
+
         /// <summary>The takes of a sound differ, or a run up the stairs would repeat one sample step after step.</summary>
         [Fact]
         public void TheTakesOfASoundDiffer()

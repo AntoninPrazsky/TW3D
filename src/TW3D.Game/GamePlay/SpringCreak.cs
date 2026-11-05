@@ -4,11 +4,11 @@ namespace TW3D.GamePlay
 {
     /// <summary>
     /// When the shock absorbers of one axle creak (the sound <see cref="TW3D.Audio.Sound.Suspension"/>, once for each
-    /// stroke) and how, from how fast the spring of the axle moves. A stroke is the spring moving one way faster than
-    /// <see cref="MinSpeed"/>; it creaks once the stroke has passed its fastest (the spring slows down or turns back), as
-    /// loud as that was, and the axle does not creak again for <see cref="QuietTime"/>. A spring at rest or over a flat
-    /// road never creaks, a hump softly, a step, a landing or a bounce loudly; a compression creaks a little lower than a
-    /// rebound, and a faster stroke a little higher. No MonoGame in it, so the tests run it.
+    /// stroke) and how loud, from how fast the spring of the axle moves. A stroke is the spring moving one way faster than
+    /// <see cref="MinSpeed"/>; it creaks once the stroke has passed its fastest (the spring slows down or turns back), the
+    /// louder the faster it was, and the axle does not creak again for <see cref="QuietTime"/>. A spring at rest or over a
+    /// flat road never creaks. Even a soft creak plays fairly loud: softer, the engine left only its squeak to be heard,
+    /// which sounded robotic. No MonoGame in it, so the tests run it.
     /// </summary>
     public sealed class SpringCreak
     {
@@ -20,33 +20,21 @@ namespace TW3D.GamePlay
         public const float FullSpeed = 14f;
         //An axle does not creak again until this long after it creaked (seconds): about the length of the creak
         public const float QuietTime = 0.3f;
-        //The softest creak heard, as a share of the sound's volume
-        private const float Softest = 0.25f;
-        //A compression creaks lower and a rebound higher by this much, and the fastest stroke higher by this much (octaves)
-        private const float StrokePitch = 0.08f;
-        private const float FastPitch = 0.1f;
+        //The softest creak, as a share of the sound's volume
+        private const float Softest = 0.6f;
 
-        private readonly float axlePitch;
         //How fast the stroke under way has moved at most (0 with none under way) and which way; how long to keep quiet
         private float fastest;
         private int way;
         private float quiet;
 
-        /// <param name="axlePitch">The axle's own pitch (octaves): the rear and the front one creak a little differently.</param>
-        public SpringCreak(float axlePitch)
-        {
-            this.axlePitch = axlePitch;
-        }
-
         /// <summary>Follows the spring; true when the axle creaks now.</summary>
         /// <param name="speed">How fast the spring moves (physics units a second): more than 0 compressing, less rebounding.</param>
         /// <param name="elapsed">Real seconds since the last update.</param>
         /// <param name="volume">How loud it creaks, as a share of the sound's volume.</param>
-        /// <param name="pitch">How high (octaves).</param>
-        public bool Update(float speed, float elapsed, out float volume, out float pitch)
+        public bool Update(float speed, float elapsed, out float volume)
         {
             volume = 0f;
-            pitch = 0f;
             quiet = Math.Max(0f, quiet - elapsed);
             float moving = Math.Abs(speed);
             if (fastest > 0f)
@@ -57,9 +45,7 @@ namespace TW3D.GamePlay
                     fastest = moving;
                     return false;
                 }
-                float share = Math.Clamp((fastest - MinSpeed) / (FullSpeed - MinSpeed), 0f, 1f);
-                volume = Softest + (1f - Softest) * share;
-                pitch = Math.Clamp(axlePitch + (way > 0 ? -StrokePitch : StrokePitch) + FastPitch * share, -1f, 1f);
+                volume = Softest + (1f - Softest) * Math.Clamp((fastest - MinSpeed) / (FullSpeed - MinSpeed), 0f, 1f);
                 fastest = 0f;
                 quiet = QuietTime;
                 return true;

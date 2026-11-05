@@ -32,7 +32,7 @@ namespace TW3D.Audio
         AxleMotor,
         /// <summary>The tyres screeching (a loop) while the braked wheels slide.</summary>
         Skid,
-        /// <summary>The shock absorbers of an axle creaking as its spring moves fast, once for each stroke.</summary>
+        /// <summary>The shock absorbers of an axle creaking as its spring moves fast, once for each stroke; never pitched.</summary>
         Suspension,
         /// <summary>The axles locked (and, higher and softer, unlocked).</summary>
         AxleLock,
@@ -103,8 +103,13 @@ namespace TW3D.Audio
         /// little higher or lower; one of them plays at random, so a run up the stairs does not repeat one sample step after
         /// step.
         /// </summary>
-        public static int Variants(Sound sound) =>
-            sound is Sound.ImpactTyres or Sound.ImpactBody or Sound.ImpactMetal or Sound.ImpactPlastic or Sound.Suspension ? 4 : 1;
+        public static int Variants(Sound sound) => sound switch
+        {
+            //The creak is never pitched in the game: only its takes make it vary
+            Sound.Suspension => 8,
+            Sound.ImpactTyres or Sound.ImpactBody or Sound.ImpactMetal or Sound.ImpactPlastic => 4,
+            _ => 1
+        };
 
         /// <summary>
         /// How far (octaves) a sound's pitch may be nudged at random: the noises and the knocks, so no two sound the same;
@@ -115,7 +120,6 @@ namespace TW3D.Audio
             Sound.GarageSwitch or Sound.AxleLock => 0.03f,
             Sound.Brake => 0.05f,
             Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactTyres or Sound.ImpactBody => 0.08f,
-            Sound.Suspension => 0.05f,
             _ => 0f
         };
 
@@ -349,52 +353,71 @@ namespace TW3D.Audio
         }
 
         /// <summary>
-        /// The shock absorbers creaking at a stroke of the spring, high like the springs of an old car: a bush sticking and
-        /// slipping. Every slip knocks the strut (a click ringing three of its resonances, high in the middle), and the
-        /// slips come at a rate that glides up and back down as the stroke goes (eek-ook), a few hundred a second, so they
-        /// run into a squeaky tone with a rasp: each slip comes a little early or late and knocks a little harder or
-        /// softer, louder after a longer stick (a slower rate). The takes glide a little higher or lower and last a little
-        /// longer or shorter. (The first version, random clicks under noise, crackled like a radio off its station; the
-        /// owner chose this one in the fourth round, between a buzzing creak and a clean squeak, higher.)
+        /// The shock absorbers creaking at a stroke of the spring: metal sticking and slipping at two spots, the spring and
+        /// its bush. The slips follow the speed of the stroke, which rises fast to its fastest at two fifths of it and falls
+        /// slower: they start as single clicks, run into a squeak of up to 400 a second and fall apart into clicks again.
+        /// Each slip comes a little early or late (more so while they are slow), knocks harder or softer and sharper or
+        /// duller, and hops between the two spots, each ringing many close modes of its own metal; the body of the car
+        /// sounds the slips below 600 Hz, and the bush rubs between them (noise following the speed of the stroke). A
+        /// sound of few resonances and even slips sang like a voice. The owner chose this one by ear in the sixth round;
+        /// in the game it is played as it is, never pitched (pitched, the creak sounded robotic).
         /// </summary>
         private static float[] Suspension(int variant)
         {
-            //The rate of the slips at the start, in the middle and at the end (a second), and the length
-            (float from, float middle, float to, float length) = variant switch
-            {
-                1 => (200f, 370f, 190f, 0.4f),
-                2 => (240f, 430f, 215f, 0.44f),
-                3 => (210f, 390f, 230f, 0.38f),
-                _ => (220f, 400f, 200f, 0.42f)
-            };
-            //How far each slip is early or late and how much harder or softer it knocks (shares), the resonances
-            const float jitter = 0.025f, rasp = 0.15f;
-            float tune = Tune(variant);
-            Mode[] modes = Tuned(tune, (900f, 45f, 0.8f), (1500f, 50f, 1f), (2300f, 80f, 0.4f));
-            int seed = 71 + variant * 4;
-            float[] force = Synth.Buffer(length);
+            //The stroke lasts this long, and the metal rings on after it a moment
+            const float length = 0.34f, ringing = 0.06f, slowest = 20f, fastest = 400f, jitter = 0.08f, rasp = 0.35f;
+            int seed = 430 + 7 * variant;
+            float[] spring = Synth.Buffer(length + ringing), bush = Synth.Buffer(length + ringing), thump = Synth.Buffer(length + ringing);
             double phase = 0.0;
             int slip = 0;
-            for (int i = 0; i < force.Length; i++)
+            float wander = 0f;
+            for (int i = 0; i < (int)(length * Synth.SampleRate); i++)
             {
-                float t = (float)i / Synth.SampleRate, along = t / length;
-                float rate = along < 0.5f ? from + (middle - from) * along * 2f : middle + (to - middle) * (along - 0.5f) * 2f;
-                phase += rate * (1f + jitter * Synth.Noise(slip, seed)) / Synth.SampleRate;
+                float t = (float)i / Synth.SampleRate;
+                float speed = StrokeSpeed(t / length);
+                float rate = slowest + (fastest - slowest) * speed * speed;
+                phase += rate * (1f + jitter * (1f + 60f / rate) * wander) / Synth.SampleRate;
                 if (phase >= 1.0)
                 {
                     phase -= 1.0;
-                    //The creak swells in and dies away with the stroke
-                    float swell = Math.Min(1f, t / 0.04f) * Math.Min(1f, (length - t) / 0.12f);
-                    force[i] += swell * MathF.Sqrt(100f / rate) * (1f + rasp * Synth.Noise(slip, seed + 1));
+                    //Each period drifts from the last, not only shakes
+                    wander = 0.6f * wander + 0.8f * Synth.Noise(slip, seed);
+                    float push = MathF.Sqrt(100f / rate) * (1f + rasp * Synth.Noise(slip, seed + 1)) * Math.Min(1f, (length - t) / 0.03f);
+                    float contact = 0.00015f + 0.00045f * (0.5f + 0.5f * Synth.Noise(slip, seed + 2));
+                    Synth.AddContact(Synth.Noise(slip, seed + 3) > 0.2f ? bush : spring, t, contact, push);
+                    Synth.AddContact(thump, t, 0.0015f, push);
                     slip++;
                 }
             }
-            float[] signal = Synth.Buffer(length);
-            Synth.AddResonance(signal, force, modes);
-            Synth.LowPass(signal, 4000f);
-            Synth.FadeOut(signal, 0.03f);
+            float[] signal = Synth.Buffer(length + ringing);
+            Synth.AddResonance(signal, spring, Modes(28, 700f, 4000f, 30f, 10f, 0.3f, seed + 4));
+            Synth.AddResonance(signal, bush, Modes(20, 500f, 3000f, 45f, 15f, 0.3f, seed + 5));
+            Synth.Normalize(signal, 1f);
+            float[] body = Synth.Buffer(length + ringing);
+            Synth.AddResonance(body, thump, Modes(14, 150f, 600f, 40f, 30f, 0.2f, seed + 6));
+            Synth.Normalize(body, 0.5f);
+            float[] rub = Synth.Buffer(length + ringing);
+            Synth.AddNoise(rub, 0f, length, 1f, 0.02f, 0f, 2200f, 2200f, 0.6f, seed + 7);
+            int stroke = (int)(length * Synth.SampleRate);
+            for (int i = 0; i < stroke; i++)
+            {
+                float speed = StrokeSpeed((float)i / stroke);
+                rub[i] *= speed * speed;
+            }
+            Synth.Normalize(rub, 0.2f);
+            for (int i = 0; i < signal.Length; i++)
+            {
+                signal[i] += body[i];
+                signal[i] += rub[i];
+            }
+            Synth.LowPass(signal, 5500f);
+            Synth.FadeOut(signal, 0.04f);
             return signal;
         }
+
+        /// <summary>How fast a stroke of the spring goes along it (0 to 1 of its length): up to 1 at two fifths, then down.</summary>
+        private static float StrokeSpeed(float along) =>
+            along < 0.4f ? MathF.Sin(MathF.PI / 2f * along / 0.4f) : MathF.Cos(MathF.PI / 2f * (along - 0.4f) / 0.6f);
 
         /// <summary>The motor of the axles: an electric hum and its harmonics, and the whine of its gears. A loop.</summary>
         private static float[] AxleMotor()
