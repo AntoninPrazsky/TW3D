@@ -106,9 +106,11 @@ covers the main menu, as the titles of the other menus do.
 The Buggy (`car`, 2014) was modelled in Wings 3D ([`art/wings/`](../art/wings/README.md)). The
 Sand Rail (`car2`, a single-seater racer of 2014, remodelled in 2026) is red, built by
 `tools/blender/car2.py` (Blender 4.2, `blender -b --factory-startup --python
-tools/blender/car2.py`), 9 482 triangles: a red tube frame with open ends, two wide faceted pods
-with sloping shoulders either side of an open cockpit (an intake, vents and a strip of the
-secondary colour on each), a low raked windscreen on the dash in a frame of the red tubes, a red
+tools/blender/car2.py`), 10 006 triangles: a red tube frame with open ends, two faceted sidepods in
+the manner of a formula car either side of an open cockpit (a wide inlet in front, the widest part
+ahead of the middle, an undercut below it and a taper to the tail; vents on the flank and a line of
+the secondary colour), a low rounded windscreen wrapped round the front of the cockpit on the dash
+in a frame of the red tubes, a red
 roll hoop behind the seat with two stays to the hoop of the tail frame and a tonneau between
 them; in the cockpit the seat on the floor, the steering wheel on a column that goes into the dash
 and the pedals held by a plate on it; the blown engine with its red stacks in front of a finned

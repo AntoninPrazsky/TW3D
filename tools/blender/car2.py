@@ -177,7 +177,7 @@ def underframe():
     for s in (-1, 1):
         blk((-0.03, s * 0.62, -0.92), (7.5, 0.14, 0.14), RED, 0.02)
     for x in (-2.5, -1.7, -0.2, 1.2, 2.2, 3.3):
-        blk((x, 0, -0.92), (0.12, 1.38, 0.12), FRAME, 0.01)
+        blk((x, 0, -0.92), (0.12, 1.3, 0.08), FRAME, 0.005)
     for x in (REAR, FRONT):
         cyl((x, -1.0, -1.06), (x, 1.0, -1.06), 0.09, STEEL, 10)
         blk((x, 0.0, -1.06), (0.5, 0.45, 0.28), FRAME, 0.05, 2)
@@ -186,7 +186,7 @@ def underframe():
             foot, top = Vector((x + 0.05, s * 0.8, -1.0)), Vector((x + (0.25 if x > 0 else 0.3), s * 0.66, -0.3))
             d = (top - foot).normalized()
             cyl(foot, foot + d * 0.5, 0.06, FRAME, 10)
-            cyl(foot + d * 0.45, top, 0.03, CHROME, 8)
+            cyl(foot + d * 0.45, top - d * 0.02, 0.03, CHROME, 8)
             helix(foot + d * 0.3, top - d * 0.08, 0.09, 4.0, 0.02, ACCENT)
             cyl(top - d * 0.1, top, 0.1, FRAME, 10)
 
@@ -205,16 +205,26 @@ def nose():
         prism([(-4.05, -1.01), (-3.45, -1.01), (-3.4, -0.78)], s * 0.93, s * 0.97, ACCENT, 0.01)
     # the frame round the radiator, a grille over it
     pipe([(-4.31, -0.46, -0.72), (-4.31, 0.46, -0.72), (-4.31, 0.46, -0.2), (-4.31, -0.46, -0.2), (-4.31, -0.46, -0.72)], 0.04, RED, 0.06, False)
-    blk((-4.02, 0, -0.46), (0.5, 0.82, 0.5), FRAME, 0.01)
+    blk((-4.05, 0, -0.46), (0.48, 0.82, 0.5), FRAME, 0.01)
     for k in range(6):
-        blk((-4.29, 0, -0.68 + k * 0.095), (0.03, 0.8, 0.022), STEEL, 0.003)
+        blk((-4.30, 0, -0.68 + k * 0.095), (0.03, 0.7, 0.022), STEEL, 0.003)
     blk((-4.0, 0, -1.04), (0.7, 1.6, 0.05), BLACK, 0.015)
 
 
-# ---- the cabin: two wide pods with sloping shoulders either side of a narrow cockpit, a dash across its front with the
-# steering column and the pedal box on it, and a low glass canopy over the cockpit under arches that follow its surface
-POD = [(0.6, -1.0), (1.3, -1.0), (1.3, -0.35), (0.8, 0.1), (0.6, 0.1)]                   # the section of a pod: (y, z)
-POD_STATIONS = [(-1.95, 0.6, 0.3), (-1.55, 0.92, 0.22), (-0.5, 1.0, 0.2), (0.9, 1.0, 0.2), (1.55, 0.95, 0.22), (2.05, 0.66, 0.36)]
+# ---- the cabin: two sidepods in the manner of a formula car either side of the cockpit (a small inlet in front, the widest
+# part behind the middle, an undercut below it and a taper to the tail), a dash across the front of the cockpit with the
+# steering column and the pedal box on it
+POD = [(0.6, -0.92), (1.0, -0.92), (1.3, -0.6), (1.32, -0.3), (1.0, -0.02), (0.78, 0.06), (0.6, 0.06)]   # the section of a pod: (y, z)
+POD_STATIONS = [(-1.95, 0.82, 0.35), (-1.6, 0.92, 0.28), (-0.9, 1.0, 0.2), (0.0, 0.97, 0.18), (0.8, 0.84, 0.18),
+                (1.4, 0.66, 0.22), (1.8, 0.52, 0.3), (2.05, 0.42, 0.38)]     # (x, how wide the pod is there, how much its top is lowered)
+
+
+def pod_wall(x):
+    """|y| of the flank of the pods at x, at the height of their widest part."""
+    for (x0, w0, _), (x1, w1, _) in zip(POD_STATIONS, POD_STATIONS[1:]):
+        if x0 <= x <= x1:
+            return 0.6 + 0.71 * (w0 + (w1 - w0) * (x - x0) / (x1 - x0))
+    raise ValueError(x)
 
 
 def pods():
@@ -225,7 +235,7 @@ def pods():
             ring = []
             for y, z in POD:
                 y2 = 0.6 + (y - 0.6) * width
-                z2 = z - drop * max(0.0, (z + 0.35) / 0.45)
+                z2 = z - drop * max(0.0, (z + 0.3) / 0.36)
                 ring.append(bm.verts.new((x, s * y2, z2)))
             rings.append(ring)
         n = len(POD)
@@ -242,13 +252,14 @@ def pods():
         obj = bpy.data.objects.new("pod", mesh)
         scene.collection.objects.link(obj)
         add(finish(obj, RED, None))
-        # the intake on the front of the flank, the vents behind the shoulder, the strip of the secondary colour along the sill
-        blk((-1.45, s * 1.02, -0.62), (0.5, 0.05, 0.34), BLACK, 0.01)
+        # the inlet in the nose of the pod, the vents on its flank, a line of the secondary colour along the widest part
+        blk((-1.97, s * 0.9, -0.5), (0.05, 0.4, 0.34), BLACK, 0.005)
         for k in range(3):
-            blk((-0.5 + 0.28 * k, s * 1.31, -0.28), (0.12, 0.04, 0.34), BLACK, 0.005)
-        blk((0.1, s * 1.31, -0.9), (3.4, 0.04, 0.07), ACCENT, 0.005)
-    # the dash between the pods, its face towards the cockpit at x = -1.45
-    loft([(-1.95, -0.5, 0.0, 0.8, 0.8, 0.8), (-1.3, -0.5, 0.12, 0.8, 0.76, 0.8)], RED, 0.02, 1)
+            x = -0.9 + 0.3 * k
+            blk((x, s * (pod_wall(x) + 0.006), -0.42), (0.12, 0.03, 0.3), BLACK, 0.005)
+        pipe([(x, s * (pod_wall(x) + 0.012), -0.6) for x in (-1.6, -1.0, -0.3, 0.4, 1.0, 1.5)], 0.022, ACCENT, 0.4, False)
+    # the dash between the pods, its face towards the cockpit at x = -1.3, a little behind the noses of the pods
+    loft([(-1.9, -0.5, 0.0, 0.8, 0.8, 0.8), (-1.3, -0.5, 0.12, 0.8, 0.76, 0.8)], RED, 0.02, 1)
 
 
 # The driver's parts of the old car are moved forward by this much (the seat, the steering wheel, the pedals): the seat
@@ -265,18 +276,51 @@ def driver(found):
     cyl((-1.27, 0.0, -0.31), (-1.21, 0.0, -0.27), 0.085, FRAME, 10)
     blk((-1.24, 0.0, -0.3), (0.06, 0.55, 0.4), FRAME, 0.01)
     # the floor under the seat and the footwell: the seat (bottom at -0.51) stands on it
-    blk((-0.1, 0, -0.535), (3.9, 1.2, 0.05), FRAME, 0.01)
+    blk((-0.1, 0, -0.51), (3.9, 1.16, 0.05), FRAME, 0.01)
     loft([(0.25, -0.5, 0.62, 0.56, 0.3, 0.52), (0.9, -0.5, 0.5, 0.58, 0.32, 0.54), (1.95, -0.5, 0.3, 0.55, 0.32, 0.5)], RED, 0.02, 1)
     for s in (-1, 1):
-        blk((-0.25, s * 0.45, -0.49), (0.8, 0.06, 0.04), FRAME, 0.005)       # the rails the seat is bolted to
-        blk((0.0, s * 0.62, -0.3), (0.5, 0.03, 0.4), BLACK, 0.005)           # the inner sides of the cockpit by the seat
+        blk((-0.25, s * 0.45, -0.47), (0.8, 0.06, 0.04), FRAME, 0.005)       # the rails the seat is bolted to
+        blk((0.0, s * 0.575, -0.36), (0.9, 0.03, 0.3), BLACK, 0.005)           # the inner sides of the cockpit by the seat
 
 
 def windscreen():
-    """A low raked windscreen across the dash in a frame of the red tubes of the car, a roll hoop behind the seat of the
-    same tubes with two stays back to the hoop of the tail frame."""
-    prism([(-1.78, 0.1), (-1.2, 0.62), (-1.16, 0.6), (-1.74, 0.08)], -0.7, 0.7, GLASS, None)
-    pipe([(-1.8, -0.72, 0.06), (-1.2, -0.7, 0.64), (-1.2, 0.7, 0.64), (-1.8, 0.72, 0.06)], 0.045, RED, 0.12)
+    """A low rounded windscreen across the dash: wrapped round the cockpit (its sides swept back) with rounded top corners, in
+    a frame of the red tubes of the car; a roll hoop behind the seat of the same tubes with two stays back to the hoop of
+    the tail frame."""
+    n = 16
+
+    def edge(t, top):
+        y = 0.72 * t
+        if top:
+            return (-1.22 + 0.3 * t * t, y, 0.64 - 0.12 * abs(t) ** 3)
+        return (-1.8 + 0.22 * t * t, y, 0.07)
+
+    bm = bmesh.new()
+    layers = []
+    for dx, dz in ((0.0, 0.0), (0.022, -0.022)):             # the two faces of the glass
+        rows = []
+        for k in range(n + 1):
+            t = -1 + 2 * k / n
+            b, tp = edge(t, False), edge(t, True)
+            rows.append((bm.verts.new((b[0] + dx, b[1], b[2] + dz)), bm.verts.new((tp[0] + dx, tp[1], tp[2] + dz))))
+        layers.append(rows)
+    A, B = layers
+    for k in range(n):
+        bm.faces.new((A[k][0], A[k + 1][0], A[k + 1][1], A[k][1]))
+        bm.faces.new((B[k][0], B[k][1], B[k + 1][1], B[k + 1][0]))
+        bm.faces.new((A[k][1], A[k + 1][1], B[k + 1][1], B[k][1]))
+        bm.faces.new((A[k][0], B[k][0], B[k + 1][0], A[k + 1][0]))
+    for k in (0, n):
+        bm.faces.new((A[k][0], A[k][1], B[k][1], B[k][0]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    mesh = bpy.data.meshes.new("windscreen")
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new("windscreen", mesh)
+    scene.collection.objects.link(obj)
+    add(finish(obj, GLASS, None))
+    frame = [edge(-1, False)] + [edge(-1 + 2 * k / n, True) for k in range(n + 1)] + [edge(1, False)]
+    add(tube(frame, 0.045, RED, resolution=1))
     pipe([(0.45, -0.66, -0.14), (0.45, -0.54, 0.7), (0.45, -0.34, 1.02), (0.45, 0.34, 1.02), (0.45, 0.54, 0.7), (0.45, 0.66, -0.14)], 0.075, RED, 0.3)
     for s in (-1, 1):
         pipe([(0.45, s * 0.34, 1.02), (1.25, s * 0.44, 0.8), (1.95, s * 0.5, 0.52)], 0.06, RED, 0.4, False)
@@ -296,7 +340,7 @@ def tail():
         rod((2.6, s * 0.62, 0.52), (3.25, s * 0.6, -0.7), 0.045)
         rod((3.25, s * 0.66, 0.66), (4.12, s * 0.46, -0.45), 0.045)
         prism([(2.4, 0.5), (2.9, 0.62), (3.9, 0.98), (4.28, 1.03), (4.28, 0.7), (3.95, 0.45), (3.0, 0.5)], s * 0.69, s * 0.75, RED, 0.02, 2)
-        blk((3.98, s * 1.0, 0.92), (0.66, 0.05, 0.5), RED, 0.02)                    # the endplates of the wing
+        blk((3.96, s * 1.0, 0.92), (0.62, 0.05, 0.5), RED, 0.02)                    # the endplates of the wing
     loft([(2.1, 0.28, 0.35, 0.62, 0.6, 0.62), (3.0, 0.22, 0.29, 0.66, 0.62, 0.66), (3.9, 0.36, 0.43, 0.52, 0.46, 0.52)], RED, 0.02, 1)
     for k in range(5):
         blk((2.35 + 0.34 * k, 0, 0.43), (0.12, 1.0, 0.03), BLACK, 0.005)
