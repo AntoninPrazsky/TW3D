@@ -89,7 +89,9 @@ lamp also lights the scene as a spot light of its colour: the two headlights ahe
 beams a little apart, the rear lights red behind the car. The street lamps of the scenery
 (the lens of the material `streetlight…`) shine at night with a glow too, and the four nearest
 to the camera light the road and the props below them as spot lights pointing down, warm
-white: `Scene.fx` has eight lights, four of the car and four of the street lamps. The
+white: `Scene.fx` has eight lights, four of the car and four of the street lamps. The lit
+windows of a building (`windowlit…`, the judges' stand) shine at night evenly, without a glow,
+and light nothing. The
 start lights of the start gate count the start down in any weather (`SceneRenderer.StartLights`,
 set from `Race.RedSignals` by the run, off everywhere else): five pairs of red lamps, as in
 Formula 1, come on pair by pair during the countdown and go out at the start; `RaceHud`

@@ -20,7 +20,9 @@ materials: the lenses of the headlights of the cars are named `headlight…`, of
 lights `taillight…`, of the street lamp `streetlight…`, the start lights of the start gate
 `sg` `signalred…`. Each lamp is an object of its own in the `.obj` file (`HeadlightLeft` …,
 `lens`, `SignalRed1a` …), the game finds its middle as the middle of the object; the start
-lights one above the other (`SignalRed1a` and `SignalRed1b`) are a pair, lit together.
+lights one above the other (`SignalRed1a` and `SignalRed1b`) are a pair, lit together. The
+windows of a building that are lit at night are `windowlit…` (the judges' stand): they shine
+evenly, without a glow, and light nothing, so they need no objects of their own.
 
 The models were modelled in Wings 3D in 2014–2015 and exported to DirectX `.x`
 files, which XNA 4.0 compiled for the 2016 version. In 2026 those exports were
@@ -85,20 +87,19 @@ commit its output.
 The scenery (`content/Scenery/`) are static props that stand beside the track, placed in the
 level editor (the Scenery tool) and drawn with the layers, without physics: the car drives
 through them. The traffic cone (`cone`) and the utility pole (`pole`) are props the owner
-released on OpenGameArt in 2016; the street lamp (`lamp`) and the metal fence (`fence`) are
-modern ones of 2026 (below); the other four the owner made for the game in March 2018: the guardrail
-(`guardrail`), the thick guardrail with red and white stripes (`guardrail2`), the posts with a
-chain (`chain`) and the judges' stand (`stand`), a two-storey building with a terrace for the
-start or the finish.
+released on OpenGameArt in 2016; the street lamp (`lamp`), the metal fence (`fence`) and the
+judges' stand (`stand`), a race control building for the start or the finish, are modern ones
+of 2026 (below); the other three the owner made for the game in March 2018: the guardrail
+(`guardrail`), the thick guardrail with red and white stripes (`guardrail2`) and the posts with a
+chain (`chain`).
 
 `tools/garagegen/scenery.py` (Python 3 with NumPy) builds them from their Wings 3D files in
 `art/wings/Scenery/`, with smooth normals by the hard edges of Wings, at the scale of the
-blocks: the cone is 1.6 model units high (the car is 2.4), the judges' stand 12,
-the pole 20 (over two cells); a guardrail is a cell long (9), so that the pieces in a row along
+blocks: the cone is 1.6 model units high (the car is 2.4), the pole 20 (over two cells); a guardrail is a cell long (9), so that the pieces in a row along
 a straight road join, and a piece of the fence and of the chain half a cell (4.5), two pieces
 to a cell. The foot of every prop is at the origin of its model, and the long side of the
 fence, the chain and the guardrails runs along x, along the road; the rails of the guardrails
-and the terrace of the stand face the camera (-z), so that behind the road they face the road.
+face the camera (-z), so that behind the road they face the road, as the modern props below do.
 
 The street lamp is a modern LED street light in the colours of the blocks, built by
 `tools/blender/streetlamp.py` (Blender 4.2, `blender -b --factory-startup --python
@@ -116,8 +117,20 @@ with three V-shaped bends along them, held by clamps to square dark grey posts, 
 base plate with bolts and under a yellow cap; 3.5 high. A piece has half a post at each end,
 cut along the end of the piece: two pieces of a row make one whole post where they meet, and a
 row ends with half a post at either end. It looks the same from both sides, so it can stand
-behind the road, in front of it and across it. The Blender scripts (also that of the
-Crawler) share the materials (`pole`, `head` and `accent`: the dark grey, the light grey and the
+behind the road, in front of it and across it.
+
+The judges' stand is a modern race control building in the same colours, built by
+`tools/blender/stand.py`, about 4500 triangles: a light grey ground floor on a dark grey base
+with a glazed entrance in the middle of its front, a dark grey terrace slab over it with yellow
+edges, out over a porch on four columns, with a glass balustrade (the see-through material
+`glass`); on the terrace a control room whose glazed front leans out like that of an airfield
+tower, under a dark grey canopy with a yellow line, the air conditioning and a radio mast on
+the roof; an open steel stair with yellow nosings up the side (on the right as seen from the
+road). It keeps the footprint of the stand of 2018 (25.7 × 12.9) and its height (12 with the
+mast), its foot in the middle of the footprint and the terrace towards the camera (-z). Its
+windows are `windowlit`: light blue glass by day, lit warm from within at night.
+
+The Blender scripts (also that of the Crawler) share the materials (`pole`, `head` and `accent`: the dark grey, the light grey and the
 yellow of the blocks), the parts and the export in `tools/blender/props.py`; run a script after
 changing it and commit its output.
 

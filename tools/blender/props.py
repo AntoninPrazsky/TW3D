@@ -13,7 +13,8 @@ scene = bpy.context.scene
 
 # ---- materials: the colours of the blocks (sRGB as the MTL files keep them), metal and roughness
 
-def material(name, colour, metallic=0.0, roughness=0.5, emission=None):
+def material(name, colour, metallic=0.0, roughness=0.5, emission=None, alpha=None):
+    """A material; alpha below 1 makes it see-through (glass, "d" in the MTL file)."""
     m = bpy.data.materials.new(name)
     m.use_nodes = True
     bsdf = m.node_tree.nodes["Principled BSDF"]
@@ -23,6 +24,8 @@ def material(name, colour, metallic=0.0, roughness=0.5, emission=None):
     if emission:
         bsdf.inputs["Emission Color"].default_value = (*emission, 1.0)
         bsdf.inputs["Emission Strength"].default_value = 1.0
+    if alpha is not None:
+        bsdf.inputs["Alpha"].default_value = alpha
     return m
 
 

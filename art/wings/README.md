@@ -69,12 +69,13 @@ them split into the floor (`tu1s` …) and the ceiling (`tu1v` …), so they are
 
 `Scenery/` holds the props beside the track (see [the scenery](../../docs/content.md#scenery)):
 two of the four the owner released on OpenGameArt in 2016 (`3D modely/3DModelsForOGA (2016)/` in the
-owner's model archive, with OBJ and 3DS exports and renders), and the four made for the game in
+owner's model archive, with OBJ and 3DS exports and renders), and three of the four made for the game in
 March 2018 (`TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/`). `tools/garagegen/scenery.py`
-builds `content/Scenery/` from them. The other two props of 2016 were replaced in 2026 by modern ones
-built in Blender, and their Wings files are in the history of git: the street lamp
-(`StreetLamp/StreetLamp.wings`, textured by `lamp.png`) by `tools/blender/streetlamp.py`, and the metal fence
-(`MetalFence/fence.wings`, textured by photos of rust in `fence.png`) by `tools/blender/fence.py`.
+builds `content/Scenery/` from them. The others were replaced in 2026 by modern props built in Blender,
+and their Wings files are in the history of git: the street lamp of 2016
+(`StreetLamp/StreetLamp.wings`, textured by `lamp.png`) by `tools/blender/streetlamp.py`, the metal fence
+of 2016 (`MetalFence/fence.wings`, textured by photos of rust in `fence.png`) by `tools/blender/fence.py`, and
+the judges' stand of 2018 (`judges_stand_final.wings`) by `tools/blender/stand.py`.
 
 | File | Original file |
 |---|---|
@@ -83,4 +84,3 @@ built in Blender, and their Wings files are in the history of git: the street la
 | `Scenery/guardrail.wings` | `TripleWheel3D/2018 lokální verze (TW3D2018LOCAL)/3-2018/barrier.wings` |
 | `Scenery/guardrail2.wings` | `…/3-2018/barrier_thick.wings` |
 | `Scenery/chain.wings` | `…/3-2018/chains.wings` |
-| `Scenery/stand.wings` | `…/3-2018/judges_stand_final.wings` (`judges_stand.wings` there is an older version) |

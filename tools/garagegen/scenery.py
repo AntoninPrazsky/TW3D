@@ -3,8 +3,8 @@ content/Scenery: an .obj + .mtl for each prop, in model units at the scale of th
 8.6 units long), with the foot of the prop at the origin, y up and the long side of a guardrail or of the chain along x
 (along the road). Smooth normals by the hard edges of Wings, as the garage has them.
 
-The street lamp and the metal fence are not built here: they are modern since 2026, built by tools/blender/streetlamp.py
-and tools/blender/fence.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the
+The street lamp, the metal fence and the judges' stand are not built here: they are modern since 2026, built by
+tools/blender/streetlamp.py, fence.py and stand.py. The chain between the posts was modelled link by link (some 3400 faces); a tube along the
 curve it hangs in takes its place, which looks the same from the camera of the game.
 
     python tools/garagegen/scenery.py
@@ -54,10 +54,6 @@ def pole(face, mats):
 
 def guardrail(face, mats):
     return {'chrome': 'steel', 'default2': 'red', 'default3': 'white'}[face['material']]
-
-def stand(face, mats):
-    return {'default2': 'wood', 'default3': 'brown', 'default4': 'white', 'default5': 'glass', 'default6': 'wall',
-            'default7': 'dark', 'default9': 'grey', 'default10': 'roof'}[face['material']]
 
 # The posts of the chain stand at these x; the links hang between them, thin in z, above this height
 CHAIN_POSTS = (-2.1, 0.0, 2.1)
@@ -116,16 +112,6 @@ PROPS = [
         'steel': wings_material(mats['chrome'], ks=(0.6, 0.6, 0.6), pm=1, pr=0.35),
         'red': wings_material(mats['default2'], ks=(0.3, 0.3, 0.3)),
         'white': wings_material(mats['default3'], ks=(0.3, 0.3, 0.3))}, length=9.0, centre=True, half_turn=True),
-    # The judges' stand: a two-storey building, its terrace towards the camera
-    Prop('stand', 'stand.wings', stand, lambda mats: {
-        'wall': wings_material(mats['default6'], ks=(0.1, 0.1, 0.1)),
-        'white': wings_material(mats['default4'], ks=(0.2, 0.2, 0.2)),
-        'grey': wings_material(mats['default9'], ks=(0.4, 0.4, 0.4), pm=1, pr=0.4),
-        'brown': wings_material(mats['default3'], ks=(0.1, 0.1, 0.1)),
-        'wood': wings_material(mats['default2'], ks=(0.1, 0.1, 0.1)),
-        'dark': wings_material(mats['default7'], ks=(0.2, 0.2, 0.2)),
-        'roof': wings_material(mats['default10'], ks=(0.1, 0.1, 0.1)),
-        'glass': wings_material(mats['default5'], ks=(0.6, 0.6, 0.6), pr=0.1)}, height=12.0, half_turn=True),
     # Three posts with a chain between them, half a cell long as the fence
     Prop('chain', 'chain.wings', chain, lambda mats: {
         'base': wings_material(mats['default4'], ks=(0.2, 0.2, 0.2)),

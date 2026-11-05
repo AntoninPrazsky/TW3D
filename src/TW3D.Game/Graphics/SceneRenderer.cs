@@ -16,7 +16,9 @@ namespace TW3D.Graphics
         /// <summary>The lens of a street lamp: it shines at night and lights the scene below it.</summary>
         StreetLight,
         /// <summary>A red start light of the start gate, which shines as <see cref="SceneRenderer.StartLights"/> says.</summary>
-        SignalRed
+        SignalRed,
+        /// <summary>A lit window of a building: it shines at night, without a glow, and lights nothing around it.</summary>
+        WindowLit
     }
 
     /// <summary>
@@ -34,7 +36,8 @@ namespace TW3D.Graphics
     /// and its glow are at its middle. The start lights of the start gate ("signalred…") shine as a run counts its start
     /// down (<see cref="StartLights"/>). The lenses of the street lamps ("streetlight…") of any model shine so at night
     /// (when the lighting has the headlights on), and the <see cref="StreetLightCount"/> of them nearest to the camera
-    /// light the scene below them.
+    /// light the scene below them. The lit windows of a building ("windowlit…") shine at night too, evenly, without a
+    /// glow, and light nothing: by day they are the glass they are made of.
     /// </remarks>
     public sealed class SceneRenderer : IDisposable
     {
@@ -599,6 +602,7 @@ namespace TW3D.Graphics
                 case Lamp.RearLight: return braking ? 1f : lightsOn ? RearLightDim : 0f;
                 case Lamp.StreetLight: return Lighting.Headlights ? 1f : 0f;
                 case Lamp.SignalRed: return column < StartLights ? 1f : 0f;
+                case Lamp.WindowLit: return Lighting.Headlights ? 1f : 0f;
                 default: return 1f;
             }
         }
@@ -1443,7 +1447,7 @@ namespace TW3D.Graphics
             model.CopyAbsoluteBoneTransformsTo(transforms);
 
             List<ModelPart> parts = new List<ModelPart>();
-            //The lamps: their parts, the bounds of their meshes and the colours they shine in
+            //The lamps with a glow (all but the lit windows): their parts, the bounds of their meshes and the colours they shine in
             List<(ModelPart Part, BoundingSphere Bounds, Vector3 Colour)> lamps = new List<(ModelPart, BoundingSphere, Vector3)>();
             BoundingSphere bounds = new BoundingSphere();
             bool first = true;
@@ -1475,7 +1479,7 @@ namespace TW3D.Graphics
                         Roughness = finish.Y,
                         Lamp = (Lamp)(int)finish.Z
                     });
-                    if (parts[parts.Count - 1].Lamp != Lamp.None)
+                    if (parts[parts.Count - 1].Lamp != Lamp.None && parts[parts.Count - 1].Lamp != Lamp.WindowLit)
                         lamps.Add((parts[parts.Count - 1], meshBounds, material.EmissiveColor));
                 }
             }
@@ -1502,7 +1506,7 @@ namespace TW3D.Graphics
 
         /// <summary>
         /// What the content pipeline keeps of the material of a mesh part beyond BasicEffect (tools/ContentPipeline):
-        /// metallic, roughness and the lamp (0 = none, 1 = headlight, 2 = rear light).
+        /// metallic, roughness and the lamp (the number of a <see cref="Lamp"/>: 0 = none, 1 = headlight, 2 = rear light, ...).
         /// </summary>
         private static Vector3 Finish(ModelMeshPart part)
         {
