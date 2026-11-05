@@ -39,19 +39,29 @@ original Wings 3D files are in [`art/wings/`](../art/wings/README.md).
 The gates are modern since 2026: the start gate `sg` and the finish gate `g`, each with the
 sign above it in the cell above (`st2` with the lettering START, `st` with a chequered panel),
 built by `tools/blender/gates.py` (Blender 4.2, `blender -b --factory-startup --python
-tools/blender/gates.py`; run it after changing it and commit its output): a truss gantry as on
-the race tracks, two lattice legs on base plates and a lattice beam across the road with black
-corner nodes, 1776 to 2228 triangles a gate and about 1800 a sign. The gate stands 1.2 from the edge of
+tools/blender/gates.py`; run it after changing it and commit its output). It is a truss gantry as
+on the race tracks: two round-chord lattice legs and a lattice beam across the road, joined at
+the top of the legs by cast aluminium corners (flanges with bolts where the lattice joins, an
+access hatch on the outside, plates on the front and the back, a lifting eye on top) with a knee
+brace under each, the legs on base plates with anchor bolts and ribs and wrapped at the foot in a
+yellow protector with black straps, a cable conduit up one leg and along the beam. The start gate
+has a black light housing on the front of its beam held by straps, and in it the start lights;
+the finish gate has a photo-finish camera under the middle of its beam. 12 200 triangles for the
+start gate, 9 200 for the finish gate, 6 600 and 6 800 for the signs (these are not meant to be
+as light as the old ones: they are four blocks in a level). The gate stands 1.2 from the edge of
 its cell, as the old one did, with its legs at |z| = 7 beyond the lane of the cars, and the front
-(the start lights, the sign) towards +x, where the car comes from. The start gate carries the
-start lights on the front of its beam, five columns of two red lamps, each lamp an object of its
-own named `SignalRed<column><a|b>` in the material `signalred`, which the game lights column by
-column (above); the lamps and everything else of the gate in the lane hang above y = 2.4, so
-nothing of it is in the way of a car. The sign is a black panel in a lattice frame. The lettering
-START is that of the Wings model of 2015 (`tools/blender/start_letters.json`, taken from
-`art/wings/Levels/mod/st2.wings`), a little larger and with a raised edge; the chequered pattern
-of the finish sign, the two chequered flags on its gate and the rest are made by the script.
-The gate and its sign are two blocks, as they always were, so no level changed.
+(the start lights, the sign) towards +x, where the car comes from.
+
+The start lights are five columns of two red lamps, each lamp a dome lens in a bezel under a
+hood and an object of its own named `SignalRed<column><a|b>` in the material `signalred`, which
+the game lights column by column (above). The lamps and everything else of a gate in the lane
+hang above y = 2.4 (the beam, the lamps, the camera), so nothing of it is in the way of a car. The
+sign is a black panel in an aluminium bezel with a cap on each corner, held between two lattice
+posts under a lattice beam with three flood lights. The lettering START is that of the Wings
+model of 2015 (`tools/blender/start_letters.json`, taken from `art/wings/Levels/mod/st2.wings`),
+a little larger and with a raised edge; the chequered pattern of the finish sign and the two
+waving chequered flags on its corners are made by the script. The gate and its sign are two
+blocks, as they always were, so no level changed.
 
 One block is modern since 2026: the railing `za`, a decoration of the layers behind the
 road (no collision), built by `tools/blender/railing.py` in the colours of the street lamp
