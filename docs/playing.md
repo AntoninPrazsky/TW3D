@@ -33,7 +33,9 @@ Crawler; the colours are only for the looks. The cars
 differ in their top speed and weight (the Sand Rail is faster and lighter than the Buggy,
 the Crawler slower and heavier),
 the wheels in their grip and weight (the off-road wheels grip better, the racing ones are
-lighter). The choices are saved with the options, the wheels and the colours for each car.
+lighter; the rock crawler wheels, the Crawler's own, with a deep tread and an orange hubcap,
+grip and weigh as the off-road ones). The choices are saved with the options, the wheels and
+the colours for each car; a car whose wheels were never chosen comes with its own.
 
 ## About
 

@@ -99,6 +99,21 @@ namespace TW3D.Tests
         }
 
         /// <summary>
+        /// The Crawler comes with its own wheels, the rock crawler wheels (#54), the Buggy and the Sand Rail with theirs; the
+        /// new wheels stay within the bars of the garage (grip and weight relative to the most there was before them).
+        /// </summary>
+        [Fact]
+        public void TheCrawlerComesWithTheRockCrawlerWheels()
+        {
+            Assert.Equal("wheel3", catalog.FindCar("car3").Wheel);
+            Assert.Equal("wheel", catalog.FindCar("car").Wheel);
+            Assert.Equal("wheel2", catalog.FindCar("car2").Wheel);
+            WheelType rock = catalog.FindWheel("wheel3");
+            Assert.Equal("Rock crawler", rock.Name);
+            Assert.True(rock.Friction <= 1.2f && rock.Mass <= 10f);
+        }
+
+        /// <summary>
         /// The engine sweeps from 0.4 octaves below to 0.6 above its baked pitch (GamePlay/CarSounds.cs), shifted by the
         /// car's own; MonoGame pitches a sound an octave either way at most, so a car's own stays between -0.6 and 0.4.
         /// </summary>

@@ -5,7 +5,8 @@ engine with the turbo standing out of it, a tube bumper with a winch, rock slide
 with orange springs at both axles, and a rack at the back with the fuel cell and a spare wheel standing on it across
 the car. The engine with its turbo and cooler, the seat (twice), the steering wheel, the pedals, the gear lever and
 the fuel cell are the parts of the Buggy of 2014, taken from content/car.obj where they stand in the Buggy and
-recoloured; the spare is the off-road wheel of the garage. About 12 000 triangles, as many as the Sand Rail.
+recoloured; the spare is the Crawler's own wheel, the rock crawler wheel (content/wheel3.obj, tools/blender/wheel3.py),
+with fewer triangles. About 13 000 triangles.
 
 The model units are those of the cars: the front towards -x, y up in the OBJ file, the middle of the body at the
 origin. The holders of the wheels (Car.cs) turn about pivots at x = -3.6 (front) and 3.0 (rear), 1.25 below the
@@ -323,20 +324,21 @@ SPARE = Vector((2.85, 0, 0.44))
 
 
 def spare(centre):
-    """The off-road wheel of the garage, its axle across the car as on the car, so that the camera sees its face."""
+    """The Crawler's own wheel (the rock crawler wheel), its axle across the car as on the car, so that the camera sees
+    its face; its hubcap orange as the Crawler's are."""
     before = set(bpy.data.objects)
-    bpy.ops.wm.obj_import(filepath=os.path.join(ROOT, 'content', 'wheel.obj'))
+    bpy.ops.wm.obj_import(filepath=os.path.join(ROOT, 'content', 'wheel3.obj'))
     for o in [o for o in bpy.data.objects if o not in before]:
         bpy.ops.object.select_all(action='DESELECT')
         bpy.context.view_layer.objects.active = o
         o.select_set(True)
         bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-        # The wheel lies at OBJ z -2.15 .. -1.42 (Blender y 1.42 .. 2.15): its middle to the centre
+        # The wheel lies at OBJ z -2.17 .. -1.43 (Blender y 1.43 .. 2.17): its middle to the centre
         for v in o.data.vertices:
-            v.co.y -= 1.785
+            v.co.y -= 1.77
         o.data.transform(Matrix.Translation(centre))
         for slot in o.material_slots:
-            slot.material = {"rim": BLACK, "default12": DARKMETAL}.get(slot.material.name.split('.')[0], slot.material)
+            slot.material = {"rim": ORANGE, "steel": STEEL, "darkmetal": DARKMETAL}.get(slot.material.name.split('.')[0], slot.material)
         # Fewer triangles than the wheel: a spare is seen from far
         mod = o.modifiers.new("decimate", 'DECIMATE')
         mod.ratio = 0.33

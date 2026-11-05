@@ -78,20 +78,31 @@ covers the main menu, as the titles of the other menus do.
 The Buggy (`car`, 2014) and the Sand Rail (`car2`) were modelled in Wings 3D
 ([`art/wings/`](../art/wings/README.md)). The third car, the Crawler (`car3`, 2026), is a blue
 rock crawler built by `tools/blender/car3.py` (Blender 4.2, `blender -b --factory-startup
---python tools/blender/car3.py`), 11 920 triangles, about as many as the Sand Rail: an
+--python tools/blender/car3.py`), 13 106 triangles, a little more than the Sand Rail: an
 exoskeleton cage of blue tubes over two seats, a short blue hood with the turbo standing out
 of it, a tube bumper with a winch, rock sliders along the sides, coil-overs with orange
 springs at both axles, and a rack at the back with the fuel cell and a spare wheel standing
 across the car under an orange strap. Its hood and body panels are its `primary` paint, the
 cage its `secondary` one (#46). Its engine with the turbo and the cooler, the seats, the
 steering wheel, the pedals, the gear lever and the fuel cell are the Buggy's parts, which the
-script takes from `content/car.obj` and recolours; the spare is the off-road wheel with fewer
-triangles. Its lamps are objects of their own: round headlights beside the grille, taillights
-on the rear bumper.
+script takes from `content/car.obj` and recolours; the spare is its own wheel, the rock
+crawler wheel, with fewer triangles and its hubcap orange. Its lamps are objects of their own:
+round headlights beside the grille, taillights on the rear bumper.
+
+The Crawler comes with the third wheel of the garage, the rock crawler wheel (`wheel3`, #54),
+built by `tools/blender/wheel3.py`, 6112 triangles: a tall, wide tyre with a deep chunky
+tread of big lugs from each shoulder to past the middle, slanting and offset from side to
+side (the same both ways), each lug one solid piece, highest in the middle of the tread and
+set on the rounded shoulder, with stepped shoulder blocks on the sidewalls; the wheel under an
+orange hubcap (`rim`, so its colour is chosen in the garage) with three slanted dark ribs, the
+hub and the sixteen bolts of a beadlock round it. It is the size of the other wheels (the radius
+0.705 of the tread, within 1.42 ≤ |z| ≤ 2.18 at the side of the car), so it fits any car; its
+friction and mass are those of the off-road wheel (1.2 and 10), the most the garage's bars
+show, as the owner chose to keep the bars of the other wheels as they are.
 
 The paint of the Buggy is its body (`primary`) and its roof panel (`secondary`); of the Sand
 Rail its red frame (`primary`) and the arches of the frame over the canopy (`secondary`); the
-rims of both wheels are `rim`. The materials were renamed in 2026 (#46) from the names Wings
+rims of the off-road and the racing wheel are `rim`. The materials were renamed in 2026 (#46) from the names Wings
 3D gave them (`default3`, `default2`, `default11`, `default6`), and the roof and the arches
 split off as their own material; the faces and the shapes are the same.
 
