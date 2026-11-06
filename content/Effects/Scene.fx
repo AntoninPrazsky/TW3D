@@ -9,7 +9,7 @@
 // (Metallic) only mirrors, in its own colour, like chrome. Technique Lit draws all that, technique
 // LitCoarseShadows the same with the coarser filter of the shadows that phones need (see Sunlight).
 //
-// A part whose material names a surface (asphalt, earth) is drawn by a technique of its surface and of the detail of
+// A part whose material names a surface (asphalt, earth, grass) is drawn by a technique of its surface and of the detail of
 // the surfaces, as Lit<Surface><Detail> and LitCoarseShadows<Surface><Detail> (LitAsphaltMedium): the same light, with
 // the colour and the relief of the surface computed per pixel (Surfaces.fxh).
 //
@@ -398,6 +398,7 @@ technique LitCoarseShadows
 
 SURFACE_TECHNIQUES(Asphalt, SURFACE_ASPHALT)
 SURFACE_TECHNIQUES(Earth, SURFACE_EARTH)
+SURFACE_TECHNIQUES(Grass, SURFACE_GRASS)
 
 struct DepthOutput
 {

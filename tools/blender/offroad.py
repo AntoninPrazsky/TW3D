@@ -17,7 +17,7 @@ tunnels, the walls, the start and the finish and the decoration stay classic. A 
 it (cut at other z) is left out, as only a prism along z can be swept so.
 
 The materials name the surfaces of the game's shader (Effects/Surfaces.fxh): "earth…" is drawn as earth, the ruts and
-the bank in darker browns of it; the grass is a plain green until it has a surface of its own.
+the bank in darker browns of it, and "grass" as grass.
 
     blender -b --factory-startup --python tools/blender/offroad.py -- <output folder> <earth|grass> [<block>...]
 

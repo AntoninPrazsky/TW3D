@@ -18,10 +18,10 @@ namespace TW3D.ContentPipeline
     /// the lenses of the headlights of a car are named "headlight…", of the rear lights "taillight…", of a street
     /// lamp "streetlight…", the red start lights of the start gate "signalred…", the lit windows of a building
     /// "windowlit…", and the parts that can be painted: the paint of a car "primary…" and "secondary…", the rims of a wheel
-    /// "rim…", and the parts drawn as a surface of a block by the shader (Effects/Surfaces.fxh): "asphalt…" and
-    /// "earth…". It keeps them in the Tag of the mesh parts of the material as a float[]: metallic, roughness, lamp
+    /// "rim…", and the parts drawn as a surface of a block by the shader (Effects/Surfaces.fxh): "asphalt…", "earth…"
+    /// and "grass…". It keeps them in the Tag of the mesh parts of the material as a float[]: metallic, roughness, lamp
     /// (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp, 4 = start light, 5 = lit window), paint (0 = none,
-    /// 1 = primary, 2 = secondary, 3 = rim) and surface (0 = none, 1 = asphalt, 2 = earth). A material with none of them
+    /// 1 = primary, 2 = secondary, 3 = rim) and surface (0 = none, 1 = asphalt, 2 = earth, 3 = grass). A material with none of them
     /// gets no tag. It can also mirror a model and keep its triangles (the parameters Mirrored and Surface).
     /// </summary>
     [ContentProcessor(DisplayName = "Model - TW3D (metal and lamps from MTL)")]
@@ -137,7 +137,8 @@ namespace TW3D.ContentPipeline
                     : name.StartsWith("secondary", StringComparison.OrdinalIgnoreCase) ? 2f
                     : name.StartsWith("rim", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
                 float surface = name.StartsWith("asphalt", StringComparison.OrdinalIgnoreCase) ? 1f
-                    : name.StartsWith("earth", StringComparison.OrdinalIgnoreCase) ? 2f : 0f;
+                    : name.StartsWith("earth", StringComparison.OrdinalIgnoreCase) ? 2f
+                    : name.StartsWith("grass", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
                 //Neither metallic nor rough, as the materials without them are drawn
                 if (metallic != null || roughness != null || lamp != 0f || paint != 0f || surface != 0f)
                     finishes[name] = new[] { metallic ?? 0f, roughness ?? 1f, lamp, paint, surface };

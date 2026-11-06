@@ -29,7 +29,7 @@ windows of a building that are lit at night are `windowlit…` (the judges' stan
 evenly, without a glow, and light nothing, so they need no objects of their own.
 
 A part can also be a **surface**, whose detail the shader draws per pixel (see
-[surfaces](architecture.md#surfaces)): a material named `asphalt…` or `earth…` (the names of
+[surfaces](architecture.md#surfaces)): a material named `asphalt…`, `earth…` or `grass…` (the names of
 `Graphics/Surface`). Its colour (`Kd`) is the base colour of the surface, which the shader varies
 by the noise of the surfaces and lights with a relief of its own; the shape stays that of the
 model. The looks of the off-road style are earth (`earth`, `earthrut`, `earthbank`, see
@@ -404,7 +404,8 @@ the crown between them, the berms beside them, the shoulders and the grass verge
 straight up, so the ruts run on from block to block. The steps of the stairs are rounded, as
 steps of earth wear. The transitions sink the cross-section to the profile along the block
 and end the grass, the earth and the ruts unevenly into the grey of the classic road. The
-earth is drawn by the surface `earth` of the shader, the grass a plain green for now:
+earth is drawn by the surface `earth` of the shader, the grass by the surface `grass` (short
+blades, darker gaps between the clumps, drier yellower patches):
 
     blender -b --factory-startup --python tools/blender/offroad.py -- content/Levels/mod earth
 

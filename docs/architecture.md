@@ -106,7 +106,7 @@ images of a test surface, `render --surface`).
 
 ### Surfaces
 
-A part of a model whose material names a surface (`asphalt…`, `earth…`, `Graphics/Surface`) gets
+A part of a model whose material names a surface (`asphalt…`, `earth…`, `grass…`, `Graphics/Surface`) gets
 its detail per pixel (#58): its colour varies (patches, the stones of the aggregate, clods,
 pebbles) and its relief tilts the normal, so that it catches the light; its shape, the light and
 the shadows stay those of the scene, and the shadow map, the rim and the ambient occlusion keep
@@ -132,7 +132,7 @@ which neighbours share, blended across the cell. Each surface has a technique fo
 filter of the shadows, `Lit<Surface><Detail>` and `LitCoarseShadows<Surface><Detail>`, so that
 nothing branches in the pixel shader (Shader Model 3.0 refuses a derivative in a branch).
 
-The asphalt is a test of the machinery; the earth draws the off-road style of the track (#57),
+The asphalt is a test of the machinery; the earth and the grass draw the off-road style of the track (#57),
 whose blocks have the shape of a dirt road (ruts, a crown, grass verges) and name it by their
 materials. The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
 

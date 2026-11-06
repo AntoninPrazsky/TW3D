@@ -23,6 +23,7 @@
 #define SURFACE_NONE 0
 #define SURFACE_ASPHALT 1
 #define SURFACE_EARTH 2
+#define SURFACE_GRASS 3
 
 #define SURFACE_LOW 0
 #define SURFACE_MEDIUM 1
@@ -159,10 +160,35 @@ SurfaceLook SurfaceEarth(sampler2D noise, float3 base, float3 normal, float4 pla
 	return look;
 }
 
+// Grass: a carpet of short blades, darker in the gaps between its clumps and between the blades, lighter and yellower
+// where it is drier, different on every block, with a strong relief of the blades and a little sheen on their tips
+SurfaceLook SurfaceGrass(sampler2D noise, float3 base, float3 normal, float4 plane, float3 local, int detail)
+{
+	float4 coarse = tex2D(noise, plane.xy);
+	float seed = SurfaceSeed(local);
+	float dry = smoothstep(0.35, 0.8, coarse.r + (seed - 0.5) * 0.5);
+	SurfaceLook look;
+	look.Albedo = lerp(base * 0.85, base * float3(1.35, 1.2, 0.8), dry);
+	look.Normal = normal;
+	look.Shine = 0.4;
+	if (detail >= SURFACE_MEDIUM)
+	{
+		float4 fine = SurfaceFine(noise, plane, coarse, detail);
+		// The gaps between the clumps: the edges of the cells of the coarse lookup
+		float gaps = smoothstep(0.45, 0.7, coarse.a);
+		look.Albedo *= lerp(0.6, 1.25, fine.r) * lerp(1.0, 0.75, gaps);
+		look.Normal = SurfaceTilt(normal, SurfaceSlope(fine) * 0.8 + SurfaceSlope(coarse) * 0.25);
+		look.Shine = lerp(0.2, 0.6, fine.r);
+	}
+	return look;
+}
+
 // The look of a surface (a number written in the technique, as the detail is)
 SurfaceLook SurfaceOf(sampler2D noise, int surface, int detail, float3 base, float3 normal, float4 plane, float3 local)
 {
 	if (surface == SURFACE_EARTH)
 		return SurfaceEarth(noise, base, normal, plane, local, detail);
+	if (surface == SURFACE_GRASS)
+		return SurfaceGrass(noise, base, normal, plane, local, detail);
 	return SurfaceAsphalt(noise, base, normal, plane, local, detail);
 }

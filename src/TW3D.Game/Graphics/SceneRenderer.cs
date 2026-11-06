@@ -79,6 +79,7 @@ namespace TW3D.Graphics
         //surface, and the colour the test earth has there instead
         private const float ClassicRoadGrey = 0.22744f;
         private static readonly Vector3 TestEarthColour = new Vector3(0.38f, 0.3f, 0.22f);
+        private static readonly Vector3 TestGrassColour = new Vector3(0.25f, 0.33f, 0.14f);
 
         //The shadow map covers the part of the scene the camera sees: the 3D models of the road and of the
         //layers next to it lie between these planes (the front layer and the first back layer are 2.25
@@ -1412,6 +1413,8 @@ namespace TW3D.Graphics
                 surface = TestSurface;
                 if (surface == Surface.Earth)
                     diffuse = ToLinear(TestEarthColour);
+                else if (surface == Surface.Grass)
+                    diffuse = ToLinear(TestGrassColour);
             }
             if (surface != Surface.None)
             {
