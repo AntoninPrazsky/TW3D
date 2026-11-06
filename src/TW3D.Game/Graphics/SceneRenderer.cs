@@ -241,6 +241,11 @@ namespace TW3D.Graphics
         private readonly List<VertexPositionColorTexture> smokeVertices = new List<VertexPositionColorTexture>();
         private readonly Texture2D smokeTexture;
         private readonly BasicEffect smokeEffect;
+        //The pieces of earth for this frame (see AddDebris) and what draws them: small lumps facing the camera
+        private readonly List<(Vector3 Centre, float Radius, Vector3 Colour, float Alpha)> debris = new List<(Vector3, float, Vector3, float)>();
+        private readonly List<VertexPositionColorTexture> debrisVertices = new List<VertexPositionColorTexture>();
+        private readonly Texture2D debrisTexture;
+        private readonly BasicEffect debrisEffect;
         private RenderTarget2D normalDepthMap, occlusionMap, blurredOcclusionMap;
         //The scene drawn smaller than the screen and scaled up to it (see Resolution), the height it is drawn at for the
         //screen and the choice it was worked out for, and the size the scene of this frame is drawn at
@@ -339,6 +344,8 @@ namespace TW3D.Graphics
 
             glowTexture = CreateGlowTexture(device);
             smokeTexture = CreateSmokeTexture(device);
+            debrisTexture = CreateDebrisTexture(device);
+            debrisEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = debrisTexture };
             skyNoise = CreateSkyNoise(device);
             smokeEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = smokeTexture };
             glowEffect = new BasicEffect(device) { TextureEnabled = true, VertexColorEnabled = true, Texture = glowTexture };
@@ -516,6 +523,7 @@ namespace TW3D.Graphics
             this.projection = projection;
             markTriangles = 0;
             puffs.Clear();
+            debris.Clear();
             eye = Matrix.Invert(view).Translation;
             frustum.Matrix = view * projection;
             items.Clear();
@@ -718,6 +726,8 @@ namespace TW3D.Graphics
             occlusionMap?.Dispose();
             blurredOcclusionMap?.Dispose();
             smokeTexture.Dispose();
+            debrisTexture.Dispose();
+            debrisEffect.Dispose();
             glowTexture.Dispose();
             skyNoise.Dispose();
             surfaceNoise.Dispose();
@@ -766,6 +776,7 @@ namespace TW3D.Graphics
                 DrawClassic();
             else
                 DrawLit();
+            DrawDebris();
             DrawSmoke();
             DrawLampGlows();
             DrawOverlay();
@@ -880,6 +891,87 @@ namespace TW3D.Graphics
             Texture2D texture = new Texture2D(device, GlowTextureSize, GlowTextureSize);
             texture.SetData(pixels);
             return texture;
+        }
+
+        /// <summary>
+        /// A piece of earth thrown up by a tyre (see GameObjects/DirtSpray) facing the camera, lit as the scene is; for this
+        /// frame (see Begin).
+        /// </summary>
+        /// <param name="radius">Scene units.</param>
+        /// <param name="colour">Its colour (sRGB, as the materials have them).</param>
+        /// <param name="alpha">How much of it is seen, 0..1 (it fades out).</param>
+        public void AddDebris(Vector3 centre, float radius, Vector3 colour, float alpha)
+        {
+            if (alpha > 0f)
+                debris.Add((centre, radius, colour, alpha));
+        }
+
+        /// <summary>
+        /// A lump of earth: an uneven disc, lighter on its upper left side and darker on its lower right, as a small round
+        /// clod lit from above looks; its edge a texel soft.
+        /// </summary>
+        private static Texture2D CreateDebrisTexture(GraphicsDevice device)
+        {
+            const int size = 32;
+            Color[] pixels = new Color[size * size];
+            float centre = (size - 1) / 2f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float dx = (x - centre) / centre, dy = (y - centre) / centre;
+                    float distance = MathF.Sqrt(dx * dx + dy * dy);
+                    float angle = MathF.Atan2(dy, dx);
+                    float edge = 0.78f + 0.12f * MathF.Sin(3f * angle + 0.7f) + 0.07f * MathF.Sin(5f * angle + 2.1f);
+                    float alpha = MathHelper.Clamp((edge - distance) * centre, 0f, 1f);
+                    //Lit from the upper left: lighter there, darker towards the lower right
+                    float shade = MathHelper.Clamp(0.85f - 0.35f * (dx + dy) / 1.4f - 0.15f * distance, 0.35f, 1.15f) / 1.15f;
+                    pixels[y * size + x] = new Color(shade * alpha, shade * alpha, shade * alpha, alpha);
+                }
+            }
+            Texture2D texture = new Texture2D(device, size, size);
+            texture.SetData(pixels);
+            return texture;
+        }
+
+        /// <summary>
+        /// Draws the pieces of earth, the furthest first, facing the camera and hidden by what is in front of them, in the
+        /// light of the scene (a haze of it: bright by day, warm at sunset, dark at night).
+        /// </summary>
+        private void DrawDebris()
+        {
+            if (debris.Count == 0)
+                return;
+            Matrix camera = Matrix.Invert(view);
+            Vector3 right = camera.Right, up = camera.Up;
+            Vector3 light = Classic ? new Vector3(0.85f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.7f), 0.35f) * 1.3f;
+            debris.Sort((a, b) => Vector3.DistanceSquared(b.Centre, eye).CompareTo(Vector3.DistanceSquared(a.Centre, eye)));
+            debrisVertices.Clear();
+            foreach ((Vector3 centre, float radius, Vector3 tint, float alpha) in debris)
+            {
+                //Premultiplied by its alpha, as the texture is
+                Color colour = new Color(new Vector4(Vector3.Min(light * tint, Vector3.One) * alpha, alpha));
+                Vector3 x = right * radius, y = up * radius;
+                debrisVertices.Add(new VertexPositionColorTexture(centre - x + y, colour, new Vector2(0f, 0f)));
+                debrisVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                debrisVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+                debrisVertices.Add(new VertexPositionColorTexture(centre + x + y, colour, new Vector2(1f, 0f)));
+                debrisVertices.Add(new VertexPositionColorTexture(centre + x - y, colour, new Vector2(1f, 1f)));
+                debrisVertices.Add(new VertexPositionColorTexture(centre - x - y, colour, new Vector2(0f, 1f)));
+            }
+
+            debrisEffect.View = view;
+            debrisEffect.Projection = projection;
+            device.BlendState = BlendState.AlphaBlend;
+            device.DepthStencilState = DepthStencilState.DepthRead;
+            device.RasterizerState = RasterizerState.CullNone;
+            device.SamplerStates[0] = SamplerState.LinearClamp;
+            debrisEffect.CurrentTechnique.Passes[0].Apply();
+            VertexPositionColorTexture[] vertices = debrisVertices.ToArray();
+            device.DrawUserPrimitives(PrimitiveType.TriangleList, vertices, 0, vertices.Length / 3);
+            device.BlendState = BlendState.Opaque;
+            device.DepthStencilState = DepthStencilState.Default;
+            device.RasterizerState = RasterizerState.CullCounterClockwise;
         }
 
         /// <summary>

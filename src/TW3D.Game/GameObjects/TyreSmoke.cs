@@ -7,7 +7,8 @@ namespace TW3D.GameObjects
 {
     /// <summary>
     /// The smoke of the tyres slipping hard (sliding braked or spinning): big soft puffs rising from under the slipping
-    /// wheels on both sides of the car, growing and thinning out, more and thicker the faster the tyres slip.
+    /// wheels on both sides of the car, growing and thinning out, more and thicker the faster the tyres slip. Not on the
+    /// earth of the off-road track, which raises dust instead (see <see cref="DirtSpray"/>).
     /// </summary>
     sealed class TyreSmoke
     {
@@ -31,7 +32,7 @@ namespace TW3D.GameObjects
             smoke.Update(elapsed);
             foreach (WheelSlip slip in slipping)
             {
-                float share = MathHelper.Clamp((slip.Speed - MinSlip) / (FullSlip - MinSlip), 0f, 1f);
+                float share = MathHelper.Clamp((slip.Speed - MinSlip) / (FullSlip - MinSlip), 0f, 1f) * (1f - DirtSpray.EarthOf(slip.Ground));
                 if (share <= 0f)
                     continue;
                 owed[slip.Wheel] += Rate * share * elapsed;

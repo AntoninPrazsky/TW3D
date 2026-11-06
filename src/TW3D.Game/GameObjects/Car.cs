@@ -20,7 +20,9 @@ namespace TW3D.GameObjects
     /// <param name="Ground">What it stands on: the track or an object.</param>
     /// <param name="Speed">How fast the tyre slips over it (physics units a second).</param>
     /// <param name="Up">The way from the ground to the middle of the wheel (a unit vector, physics coordinates).</param>
-    readonly record struct WheelSlip(int Wheel, Vector2 Point, Body Ground, float Speed, Vector2 Up);
+    /// <param name="Slide">How the tyre moves over the ground where it touches it (physics units a second): backwards
+    /// spinning, forwards sliding braked, nothing rolling.</param>
+    readonly record struct WheelSlip(int Wheel, Vector2 Point, Body Ground, float Speed, Vector2 Up, Vector2 Slide);
 
     class Car : GameObject
     {
@@ -372,8 +374,8 @@ namespace TW3D.GameObjects
             slipping.Clear();
             for (int i = 0; i < wheels.Length; i++)
             {
-                if (Ground(wheels[i], out Vector2 point, out Body ground, out float slip) && slip >= minSpeed)
-                    slipping.Add(new WheelSlip(i, point, ground, slip, Vector2.Normalize(wheels[i].Position - point)));
+                if (Ground(wheels[i], out Vector2 point, out Body ground, out float slip, out Vector2 slide) && slip >= minSpeed)
+                    slipping.Add(new WheelSlip(i, point, ground, slip, Vector2.Normalize(wheels[i].Position - point), slide));
             }
         }
 
@@ -382,7 +384,10 @@ namespace TW3D.GameObjects
         /// and how fast the tyre moves over it there (physics units a second): 0 rolling, the speed of the car sliding
         /// braked, more spinning.
         /// </summary>
-        private bool Ground(Body wheel, out Vector2 point, out Body ground, out float slip)
+        private bool Ground(Body wheel, out Vector2 point, out Body ground, out float slip) => Ground(wheel, out point, out ground, out slip, out _);
+
+        /// <param name="slide">How the tyre moves over the ground there, along it (physics units a second).</param>
+        private bool Ground(Body wheel, out Vector2 point, out Body ground, out float slip, out Vector2 slide)
         {
             for (ContactEdge edge = wheel.ContactList; edge != null; edge = edge.Next)
             {
@@ -393,12 +398,15 @@ namespace TW3D.GameObjects
                 point = points[0];
                 ground = edge.Other;
                 Vector2 relative = wheel.GetLinearVelocityFromWorldPoint(point) - ground.GetLinearVelocityFromWorldPoint(point);
-                slip = Math.Abs(relative.Y * normal.X - relative.X * normal.Y);
+                float along = relative.Y * normal.X - relative.X * normal.Y;
+                slip = Math.Abs(along);
+                slide = new Vector2(normal.Y, -normal.X) * along;
                 return true;
             }
             point = Vector2.Zero;
             ground = null;
             slip = 0f;
+            slide = Vector2.Zero;
             return false;
         }
 
@@ -451,6 +459,9 @@ namespace TW3D.GameObjects
 
         /// <summary>The velocity of the car in the scene (scene units a second).</summary>
         public Vector3 Velocity => new Vector3(-car.LinearVelocity * Units.PhysicsToScene, 0f);
+
+        /// <summary>How fast a wheel (see <see cref="SlippingWheels"/>) moves (physics units a second).</summary>
+        public Vector2 WheelVelocity(int wheel) => wheels[wheel].LinearVelocity;
 
         /// <summary>How far a wheel (see <see cref="SlippingWheels"/>) is from the middle of the car across the track (scene units).</summary>
         public float WheelSide(int wheel) => wheel < 3 ? rearSide : frontSide;

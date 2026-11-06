@@ -41,7 +41,11 @@ they grip better still, the rock crawler wheels best (the tall knobby tyre on lo
 while the racing slicks slide (about half the grip of the crawler there, not hopeless). The
 level select marks the levels of the off-road style (*OFF-ROAD* at the top left of the
 image), so that the wheels can be chosen for them; a transition between the two surfaces
-grips as the mean of both. The numbers are provisional until test drives tune them (#57).
+grips as the mean of both. The numbers are provisional until test drives tune them (#57). On the earth the tyres throw it up (#59): clods and crumbs fly
+back from a spinning wheel and ahead of a wheel sliding braked, more the faster it slips, a few
+from a wheel rolling fast, a spray where a wheel lands hard, with a brown dust instead of the
+white smoke of the tyres, and the skid marks are fainter (a rut dug rather than rubber); fewer
+pieces at a lower Surface detail.
 The choices are saved with the options, the wheels and the colours for each car; a car whose
 wheels were never chosen comes with its own.
 

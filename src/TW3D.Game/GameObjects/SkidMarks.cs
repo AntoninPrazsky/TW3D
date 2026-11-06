@@ -25,6 +25,8 @@ namespace TW3D.GameObjects
         private const float Darkness = 0.55f;
         private const float FullSlip = 25f;
         private const float LightestShare = 0.4f;
+        //How much fainter a mark on the earth is
+        private const float EarthFaint = 0.45f;
         //How wide a mark is (scene units: a little narrower than the tyres) and how far above what it lies on, so that it
         //does not flicker with it
         private const float Width = 0.16f;
@@ -112,7 +114,8 @@ namespace TW3D.GameObjects
                 Vector3?[] section = Section(slip.Ground, at, slip.Ground.GetLocalVector(slip.Up), car.WheelSide(slip.Wheel));
                 if (previous is End from)
                 {
-                    float darkness = Darkness * MathHelper.Clamp(slip.Speed / FullSlip, LightestShare, 1f);
+                    //On the earth of the off-road track a tyre digs a darker rut rather than leaving rubber: a fainter mark
+                    float darkness = Darkness * MathHelper.Clamp(slip.Speed / FullSlip, LightestShare, 1f) * (1f - EarthFaint * DirtSpray.EarthOf(slip.Ground));
                     pieces.Add(new Piece { Ground = slip.Ground, From = from.Section, To = section, Darkness = darkness });
                 }
                 ends[slip.Wheel] = new End { Ground = slip.Ground, Point = at, Section = section };

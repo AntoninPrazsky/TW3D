@@ -83,6 +83,9 @@ namespace TW3D.GamePlay
         private const float SlipSpeed = 8f;
         private SkidMarks skidMarks;
         private TyreSmoke smoke;
+        private DirtSpray dirt;
+        //How many pieces of earth the tyres throw up (#59): fewer at a lower detail of the surfaces
+        private float DirtDensity => renderer.SurfaceDetail switch { SurfaceDetail.Low => 0.4f, SurfaceDetail.Medium => 0.7f, _ => 1f };
         private ExhaustSmoke exhaust;
         //Where the camera looks (physics units) and how the car it follows is turned (radians)
         private Vector2 followed;
@@ -226,6 +229,7 @@ namespace TW3D.GamePlay
             carSounds = new CarSounds(Manager.Sounds, car);
             skidMarks = new SkidMarks(physics, level.SurfaceOf);
             smoke = new TyreSmoke();
+            dirt = new DirtSpray(GameSpeed, world.Gravity.Y);
             exhaust = new ExhaustSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);
 
@@ -318,6 +322,7 @@ namespace TW3D.GamePlay
                 car.SlippingWheels(slipping, SlipSpeed);
                 skidMarks.Update(realElapsed, car, slipping);
                 smoke.Update(realElapsed, car, slipping);
+                dirt.Update(realElapsed, car, DirtDensity);
                 exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
                 speedometer.Update(Speedometer.Kmh(car.Speed, GameSpeed), realElapsed);
@@ -493,6 +498,7 @@ namespace TW3D.GamePlay
             level.Draw(renderer);
             skidMarks.Draw(renderer);
             smoke.Draw(renderer);
+            dirt.Draw(renderer);
             if (!developmentKeys.TrackOnly)
                 exhaust.Draw(renderer);
             renderer.End();
