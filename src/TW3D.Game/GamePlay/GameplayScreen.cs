@@ -333,6 +333,7 @@ namespace TW3D.GamePlay
                 mudTracks.Update(realElapsed, car, grounded, mudStrength);
                 smoke.Update(realElapsed, car, slipping);
                 dirt.Update(realElapsed, car, DirtDensity, mud);
+                mud.Dry(realElapsed);
                 exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
                 speedometer.Update(Speedometer.Kmh(car.Speed, GameSpeed), realElapsed);

@@ -12,7 +12,13 @@ namespace TW3D.GameObjects
     /// the holders keep their mud for the rest of the run. The wheels
     /// report to it as they throw the earth up (<see cref="DirtSpray"/>, which measures the sliding, the rolling and the
     /// landings). A new run, and the garage, start clean. Each amount grows by a part of what is still clean and washes by a
-    /// part of what is muddy, so it stays between 0 and 1. Pure arithmetic, tested without the physics.
+    /// part of what is muddy, so it stays between 0 and 1.
+    /// <para>
+    /// The mud is wet when it is fresh and dries (<see cref="Dry"/>): each part has its wetness, 0 dry to 1 wet, which the
+    /// fresh mud of the earth raises (driving on the earth keeps the mud wet, a hard landing wets it at once) and which
+    /// falls by a part of it every second, so the mud is dark when the car comes off the earth and gets lighter, and dark
+    /// again from the next earth. Pure arithmetic, tested without the physics.
+    /// </para>
     /// </summary>
     sealed class CarMud
     {
@@ -31,9 +37,15 @@ namespace TW3D.GameObjects
         public const float WashRollRate = 0.05f;
         public const float WashSlideRate = 0.1f;
         public const float TreadWash = 1.5f;
+        //How fast the fresh mud wets a part (this many times its share of new mud, a part of what is still dry) and how
+        //fast the mud dries (a part of its wetness, a real second)
+        public const float WetRate = 20f;
+        public const float DryRate = 0.05f;
 
-        //The front axle and the rear one
+        //The front axle and the rear one: the amounts, and the wetness of the wheels (their treads with them) and of the
+        //holders
         private readonly float[] wheels = new float[2], treads = new float[2], holders = new float[2];
+        private readonly float[] wheelsWet = new float[2], holdersWet = new float[2];
 
         /// <summary>The mud of the wheels of an axle (but the treads of their tyres), 0 clean to 1.</summary>
         public float Wheels(bool front) => wheels[Axle(front)];
@@ -47,13 +59,40 @@ namespace TW3D.GameObjects
         /// <summary>The mud of the body, 0 clean to 1.</summary>
         public float Body { get; private set; }
 
-        /// <summary>Sets every amount at once (the development key B).</summary>
+        /// <summary>How wet the mud of the wheels of an axle (and of their treads) is, 0 dry to 1 fresh.</summary>
+        public float WheelsWet(bool front) => wheelsWet[Axle(front)];
+
+        /// <summary>How wet the mud of the holder of an axle is, 0 dry to 1 fresh.</summary>
+        public float HolderWet(bool front) => holdersWet[Axle(front)];
+
+        /// <summary>How wet the mud of the body is, 0 dry to 1 fresh.</summary>
+        public float BodyWet { get; private set; }
+
+        /// <summary>Sets every amount at once, the mud fresh (the development key B).</summary>
         public void Set(float amount)
         {
             amount = Math.Clamp(amount, 0f, 1f);
             for (int axle = 0; axle < 2; axle++)
+            {
                 wheels[axle] = treads[axle] = holders[axle] = amount;
+                wheelsWet[axle] = holdersWet[axle] = 1f;
+            }
             Body = amount;
+            BodyWet = 1f;
+        }
+
+        /// <summary>Dries the mud for a while.</summary>
+        /// <param name="elapsed">Real seconds.</param>
+        public void Dry(float elapsed)
+        {
+            //What is left of the wetness, the same in one long step as in many short ones
+            float left = MathF.Exp(-DryRate * elapsed);
+            for (int axle = 0; axle < 2; axle++)
+            {
+                wheelsWet[axle] *= left;
+                holdersWet[axle] *= left;
+            }
+            BodyWet *= left;
         }
 
         /// <summary>A wheel on the ground for a while muddies its axle and the body, or off the earth washes its axle clean.</summary>
@@ -78,6 +117,9 @@ namespace TW3D.GameObjects
             treads[axle] = Muddier(treads[axle], share * TreadShare);
             holders[axle] = Muddier(holders[axle], share);
             Body = Muddier(Body, share * BodyShare);
+            wheelsWet[axle] = Muddier(wheelsWet[axle], share * WetRate);
+            holdersWet[axle] = Muddier(holdersWet[axle], share * WetRate);
+            BodyWet = Muddier(BodyWet, share * BodyShare * WetRate);
         }
 
         /// <summary>An amount with a part of what is still clean muddied (a part of 1 at most).</summary>

@@ -21,11 +21,15 @@
 #define MUD_COARSE (1.0 / 6.0)
 #define MUD_FINE 4.0
 
-// How much of the light of the sun and of the sky and the ground the mud takes (Scene.fx): its rough crumbs scatter
-// the light more evenly than a painted face does, and dried mud looks of one colour in the sun and in the shade
-// (taken fully, the faces turned to the sun looked of a lighter mud than the rest)
-#define MUD_SUN 0.65
-#define MUD_AMBIENT 1.7
+// How much of the light of the sun and of the sky and the ground the mud takes (Scene.fx, which also gives the light of
+// the sky on it half the hue of the sun): its rough crumbs scatter the light more evenly than a painted face does, and
+// the mud should look of one colour in the sun and in the shade (taken fully, the faces turned to the sun looked of a
+// lighter, warmer mud than the faces in the shade, a stripe of the paint seemed to show through it)
+#define MUD_SUN 0.4
+#define MUD_AMBIENT 2.2
+
+// The colour of wet mud: a part of the colour of the dried mud (MudColor), darker and a little browner
+#define MUD_WET float3(0.3, 0.26, 0.22)
 
 // The look of the mud at a pixel, over the material: its colour (linear), the normal and the finish
 struct MudLook
@@ -34,7 +38,8 @@ struct MudLook
 	float3 Normal;
 	float Metallic;
 	float Roughness;
-	float Shine;
+	float Shine;    // a factor of the rim of light
+	float Specular; // the strength of the highlight of the sun, in place of the material's
 	float Cover;    // how much of the material the mud covers, 0 to 1
 };
 
@@ -100,15 +105,19 @@ MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, f
 	// Thicker further in: a little darker; the thin edges a little lighter
 	float thick = saturate((reach - edge) * 3.0);
 
+	// Wet where it is fresh, longer where it is thick: darker and a little glossy; dry, light and matt
+	float wet = saturate(MudWet * 1.2 + (thick - 0.6) * 0.5);
+
 	MudLook look;
-	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.06, 0.94, thick);
+	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.06, 0.94, thick) * lerp(float3(1.0, 1.0, 1.0), MUD_WET, wet);
 	look.Albedo = lerp(albedo, mud, cover);
 	look.Normal = normal;
 	if (detail >= SURFACE_HIGH)
 		look.Normal = MudTilt(normal, SurfaceSlope(fine) * (0.1 + 0.12 * thick) * cover);
 	look.Metallic = metallic * (1.0 - cover);
-	look.Roughness = lerp(roughness, 0.95, cover);
+	look.Roughness = lerp(roughness, lerp(0.95, 0.7, wet), cover);
 	look.Shine = lerp(1.0, 0.3, cover);
+	look.Specular = lerp(0.03, 0.2, wet);
 	look.Cover = cover;
 	return look;
 }

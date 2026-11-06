@@ -16,7 +16,9 @@ namespace TW3D.GameObjects
     /// off-road track onto the clean road (<see cref="Mud"/>), fainter as the treads wipe clean (see <see cref="CarMud"/>).
     /// They lie on what the wheel stands on, the track or an object, and move with it. On an object they lie on the
     /// surface of its model, found across the tyre where the mark grows: they bend over its rims and end where it ends
-    /// (the physics knows only its outline, a barrel is shorter than the car is wide).
+    /// (the physics knows only its outline, a barrel is shorter than the car is wide). A mark follows the ground round a
+    /// bend (a piece sooner where the ground turns) and breaks where the wheel goes up or down a step or round a sharp
+    /// corner, so that no piece spans the air between two faces.
     /// </summary>
     sealed class TyreMarks
     {
@@ -51,6 +53,13 @@ namespace TW3D.GameObjects
         //wheel that stopped laying it for longer than this (seconds; shorter, it only lost the ground for a moment)
         private const float Gap = 5f;
         private const float Pause = 0.15f;
+        //Where the ground turns more than this since the end of the mark (the cosine of the angle between their normals),
+        //the mark grows by a piece however short, so that it follows a bend; turned more than this, or the wheel moved
+        //along the normal of the ground more than this part of the way (a step up or down), it starts anew instead of
+        //spanning the air
+        private const float Bend = 0.985f;
+        private const float Corner = 0.82f;
+        private const float Climb = 0.3f;
 
         //A piece of a mark: the cross sections of the mark at its ends, on its ground
         private struct Piece
@@ -61,12 +70,13 @@ namespace TW3D.GameObjects
             public float Age;
         }
 
-        //Where the mark of a wheel ends, on its ground (in the ground's own coordinates, physics units), and the cross
-        //section of the mark there
+        //Where the mark of a wheel ends, on its ground (in the ground's own coordinates, physics units), the normal of the
+        //ground there (the same coordinates) and the cross section of the mark there
         private struct End
         {
             public Body Ground;
             public Vector2 Point;
+            public Vector2 Up;
             public Vector3?[] Section;
         }
 
@@ -142,21 +152,24 @@ namespace TW3D.GameObjects
                 if (opacity <= 0f)
                     continue;
                 laid[wheel.Wheel] = true;
-                Vector2 at = wheel.Ground.GetLocalPoint(wheel.Point);
+                Vector2 at = wheel.Ground.GetLocalPoint(wheel.Point), up = wheel.Ground.GetLocalVector(wheel.Up);
                 End? previous = null;
                 if (ends[wheel.Wheel] is End end && end.Ground == wheel.Ground)
                 {
                     float distance = Vector2.Distance(at, end.Point);
-                    if (distance < step)
+                    float turned = Vector2.Dot(end.Up, up);
+                    if (distance < step && turned > Bend)
                         continue;
-                    if (distance <= Gap)
+                    //On over the ground, not up or down a step nor round a sharp corner through the air
+                    float climb = distance > 0f ? Math.Abs(Vector2.Dot(at - end.Point, up)) / distance : 0f;
+                    if (distance <= Gap && turned > Corner && climb < Climb)
                         previous = end;
                 }
-                Vector3?[] section = Section(wheel.Ground, at, wheel.Ground.GetLocalVector(wheel.Up), car.WheelSide(wheel.Wheel));
+                Vector3?[] section = Section(wheel.Ground, at, up, car.WheelSide(wheel.Wheel));
                 if (previous is End from)
                     pieces.Add(new Piece { Ground = wheel.Ground, From = from.Section, To = section,
                         Opacity = opacity * (1f - patchiness * (float)random.NextDouble()) });
-                ends[wheel.Wheel] = new End { Ground = wheel.Ground, Point = at, Section = section };
+                ends[wheel.Wheel] = new End { Ground = wheel.Ground, Point = at, Up = up, Section = section };
             }
             for (int wheel = 0; wheel < ends.Length; wheel++)
             {

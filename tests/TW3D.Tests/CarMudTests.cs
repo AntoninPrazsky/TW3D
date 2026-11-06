@@ -6,7 +6,8 @@ namespace TW3D.Tests
     /// <summary>
     /// How muddy the car gets (#60): clean off the earth, muddier the longer and the wilder it drives on it, the wheels of
     /// one axle by themselves, the treads faster and the body less than the wheels, half as much on a transition, never past
-    /// all of it; off the earth the wheels wash clean, the treads first, while the body and the holders keep their mud.
+    /// all of it; off the earth the wheels wash clean, the treads first, while the body and the holders keep their mud;
+    /// fresh mud is wet and dries, and the earth wets it again.
     /// </summary>
     public class CarMudTests
     {
@@ -153,6 +154,34 @@ namespace TW3D.Tests
         }
 
         [Fact]
+        public void FreshMudIsWetAndDries()
+        {
+            CarMud mud = new CarMud();
+            Drive(mud, 3f, roll: 1f);
+            Assert.True(mud.WheelsWet(true) > 0.9f);
+            Assert.True(mud.HolderWet(true) > 0.9f);
+            Assert.True(mud.BodyWet > 0.5f);
+            float amount = mud.Body, wet = mud.BodyWet;
+            mud.Dry(14f);
+            Assert.InRange(mud.BodyWet, wet * 0.4f, wet * 0.6f);
+            Assert.Equal(amount, mud.Body);
+            mud.Dry(120f);
+            Assert.True(mud.WheelsWet(true) < 0.01f);
+        }
+
+        [Fact]
+        public void TheEarthWetsDriedMudAgain()
+        {
+            CarMud mud = new CarMud();
+            mud.Set(1f);
+            mud.Dry(120f);
+            Assert.True(mud.BodyWet < 0.01f);
+            Drive(mud, 5f, roll: 1f);
+            Assert.True(mud.WheelsWet(true) > 0.9f);
+            Assert.True(mud.BodyWet > 0.2f);
+        }
+
+        [Fact]
         public void TheDevelopmentKeySetsEveryAmount()
         {
             CarMud mud = new CarMud();
@@ -161,6 +190,7 @@ namespace TW3D.Tests
             Assert.Equal(0.75f, mud.Treads(false));
             Assert.Equal(0.75f, mud.Holder(false));
             Assert.Equal(0.75f, mud.Body);
+            Assert.Equal(1f, mud.BodyWet);
             mud.Set(2f);
             Assert.Equal(1f, mud.Body);
         }

@@ -157,7 +157,11 @@ transition block; the treads twice as much, the body a quarter. Off the earth th
 clean as they roll and spin (with two wheels of an axle on the ground about a tenth of their mud
 a second at full speed, the treads one and a half times as fast); the body and the holders keep
 theirs. Each amount grows by a part of what is still clean and washes by a part of what is muddy,
-so it stays between 0 and 1; a new run (a new `Car`) and the garage start clean.
+so it stays between 0 and 1; a new run (a new `Car`) and the garage start clean. The mud is wet
+when fresh and dries: each part has a wetness, which the fresh mud of the earth raises (driving
+on the earth keeps it wet) and which falls by a twentieth a second (`CarMud.Dry`), so the car is
+dark as it comes off the earth, gets lighter as the mud dries, and dark again from the next
+earth; the shader darkens wet mud and gives it a little gloss, thick mud staying wet longer.
 
 What the treads wipe off is left on the road: `GameObjects/TyreMarks` lays the marks of the
 tyres, the dark skid marks where they slip and the tracks of the mud where a wheel with mud on
@@ -165,7 +169,9 @@ its tread rolls off the earth, light brown smears (each piece a little more or l
 random) as strong as the square root of the mud on the treads, so they fade as the treads wipe
 clean. Both lie on what the wheel stands on, the track or the surface of an object's model, and
 move with it; the renderer draws them in a haze of the light of the scene, so a brown track is
-dark at night.
+dark at night. A mark grows by a piece sooner where the ground turns, so that it follows a bend,
+and starts anew where the wheel goes up or down a step or round a sharp corner, so that no piece
+spans the air between two faces of the stairs.
 
 `Car.Draw` adds its models with a `Graphics/Mud` (the amount, and for the body where its axles
 are in its model, where the physics holds them), and the renderer draws their opaque parts but
@@ -173,10 +179,12 @@ the lamps by the techniques `LitMud<Detail>` and `LitCoarseShadowsMud<Detail>`
 (`content/Effects/Mud.fxh`): the same light, with the mud laid over the colour and the finish of
 the material per pixel, matt, a little lighter where it is thin and darker where thick (no more,
 or a patch near the edge of the mud looks of another colour), with a little relief at the High
-detail; none at the Low one (the Raspberry Pi). The mud takes less of the light of the sun and
-more of the sky and the ground than a painted face (`MUD_SUN`, `MUD_AMBIENT`): its crumbs scatter
-the light evenly, and taken fully, the faces turned to the sun looked of a lighter mud than those
-in the shade. The mud is laid in the model's own coordinates,
+detail; none at the Low one (the Raspberry Pi). The mud takes the place of the whole finish of
+the material (its highlight and its own light too, so a glossy stripe under it is mud like the
+rest). It takes less of the light of the sun and more of the sky and the ground than a painted
+face (`MUD_SUN`, `MUD_AMBIENT`), the light of the sky half in the hue of the sun: its crumbs
+scatter the light evenly, and taken fully, the faces turned to the sun looked of a lighter,
+warmer mud than the faces in the shade, grey under the blue sky. The mud is laid in the model's own coordinates,
 not the world's, so it stays put on a turning wheel and needs nothing marked in the models: a
 wheel and a holder get it all over, the tyre more than the middle, the rims less, and the tread
 (the outermost faces of a wheel turned away from its axis) has the amount of the treads, which

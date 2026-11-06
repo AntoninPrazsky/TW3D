@@ -237,7 +237,7 @@ namespace TW3D.Graphics
         private readonly Texture2D surfaceNoise;
         //The techniques of the mud by the detail (none at the low one) and the parameters of a part drawn with it
         private readonly EffectTechnique[] mudTechniques;
-        private readonly EffectParameter mudSpaceParameter, mudAmountParameter, mudTreadParameter, mudAxlesParameter, mudBodyParameter;
+        private readonly EffectParameter mudSpaceParameter, mudAmountParameter, mudTreadParameter, mudWetParameter, mudAxlesParameter, mudBodyParameter;
         //The texture of both shadow maps, of the detail it was made for, the sizes of the maps in it, and the sides of the
         //boxes each of them covered in the last frame (see FitLight)
         private RenderTarget2D shadowMap;
@@ -360,6 +360,7 @@ namespace TW3D.Graphics
             mudSpaceParameter = effect.Parameters["MudSpace"];
             mudAmountParameter = effect.Parameters["MudAmount"];
             mudTreadParameter = effect.Parameters["MudTread"];
+            mudWetParameter = effect.Parameters["MudWet"];
             mudAxlesParameter = effect.Parameters["MudAxles"];
             mudBodyParameter = effect.Parameters["MudBody"];
 
@@ -1554,6 +1555,7 @@ namespace TW3D.Graphics
                 mudSpaceParameter.SetValue(part.Transform);
                 mudAmountParameter.SetValue(mud.Amount * (part.Paint == PaintPart.Rim ? RimMud : 1f));
                 mudTreadParameter.SetValue(mud.Tread);
+                mudWetParameter.SetValue(mud.Wet);
                 mudAxlesParameter.SetValue(mud.Axles ?? Vector4.Zero);
                 mudBodyParameter.SetValue(mud.Axles.HasValue ? 1f : 0f);
             }

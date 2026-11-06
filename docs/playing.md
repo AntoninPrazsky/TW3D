@@ -51,7 +51,8 @@ wheels, then the lower part of the body around and behind the axles, then furthe
 the longer it drives on the earth, the faster, and the more it slides, spins and lands hard. Off
 the earth the wheels wash clean as they roll on (the treads in a few seconds, the rest of the
 wheels in about twenty at full speed), and leave tracks of mud on the road and on the objects
-until the treads are clean; the body keeps its mud for the rest of the run. Every
+until the treads are clean; the body keeps its mud for the rest of the run. Fresh mud is wet and
+dark and dries lighter in about half a minute; the next earth makes it dark again. Every
 run, and the garage, start with a clean car. The mud is not drawn at the low Surface detail.
 The choices are saved with the options, the wheels and the colours for each car; a car whose
 wheels were never chosen comes with its own.

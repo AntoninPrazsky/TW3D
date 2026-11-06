@@ -170,6 +170,7 @@ sampler2D SurfaceSampler = sampler_state
 float4x4 MudSpace;          // from the coordinates of the part's mesh to the model's own
 float MudAmount;            // 0 = clean, 1 = as muddy as it gets
 float MudTread;             // a wheel: the same on the tread of its tyre
+float MudWet;               // 0 = dry, 1 = fresh
 float4 MudAxles;            // the body: the middles of its front and rear axle in its model (front x, y, rear x, y)
 float MudBody;              // 1 = the body of the car (the mud gathers by MudAxles), 0 = a wheel or a holder (all over)
 float3 MudColor;            // linear, the colour of the mud
@@ -351,11 +352,12 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 	{
 		MudLook mud = MudOver(SurfaceSampler, albedo, normal, metallic, roughness, input.Plane, input.Local, detail);
 		softened = mud.Cover;
+		// The mud takes the place of the finish of the material too: its own highlight, whatever the material had
 		albedo = mud.Albedo;
 		normal = mud.Normal;
 		metallic = mud.Metallic;
 		roughness = mud.Roughness;
-		specular *= mud.Shine;
+		specular = lerp(specular, mud.Specular, mud.Cover);
 		sheen = mud.Shine;
 	}
 	float facing = saturate(dot(normal, SunDirection));
@@ -397,8 +399,12 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 		spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
 	}
 
-	float3 light = albedo * diffuse * (SunColor * sun * lerp(1.0, MUD_SUN, softened) + ambient * lerp(1.0, MUD_AMBIENT, softened) + spot)
-		+ SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
+	// The light of the sky and the ground on the mud in the hue of the sun, half of it: the blue of the sky in the shade
+	// and the warm sun made one mud look grey in the shade and tan in the sun
+	float3 sunHue = SunColor / max(dot(SunColor, float3(0.3, 0.59, 0.11)), 0.001);
+	float3 mudAmbient = lerp(ambient, dot(ambient, float3(0.3, 0.59, 0.11)) * sunHue, 0.5) * MUD_AMBIENT;
+	float3 light = albedo * diffuse * (SunColor * sun * lerp(1.0, MUD_SUN, softened) + lerp(ambient, mudAmbient, softened) + spot)
+		+ SunColor * highlight + RimLight * rim + mirror + EmissiveColor * (1.0 - softened);
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;

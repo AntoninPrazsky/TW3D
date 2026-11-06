@@ -807,9 +807,11 @@ namespace TW3D.GameObjects
         public override void Draw(SceneRenderer renderer)
         {
             Paint paint = Paint.Body(Colours), rear = Paint.Wheels(Colours, false), front = Paint.Wheels(Colours, true);
-            Mud bodyMud = new Mud(Mud?.Body ?? 0f, axlesInModel);
-            Mud rearMud = new Mud(Mud?.Wheels(false) ?? 0f, tread: Mud?.Treads(false) ?? 0f), frontMud = new Mud(Mud?.Wheels(true) ?? 0f, tread: Mud?.Treads(true) ?? 0f);
-            Mud rearHolder = new Mud(Mud?.Holder(false) ?? 0f), frontHolder = new Mud(Mud?.Holder(true) ?? 0f);
+            Mud bodyMud = new Mud(Mud?.Body ?? 0f, axlesInModel, wet: Mud?.BodyWet ?? 0f);
+            Mud rearMud = new Mud(Mud?.Wheels(false) ?? 0f, tread: Mud?.Treads(false) ?? 0f, wet: Mud?.WheelsWet(false) ?? 0f);
+            Mud frontMud = new Mud(Mud?.Wheels(true) ?? 0f, tread: Mud?.Treads(true) ?? 0f, wet: Mud?.WheelsWet(true) ?? 0f);
+            Mud rearHolder = new Mud(Mud?.Holder(false) ?? 0f, wet: Mud?.HolderWet(false) ?? 0f);
+            Mud frontHolder = new Mud(Mud?.Holder(true) ?? 0f, wet: Mud?.HolderWet(true) ?? 0f);
             DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false, paint, mud: bodyMud);
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
             renderer.SetCar(carModel, body, Forward, brake);

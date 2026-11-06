@@ -14,11 +14,13 @@ namespace TW3D.Graphics
         /// <param name="axles">The body of a car: the middles of its front and its rear axle in its model's own coordinates
         /// (front x, y, rear x, y); null for a wheel or a holder.</param>
         /// <param name="tread">A wheel: the mud on the tread of its tyre, 0 clean to 1; null as much as the rest of it.</param>
-        public Mud(float amount, Vector4? axles = null, float? tread = null)
+        /// <param name="wet">How wet the mud is, 0 dry (light, matt) to 1 fresh (dark, a little glossy).</param>
+        public Mud(float amount, Vector4? axles = null, float? tread = null, float wet = 0f)
         {
             Amount = MathHelper.Clamp(amount, 0f, 1f);
             Axles = axles;
             Tread = MathHelper.Clamp(tread ?? amount, 0f, 1f);
+            Wet = MathHelper.Clamp(wet, 0f, 1f);
         }
 
         /// <summary>0 clean, 1 as muddy as it gets.</summary>
@@ -29,6 +31,9 @@ namespace TW3D.Graphics
 
         /// <summary>The mud on the tread of the tyre of a wheel, 0 clean to 1.</summary>
         public float Tread { get; }
+
+        /// <summary>How wet the mud is, 0 dry to 1 fresh.</summary>
+        public float Wet { get; }
 
         public bool IsClean => Amount <= 0f && Tread <= 0f;
     }
