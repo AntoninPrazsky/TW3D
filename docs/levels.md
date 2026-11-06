@@ -248,9 +248,11 @@ Levels are JSON files with one block or object per line:
   "format": 2,
   "order": 1,
   "mood": "sunset",
+  "style": "offroad",
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
     {"block":"b2","x":1,"y":0,"shift":-4,"turned":true},
+    {"block":"a1","x":2,"y":0,"shift":-4,"style":"offroad-classic"},
     ...
   ],
   "back": [
@@ -279,6 +281,14 @@ Levels are JSON files with one block or object per line:
   [a run of a level](playing.md#a-run-of-a-level)). Without it the game estimates it:
   half a second for each grid cell the finish is from the start (across and up or
   down), at least 10 seconds.
+- `style` (optional, written only when it is set): the style of the track (#58): every
+  block that has a look in it is drawn so (`offroad`: a dirt road with ruts and grass
+  verges), the others classic, as the blocks of 2016 look. A block can have a `style` of its
+  own: another style, or a transition between two, `first-second` (`offroad-classic`: the
+  off-road style at the left edge of the block, the classic one at its right edge; turned,
+  the other way round), which a road needs where it passes from one style into another
+  (see [the catalog](content.md#catalog)). A style only changes how a block looks: its
+  collision is that of the classic block, so a level plays the same in every style.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers. The back
   layers are one list: `depth` (1 when left out, as in every level made before 2026-11) is
   how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one

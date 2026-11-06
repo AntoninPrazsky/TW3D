@@ -30,6 +30,14 @@ namespace TW3D.Shared
         public bool Finish { get; set; }
 
         /// <summary>
+        /// The style of the block (#58, see <see cref="Catalog.Styles"/>): a style, or a transition between two, which the
+        /// block must have a look of (<see cref="BlockType.Looks"/>). Null for the style of the level
+        /// (<see cref="LevelData.Style"/>).
+        /// </summary>
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string Style { get; set; }
+
+        /// <summary>
         /// How many cells behind the road a block of the back layer stands: 1 (the default) to
         /// <see cref="LevelData.BackLayers"/>. The blocks of the middle and the front layer have 1.
         /// </summary>
@@ -131,6 +139,16 @@ namespace TW3D.Shared
         /// </summary>
         public float? Par { get; set; }
 
+        /// <summary>
+        /// The style of the track (#58, see <see cref="Catalog.Styles"/>): every block without a style of its own that has
+        /// a look in it is drawn so, the others classic. Null for the classic style. Written only when it is set, so that
+        /// the levels of the classic style stay as they were.
+        /// </summary>
+        public string Style { get; set; }
+
+        /// <summary>The style a placed block is drawn in: its own, or the style of the level.</summary>
+        public string StyleOf(BlockPlacement placement) => placement.Style ?? Style;
+
         /// <summary>The finish block of the level; null if it has none.</summary>
         [JsonIgnore]
         public BlockPlacement FinishBlock => Middle.FirstOrDefault(block => block.Finish);
@@ -159,9 +177,15 @@ namespace TW3D.Shared
                         problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has no collision shape, so it cannot be in the {layerName} layer.");
                     if (block != null && placement.Turned && !block.Turns)
                         problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer is turned, but it cannot be turned.");
+                    if (placement.Style != null && !catalog.IsStyleOrTransition(placement.Style))
+                        problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer has the unknown style \"{placement.Style}\".");
+                    else if (block != null && placement.Style != null && !block.HasLook(placement.Style))
+                        problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] in the {layerName} layer has the style \"{placement.Style}\", but no look in it.");
                 }
             }
 
+            if (Style != null && !catalog.IsStyle(Style))
+                problems.Add($"The level has the unknown style \"{Style}\".");
             CheckLayer(Middle, "middle", true);
             CheckLayer(Back, "back", false);
             CheckLayer(Front, "front", false);

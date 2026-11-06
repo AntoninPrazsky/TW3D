@@ -108,13 +108,13 @@ namespace TW3D.GameObjects
             }
 
             foreach (BlockPlacement placement in data.Middle)
-                middle.Add(CreateBlock(placement, assets, 0f, true));
+                middle.Add(CreateBlock(placement, data.StyleOf(placement), assets, 0f, true));
             //A block is as large as its cell, around its position
             Bottom = middle.Count > 0 ? middle.Max(block => block.Position.Y) + Units.GridCell / 2f : 0f;
             foreach (BlockPlacement placement in data.Back)
-                back.Add(CreateBlock(placement, assets, -placement.Depth * LayerDepth, false));
+                back.Add(CreateBlock(placement, data.StyleOf(placement), assets, -placement.Depth * LayerDepth, false));
             foreach (BlockPlacement placement in data.Front)
-                front.Add(CreateBlock(placement, assets, LayerDepth, false));
+                front.Add(CreateBlock(placement, data.StyleOf(placement), assets, LayerDepth, false));
             foreach (ObjectPlacement placement in data.Objects)
                 objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
                     assets.Catalog.FindObject(placement.Type), placement.Model, assets));
@@ -136,12 +136,13 @@ namespace TW3D.GameObjects
             return new Vector2(placement.X * Units.GridCell, placement.Y * Units.GridCell + placement.Shift * Units.ShiftStep);
         }
 
+        /// <param name="style">The style the block is drawn in (its look); its collision is its own in every style.</param>
         /// <param name="depth">How far in front of the road the block stands (physics units, negative behind it).</param>
         /// <param name="physical">The block is in the middle layer: it takes part in the physics simulation.</param>
-        private TrackBlock CreateBlock(BlockPlacement placement, LevelAssets assets, float depth, bool physical)
+        private TrackBlock CreateBlock(BlockPlacement placement, string style, LevelAssets assets, float depth, bool physical)
         {
             BlockType type = assets.Catalog.FindBlock(placement.Block);
-            TrackBlock block = new TrackBlock(type, assets.BlockModel(type), PhysicsPosition(placement), depth, placement.Turned);
+            TrackBlock block = new TrackBlock(type, assets.BlockModel(type, style), PhysicsPosition(placement), depth, placement.Turned);
             if (physical)
             {
                 block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track, placement.Turned);

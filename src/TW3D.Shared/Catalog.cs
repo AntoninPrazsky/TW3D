@@ -33,9 +33,33 @@ namespace TW3D.Shared
         /// </summary>
         public bool Turns { get; set; }
 
+        /// <summary>
+        /// The looks of the block in the styles of the track other than the classic one (#58), by the name of the style or of
+        /// a transition between two styles (see <see cref="Catalog.Styles"/>): the name of the model of the look in
+        /// Levels/mod. A look shares everything else with the block (its collision shape, <see cref="Profile"/> and
+        /// turning); only its model differs. Null for a block that is classic in every style.
+        /// </summary>
+        public Dictionary<string, string> Looks { get; set; }
+
         /// <summary>The block is a road block: it has a surface <see cref="Profile"/>.</summary>
         [JsonIgnore]
         public bool IsRoad => Profile != null;
+
+        /// <summary>The block has a look in a style (the classic look is every block's).</summary>
+        public bool HasLook(string style)
+        {
+            return style == null || style == Catalog.ClassicStyle || (Looks != null && Looks.ContainsKey(style));
+        }
+
+        /// <summary>
+        /// The model the block is drawn with in a style: the model of its look, or its own model where it has no look in
+        /// the style (null and <see cref="Catalog.ClassicStyle"/> are the classic look). Its collision shape is always that
+        /// of <see cref="ModelAsset"/>.
+        /// </summary>
+        public string LookAsset(string style)
+        {
+            return style != null && Looks != null && Looks.TryGetValue(style, out string model) ? "Levels/mod/" + model : ModelAsset;
+        }
 
         /// <summary>
         /// The <see cref="Profile"/> of the block as placed, [left, right]: turned, the edges swap, so a turned climb
@@ -172,6 +196,17 @@ namespace TW3D.Shared
     {
         public const string FileName = "catalog.json";
 
+        /// <summary>The style every block has, the blocks of 2016, which a level or a block has unless it names another.</summary>
+        public const string ClassicStyle = "classic";
+
+        /// <summary>
+        /// The styles of the track besides the classic one (#58), as the levels and the looks of the blocks name them
+        /// (<see cref="BlockType.Looks"/>): "offroad". A block can also have the look of a transition between two styles,
+        /// named "first-second" ("offroad-classic"): the first style at the left edge of the block placed unturned, the
+        /// second at its right edge (turned, the other way round).
+        /// </summary>
+        public List<string> Styles { get; set; } = new List<string>();
+
         public List<BlockType> Blocks { get; set; } = new List<BlockType>();
         public List<ObjectType> Objects { get; set; } = new List<ObjectType>();
         public List<SceneryType> Scenery { get; set; } = new List<SceneryType>();
@@ -190,6 +225,23 @@ namespace TW3D.Shared
 
         /// <summary>The wheels with the model; the first wheels if there are no such wheels.</summary>
         public WheelType FindWheel(string model) => Wheels.FirstOrDefault(wheel => wheel.Model == model) ?? Wheels.FirstOrDefault();
+
+        /// <summary>The name is a style: <see cref="ClassicStyle"/> or one of <see cref="Styles"/>.</summary>
+        public bool IsStyle(string name) => name == ClassicStyle || Styles.Contains(name);
+
+        /// <summary>
+        /// The name is a style or a transition between two different styles ("offroad-classic"), which a placed block may
+        /// have (see <see cref="BlockType.Looks"/>).
+        /// </summary>
+        public bool IsStyleOrTransition(string name)
+        {
+            if (name == null)
+                return false;
+            if (IsStyle(name))
+                return true;
+            string[] parts = name.Split('-');
+            return parts.Length == 2 && parts[0] != parts[1] && IsStyle(parts[0]) && IsStyle(parts[1]);
+        }
 
         /// <summary>Models of all dynamic objects (each listed once).</summary>
         public IEnumerable<string> ObjectModels => Objects.SelectMany(obj => obj.Models).Distinct();

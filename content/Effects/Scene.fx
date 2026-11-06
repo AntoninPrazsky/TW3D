@@ -302,12 +302,15 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 	float visible = Sunlight(input.Shadow, input.DeepShadow, saturate(dot(face, SunDirection)), smooth);
 	float3 albedo = DiffuseColor;
 	float specular = Specular;
+	float sheen = 1.0;
 	if (surface != SURFACE_NONE)
 	{
 		SurfaceLook look = SurfaceOf(SurfaceSampler, surface, detail, DiffuseColor, normal, input.Plane, input.Local);
 		albedo = look.Albedo;
 		normal = look.Normal;
 		specular *= look.Shine;
+		// A matte surface (earth) has little of the rim too, which lined the walls of its ruts seen edge-on
+		sheen = look.Shine;
 	}
 	float facing = saturate(dot(normal, SunDirection));
 
@@ -320,7 +323,7 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 
 	float highlight = pow(saturate(dot(normal, normalize(SunDirection + view))), 40.0) * specular * sun;
 	float3 ambient = lerp(GroundLight, SkyLight, normal.y * 0.5 + 0.5) * occlusion;
-	float rim = pow(1.0 - saturate(dot(face, view)), 4.0) * occlusion;
+	float rim = pow(1.0 - saturate(dot(face, view)), 4.0) * occlusion * sheen;
 
 	// The mirror image of the surroundings, with the sun as a glint, sharper and brighter the smoother
 	// the surface. Metal mirrors all the light in its own colour (blurred if rough), other materials

@@ -27,15 +27,14 @@ namespace TW3D.Editor
         //The layers that are drawn, by the Layer enum (View menu); the middle layer always is
         private readonly bool[] shown = new bool[Layers.Count];
 
-        //The models by the name of the block, and by the type and the model of an object the catalog knows
-        private readonly Dictionary<string, Model> blockModels = new Dictionary<string, Model>();
+        //The models of the blocks (with their looks), and by the type and the model of an object the catalog knows
+        private readonly LevelAssets assets;
         private readonly Dictionary<(string Type, string Model), Model> objectModels = new Dictionary<(string, string), Model>();
         private readonly Dictionary<string, Model> sceneryModels = new Dictionary<string, Model>();
 
         public LevelView(LevelAssets assets)
         {
-            foreach (BlockType block in assets.Catalog.Blocks)
-                blockModels[block.Name] = assets.BlockModel(block);
+            this.assets = assets;
             foreach (ObjectType type in assets.Catalog.Objects)
                 foreach (string model in type.Models)
                     objectModels[(type.Type, model)] = assets.ObjectModel(model);
@@ -127,7 +126,7 @@ namespace TW3D.Editor
             foreach (Layer layer in Layers.All)
                 if (Shows(layer))
                     DrawLayer(renderer, layer);
-            if (Preview is (Layer previewLayer, PlacedBlock preview) && blockModels.TryGetValue(preview.Name, out Model previewModel))
+            if (Preview is (Layer previewLayer, PlacedBlock preview) && BlockModel(preview) is Model previewModel)
             {
                 Matrix world = Matrix.CreateScale(PreviewScale)
                     * ModelWorld(new Vector3(PhysicsPosition(preview), Depth(previewLayer)), 0f, preview.Turned) * Placement;
@@ -154,6 +153,13 @@ namespace TW3D.Editor
             }
         }
 
+        /// <summary>The model a block is drawn with: its look in its style or the style of the level; null for a block the catalog does not know.</summary>
+        private Model BlockModel(PlacedBlock block)
+        {
+            BlockType type = assets.Catalog.FindBlock(block.Name);
+            return type == null ? null : assets.BlockModel(type, block.Style ?? Level?.Style);
+        }
+
         private void DrawLayer(SceneRenderer renderer, Layer layer)
         {
             IReadOnlyList<PlacedBlock> blocks = Level.Blocks(layer);
@@ -161,7 +167,7 @@ namespace TW3D.Editor
             for (int i = 0; i < blocks.Count; i++)
             {
                 PlacedBlock block = blocks[i];
-                if (blockModels.TryGetValue(block.Name, out Model model))
+                if (BlockModel(block) is Model model)
                     DrawModel(renderer, model, new Vector3(PhysicsPosition(block), depth), 0f, block.Turned, block: true);
             }
         }

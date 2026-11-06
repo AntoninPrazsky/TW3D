@@ -43,13 +43,15 @@ namespace TW3D.Editor
     {
         /// <param name="name">Name of the block type in the catalog.</param>
         /// <param name="turned">The block is turned round (see <see cref="BlockPlacement.Turned"/>).</param>
-        public PlacedBlock(Cell cell, string name, int shift, bool finish, bool turned = false)
+        /// <param name="style">The style of the block (see <see cref="BlockPlacement.Style"/>); null for the level's.</param>
+        public PlacedBlock(Cell cell, string name, int shift, bool finish, bool turned = false, string style = null)
         {
             Cell = cell;
             Name = name;
             Shift = shift;
             Finish = finish;
             Turned = turned;
+            Style = style;
         }
 
         /// <summary>The cell of the layer the block is in.</summary>
@@ -69,6 +71,12 @@ namespace TW3D.Editor
         /// <see cref="BlockPlacement.Turned"/>). A file may turn a block that cannot be turned, which is a problem.
         /// </summary>
         public bool Turned { get; internal set; }
+
+        /// <summary>
+        /// The style of the block, a style or a transition between two (see <see cref="BlockPlacement.Style"/>); null for
+        /// the style of the level.
+        /// </summary>
+        public string Style { get; internal set; }
     }
 
     /// <summary>A dynamic object of the edited level. The document alone moves it, so that undo can move it back.</summary>
@@ -219,6 +227,7 @@ namespace TW3D.Editor
         private readonly List<PlacedObject> objects = new List<PlacedObject>();
         private readonly List<PlacedScenery> scenery = new List<PlacedScenery>();
         private LevelMood mood;
+        private string style;
         private int? order;
         private float? par;
 
@@ -242,6 +251,7 @@ namespace TW3D.Editor
             this.catalog = catalog;
             File = file;
             mood = data.Mood;
+            style = data.Style;
             order = data.Order;
             par = data.Par;
             foreach (Layer layer in Layers.All)
@@ -272,6 +282,9 @@ namespace TW3D.Editor
 
         /// <summary>The light of the level.</summary>
         public LevelMood Mood => mood;
+
+        /// <summary>The style of the track (see <see cref="LevelData.Style"/>); null for the classic one.</summary>
+        public string Style => style;
 
         /// <summary>The position of the level in the level select; null for a level without one.</summary>
         public int? Order => order;
@@ -467,7 +480,8 @@ namespace TW3D.Editor
                 Format = LevelData.CurrentFormat,
                 Order = order,
                 Mood = mood,
-                Par = par
+                Par = par,
+                Style = style
             };
             //The back layers from the nearest to the deepest, each block with its depth
             for (Layer layer = Layer.Back; layer >= Layer.Back3; layer--)
@@ -501,7 +515,8 @@ namespace TW3D.Editor
         /// without a collision shape) in the middle layer and for a turned block that cannot be turned; null when done.
         /// </summary>
         /// <param name="turned">The block is placed turned round (see <see cref="BlockType.Turns"/>).</param>
-        public string Place(Layer layer, Cell cell, string block, int shift, bool turned = false)
+        /// <param name="style">The style of the block (a pasted one keeps its own); null for the style of the level.</param>
+        public string Place(Layer layer, Cell cell, string block, int shift, bool turned = false, string style = null)
         {
             BlockType type = catalog.FindBlock(block);
             if (type == null)
@@ -516,18 +531,19 @@ namespace TW3D.Editor
             string name = "Place " + block + (turned ? " turned" : "");
             if (existing == null)
             {
-                PlacedBlock placed = new PlacedBlock(cell, block, shift, false, turned);
+                PlacedBlock placed = new PlacedBlock(cell, block, shift, false, turned, style);
                 int index = blocks.Count;
                 Record(name, () => blocks.Insert(index, placed), () => blocks.RemoveAt(index));
             }
-            else if (existing.Name != block || existing.Shift != shift || existing.Turned != turned)
+            else if (existing.Name != block || existing.Shift != shift || existing.Turned != turned || existing.Style != style)
             {
                 string oldName = existing.Name;
                 int oldShift = existing.Shift;
                 bool oldTurned = existing.Turned;
+                string oldStyle = existing.Style;
                 Record(name,
-                    () => Set(existing, block, shift, turned),
-                    () => Set(existing, oldName, oldShift, oldTurned));
+                    () => Set(existing, block, shift, turned, style),
+                    () => Set(existing, oldName, oldShift, oldTurned, oldStyle));
             }
             return null;
         }
@@ -927,6 +943,8 @@ namespace TW3D.Editor
         public List<LevelProblem> Problems()
         {
             List<LevelProblem> problems = new List<LevelProblem>();
+            if (style != null && !catalog.IsStyle(style))
+                problems.Add(new LevelProblem($"The level has the unknown style \"{style}\"."));
             FindBlockProblems(Layer.Middle, problems);
             foreach (Layer layer in OuterLayers)
                 FindBlockProblems(layer, problems);
@@ -989,6 +1007,10 @@ namespace TW3D.Editor
                     problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} has no collision shape, so it cannot be in the {layerName} layer.", layer, block.Cell));
                 if (type != null && block.Turned && !type.Turns)
                     problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} in the {layerName} layer is turned, but it cannot be turned.", layer, block.Cell));
+                if (block.Style != null && !catalog.IsStyleOrTransition(block.Style))
+                    problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} in the {layerName} layer has the unknown style \"{block.Style}\".", layer, block.Cell));
+                else if (type != null && block.Style != null && !type.HasLook(block.Style))
+                    problems.Add(new LevelProblem($"Block \"{block.Name}\" at {block.Cell} in the {layerName} layer has the style \"{block.Style}\", but no look in it.", layer, block.Cell));
             }
         }
 
@@ -1130,11 +1152,12 @@ namespace TW3D.Editor
             return layers[(int)layer].FindLastIndex(block => block.Cell == cell);
         }
 
-        private static void Set(PlacedBlock block, string name, int shift, bool turned)
+        private static void Set(PlacedBlock block, string name, int shift, bool turned, string style)
         {
             block.Name = name;
             block.Shift = shift;
             block.Turned = turned;
+            block.Style = style;
         }
 
         private static void SetFinish(PlacedBlock block, bool finish, List<PlacedBlock> others, bool othersFinish)
@@ -1168,13 +1191,17 @@ namespace TW3D.Editor
 
         private static PlacedBlock Convert(BlockPlacement placement)
         {
-            return new PlacedBlock(new Cell(placement.X, placement.Y), placement.Block, placement.Shift, placement.Finish, placement.Turned);
+            return new PlacedBlock(new Cell(placement.X, placement.Y), placement.Block, placement.Shift, placement.Finish, placement.Turned, placement.Style);
         }
 
         /// <param name="depth">How many cells behind the road the block stands (1 for the blocks that are not in a back layer).</param>
         private static BlockPlacement Convert(PlacedBlock block, int depth)
         {
-            return new BlockPlacement { Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Turned = block.Turned, Finish = block.Finish, Depth = depth };
+            return new BlockPlacement
+            {
+                Block = block.Name, X = block.Cell.X, Y = block.Cell.Y, Shift = block.Shift, Turned = block.Turned, Finish = block.Finish,
+                Style = block.Style, Depth = depth
+            };
         }
 
         /// <summary>Does a change and records it: as a step of its own, or as a part of the open compound.</summary>

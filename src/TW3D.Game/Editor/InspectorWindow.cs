@@ -86,7 +86,7 @@ namespace TW3D.Editor
                 ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
                 return;
             }
-            ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : ""));
+            ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : "") + (block.Style != null ? ", style " + block.Style : ""));
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");

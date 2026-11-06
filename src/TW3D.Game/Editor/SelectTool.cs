@@ -51,7 +51,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>A block in the clipboard: what it was, how it was turned and where, relative to the anchor cell (see <see cref="Anchor"/>).</summary>
-        private readonly record struct Copied(string Name, int Shift, bool Turned, int X, int Y);
+        private readonly record struct Copied(string Name, int Shift, bool Turned, string Style, int X, int Y);
 
         /// <summary>
         /// A prop in the clipboard: its model, where its foot was relative to the middle of the anchor cell (physics units),
@@ -319,7 +319,7 @@ namespace TW3D.Editor
             Cell origin = Anchor();
             clipboard.Clear();
             foreach (PlacedBlock block in selected)
-                clipboard.Add(new Copied(block.Name, block.Shift, block.Turned, block.Cell.X - origin.X, block.Cell.Y - origin.Y));
+                clipboard.Add(new Copied(block.Name, block.Shift, block.Turned, block.Style, block.Cell.X - origin.X, block.Cell.Y - origin.Y));
             propClipboard.Clear();
             foreach (PlacedScenery prop in selectedProps)
                 propClipboard.Add(new CopiedProp(prop.Model, prop.X - origin.X * Units.GridCell, prop.Y - origin.Y * Units.GridCell,
@@ -401,7 +401,7 @@ namespace TW3D.Editor
                 foreach (Copied copied in clipboard)
                 {
                     Cell cell = new Cell(origin.X + copied.X, origin.Y + copied.Y);
-                    if (level.Place(layer, cell, copied.Name, copied.Shift, copied.Turned) != null)
+                    if (level.Place(layer, cell, copied.Name, copied.Shift, copied.Turned, copied.Style) != null)
                     {
                         skipped++;
                         continue;

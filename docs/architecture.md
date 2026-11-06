@@ -132,9 +132,18 @@ which neighbours share, blended across the cell. Each surface has a technique fo
 filter of the shadows, `Lit<Surface><Detail>` and `LitCoarseShadows<Surface><Detail>`, so that
 nothing branches in the pixel shader (Shader Model 3.0 refuses a derivative in a branch).
 
-The two surfaces of today are tests of the machinery, a plain grainy asphalt and a plain earth;
-the looks of the track styles are made in #56 and #57, which also add their surfaces (a kerb,
-grass) as further techniques.
+The asphalt is a test of the machinery; the earth draws the off-road style of the track (#57),
+whose blocks have the shape of a dirt road (ruts, a crown, grass verges) and name it by their
+materials. The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
+
+### Styles of the track
+
+A level, and any block of it, has a style (#58): the classic one of 2016 or `offroad`, a dirt
+road. A style only changes the model a block is drawn with, its look (`BlockType.Looks` in the
+catalog, `BlockType.LookAsset`): `Level` builds the physics of a block from the shape of its
+own model as before and draws the model of its look in the style of the block or of the level
+(`LevelData.StyleOf`), and the editor draws the same (`LevelView`). The blocks where the road
+passes from one style into another have the look of a transition (`offroad-classic`).
 
 ### The sky
 

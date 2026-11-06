@@ -10,8 +10,8 @@ namespace TW3D.GameObjects
 {
     /// <summary>
     /// What the levels are built from: the catalog of the blocks, dynamic objects and scenery (content/catalog.json), the
-    /// models of all of them, the collision shapes of the models and the surfaces of the models of the objects. Loaded when
-    /// the first level loads and shared by all levels.
+    /// models of all of them (the blocks with their looks in the styles of the track), the collision shapes of the models
+    /// and the surfaces of the models of the objects. Loaded when the first level loads and shared by all levels.
     /// </summary>
     sealed class LevelAssets
     {
@@ -29,7 +29,12 @@ namespace TW3D.GameObjects
             ModelCollision.Load();
 
             foreach (BlockType block in Catalog.Blocks)
-                blockModels.Add(block.Name, content.Load<Model>(block.ModelAsset));
+            {
+                blockModels.Add(block.ModelAsset, content.Load<Model>(block.ModelAsset));
+                if (block.Looks != null)
+                    foreach (string style in block.Looks.Keys)
+                        blockModels.TryAdd(block.LookAsset(style), content.Load<Model>(block.LookAsset(style)));
+            }
             foreach (string model in Catalog.ObjectModels)
             {
                 objectModels.Add(model, content.Load<Model>(ObjectType.ModelAsset(model)));
@@ -47,7 +52,8 @@ namespace TW3D.GameObjects
 
         public Catalog Catalog { get; }
 
-        public Model BlockModel(BlockType block) => blockModels[block.Name];
+        /// <summary>The model a block is drawn with in a style (its look, see <see cref="BlockType.LookAsset"/>); null for the classic one.</summary>
+        public Model BlockModel(BlockType block, string style = null) => blockModels[block.LookAsset(style)];
 
         /// <param name="model">One of the models of a dynamic object type (see <see cref="ObjectType.Models"/>).</param>
         public Model ObjectModel(string model) => objectModels[model];

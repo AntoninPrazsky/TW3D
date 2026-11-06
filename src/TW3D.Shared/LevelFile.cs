@@ -131,6 +131,8 @@ namespace TW3D.Shared
                 json.Append("  \"mood\": ").Append(JsonSerializer.Serialize(level.Mood, JsonOptions.Default)).Append(",\n");
             if (level.Par.HasValue)
                 json.Append("  \"par\": ").Append(JsonSerializer.Serialize(level.Par.Value, JsonOptions.Default)).Append(",\n");
+            if (level.Style != null)
+                json.Append("  \"style\": ").Append(JsonSerializer.Serialize(level.Style, JsonOptions.Default)).Append(",\n");
             bool scenery = level.Scenery != null && level.Scenery.Count > 0;
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);

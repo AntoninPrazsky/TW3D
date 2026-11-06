@@ -32,9 +32,10 @@ A part can also be a **surface**, whose detail the shader draws per pixel (see
 [surfaces](architecture.md#surfaces)): a material named `asphalt…` or `earth…` (the names of
 `Graphics/Surface`). Its colour (`Kd`) is the base colour of the surface, which the shader varies
 by the noise of the surfaces and lights with a relief of its own; the shape stays that of the
-model. No model of the game has a surface yet: the track styles (#56, #57) bring them. Until
-then the development key T draws the grey road of the classic blocks as the test surfaces, and
-`tools/CatalogRender` renders a block so (`render --surface asphalt`).
+model. The looks of the off-road style are earth (`earth`, `earthrut`, `earthbank`, see
+[the catalog](#catalog)); the racing style (#56) will bring asphalt. The development key T
+draws the grey road of the classic blocks as the test surfaces, and `tools/CatalogRender`
+renders a block so (`render --surface asphalt`).
 
 The models of the dynamic objects are built with the parameter `Surface` of the processor:
 it keeps their triangles in the model (its `Tag`), as the game cannot read the vertices back
@@ -342,6 +343,15 @@ the game and the editor:
   decoration turned would show its back, so it does not turn; the barriers `bl2f` and
   `bl2sf` are mirror images of `bl2` and `bl2s`, not their turns, and stay blocks of their
   own. A new block that should run both ways needs one model with `turns`.
+- **styles** and the **looks** of the blocks (#58): the styles of the track besides the
+  classic one, `offroad` so far, and for a block the model of its look in each style, and in
+  each transition between two styles, `first-second` (the first at the left edge of the block
+  placed unturned): `"looks": { "offroad": "a1o", "classic-offroad": "a1t", "offroad-classic":
+  "a1u" }`. A look is not a block of its own: it shares the collision shape, the profile and
+  the turning of its block, only its model differs, so tools/CollisionGen makes no shape of it
+  and the physics of a level is the same in every style. A block without a look in a style is
+  drawn classic there (the start, the finish, the tunnels, the pits). The levels choose the
+  style (see [the level format](levels.md#level-format)).
 - **objects**: dynamic object types with their shape (`rectangle`, `circle`, or
   `model`: the collision shape of the model), size, friction, mass, restitution, the
   models they can use (`Env/<model>`) and what they are made of (`material`: `metal`, the
@@ -374,6 +384,20 @@ for the far side of a car, where it is turned around, and mirrored front to back
 sides turn their tread the same way. The arrows of a directional tread (the off-road wheel's)
 point to +x on top of the wheel in its model, so that they point forward, the way the wheel
 turns, on both sides of the car.
+
+The looks of the off-road style (#57, approved by the owner on 2026-11-06) are made by
+`tools/blender/offroad.py` from the classic road blocks (`a1`, the slopes `b1` to `b4`, `c1`
+to `c3`, the lips `d1` to `d3` and the stairs `s1`): a cross-section of a dirt road swept
+along the profile of the classic block, its cut at z = 0. The two ruts lie where the wheels of
+every car run (|z| 1.42 to 2.17 model units, the wheel models are made there; the physics is
+flat, so the wheels never leave them), their bottom on the profile, which is the collision;
+the crown between them, the berms beside them, the shoulders and the grass verges are raised
+straight up, so the ruts run on from block to block. The steps of the stairs are rounded, as
+steps of earth wear. The transitions sink the cross-section to the profile along the block
+and end the grass, the earth and the ruts unevenly into the grey of the classic road. The
+earth is drawn by the surface `earth` of the shader, the grass a plain green for now:
+
+    blender -b --factory-startup --python tools/blender/offroad.py -- content/Levels/mod earth
 
 Pictures of the blocks and objects are in `docs/catalog/`: open
 [`catalog.html`](catalog/catalog.html) in a browser.
