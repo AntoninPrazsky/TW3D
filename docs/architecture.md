@@ -193,8 +193,12 @@ as the amount grows. The cars share the layout of the physics and are about the 
 the same distances (in model units) suit every car and wheel. Splashes rather than a layer:
 blotches where the mottle of the noise of the surfaces, laid on the model, reaches above an edge
 that drops as the amount grows, and specks of its cellular noise around them. The vertex shader
-passes the position in the model in the outputs the surfaces use for theirs (`Local`, `Plane`),
-so the mud needs no more of them, and the numbers stay small for half precision.
+passes the position in the model in the outputs the surfaces use for theirs (`Local`, `Plane`:
+the coordinates of the noise and how much of the tread of a wheel the point is), so the mud needs
+no more of them, and the numbers stay small for half precision. The pixel shader must not read the
+`World` matrix: MonoGame sizes a parameter the shaders share by its first use, and a pixel shader
+reading a part of it got it wrong, which changed the light of every part of a car as soon as any
+of it had mud (the relief of the mud tilts the normal in the world, as the surfaces do).
 
 ### Styles of the track
 

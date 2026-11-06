@@ -21,6 +21,9 @@
 #define MUD_COARSE (1.0 / 6.0)
 #define MUD_FINE 4.0
 
+// How far round the wheels of the physics are (model units)
+#define MUD_WHEEL 0.7
+
 // How much of the light of the sun and of the sky and the ground the mud takes (Scene.fx, which also gives the light of
 // the sky on it half the hue of the sun): its rough crumbs scatter the light more evenly than a painted face does, and
 // the mud should look of one colour in the sun and in the shade (taken fully, the faces turned to the sun looked of a
@@ -43,20 +46,25 @@ struct MudLook
 	float Cover;    // how much of the material the mud covers, 0 to 1
 };
 
-// For the vertex shader: the position of a point in the model's own coordinates, and its coordinates on the plane of its
-// face (by the normal in the model) for the coarse lookup (xy) and the fine one (zw)
+// For the vertex shader: the position of a point in the model's own coordinates, its coordinates on the plane of its
+// face (by the normal in the model) for the coarse lookup (xy; the fine one is MUD_FINE times them), and how much of the
+// tread of a wheel it is (z: the outermost faces of a wheel turned away from its axis, z of its model; nothing on the
+// body, see MudAmountAt). Worked out here, where the matrices are: the pixel shader must not read World (MonoGame sizes
+// a parameter shared by the shaders by its first use, and a pixel shader reading a part of the matrix got it wrong,
+// which changed the light of a part with no mud on it yet)
 void MudCoordinates(float4 position, float3 normal, out float3 local, out float4 plane)
 {
 	local = mul(position, MudSpace).xyz;
-	float3 axes = SurfaceAxes(mul(normal, (float3x3)MudSpace));
+	float3 own = normalize(mul(normal, (float3x3)MudSpace));
+	float3 axes = SurfaceAxes(own);
 	float2 onPlane = (axes.x * local.xz + axes.y * local.xy + axes.z * local.zy) * MUD_COARSE;
-	plane = float4(onPlane, onPlane * MUD_FINE);
+	float tread = saturate(1.0 - abs(own.z) * 2.0) * saturate((length(local.xy) / MUD_WHEEL - 0.82) * 6.0);
+	plane = float4(onPlane, tread, 0.0);
 }
 
 // How readily the mud gathers at a point of the model, 0 to 1: on a wheel most on the tyre (the wheels of the physics are
 // MUD_WHEEL units round), less towards the middle; on the body most around its axles and behind them (the car faces -x
 // of its model, the wheels throw the mud back), and on its lower parts
-#define MUD_WHEEL 0.7
 float MudExposure(float3 local)
 {
 	float wheel = lerp(0.3, 0.75, saturate(length(local.xy) / MUD_WHEEL));
@@ -70,30 +78,19 @@ float MudExposure(float3 local)
 	return lerp(wheel, max(low * 0.85, near), MudBody);
 }
 
-// The normal tilted by the slope of a relief laid on the model: the tilt is worked out in the model's own coordinates (the
-// noise turns with a wheel, so does its relief) and turned back into the world
-float3 MudTilt(float3 normal, float2 slope)
+// How much mud there is at a point: on the tread of a wheel (how much of it the point is, from the vertex shader) that of
+// the tread, which the road wipes first; elsewhere the amount of the part
+float MudAmountAt(float tread)
 {
-	float3x3 toWorld = (float3x3)World;
-	float3 own = normalize(mul(toWorld, normal));
-	return normalize(mul(SurfaceTilt(own, slope), toWorld));
-}
-
-// How much mud there is at a point: on the tread of a wheel (its outermost faces, turned away from its axis) that of the
-// tread, which the road wipes first; elsewhere the amount of the part
-float MudAmountAt(float3 normal, float3 local)
-{
-	float3 own = normalize(mul((float3x3)World, normal));
-	float tread = saturate(1.0 - abs(own.z) * 2.0) * saturate((length(local.xy) / MUD_WHEEL - 0.82) * 6.0) * (1.0 - MudBody);
-	return lerp(MudAmount, MudTread, tread);
+	return lerp(MudAmount, MudTread, tread * (1.0 - MudBody));
 }
 
 // The mud over a material at a pixel
 MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, float roughness, float4 plane, float3 local, int detail)
 {
 	float4 coarse = tex2D(noise, plane.xy);
-	float4 fine = tex2D(noise, plane.zw);
-	float amount = MudAmountAt(normal, local);
+	float4 fine = tex2D(noise, plane.xy * MUD_FINE);
+	float amount = MudAmountAt(plane.z);
 	// The blotches: where the exposure with the mottle reaches above the edge, which drops as the amount grows; none on
 	// a clean part
 	float reach = MudExposure(local) + (coarse.r * 0.7 + fine.r * 0.3 - 0.5) * 0.8;
@@ -112,8 +109,9 @@ MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, f
 	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.06, 0.94, thick) * lerp(float3(1.0, 1.0, 1.0), MUD_WET, wet);
 	look.Albedo = lerp(albedo, mud, cover);
 	look.Normal = normal;
+	// The relief tilts the normal in the world (as the surfaces of the blocks do), a little
 	if (detail >= SURFACE_HIGH)
-		look.Normal = MudTilt(normal, SurfaceSlope(fine) * (0.1 + 0.12 * thick) * cover);
+		look.Normal = SurfaceTilt(normal, SurfaceSlope(fine) * (0.1 + 0.12 * thick) * cover);
 	look.Metallic = metallic * (1.0 - cover);
 	look.Roughness = lerp(roughness, lerp(0.95, 0.7, wet), cover);
 	look.Shine = lerp(1.0, 0.3, cover);

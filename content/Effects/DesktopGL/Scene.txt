@@ -1,3 +1,3 @@
 The code compiled for DesktopGL in Scene.mgfx, by the build on Windows, for the builds that cannot compile it (tools/ContentPipeline/PrecompiledEffectProcessor.cs).
-Source: Scene.fx, SHA-256 with LF line endings fdfe6190b7c1b1f85f087d11be9a41ba0e99d6db169926e37899608108aafa0c
+Source: Scene.fx, SHA-256 with LF line endings 06708ffa3f8cb3e27a07254f7f5e47b1088625ca1990a40e161d83f1408f0eae
 MonoGame: 3.8.6.0
