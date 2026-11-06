@@ -84,7 +84,10 @@ namespace TW3D.Screens
             public bool OnLeft => Row == Row.Primary || Row == Row.Secondary;
         }
 
-        private static readonly string[] StatNames = { "Speed", "Weight", "Grip" };
+        //The bars: speed, weight and the grip on the surface of each style of the track (the classic one alone: "Grip")
+        private string[] statNames = { "Speed", "Weight", "Grip" };
+        //The looks whose grip the bars show, after the speed and the weight
+        private string[] gripLooks = { Catalog.ClassicStyle };
 
         private readonly GameSettings settings;
         private readonly GarageScene scene;
@@ -102,7 +105,7 @@ namespace TW3D.Screens
             new Choice { Row = Row.RearRims, Label = "Rear rims" }
         };
         //The bars as drawn (following the values of the car shown)
-        private readonly float[] bars = new float[StatNames.Length];
+        private float[] bars;
 
         //How far the row of cars is moved along its axis (world units, see GarageScene.Scroll), while dragged or settling
         private float scroll;
@@ -131,8 +134,13 @@ namespace TW3D.Screens
             using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
                 catalog = Catalog.Load(stream);
             cars = catalog.Cars;
+            //A bar Grip for each surface: the classic slab and the surface of each style ("Grip off-road")
+            gripLooks = new[] { Catalog.ClassicStyle }.Concat(catalog.Styles.Select(style => style.Name)).ToArray();
+            statNames = new[] { "Speed", "Weight" }
+                .Concat(catalog.Styles.Count == 0 ? new[] { "Grip" } : new[] { "Grip classic" }.Concat(catalog.Styles.Select(style => "Grip " + style.Title)))
+                .ToArray();
             selected = Math.Max(0, cars.FindIndex(car => car.Model == settings.Car));
-            Array.Copy(Stats(cars[selected]), bars, bars.Length);
+            bars = Stats(cars[selected]);
             arrowTexture = Manager.Content.Load<Texture2D>("Common/arrow");
         }
 
@@ -143,18 +151,21 @@ namespace TW3D.Screens
             scene.View = GarageScene.CarView.Whole;
         }
 
-        /// <summary>How fast, heavy and gripping a car is with its wheels, each as a part of the most there is.</summary>
+        /// <summary>
+        /// How fast, heavy and gripping a car is with its wheels, each as a part of the most there is: the grip on each
+        /// surface (see <see cref="Catalog.ContactGrip"/>) as a part of the best grip of any wheels on any of them.
+        /// </summary>
         private float[] Stats(CarType car)
         {
             CarWheels chosen = settings.WheelsOf(car);
             WheelType front = catalog.FindWheel(chosen.Front), rear = catalog.FindWheel(chosen.Rear);
             float heaviest = cars.Max(c => c.Mass) + 6f * catalog.Wheels.Max(wheel => wheel.Mass);
+            float bestGrip = catalog.Wheels.Max(wheel => gripLooks.Max(look => catalog.ContactGrip(wheel, look)));
             return new[]
             {
                 car.TopSpeed / cars.Max(c => c.TopSpeed),
-                (car.Mass + 3f * (front.Mass + rear.Mass)) / heaviest,
-                (front.Friction + rear.Friction) / 2f / catalog.Wheels.Max(wheel => wheel.Friction)
-            };
+                (car.Mass + 3f * (front.Mass + rear.Mass)) / heaviest
+            }.Concat(gripLooks.Select(look => (catalog.ContactGrip(front, look) + catalog.ContactGrip(rear, look)) / 2f / bestGrip)).ToArray();
         }
 
         private static float Spacing => GarageScene.Spacing;
@@ -432,7 +443,7 @@ namespace TW3D.Screens
             Place(Row.RearWheels, top + 2f * rowHeight + pairGap + gap, false, rightWidth);
             Place(Row.RearRims, top + 3f * rowHeight + 2f * pairGap + gap, false, rightWidth);
 
-            float statsHeight = StatNames.Length * (labelHeight + BarHeight * uiScale) + (StatNames.Length - 1) * gap / 2f;
+            float statsHeight = statNames.Length * (labelHeight + BarHeight * uiScale) + (statNames.Length - 1) * gap / 2f;
             float leftTop = middle - (statsHeight + gap + 2f * rowHeight + pairGap) / 2f;
             statsPosition = new Vector2(safe.Left, leftTop);
             Place(Row.Primary, leftTop + statsHeight + gap, true, leftWidth);
@@ -524,12 +535,12 @@ namespace TW3D.Screens
                 DrawArrow(choice.Right, MathHelper.PiOver2, SmallArrowScale, pointer, offset, alpha);
             }
 
-            //The bars: speed, weight and grip
+            //The bars: speed, weight and the grip on each surface
             float labelHeight = font.MeasureString("M").Y * LabelScale * uiScale;
             Vector2 position = statsPosition + new Vector2(slide, 0f);
-            for (int i = 0; i < StatNames.Length; i++)
+            for (int i = 0; i < statNames.Length; i++)
             {
-                Manager.DrawShadowedText(font, Caps(StatNames[i]), position, Color.LightGray * alpha, shadow, LabelScale * uiScale);
+                Manager.DrawShadowedText(font, Caps(statNames[i]), position, Color.LightGray * alpha, shadow, LabelScale * uiScale);
                 Rectangle bar = new Rectangle((int)position.X, (int)(position.Y + labelHeight), (int)(BarWidth * uiScale), (int)(BarHeight * uiScale));
                 Manager.SpriteBatch.Draw(Manager.Pixel, bar, Color.White * (0.2f * alpha));
                 bar.Width = (int)(bar.Width * MathHelper.Clamp(bars[i], 0f, 1f));

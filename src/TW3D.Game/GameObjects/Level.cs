@@ -150,7 +150,9 @@ namespace TW3D.GameObjects
                 block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track, placement.Turned);
                 block.Body.Position = block.Position;
                 block.Body.SetRestitution(1f);
-                block.Body.SetFriction(1f);
+                //The friction of the surface of its look, which the tyres grip as their wheels do on it (Car.Grip)
+                block.Body.SetFriction(assets.Catalog.SurfaceFriction(style));
+                block.Body.Tag = new TrackLook(style);
             }
             return block;
         }

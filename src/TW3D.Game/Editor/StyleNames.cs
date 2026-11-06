@@ -29,7 +29,7 @@ namespace TW3D.Editor
         /// <summary>The styles a level can have: the classic one (null in the file) and those of the catalog.</summary>
         public static IEnumerable<string> LevelStyles(Catalog catalog)
         {
-            return new string[] { null }.Concat(catalog.Styles);
+            return new string[] { null }.Concat(catalog.Styles.Select(type => type.Name));
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace TW3D.Editor
         public static IEnumerable<string> BlockStyles(Catalog catalog)
         {
             List<string> styles = new List<string> { Catalog.ClassicStyle };
-            styles.AddRange(catalog.Styles);
+            styles.AddRange(catalog.Styles.Select(type => type.Name));
             yield return null;
             foreach (string style in styles)
                 yield return style;

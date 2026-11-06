@@ -45,6 +45,7 @@ namespace TW3D.Screens
         private readonly List<string> levels;
         private readonly Action<string> startLevel;
         private readonly Func<string, (int Stars, float Time)?> results;
+        private readonly Func<string, string> surfaces;
         private readonly List<Texture2D> images = new List<Texture2D>();
 
         private Texture2D arrowTexture;
@@ -77,12 +78,15 @@ namespace TW3D.Screens
         private float pressScroll;
 
         /// <param name="results">The stars and the best time of a level, shown over its image; null if it was not finished.</param>
-        public LevelSelectScreen(string title, IEnumerable<string> levels, Action<string> startLevel, Func<string, (int Stars, float Time)?> results = null)
+        /// <param name="surfaces">The surface of the track of a level that is not classic ("Off-road"), shown over its image; null for a classic one.</param>
+        public LevelSelectScreen(string title, IEnumerable<string> levels, Action<string> startLevel, Func<string, (int Stars, float Time)?> results = null,
+            Func<string, string> surfaces = null)
         {
             this.title = title;
             this.levels = new List<string>(levels);
             this.startLevel = startLevel;
             this.results = results;
+            this.surfaces = surfaces;
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
@@ -330,6 +334,8 @@ namespace TW3D.Screens
                     DrawPlaceholder(batch, bounds, levels[i], alpha);
                 if (results?.Invoke(levels[i]) is (int stars, float time))
                     DrawResult(batch, bounds, stars, time, alpha);
+                if (surfaces?.Invoke(levels[i]) is string surface)
+                    DrawSurface(batch, bounds, surface, alpha);
 
                 if (i == focusedLevel && HasFocus)
                     DrawFrame(batch, bounds, Math.Max(2, (int)(4f * uiScale)), MainMenuScreen.Yellow * alpha);
@@ -379,6 +385,20 @@ namespace TW3D.Screens
             float scale = height * 0.6f / font.MeasureString("M").Y;
             Vector2 size = font.MeasureString(text) * scale;
             Manager.DrawShadowedText(font, text, new Vector2(band.Right - margin - size.X, band.Center.Y - size.Y / 2f), Color.White * alpha, Color.Black * alpha, scale);
+        }
+
+        /// <summary>The surface of the track of a level (for the choice of the wheels) on a dark band at the top left of its image.</summary>
+        private void DrawSurface(SpriteBatch batch, Rectangle bounds, string surface, float alpha)
+        {
+            string text = surface.ToUpperInvariant();
+            GameFont font = Manager.Fonts.Menu;
+            int height = (int)(bounds.Height * 0.16f);
+            float scale = height * 0.6f / font.MeasureString("M").Y;
+            Vector2 size = font.MeasureString(text) * scale;
+            float margin = height * 0.3f;
+            Rectangle band = new Rectangle(bounds.X, bounds.Y, (int)(size.X + 2f * margin), height);
+            batch.Draw(Manager.Pixel, band, Color.Black * (0.55f * alpha));
+            Manager.DrawShadowedText(font, text, new Vector2(band.X + margin, band.Center.Y - size.Y / 2f), MainMenuScreen.Yellow * alpha, Color.Black * alpha, scale);
         }
 
         /// <summary>A dark rectangle with the level name, for a level without a preview image.</summary>

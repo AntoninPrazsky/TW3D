@@ -24,7 +24,7 @@ namespace TW3D.Tests
         [Fact]
         public void TheOffroadStyleHasItsLooksAndTransitions()
         {
-            Assert.Contains("offroad", catalog.Styles);
+            Assert.NotNull(catalog.FindStyle("offroad"));
             BlockType road = catalog.FindBlock("a1");
             Assert.True(road.HasLook("offroad"));
             Assert.True(road.HasLook("offroad-classic"));

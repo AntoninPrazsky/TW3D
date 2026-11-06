@@ -52,6 +52,8 @@ namespace TW3D
         //The levels of the last level select, in its order; the par times of the levels shown there
         private List<string> levels = new List<string>();
         private readonly Dictionary<string, float> pars = new Dictionary<string, float>();
+        //The surfaces of the tracks of the levels, as the level select names them (see LevelSurface)
+        private readonly Dictionary<string, string> surfaces = new Dictionary<string, string>();
 #if !ANDROID
         //The window size given on the command line (a window always, whatever the settings say)
         private readonly Point? windowSize;
@@ -289,12 +291,33 @@ namespace TW3D
         private void OpenLevelSelect()
         {
             levels = FindLevels();
-            screens.Add(new LevelSelectScreen("Level Select", levels, StartLevel, LevelResult));
+            screens.Add(new LevelSelectScreen("Level Select", levels, StartLevel, LevelResult, LevelSurface));
         }
 
         private void StartLevel(string level)
         {
             screens.Add(new GameplayScreen(level, settings, records, levels));
+        }
+
+        /// <summary>
+        /// The surface of the track of a level that is not classic, as the level select names it ("Off-road", the title of
+        /// its style), so that the player can choose the wheels that grip it; null for a classic level.
+        /// </summary>
+        private string LevelSurface(string level)
+        {
+            if (!surfaces.TryGetValue(level, out string surface))
+            {
+                string style;
+                using (Stream stream = TitleContainer.OpenStream("Content/Levels/" + level + LevelFile.Extension))
+                    style = LevelFile.Load(stream).Style;
+                if (style != null)
+                {
+                    using (Stream stream = TitleContainer.OpenStream("Content/" + Catalog.FileName))
+                        surface = Catalog.Load(stream).FindStyle(style)?.Title;
+                }
+                surfaces[level] = surface;
+            }
+            return surface;
         }
 
         /// <summary>The stars and the best time of a level; null if it was not finished yet.</summary>

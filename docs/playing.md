@@ -34,8 +34,16 @@ differ in their top speed and weight (the Sand Rail is faster and lighter than t
 the Crawler slower and heavier),
 the wheels in their grip and weight (the off-road wheels grip better, the racing ones are
 lighter; the rock crawler wheels, the Crawler's own, with a deep tread and an orange hubcap,
-grip and weigh as the off-road ones). The choices are saved with the options, the wheels and
-the colours for each car; a car whose wheels were never chosen comes with its own.
+grip and weigh as the off-road ones). The grip depends on the surface too (#58): a bar for the
+classic slab (*Grip classic*) and one for the earth of the off-road style (*Grip off-road*).
+On the slab the off-road and the rock crawler wheels grip as they always did; on the earth
+they grip better still, the rock crawler wheels best (the tall knobby tyre on loose ground),
+while the racing slicks slide (about half the grip of the crawler there, not hopeless). The
+level select marks the levels of the off-road style (*OFF-ROAD* at the top left of the
+image), so that the wheels can be chosen for them; a transition between the two surfaces
+grips as the mean of both. The numbers are provisional until test drives tune them (#57).
+The choices are saved with the options, the wheels and the colours for each car; a car whose
+wheels were never chosen comes with its own.
 
 ## About
 

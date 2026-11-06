@@ -46,6 +46,8 @@ namespace TW3D.GameObjects
         //The wheels, the rear ones first; how far the middle of the rear and the front wheels is from the middle of the
         //car across the track (scene units)
         private Body[] wheels;
+        //The type of each of the wheels (the rear ones, then the front ones), for their grip on each surface
+        private WheelType[] wheelTypes;
         private float rearSide, frontSide;
         
         private RevoluteJoint springLeftB, springRightB, springTopB, springLeftF, springRightF, springTopF;
@@ -347,6 +349,7 @@ namespace TW3D.GameObjects
                 body.Tag = this;
 
             wheels = new[] { wheel4LB, wheel4RB, wheel4TB, wheel4LF, wheel4RF, wheel4TF };
+            wheelTypes = new[] { RearWheels, RearWheels, RearWheels, FrontWheels, FrontWheels, FrontWheels };
             rearSide = WheelsCentre(false, false).Z;
             frontSide = WheelsCentre(true, false).Z;
 
@@ -414,14 +417,19 @@ namespace TW3D.GameObjects
             return true;
         }
 
-        /// <summary>Lets the tyre of a wheel grip only a share of its grip on whatever it touches.</summary>
-        private static void Grip(Body wheel, float share)
+        /// <summary>
+        /// Lets the tyre of a wheel grip only a share of its grip on whatever it touches, and on a block of the track as its
+        /// type of tyre grips the surface of the block's look (a factor of the friction of the contact, see
+        /// <see cref="WheelType.GripFactor"/>; the block has the friction of the surface, see Level).
+        /// </summary>
+        private static void Grip(Body wheel, WheelType type, float share)
         {
             for (ContactEdge edge = wheel.ContactList; edge != null; edge = edge.Next)
             {
                 edge.Contact.ResetFriction();
-                if (share < 1f)
-                    edge.Contact.Friction *= share;
+                float factor = share * (edge.Other.Tag is TrackLook look ? type.GripFactor(look.Style) : 1f);
+                if (factor != 1f)
+                    edge.Contact.Friction *= factor;
             }
         }
 
@@ -616,7 +624,7 @@ namespace TW3D.GameObjects
                 else if (burnout <= 0f && standing)
                     torque = MathHelper.Clamp(1f - (Math.Abs(joint.BodyB.AngularVelocity) * WheelRadius - Speed - allowed) / SlipFade, 0f, 1f);
                 joint.MaxMotorTorque = MotorTorque * torque;
-                Grip(joint.BodyB, grip);
+                Grip(joint.BodyB, wheelTypes[Array.IndexOf(wheels, joint.BodyB)], grip);
             }
             
             //The axles: turned by the player and stopped when let go, else held against the body, unless they are locked

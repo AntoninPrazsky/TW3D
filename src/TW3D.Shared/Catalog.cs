@@ -165,6 +165,21 @@ namespace TW3D.Shared
         public float[] Exhaust { get; set; }
     }
 
+    /// <summary>
+    /// A style of the track besides the classic one (#58): its name (as the levels and the looks of the blocks name it),
+    /// its title in the game, and the friction of its surface (the classic slab's is <see cref="Catalog.ClassicFriction"/>).
+    /// </summary>
+    public sealed class StyleType
+    {
+        public string Name { get; set; }
+
+        /// <summary>The name shown in the game ("Off-road").</summary>
+        public string Title { get; set; }
+
+        /// <summary>The friction of its surface: of the earth of the off-road style.</summary>
+        public float Friction { get; set; } = Catalog.ClassicFriction;
+    }
+
     /// <summary>Wheels for the cars.</summary>
     public sealed class WheelType
     {
@@ -184,6 +199,24 @@ namespace TW3D.Shared
         /// <summary>Friction of the tyre: its grip on the track.</summary>
         public float Friction { get; set; } = 1f;
 
+        /// <summary>
+        /// How much better or worse the tyre grips on the surface of a style than its <see cref="Friction"/> says (a factor
+        /// of the friction of the contact), by the name of the style: an off-road tyre grips the earth better, a racing slick
+        /// worse. A style it does not name is 1, and so is the classic one.
+        /// </summary>
+        public Dictionary<string, float> Grip { get; set; }
+
+        /// <summary>
+        /// The factor of the grip of the tyre in a look of the track (a style, or a transition between two, which takes the
+        /// mean of both; see <see cref="Catalog.Styles"/>).
+        /// </summary>
+        public float GripFactor(string look)
+        {
+            if (look != null && look.IndexOf('-') is int dash and > 0)
+                return (GripFactor(look.Substring(0, dash)) + GripFactor(look.Substring(dash + 1))) / 2f;
+            return look != null && Grip != null && Grip.TryGetValue(look, out float factor) ? factor : 1f;
+        }
+
         /// <summary>Mass of one wheel of the physics (a pair of wheels, one on each side of the car).</summary>
         public float Mass { get; set; } = 10f;
     }
@@ -199,13 +232,16 @@ namespace TW3D.Shared
         /// <summary>The style every block has, the blocks of 2016, which a level or a block has unless it names another.</summary>
         public const string ClassicStyle = "classic";
 
+        /// <summary>The friction of the surface of the classic blocks.</summary>
+        public const float ClassicFriction = 1f;
+
         /// <summary>
         /// The styles of the track besides the classic one (#58), as the levels and the looks of the blocks name them
         /// (<see cref="BlockType.Looks"/>): "offroad". A block can also have the look of a transition between two styles,
         /// named "first-second" ("offroad-classic"): the first style at the left edge of the block placed unturned, the
         /// second at its right edge (turned, the other way round).
         /// </summary>
-        public List<string> Styles { get; set; } = new List<string>();
+        public List<StyleType> Styles { get; set; } = new List<StyleType>();
 
         public List<BlockType> Blocks { get; set; } = new List<BlockType>();
         public List<ObjectType> Objects { get; set; } = new List<ObjectType>();
@@ -227,7 +263,32 @@ namespace TW3D.Shared
         public WheelType FindWheel(string model) => Wheels.FirstOrDefault(wheel => wheel.Model == model) ?? Wheels.FirstOrDefault();
 
         /// <summary>The name is a style: <see cref="ClassicStyle"/> or one of <see cref="Styles"/>.</summary>
-        public bool IsStyle(string name) => name == ClassicStyle || Styles.Contains(name);
+        public bool IsStyle(string name) => name == ClassicStyle || FindStyle(name) != null;
+
+        /// <summary>The style of the name (not the classic one); null for none.</summary>
+        public StyleType FindStyle(string name) => Styles.FirstOrDefault(style => style.Name == name);
+
+        /// <summary>
+        /// The friction of the surface of a look of the track: of its style (the classic slab's for the classic one and an
+        /// unknown one), the mean of both for a transition between two.
+        /// </summary>
+        public float SurfaceFriction(string look)
+        {
+            if (look != null && look.IndexOf('-') is int dash and > 0)
+                return (SurfaceFriction(look.Substring(0, dash)) + SurfaceFriction(look.Substring(dash + 1))) / 2f;
+            return FindStyle(look)?.Friction ?? ClassicFriction;
+        }
+
+        /// <summary>
+        /// How hard a tyre grips the surface of a look of the track: the friction of the contact as the physics mixes the
+        /// friction of the tyre and of the surface (the square root of their product, Aether.Physics2D's
+        /// <c>Settings.MixFriction</c>), times the grip of the tyre on that surface (<see cref="WheelType.GripFactor"/>).
+        /// The bars Grip of the garage show it.
+        /// </summary>
+        public float ContactGrip(WheelType wheel, string look)
+        {
+            return System.MathF.Sqrt(wheel.Friction * SurfaceFriction(look)) * wheel.GripFactor(look);
+        }
 
         /// <summary>
         /// The name is a style or a transition between two different styles ("offroad-classic"), which a placed block may

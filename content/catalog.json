@@ -1,5 +1,7 @@
 {
-  "styles": [ "offroad" ],
+  "styles": [
+    { "name": "offroad", "title": "Off-road", "friction": 0.9 }
+  ],
   "blocks": [
     { "name": "a1", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "a1o", "classic-offroad": "a1t", "offroad-classic": "a1u" } },
     { "name": "b1", "collision": true, "turns": true, "profile": [ 2, 4 ], "looks": { "offroad": "b1o", "classic-offroad": "b1t", "offroad-classic": "b1u" } },
@@ -74,8 +76,8 @@
     { "name": "Crawler", "model": "car3", "wheel": "wheel3", "mass": 240, "topSpeed": 44, "enginePitch": -0.3, "engineResponse": 2, "exhaust": [ 4.02, -0.8, 0.52 ] }
   ],
   "wheels": [
-    { "name": "Off-road", "model": "wheel", "friction": 1.2, "mass": 10 },
-    { "name": "Racing", "model": "wheel2", "friction": 0.75, "mass": 7 },
-    { "name": "Rock crawler", "model": "wheel3", "friction": 1.2, "mass": 10 }
+    { "name": "Off-road", "model": "wheel", "friction": 1.2, "mass": 10, "grip": { "offroad": 1.1 } },
+    { "name": "Racing", "model": "wheel2", "friction": 0.75, "mass": 7, "grip": { "offroad": 0.75 } },
+    { "name": "Rock crawler", "model": "wheel3", "friction": 1.2, "mass": 10, "grip": { "offroad": 1.2 } }
   ]
 }
