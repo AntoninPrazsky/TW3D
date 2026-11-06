@@ -137,8 +137,10 @@ a descent (the barriers `bl2` and `bl2f`, `bl2s` and `bl2sf`, which are mirror i
 other, swap), and turning the props as their mirror images. Edit > Style gives the selected
 blocks a style of their own, as the style switch of the Palette gives it to the placed ones (*The level's* takes it away), in one step of undo; the
 blocks without a look in the style stay as they are, and the status bar says how many took
-it. A road passing from one style into another needs a block with the look of the
-transition where the styles meet. Ctrl+PageUp /
+it. Where the road passes from one style into another (a dirt road meeting the start block, a
+tunnel or a classic road), the game and the editor draw the block of the styled side as the
+transition by themselves, so the road needs nothing more; the Inspector says "Drawn as: off-road
+to classic" there. A transition given to a block itself stays. Ctrl+PageUp /
 Ctrl+PageDown (Edit > Move to the layer behind / in front) move the selection into the
 next layer behind or in front, in the same cells, the props as far in depth; that layer
 becomes the active one and the selection stays. A block of that layer in a cell they come to
@@ -297,9 +299,13 @@ Levels are JSON files with one block or object per line:
   verges), the others classic, as the blocks of 2016 look. A block can have a `style` of its
   own: another style, or a transition between two, `first-second` (`offroad-classic`: the
   off-road style at the left edge of the block, the classic one at its right edge; turned,
-  the other way round), which a road needs where it passes from one style into another
-  (see [the catalog](content.md#catalog)). A style only changes how a block looks: its
-  collision is that of the classic block, so a level plays the same in every style.
+  the other way round; see [the catalog](content.md#catalog)). Where the road of the middle
+  layer passes from one style into another, the block of the styled side is drawn as the
+  transition without being told (`Shared/RoadLooks`: the road blocks joined as the road mode
+  of the editor joins them, a block of the classic style or without a look in the style on
+  the other side), so a level of the off-road style is just `"style": "offroad"`. A style
+  only changes how a block looks: its collision is that of the classic block, so a level
+  plays the same in every style.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers. The back
   layers are one list: `depth` (1 when left out, as in every level made before 2026-11) is
   how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one

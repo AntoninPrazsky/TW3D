@@ -15,7 +15,14 @@ dotnet run --project tools/CatalogRender -- check
 
 # the blocks drawn by the renderer of the game, their road as a test surface (asphalt, earth)
 dotnet run --project tools/CatalogRender -- render --out some/folder --surface asphalt a1 b2
+
+# the looks of the blocks in the styles of the track (docs/catalog/bl/looks/a1o.png, a1t.png, a1u.png ...)
+dotnet run --project tools/CatalogRender -- render --out docs/catalog/bl/looks --looks a1 b1
 ```
+
+With `--looks` the images are of the looks of the blocks in the styles of the track (the
+catalog's `looks`, see `docs/content.md`), each named by the model of its look and drawn by the
+renderer of the game as with `--surface`; the catalog page shows them with their blocks.
 
 With `--surface` the image is not one of the catalog: the block is drawn by the renderer of the
 game (`SceneRenderer`, the light of a day, without the shadows and the ambient occlusion,

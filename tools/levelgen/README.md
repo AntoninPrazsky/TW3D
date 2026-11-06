@@ -56,6 +56,8 @@ t.prop("lamp", 45, -1.25, -12.5, 1);     // a street lamp behind the road, turne
 for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
 t.mood = "sunset";                       // the light: "day" (default), "sunset" or "night"
 t.par = 20;                              // the par time in seconds (default: estimated by the game)
+t.style = "offroad";                     // the style of the track (default: classic)
+t.withStyle("classic", () => t.road("a1", "a1"));  // a part of the road in a style of its own
 t.save("content/Levels/example.json");
 ```
 

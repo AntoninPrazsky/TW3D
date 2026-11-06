@@ -14,7 +14,8 @@ namespace TW3D.CatalogRender
     /// Renders images of track blocks for the block catalog (docs/catalog/bl) the way the 2016 images look:
     /// the block with the selector of the level editor, in the editor's lighting, on a gray background. With a test
     /// surface (render --surface) the block is drawn by the renderer of the game instead, in its light, the road of the
-    /// classic block as that surface (see SceneRenderer.TestSurface).
+    /// classic block as that surface (see SceneRenderer.TestSurface); with --looks the looks of the blocks in the styles of
+    /// the track are drawn so (each image named by the model of the look).
     /// </summary>
     internal sealed class CatalogRenderer : Game
     {
@@ -85,17 +86,20 @@ namespace TW3D.CatalogRender
         }
 
         /// <summary>
-        /// render [--out folder] [--surface name] block...: writes the images of the blocks (by default into the catalog),
-        /// with a test surface on their road if one is named.
+        /// render [--out folder] [--surface name] [--looks] block...: writes the images of the blocks (by default into the
+        /// catalog), with a test surface on their road if one is named, or of their looks in the styles of the track.
         /// </summary>
         private void Render()
         {
             string folder = CatalogImages;
             List<string> blocks = new List<string>();
+            bool looks = false;
             for (int i = 0; i < arguments.Length; i++)
             {
                 if (arguments[i] == "--out" && i + 1 < arguments.Length)
                     folder = arguments[++i];
+                else if (arguments[i] == "--looks")
+                    looks = true;
                 else if (arguments[i] == "--surface" && i + 1 < arguments.Length)
                 {
                     if (!Enum.TryParse(arguments[++i], true, out surface) || surface == Surface.None)
@@ -106,7 +110,15 @@ namespace TW3D.CatalogRender
             }
             if (blocks.Count == 0)
                 throw new ArgumentException("No blocks to render.");
-            if (surface != Surface.None)
+            if (looks)
+            {
+                //The models of the looks of the blocks, which are drawn instead of the blocks
+                Catalog catalog = Catalog.Load(Path.Combine(repository, "content", Catalog.FileName));
+                blocks = blocks.SelectMany(name => catalog.FindBlock(name)?.Looks?.Values ?? Enumerable.Empty<string>()).ToList();
+                if (blocks.Count == 0)
+                    throw new ArgumentException("The blocks have no looks.");
+            }
+            if (surface != Surface.None || looks)
             {
                 //Without the shadows and the ambient occlusion, whose render targets would take the place of the target of the image
                 renderer = new SceneRenderer(GraphicsDevice, Content)
@@ -276,7 +288,7 @@ namespace TW3D.CatalogRender
         {
             if (args.Length == 0 || (args[0] != "render" && args[0] != "check"))
             {
-                Console.WriteLine("Usage: CatalogRender render [--out folder] [--surface asphalt|earth] block...");
+                Console.WriteLine("Usage: CatalogRender render [--out folder] [--surface asphalt|earth] [--looks] block...");
                 Console.WriteLine("       CatalogRender check");
                 return 2;
             }

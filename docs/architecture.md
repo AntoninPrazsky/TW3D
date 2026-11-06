@@ -142,8 +142,12 @@ A level, and any block of it, has a style (#58): the classic one of 2016 or `off
 road. A style only changes the model a block is drawn with, its look (`BlockType.Looks` in the
 catalog, `BlockType.LookAsset`): `Level` builds the physics of a block from the shape of its
 own model as before and draws the model of its look in the style of the block or of the level
-(`LevelData.StyleOf`), and the editor draws the same (`LevelView`). The blocks where the road
-passes from one style into another have the look of a transition (`offroad-classic`).
+(`LevelData.StyleOf`), and the editor draws the same (`LevelView`). Where the road passes
+from one style into another, the block of the styled side is drawn as the transition between
+them (`offroad-classic`, a look of its own): `Shared/RoadLooks` finds it from the road as the
+level editor joins it (a road block and the road block of the next column at the height of its
+edge), for the game and the editor alike, so the levels do not name the transitions. A
+transition given to a block in the level stays.
 
 ### The sky
 

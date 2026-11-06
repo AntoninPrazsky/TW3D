@@ -77,6 +77,11 @@ class Track {
     this.mood = "day";
     // The par time in seconds (the time a good run takes); null = estimated by the game
     this.par = null;
+    // The style of the track (#58): null = classic, "offroad" = a dirt road; the game finds the transitions where the
+    // road meets a block without a look in it (the start, the tunnels) or a block of another style
+    this.style = null;
+    // The style road() gives its blocks of their own (see withStyle); null = the level's
+    this.blockStyle = null;
     // Road blocks by column: { block, base, left, right } (left/right = surface height at the edges)
     this.cells = new Map();
   }
@@ -102,10 +107,27 @@ class Track {
       if (!profile)
         throw new Error("No surface profile for block " + block);
       const base = this.h - profile[0];
-      this.middle.push(Track.place(block, this.x, base));
+      const placed = Track.place(block, this.x, base);
+      if (this.blockStyle) placed.style = this.blockStyle;
+      this.middle.push(placed);
       this.cells.set(this.x, { block, base, left: base + profile[0], right: base + profile[1] });
       this.h = base + profile[1];
       this.x++;
+    }
+    return this;
+  }
+
+  /**
+   * Builds a part of the road in a style of its own (a style of the catalog, "classic", or a transition such as
+   * "offroad-classic"): the road blocks the function adds get it, e.g. t.withStyle("classic", () => t.road("a1", "a1")).
+   */
+  withStyle(style, build) {
+    const previous = this.blockStyle;
+    this.blockStyle = style;
+    try {
+      build();
+    } finally {
+      this.blockStyle = previous;
     }
     return this;
   }
@@ -261,6 +283,7 @@ class Track {
     return "{\n  \"format\": 2,\n" + (order != null ? `  "order": ${order},\n` : "")
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + (this.par != null ? `  "par": ${this.par},\n` : "")
+      + (this.style ? `  "style": "${this.style}",\n` : "")
       + list("middle", this.middle) + list("back", back) + list("front", this.front)
       + list("objects", this.objects, this.scenery.length === 0)
       + (this.scenery.length ? list("scenery", this.scenery, true) : "") + "}\n";

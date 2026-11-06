@@ -234,6 +234,9 @@ namespace TW3D.Editor
         //The steps done so far: the first position of them are done, the rest are undone and can be redone
         private readonly List<Step> history = new List<Step>();
         private int position;
+        //The looks of the blocks of the middle layer, and the version of the level they were found for
+        private Dictionary<PlacedBlock, string> middleLooks;
+        private int middleLooksVersion = -1;
         //The road gaps found, and the version of the level they were found for
         private List<RoadGap> roadGaps;
         private int roadGapsVersion = -1;
@@ -285,6 +288,27 @@ namespace TW3D.Editor
 
         /// <summary>The style of the track (see <see cref="LevelData.Style"/>); null for the classic one.</summary>
         public string Style => style;
+
+        /// <summary>
+        /// The style a block is drawn in: in the middle layer as the game draws the road (see <see cref="RoadLooks"/>: the
+        /// transitions where its styles meet), elsewhere its own style or the level's. Found again when the level changes.
+        /// </summary>
+        public string LookOf(Layer layer, PlacedBlock block)
+        {
+            if (layer != Layer.Middle)
+                return block.Style ?? style;
+            if (middleLooks == null || middleLooksVersion != Version)
+            {
+                List<PlacedBlock> blocks = layers[(int)Layer.Middle];
+                string[] looks = RoadLooks.Of(blocks.Select(placed => new RoadBlock(placed.Name, placed.Cell.X, placed.Cell.Y, placed.Shift, placed.Turned, placed.Style)).ToList(),
+                    style, catalog);
+                middleLooks = new Dictionary<PlacedBlock, string>();
+                for (int i = 0; i < blocks.Count; i++)
+                    middleLooks[blocks[i]] = looks[i];
+                middleLooksVersion = Version;
+            }
+            return middleLooks.TryGetValue(block, out string look) ? look : block.Style ?? style;
+        }
 
         /// <summary>The position of the level in the level select; null for a level without one.</summary>
         public int? Order => order;

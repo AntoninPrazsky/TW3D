@@ -58,3 +58,8 @@ h2 {
 #obj{
 	background-color: PaleVioletRed;
 }
+/* The looks of a block in the styles of the track: the look and the transitions, side by side */
+td.looks > img {
+	width: 32%;
+	border-width: 1px;
+}

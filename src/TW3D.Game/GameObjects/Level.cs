@@ -107,8 +107,10 @@ namespace TW3D.GameObjects
                 finishArea = (centre - new Vector2(Units.GridCell / 2f), centre + new Vector2(Units.GridCell / 2f));
             }
 
-            foreach (BlockPlacement placement in data.Middle)
-                middle.Add(CreateBlock(placement, data.StyleOf(placement), assets, 0f, true));
+            //The road in its looks, with the transitions where it passes from one style into another
+            string[] looks = RoadLooks.Of(data.Middle.Select(RoadBlock.Of).ToList(), data.Style, assets.Catalog);
+            for (int i = 0; i < data.Middle.Count; i++)
+                middle.Add(CreateBlock(data.Middle[i], looks[i], assets, 0f, true));
             //A block is as large as its cell, around its position
             Bottom = middle.Count > 0 ? middle.Max(block => block.Position.Y) + Units.GridCell / 2f : 0f;
             foreach (BlockPlacement placement in data.Back)

@@ -153,11 +153,17 @@ namespace TW3D.Editor
             }
         }
 
-        /// <summary>The model a block is drawn with: its look in its style or the style of the level; null for a block the catalog does not know.</summary>
-        private Model BlockModel(PlacedBlock block)
+        /// <summary>
+        /// The model a block is drawn with: its look in its style or the style of the level, and in the middle layer the
+        /// transitions of the road (see <see cref="EditedLevel.LookOf"/>); null for a block the catalog does not know. A block
+        /// that is not in the level (the preview of the Place tool) has no transition.
+        /// </summary>
+        private Model BlockModel(PlacedBlock block, Layer? layer = null)
         {
             BlockType type = assets.Catalog.FindBlock(block.Name);
-            return type == null ? null : assets.BlockModel(type, block.Style ?? Level?.Style);
+            if (type == null)
+                return null;
+            return assets.BlockModel(type, layer.HasValue && Level != null ? Level.LookOf(layer.Value, block) : block.Style ?? Level?.Style);
         }
 
         private void DrawLayer(SceneRenderer renderer, Layer layer)
@@ -167,7 +173,7 @@ namespace TW3D.Editor
             for (int i = 0; i < blocks.Count; i++)
             {
                 PlacedBlock block = blocks[i];
-                if (BlockModel(block) is Model model)
+                if (BlockModel(block, layer) is Model model)
                     DrawModel(renderer, model, new Vector3(PhysicsPosition(block), depth), 0f, block.Turned, block: true);
             }
         }

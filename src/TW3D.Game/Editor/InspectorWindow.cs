@@ -89,6 +89,10 @@ namespace TW3D.Editor
             }
             ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : ""));
             ImGui.Text("Style: " + (block.Style != null ? StyleNames.Name(block.Style) : StyleNames.Name(placeTool.Level.Style ?? Catalog.ClassicStyle) + " (the level's)"));
+            //Where the road passes into another style, the block is drawn as the transition
+            string look = placeTool.Level.LookOf(layer, block);
+            if (look != (block.Style ?? placeTool.Level.Style ?? Catalog.ClassicStyle) && look != Catalog.ClassicStyle)
+                ImGui.Text("Drawn as: " + StyleNames.Name(look).ToLowerInvariant());
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");
