@@ -67,28 +67,38 @@ float3 MudTilt(float3 normal, float2 slope)
 	return normalize(mul(SurfaceTilt(own, slope), toWorld));
 }
 
+// How much mud there is at a point: on the tread of a wheel (its outermost faces, turned away from its axis) that of the
+// tread, which the road wipes first; elsewhere the amount of the part
+float MudAmountAt(float3 normal, float3 local)
+{
+	float3 own = normalize(mul((float3x3)World, normal));
+	float tread = saturate(1.0 - abs(own.z) * 2.0) * saturate((length(local.xy) / MUD_WHEEL - 0.82) * 6.0) * (1.0 - MudBody);
+	return lerp(MudAmount, MudTread, tread);
+}
+
 // The mud over a material at a pixel
 MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, float roughness, float4 plane, float3 local, int detail)
 {
 	float4 coarse = tex2D(noise, plane.xy);
 	float4 fine = tex2D(noise, plane.zw);
+	float amount = MudAmountAt(normal, local);
 	// The blotches: where the exposure with the mottle reaches above the edge, which drops as the amount grows; none on
 	// a clean part
 	float reach = MudExposure(local) + (coarse.r * 0.7 + fine.r * 0.3 - 0.5) * 0.8;
-	float edge = 1.25 - MudAmount * 1.5;
+	float edge = 1.25 - amount * 1.5;
 	float cover = 1.0 - SurfaceBelow(reach, edge, 0.02);
 	// The specks thrown around them, uneven
 	float specks = SurfaceBelow(coarse.a + (fine.r - 0.5) * 0.2, 0.12, 0.02) * (1.0 - SurfaceBelow(reach, edge - 0.25, 0.05));
-	cover = max(cover, specks) * saturate(MudAmount * 20.0);
-	// Thicker further in: wetter and darker; the thin edges dried lighter
+	cover = max(cover, specks) * saturate(amount * 20.0);
+	// Thicker further in: a little darker; the thin edges a little lighter
 	float thick = saturate((reach - edge) * 3.0);
 
 	MudLook look;
-	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.3, 0.85, thick);
+	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.06, 0.94, thick);
 	look.Albedo = lerp(albedo, mud, cover);
 	look.Normal = normal;
 	if (detail >= SURFACE_HIGH)
-		look.Normal = MudTilt(normal, SurfaceSlope(fine) * (0.25 + 0.35 * thick) * cover);
+		look.Normal = MudTilt(normal, SurfaceSlope(fine) * (0.1 + 0.12 * thick) * cover);
 	look.Metallic = metallic * (1.0 - cover);
 	look.Roughness = lerp(roughness, 0.95, cover);
 	look.Shine = lerp(1.0, 0.3, cover);

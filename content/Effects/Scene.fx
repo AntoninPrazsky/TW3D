@@ -149,6 +149,9 @@ float3 SurfaceOrigin;       // the middle of the cell of the level grid the bloc
 float SurfaceCell;          // the size of a cell
 float4 SurfaceSeedsLow;     // the random values of the lower corners of the cell: (x-, z-), (x+, z-), (x-, z+), (x+, z+)
 float4 SurfaceSeedsHigh;    // the same of the upper corners
+float SurfaceVerge;         // 1 = the earth and the grass blend at the verge of the off-road road, 0 = not (a test surface)
+float3 VergeEarth;          // linear, the colours of the earth and the grass of the off-road blocks there
+float3 VergeGrass;
 // The noise of the surfaces (Graphics/SurfaceNoise.cs): it tiles, with mipmaps
 texture SurfaceNoise;
 sampler2D SurfaceSampler = sampler_state
@@ -166,6 +169,7 @@ sampler2D SurfaceSampler = sampler_state
 // Per model part with mud on it (Mud.fxh)
 float4x4 MudSpace;          // from the coordinates of the part's mesh to the model's own
 float MudAmount;            // 0 = clean, 1 = as muddy as it gets
+float MudTread;             // a wheel: the same on the tread of its tyre
 float4 MudAxles;            // the body: the middles of its front and rear axle in its model (front x, y, rear x, y)
 float MudBody;              // 1 = the body of the car (the mud gathers by MudAxles), 0 = a wheel or a holder (all over)
 float3 MudColor;            // linear, the colour of the mud

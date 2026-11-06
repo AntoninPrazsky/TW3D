@@ -17,6 +17,11 @@
 // distance; the edges of what a threshold cuts out (stones, pebbles) are softened by the footprint of the pixel
 // (fwidth), as multisampling smooths only the edges of polygons.
 //
+// The earth and the grass of the off-road blocks pass into each other at the verge of the road (SurfaceVerge): not along
+// the edge of their faces but gradually and raggedly, by the mottle of the noise, which a face of either of them computes
+// the same way at the edge they share (the same lookups, the colours of both in VergeEarth and VergeGrass), so that no
+// line shows where one face ends.
+//
 // Functions and constants only: the uniforms they read are declared by the includer (Scene.fx), before it includes
 // this file.
 
@@ -31,6 +36,11 @@
 
 // How many times the fine lookup repeats along a cell (a whole number, so that it repeats once per cell too)
 #define SURFACE_FINE 4.0
+
+// The model units across a cell (a block), and how far from the middle of the off-road road the earth of its shoulder
+// meets the grass of its verge (tools/blender/offroad.py)
+#define SURFACE_BLOCK 9.0
+#define SURFACE_VERGE 3.35
 
 // The look of a surface at a pixel: its colour (linear), its normal and how much it shines (a factor of the highlight)
 struct SurfaceLook
@@ -113,11 +123,10 @@ float4 SurfaceFine(sampler2D noise, float4 plane, float4 coarse, int detail)
 
 // Asphalt: small stones of the aggregate, each lighter or darker, in a binder a little darker than the base colour,
 // showing more where the asphalt is worn; patches worn lighter or mended darker, different on every block; a fine
-// relief of the grain
-SurfaceLook SurfaceAsphalt(sampler2D noise, float3 base, float3 normal, float4 plane, float3 local, int detail)
+// relief of the grain. From the coarse and the fine lookup (the fine one only from the medium detail up) and the random
+// value of the block's cell, as the earth and the grass
+SurfaceLook SurfaceAsphalt(float3 base, float3 normal, float4 coarse, float4 fine, float seed, int detail)
 {
-	float4 coarse = tex2D(noise, plane.xy);
-	float seed = SurfaceSeed(local);
 	float wear = saturate(coarse.r + (seed - 0.5) * 0.5);
 	SurfaceLook look;
 	look.Albedo = base * lerp(0.84, 1.16, wear);
@@ -125,7 +134,6 @@ SurfaceLook SurfaceAsphalt(sampler2D noise, float3 base, float3 normal, float4 p
 	look.Shine = 1.0;
 	if (detail >= SURFACE_MEDIUM)
 	{
-		float4 fine = SurfaceFine(noise, plane, coarse, detail);
 		float stones = SurfaceBelow(fine.a, 0.4, 0.05) * lerp(0.35, 0.7, wear);
 		float3 binder = look.Albedo * lerp(0.82, 1.0, fine.r);
 		look.Albedo = lerp(binder, look.Albedo * lerp(1.0, 1.8, fine.r), stones);
@@ -137,10 +145,8 @@ SurfaceLook SurfaceAsphalt(sampler2D noise, float3 base, float3 normal, float4 p
 
 // Earth: drier and wetter patches, small clods with darker cracks between them, scattered grey pebbles and a rough
 // relief; it hardly shines
-SurfaceLook SurfaceEarth(sampler2D noise, float3 base, float3 normal, float4 plane, float3 local, int detail)
+SurfaceLook SurfaceEarth(float3 base, float3 normal, float4 coarse, float4 fine, float seed, int detail)
 {
-	float4 coarse = tex2D(noise, plane.xy);
-	float seed = SurfaceSeed(local);
 	float dry = smoothstep(0.25, 0.75, coarse.r + (seed - 0.5) * 0.6);
 	SurfaceLook look;
 	look.Albedo = base * lerp(0.7, 1.2, dry);
@@ -148,7 +154,6 @@ SurfaceLook SurfaceEarth(sampler2D noise, float3 base, float3 normal, float4 pla
 	look.Shine = 0.3;
 	if (detail >= SURFACE_MEDIUM)
 	{
-		float4 fine = SurfaceFine(noise, plane, coarse, detail);
 		// The cracks between the clods: the edges of the cells of the coarse lookup
 		look.Albedo *= lerp(0.86, 1.1, fine.r) * lerp(1.0, 0.78, smoothstep(0.42, 0.62, coarse.a));
 		// Grey pebbles of many sizes (the points of the cellular noise have sizes, the small ones make none), more where dry
@@ -162,10 +167,8 @@ SurfaceLook SurfaceEarth(sampler2D noise, float3 base, float3 normal, float4 pla
 
 // Grass: a carpet of short blades, darker in the gaps between its clumps and between the blades, lighter and yellower
 // where it is drier, different on every block, with a strong relief of the blades and a little sheen on their tips
-SurfaceLook SurfaceGrass(sampler2D noise, float3 base, float3 normal, float4 plane, float3 local, int detail)
+SurfaceLook SurfaceGrass(float3 base, float3 normal, float4 coarse, float4 fine, float seed, int detail)
 {
-	float4 coarse = tex2D(noise, plane.xy);
-	float seed = SurfaceSeed(local);
 	float dry = smoothstep(0.35, 0.8, coarse.r + (seed - 0.5) * 0.5);
 	SurfaceLook look;
 	look.Albedo = lerp(base * 0.85, base * float3(1.35, 1.2, 0.8), dry);
@@ -173,7 +176,6 @@ SurfaceLook SurfaceGrass(sampler2D noise, float3 base, float3 normal, float4 pla
 	look.Shine = 0.4;
 	if (detail >= SURFACE_MEDIUM)
 	{
-		float4 fine = SurfaceFine(noise, plane, coarse, detail);
 		// The gaps between the clumps: the edges of the cells of the coarse lookup
 		float gaps = smoothstep(0.45, 0.7, coarse.a);
 		look.Albedo *= lerp(0.6, 1.25, fine.r) * lerp(1.0, 0.75, gaps);
@@ -183,12 +185,38 @@ SurfaceLook SurfaceGrass(sampler2D noise, float3 base, float3 normal, float4 pla
 	return look;
 }
 
+// How much of the verge of the off-road road is grass at a point, 0 (the earth of the shoulder) to 1: across the road
+// from SURFACE_VERGE, ragged by the mottle of the noise, so that grass reaches into the earth and earth shows through
+// the grass, gradually over a width of about a model unit
+float SurfaceVergeGrass(float3 local, float4 coarse, float4 fine)
+{
+	float across = abs(local.z) * SURFACE_BLOCK - SURFACE_VERGE;
+	float ragged = (coarse.r - 0.5) * 1.6 + (fine.r - 0.5) * 0.6;
+	return smoothstep(-0.25, 0.25, across + ragged);
+}
+
 // The look of a surface (a number written in the technique, as the detail is)
 SurfaceLook SurfaceOf(sampler2D noise, int surface, int detail, float3 base, float3 normal, float4 plane, float3 local)
 {
+	float4 coarse = tex2D(noise, plane.xy);
+	float4 fine = coarse;
+	if (detail >= SURFACE_MEDIUM)
+		fine = SurfaceFine(noise, plane, coarse, detail);
+	float seed = SurfaceSeed(local);
+	if (surface == SURFACE_ASPHALT)
+		return SurfaceAsphalt(base, normal, coarse, fine, seed, detail);
+
+	// The earth and the grass, each of them in its own colour and the other one in the colour of the verge, blended
+	// across the verge (none where SurfaceVerge is 0); the earth only on its faces turned up, not on the faces of the
+	// block and of its steps, which are earth beside the verge too
+	float grass = SurfaceVergeGrass(local, coarse, fine) * SurfaceVerge;
 	if (surface == SURFACE_EARTH)
-		return SurfaceEarth(noise, base, normal, plane, local, detail);
-	if (surface == SURFACE_GRASS)
-		return SurfaceGrass(noise, base, normal, plane, local, detail);
-	return SurfaceAsphalt(noise, base, normal, plane, local, detail);
+		grass *= smoothstep(0.5, 0.8, normal.y);
+	SurfaceLook earthLook = SurfaceEarth(surface == SURFACE_EARTH ? base : VergeEarth, normal, coarse, fine, seed, detail);
+	SurfaceLook grassLook = SurfaceGrass(surface == SURFACE_GRASS ? base : VergeGrass, normal, coarse, fine, seed, detail);
+	SurfaceLook look;
+	look.Albedo = lerp(earthLook.Albedo, grassLook.Albedo, grass);
+	look.Normal = normalize(lerp(earthLook.Normal, grassLook.Normal, grass));
+	look.Shine = lerp(earthLook.Shine, grassLook.Shine, grass);
+	return look;
 }

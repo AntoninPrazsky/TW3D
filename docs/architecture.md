@@ -136,25 +136,40 @@ The asphalt is a test of the machinery; the earth and the grass draw the off-roa
 whose blocks have the shape of a dirt road (ruts, a crown, grass verges) and name it by their
 materials. The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
 
+The earth of the shoulder and the grass of the verge of an off-road block meet along the edge of
+their faces, 3.35 model units from the middle of the road (`tools/blender/offroad.py`), but are not
+drawn so: both techniques compute the look of the earth and of the grass from the same lookups
+and blend them by how far the point is across the road, ragged by the mottle of the noise
+(`SurfaceVergeGrass`), so that the grass reaches into the earth and the earth shows through the
+grass over about a model unit. The face of either computes the same at the edge they share (the
+colours of both come in `VergeEarth` and `VergeGrass`, as the generator makes the materials), so
+no line shows there. The blend costs arithmetic, not lookups; a test surface (T) has none
+(`SurfaceVerge` 0).
+
 ### Mud on the car
 
 The car gets muddy on the earth (#60). `GameObjects/CarMud` keeps how much mud the wheels of
-each axle (with their holder) and the body have, 0 clean to 1; the wheels on the earth add to
-it as they throw the earth up (`DirtSpray`, which measures how fast each slides, how fast the
-car rolls and how hard a wheel lands): a little standing, more rolling fast, much more sliding
-or spinning, a splash at a hard landing, half on a transition block, the body a quarter of
-what the wheels get. Each amount grows by a part of what is still clean, so it nears 1; nothing
-washes it off during a run, and a new run (a new `Car`) and the garage start clean.
+each axle, the treads of their tyres, the holder of the axle and the body have, 0 clean to 1; the
+wheels on the ground report to it as they throw the earth up (`DirtSpray`, which measures how
+fast each slides, how fast the car rolls and how hard a wheel lands). On the earth: a little
+standing, more rolling fast, much more sliding or spinning, a splash at a hard landing, half on a
+transition block; the treads twice as much, the body a quarter. Off the earth the wheels wash
+clean as they roll and spin (with two wheels of an axle on the ground about a tenth of their mud
+a second at full speed, the treads five times as fast); the body and the holders keep theirs.
+Each amount grows by a part of what is still clean and washes by a part of what is muddy, so it
+stays between 0 and 1; a new run (a new `Car`) and the garage start clean.
 
 `Car.Draw` adds its models with a `Graphics/Mud` (the amount, and for the body where its axles
 are in its model, where the physics holds them), and the renderer draws their opaque parts but
 the lamps by the techniques `LitMud<Detail>` and `LitCoarseShadowsMud<Detail>`
 (`content/Effects/Mud.fxh`): the same light, with the mud laid over the colour and the finish of
-the material per pixel, matt, lighter where it is thin and dried, darker where thick, with a
-little relief at the High detail; none at the Low one (the Raspberry Pi). The mud is laid in the
-model's own coordinates, not the world's, so it stays put on a turning wheel and needs nothing
-marked in the models: a wheel and a holder get it all over, the tyre more than the middle, the
-rims less; the body first around and behind its axles and on its lower parts, then further up
+the material per pixel, matt, a little lighter where it is thin and darker where thick (no more,
+or a patch near the edge of the mud looks of another colour), with a little relief at the High
+detail; none at the Low one (the Raspberry Pi). The mud is laid in the model's own coordinates,
+not the world's, so it stays put on a turning wheel and needs nothing marked in the models: a
+wheel and a holder get it all over, the tyre more than the middle, the rims less, and the tread
+(the outermost faces of a wheel turned away from its axis) has the amount of the treads, which
+the road wipes first; the body first around and behind its axles and on its lower parts, then further up
 as the amount grows. The cars share the layout of the physics and are about the same size, so
 the same distances (in model units) suit every car and wheel. Splashes rather than a layer:
 blotches where the mottle of the noise of the surfaces, laid on the model, reaches above an edge

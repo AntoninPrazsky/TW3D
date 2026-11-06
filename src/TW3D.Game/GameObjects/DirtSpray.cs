@@ -8,9 +8,10 @@ using TW3D.Shared;
 namespace TW3D.GameObjects
 {
     /// <summary>
-    /// The earth the tyres throw up on the earth of the off-road track (#59): clods and crumbs flung along the way the tyre
-    /// slides over the ground (back from a spinning wheel, ahead of a wheel sliding braked) and up, more the faster it
-    /// slides, a few crumbs from a wheel rolling fast, a spray where a wheel lands hard, and a brown dust where the tyre
+    /// The earth the tyres throw up on the earth of the off-road track (#59): clods and crumbs leaving the tread as it turns
+    /// up from the ground, flung on the way the wheel turns (a rooster tail behind a spinning wheel) and carried on with the
+    /// wheel (pushed ahead of a wheel sliding braked), more the faster it slides, a few crumbs from a wheel rolling fast,
+    /// a spray where a wheel lands hard, and a brown dust where the tyre
     /// slips (in place of the white smoke of the tyres, see <see cref="TyreSmoke"/>); and what sticks to the car
     /// (<see cref="CarMud"/>), by the same measures of the sliding, the rolling and the landings. The pieces fly under the gravity of
     /// the physics (in the time of the game, which runs faster than real time), turn darker as they fall and fade out; a
@@ -27,12 +28,20 @@ namespace TW3D.GameObjects
         private const float MinSlide = 3f;
         private const float FullSlide = 28f;
         private const float RollSpeed = 60f;
-        //How much of the speed of the tyre over the ground a clod is thrown with, at most (physics units a second), and how
-        //fast up (scene units a real second), from a slow slide to a fast one
+        //How much of the speed of the tyre over the ground the dust is blown with, at most (physics units a second)
         private const float Throw = 0.55f;
         private const float MaxThrow = 22f;
-        private const float MinLift = 0.35f;
-        private const float MaxLift = 1.4f;
+        //A clod keeps this part of the velocity of the wheel, and is flung with this part of the speed of the tread round the
+        //wheel, at most MaxFling (physics units a second); it leaves the tread from ReleaseLeast to ReleaseMost (radians)
+        //past the ground the way the wheel turns, most of them early; and it goes up from the ground this fast (scene units
+        //a real second), from a slow slide to a fast one
+        private const float Carry = 0.8f;
+        private const float Fling = 0.35f;
+        private const float MaxFling = 14f;
+        private const float ReleaseLeast = 0.1f;
+        private const float ReleaseMost = 1.7f;
+        private const float MinLift = 0.2f;
+        private const float MaxLift = 0.9f;
         //A wheel landing faster than this (physics units a second, down onto the ground) sprays clods, the most from LandFull
         private const float LandSpeed = 10f;
         private const float LandFull = 40f;
@@ -112,18 +121,19 @@ namespace TW3D.GameObjects
             {
                 standing[wheel.Wheel] = true;
                 float onEarth = EarthOf(wheel.Ground);
+                float slide = MathHelper.Clamp((wheel.Speed - MinSlide) / (FullSlide - MinSlide), 0f, 1f);
+                float roll = MathHelper.Clamp(car.Speed / RollSpeed, 0f, 1f);
+                //Landing: the speed it came down with, onto the ground
+                float landing = stood[wheel.Wheel] ? 0f
+                    : MathHelper.Clamp((-Vector2.Dot(lastVelocity[wheel.Wheel], wheel.Up) - LandSpeed) / (LandFull - LandSpeed), 0f, 1f);
+                //The mud on the car: more on the earth, washed off the wheels elsewhere
+                mud?.Wheel(Car.IsFrontWheel(wheel.Wheel), onEarth, roll, slide, landing, elapsed);
                 if (onEarth <= 0f)
                     continue;
                 float earth = onEarth * density;
                 Vector3 at = new Vector3(-wheel.Point * Units.PhysicsToScene, 0f);
                 Vector3 up = new Vector3(-wheel.Up, 0f);
                 float side = car.WheelSide(wheel.Wheel);
-                float slide = MathHelper.Clamp((wheel.Speed - MinSlide) / (FullSlide - MinSlide), 0f, 1f);
-                float roll = MathHelper.Clamp(car.Speed / RollSpeed, 0f, 1f);
-                //Landing: the speed it came down with, onto the ground
-                float landing = stood[wheel.Wheel] ? 0f
-                    : MathHelper.Clamp((-Vector2.Dot(lastVelocity[wheel.Wheel], wheel.Up) - LandSpeed) / (LandFull - LandSpeed), 0f, 1f);
-                mud?.Wheel(Car.IsFrontWheel(wheel.Wheel), onEarth, roll, slide, landing, elapsed);
 
                 if (landing > 0f)
                 {
@@ -135,20 +145,29 @@ namespace TW3D.GameObjects
                         }
                 }
 
-                //Sliding and rolling: along the way the tyre slides over the ground, and up
+                //Sliding and rolling: the earth leaves the tread as it turns up from the ground, flung on the way the tread
+                //moves round the wheel and carried on with the wheel (physics coordinates, the angles as the physics turns)
                 owedClods[wheel.Wheel] += (SlideRate * slide + RollRate * roll * roll) * earth * elapsed;
                 Vector2 thrown = wheel.Slide.LengthSquared() > 0f ? wheel.Slide * Math.Min(1f, MaxThrow / wheel.Slide.Length()) : Vector2.Zero;
                 Vector3 along = new Vector3(-thrown * Units.PhysicsToScene * gameSpeed * Throw, 0f);
-                //Rolling throws crumbs off the back of the tyre, with the car
-                Vector3 carried = new Vector3(-car.WheelVelocity(wheel.Wheel) * Units.PhysicsToScene * gameSpeed * 0.15f, 0f);
+                Vector2 centre = car.WheelCentre(wheel.Wheel), hub = car.WheelVelocity(wheel.Wheel);
+                float spin = car.WheelTurn(wheel.Wheel);
+                Vector2 toGround = wheel.Point - centre;
+                float radius = toGround.Length(), groundAngle = MathF.Atan2(toGround.Y, toGround.X);
+                float tread = Math.Min(Math.Abs(spin) * radius * Fling, MaxFling);
                 while (owedClods[wheel.Wheel] >= 1f)
                 {
                     owedClods[wheel.Wheel] -= 1f;
                     foreach (float z in new[] { side, -side })
                     {
+                        float release = Math.Sign(spin) * MathHelper.Lerp(ReleaseLeast, ReleaseMost, (float)Math.Pow(random.NextDouble(), 2.0));
+                        Vector2 outward = new Vector2(MathF.Cos(groundAngle + release), MathF.Sin(groundAngle + release));
+                        Vector2 flung = new Vector2(-outward.Y, outward.X) * Math.Sign(spin) * tread * Lerp(0.6f, 1.1f);
                         float lift = MathHelper.Lerp(MinLift, MaxLift, slide) * Lerp(0.5f, 1.2f);
-                        Vector3 velocity = along * Lerp(0.5f, 1.1f) + carried + up * lift + new Vector3(Jitter() * 0.25f, 0f, Jitter() * 0.2f);
-                        Emit(at + new Vector3(0f, 0f, z + Jitter() * RutHalfWidth), velocity);
+                        Vector3 velocity = new Vector3(-(hub * Carry + flung) * Units.PhysicsToScene * gameSpeed, 0f) + up * lift
+                            + new Vector3(Jitter() * 0.15f, 0f, Jitter() * 0.2f);
+                        Vector3 from = new Vector3(-(centre + outward * radius) * Units.PhysicsToScene, 0f);
+                        Emit(from + new Vector3(0f, 0f, z + Jitter() * RutHalfWidth), velocity);
                     }
                 }
 

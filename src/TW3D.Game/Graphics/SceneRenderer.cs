@@ -78,13 +78,14 @@ namespace TW3D.Graphics
         //The surfaces (see Surface): their noise is laid on a model by the cells of the level grid (scene units)
         private const float SurfaceCell = Units.GridCell * Units.PhysicsToScene;
         //The grey of the road of the classic blocks (as their materials have it, sRGB), which TestSurface draws as a
-        //surface, and the colour the test earth has there instead
+        //surface, and the colours of the earth and the grass of the off-road blocks (as tools/blender/offroad.py makes
+        //their materials), which the test surfaces have there and which blend at the verge of the off-road road
         private const float ClassicRoadGrey = 0.22744f;
-        private static readonly Vector3 TestEarthColour = new Vector3(0.38f, 0.3f, 0.22f);
-        private static readonly Vector3 TestGrassColour = new Vector3(0.25f, 0.33f, 0.14f);
-        //The colour of the mud on the car (sRGB): the earth of the off-road blocks (the shader dries it lighter at its thin
-        //edges, wets it darker where it is thick); the rims of a wheel get this part of the mud of the wheel
-        private static readonly Vector3 MudColour = new Vector3(0.45f, 0.36f, 0.27f);
+        private static readonly Vector3 OffroadEarthColour = new Vector3(0.38f, 0.3f, 0.22f);
+        private static readonly Vector3 OffroadGrassColour = new Vector3(0.25f, 0.33f, 0.14f);
+        //The colour of the mud on the car (sRGB): the earth of the off-road blocks, dried lighter (the shader makes it a little
+        //lighter where it is thin, a little darker where thick); the rims of a wheel get this part of the mud of the wheel
+        private static readonly Vector3 MudColour = new Vector3(0.5f, 0.41f, 0.31f);
         private const float RimMud = 0.7f;
 
         //The shadow map covers the part of the scene the camera sees: the 3D models of the road and of the
@@ -232,11 +233,11 @@ namespace TW3D.Graphics
         //The techniques of the surfaces, by the surface and the detail (with the filter of the shadows of litTechnique), the
         //parameters of the cell of a model drawn as a surface, and the noise the surfaces are drawn from
         private readonly EffectTechnique[,] surfaceTechniques;
-        private readonly EffectParameter surfaceOriginParameter, surfaceSeedsLowParameter, surfaceSeedsHighParameter;
+        private readonly EffectParameter surfaceOriginParameter, surfaceSeedsLowParameter, surfaceSeedsHighParameter, surfaceVergeParameter;
         private readonly Texture2D surfaceNoise;
         //The techniques of the mud by the detail (none at the low one) and the parameters of a part drawn with it
         private readonly EffectTechnique[] mudTechniques;
-        private readonly EffectParameter mudSpaceParameter, mudAmountParameter, mudAxlesParameter, mudBodyParameter;
+        private readonly EffectParameter mudSpaceParameter, mudAmountParameter, mudTreadParameter, mudAxlesParameter, mudBodyParameter;
         //The texture of both shadow maps, of the detail it was made for, the sizes of the maps in it, and the sides of the
         //boxes each of them covered in the last frame (see FitLight)
         private RenderTarget2D shadowMap;
@@ -351,6 +352,7 @@ namespace TW3D.Graphics
             surfaceOriginParameter = effect.Parameters["SurfaceOrigin"];
             surfaceSeedsLowParameter = effect.Parameters["SurfaceSeedsLow"];
             surfaceSeedsHighParameter = effect.Parameters["SurfaceSeedsHigh"];
+            surfaceVergeParameter = effect.Parameters["SurfaceVerge"];
             surfaceNoise = CreateSurfaceNoise(device);
             mudTechniques = new EffectTechnique[details.Length];
             foreach (SurfaceDetail detail in details)
@@ -358,6 +360,7 @@ namespace TW3D.Graphics
                     mudTechniques[(int)detail] = effect.Techniques[(SmoothShadows ? "Lit" : "LitCoarseShadows") + "Mud" + detail];
             mudSpaceParameter = effect.Parameters["MudSpace"];
             mudAmountParameter = effect.Parameters["MudAmount"];
+            mudTreadParameter = effect.Parameters["MudTread"];
             mudAxlesParameter = effect.Parameters["MudAxles"];
             mudBodyParameter = effect.Parameters["MudBody"];
 
@@ -1471,6 +1474,8 @@ namespace TW3D.Graphics
             effect.Parameters["SurfaceNoise"].SetValue(surfaceNoise);
             effect.Parameters["SurfaceCell"].SetValue(SurfaceCell);
             effect.Parameters["MudColor"].SetValue(ToLinear(MudColour));
+            effect.Parameters["VergeEarth"].SetValue(ToLinear(OffroadEarthColour));
+            effect.Parameters["VergeGrass"].SetValue(ToLinear(OffroadGrassColour));
             effect.CurrentTechnique = litTechnique;
             EffectPass pass = litTechnique.Passes[0];
 
@@ -1526,20 +1531,23 @@ namespace TW3D.Graphics
             {
                 surface = TestSurface;
                 if (surface == Surface.Earth)
-                    diffuse = ToLinear(TestEarthColour);
+                    diffuse = ToLinear(OffroadEarthColour);
                 else if (surface == Surface.Grass)
-                    diffuse = ToLinear(TestGrassColour);
+                    diffuse = ToLinear(OffroadGrassColour);
             }
             if (surface != Surface.None)
             {
                 pass = surfaceTechniques[(int)surface, (int)SurfaceDetails.Valid(SurfaceDetail)].Passes[0];
                 SetSurfaceCell(world.Translation);
+                //The verge of the off-road road, on the earth and the grass of a block's own materials
+                surfaceVergeParameter.SetValue(surface == part.Surface && (surface == Surface.Earth || surface == Surface.Grass) ? 1f : 0f);
             }
             else if (!mud.IsClean && !part.IsTransparent && part.Lamp == Lamp.None && mudTechniques[(int)SurfaceDetails.Valid(SurfaceDetail)] is EffectTechnique muddy)
             {
                 pass = muddy.Passes[0];
                 mudSpaceParameter.SetValue(part.Transform);
                 mudAmountParameter.SetValue(mud.Amount * (part.Paint == PaintPart.Rim ? RimMud : 1f));
+                mudTreadParameter.SetValue(mud.Tread);
                 mudAxlesParameter.SetValue(mud.Axles ?? Vector4.Zero);
                 mudBodyParameter.SetValue(mud.Axles.HasValue ? 1f : 0f);
             }

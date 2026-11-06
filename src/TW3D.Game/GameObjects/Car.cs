@@ -468,6 +468,12 @@ namespace TW3D.GameObjects
         /// <summary>How fast a wheel (see <see cref="SlippingWheels"/>) moves (physics units a second).</summary>
         public Vector2 WheelVelocity(int wheel) => wheels[wheel].LinearVelocity;
 
+        /// <summary>The middle of a wheel (see <see cref="SlippingWheels"/>, physics coordinates).</summary>
+        public Vector2 WheelCentre(int wheel) => wheels[wheel].Position;
+
+        /// <summary>How fast a wheel (see <see cref="SlippingWheels"/>) turns (radians a second, as the physics turns).</summary>
+        public float WheelTurn(int wheel) => wheels[wheel].AngularVelocity;
+
         /// <summary>How far a wheel (see <see cref="SlippingWheels"/>) is from the middle of the car across the track (scene units).</summary>
         public float WheelSide(int wheel) => wheel < 3 ? rearSide : frontSide;
 
@@ -801,7 +807,9 @@ namespace TW3D.GameObjects
         public override void Draw(SceneRenderer renderer)
         {
             Paint paint = Paint.Body(Colours), rear = Paint.Wheels(Colours, false), front = Paint.Wheels(Colours, true);
-            Mud bodyMud = new Mud(Mud?.Body ?? 0f, axlesInModel), rearMud = new Mud(Mud?.Rear ?? 0f), frontMud = new Mud(Mud?.Front ?? 0f);
+            Mud bodyMud = new Mud(Mud?.Body ?? 0f, axlesInModel);
+            Mud rearMud = new Mud(Mud?.Wheels(false) ?? 0f, tread: Mud?.Treads(false) ?? 0f), frontMud = new Mud(Mud?.Wheels(true) ?? 0f, tread: Mud?.Treads(true) ?? 0f);
+            Mud rearHolder = new Mud(Mud?.Holder(false) ?? 0f), frontHolder = new Mud(Mud?.Holder(true) ?? 0f);
             DrawModel(renderer, carModel, new Vector3(DrawPosition(car), 0f), DrawRotation(car), false, paint, mud: bodyMud);
             Matrix body = ModelWorld(new Vector3(DrawPosition(car), 0f), DrawRotation(car), false) * Placement;
             renderer.SetCar(carModel, body, Forward, brake);
@@ -809,22 +817,22 @@ namespace TW3D.GameObjects
             DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), false, rear, mud: rearMud);
             DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), false, rear, mud: rearMud);
             DrawModel(renderer, nearRearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), false, rear, mud: rearMud);
-            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false, mud: rearMud);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), false, mud: rearHolder);
 
             DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), false, front, mud: frontMud);
             DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), false, front, mud: frontMud);
             DrawModel(renderer, nearFrontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), false, front, mud: frontMud);
-            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false, mud: frontMud);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), false, mud: frontHolder);
 
             DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4LB), 0f), DrawRotation(wheel4LB), true, rear, mud: rearMud);
             DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4RB), 0f), DrawRotation(wheel4RB), true, rear, mud: rearMud);
             DrawModel(renderer, rearWheelModel, new Vector3(DrawPosition(wheel4TB), 0f), DrawRotation(wheel4TB), true, rear, mud: rearMud);
-            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true, mud: rearMud);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderB), 0f), DrawRotation(holderB), true, mud: rearHolder);
 
             DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4LF), 0f), DrawRotation(wheel4LF), true, front, mud: frontMud);
             DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4RF), 0f), DrawRotation(wheel4RF), true, front, mud: frontMud);
             DrawModel(renderer, frontWheelModel, new Vector3(DrawPosition(wheel4TF), 0f), DrawRotation(wheel4TF), true, front, mud: frontMud);
-            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true, mud: frontMud);
+            DrawModel(renderer, holderModel, new Vector3(DrawPosition(holderF), 0f), DrawRotation(holderF), true, mud: frontHolder);
         }
     }
 }

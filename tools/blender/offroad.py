@@ -63,7 +63,10 @@ ROUNDED = {"s1": (0.45, 0.3)}
 
 
 def zone(w):
-    """The material of the part of the cross-section around |z| = w."""
+    """The material of the part of the cross-section around |z| = w. The earth of the shoulder meets the grass of the verge
+    at |z| = 3.35 (a point of SECTION), where the game blends them raggedly (SURFACE_VERGE in content/Effects/Surfaces.fxh,
+    which must follow it), and the colours of EARTH and GRASS are those the game blends (SceneRenderer.OffroadEarthColour
+    and OffroadGrassColour)."""
     if w >= 3.42:
         return GRASS
     if w < 1.25:
