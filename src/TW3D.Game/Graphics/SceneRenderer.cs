@@ -43,6 +43,8 @@ namespace TW3D.Graphics
     /// is added with, the colours chosen in the garage. A part whose material names a <see cref="Surface"/> ("asphalt…",
     /// "earth…") is drawn by the technique of its surface at the <see cref="SurfaceDetail"/>, its colour and relief computed
     /// per pixel from the noise of <see cref="SurfaceNoise"/>, laid on it by the cell of the level grid the model stands in.
+    /// A model added with <see cref="Mud"/> (the car driven on earth) is drawn with the mud over its opaque parts but its
+    /// lamps, by the techniques of the mud, at the medium and the high <see cref="SurfaceDetail"/> (none at the low one).
     /// </remarks>
     public sealed class SceneRenderer : IDisposable
     {
@@ -80,6 +82,10 @@ namespace TW3D.Graphics
         private const float ClassicRoadGrey = 0.22744f;
         private static readonly Vector3 TestEarthColour = new Vector3(0.38f, 0.3f, 0.22f);
         private static readonly Vector3 TestGrassColour = new Vector3(0.25f, 0.33f, 0.14f);
+        //The colour of the mud on the car (sRGB): the earth of the off-road blocks (the shader dries it lighter at its thin
+        //edges, wets it darker where it is thick); the rims of a wheel get this part of the mud of the wheel
+        private static readonly Vector3 MudColour = new Vector3(0.45f, 0.36f, 0.27f);
+        private const float RimMud = 0.7f;
 
         //The shadow map covers the part of the scene the camera sees: the 3D models of the road and of the
         //layers next to it lie between these planes (the front layer and the first back layer are 2.25
@@ -202,18 +208,20 @@ namespace TW3D.Graphics
 
         private readonly struct DrawItem
         {
-            public DrawItem(ModelData model, Matrix world, Paint paint, bool block)
+            public DrawItem(ModelData model, Matrix world, Paint paint, bool block, Mud mud)
             {
                 Model = model;
                 World = world;
                 Paint = paint;
                 Block = block;
+                Mud = mud;
             }
 
             public ModelData Model { get; }
             public Matrix World { get; }
             public Paint Paint { get; }
             public bool Block { get; }
+            public Mud Mud { get; }
         }
 
         private readonly GraphicsDevice device;
@@ -226,6 +234,9 @@ namespace TW3D.Graphics
         private readonly EffectTechnique[,] surfaceTechniques;
         private readonly EffectParameter surfaceOriginParameter, surfaceSeedsLowParameter, surfaceSeedsHighParameter;
         private readonly Texture2D surfaceNoise;
+        //The techniques of the mud by the detail (none at the low one) and the parameters of a part drawn with it
+        private readonly EffectTechnique[] mudTechniques;
+        private readonly EffectParameter mudSpaceParameter, mudAmountParameter, mudAxlesParameter, mudBodyParameter;
         //The texture of both shadow maps, of the detail it was made for, the sizes of the maps in it, and the sides of the
         //boxes each of them covered in the last frame (see FitLight)
         private RenderTarget2D shadowMap;
@@ -341,6 +352,14 @@ namespace TW3D.Graphics
             surfaceSeedsLowParameter = effect.Parameters["SurfaceSeedsLow"];
             surfaceSeedsHighParameter = effect.Parameters["SurfaceSeedsHigh"];
             surfaceNoise = CreateSurfaceNoise(device);
+            mudTechniques = new EffectTechnique[details.Length];
+            foreach (SurfaceDetail detail in details)
+                if (detail != SurfaceDetail.Low)
+                    mudTechniques[(int)detail] = effect.Techniques[(SmoothShadows ? "Lit" : "LitCoarseShadows") + "Mud" + detail];
+            mudSpaceParameter = effect.Parameters["MudSpace"];
+            mudAmountParameter = effect.Parameters["MudAmount"];
+            mudAxlesParameter = effect.Parameters["MudAxles"];
+            mudBodyParameter = effect.Parameters["MudBody"];
 
             glowTexture = CreateGlowTexture(device);
             smokeTexture = CreateSmokeTexture(device);
@@ -580,9 +599,10 @@ namespace TW3D.Graphics
         /// <summary>Adds a model to the scene.</summary>
         /// <param name="paint">The colours of its painted parts (the paint of a car, the rims of a wheel); by default their own.</param>
         /// <param name="block">The model is a block of a level (see <see cref="TestSurface"/>).</param>
-        public void Add(Model model, Matrix world, Paint paint = default, bool block = false)
+        /// <param name="mud">The mud on it (a model of the car); by default none.</param>
+        public void Add(Model model, Matrix world, Paint paint = default, bool block = false, Mud mud = default)
         {
-            items.Add(new DrawItem(GetModelData(model), world, paint, block));
+            items.Add(new DrawItem(GetModelData(model), world, paint, block, mud));
         }
 
         /// <summary>The colour of the material of a painted part of a model (the colour it has without a paint); null if it has none.</summary>
@@ -1450,6 +1470,7 @@ namespace TW3D.Graphics
             effect.Parameters["OcclusionMap"].SetValue(blurredOcclusionMap);
             effect.Parameters["SurfaceNoise"].SetValue(surfaceNoise);
             effect.Parameters["SurfaceCell"].SetValue(SurfaceCell);
+            effect.Parameters["MudColor"].SetValue(ToLinear(MudColour));
             effect.CurrentTechnique = litTechnique;
             EffectPass pass = litTechnique.Passes[0];
 
@@ -1461,7 +1482,7 @@ namespace TW3D.Graphics
 
                 foreach (ModelPart part in item.Model.Parts)
                     if (!part.IsTransparent)
-                        DrawLitPart(part, part.Transform * item.World, pass, paint: item.Paint, block: item.Block);
+                        DrawLitPart(part, part.Transform * item.World, pass, paint: item.Paint, block: item.Block, mud: item.Mud);
             }
 
             DrawMarks();
@@ -1495,8 +1516,9 @@ namespace TW3D.Graphics
         /// <param name="glow">Light added to its own (the see-through model).</param>
         /// <param name="paint">The colours of the painted parts of its model.</param>
         /// <param name="block">Its model is a block of a level (see <see cref="TestSurface"/>).</param>
+        /// <param name="mud">The mud on its model.</param>
         private void DrawLitPart(ModelPart part, Matrix world, EffectPass pass, float alpha = 1f, Vector3 glow = default, Paint paint = default,
-            bool block = false)
+            bool block = false, Mud mud = default)
         {
             Vector3 diffuse = paint.Of(part.Paint) is Vector3 colour ? ToLinear(colour) : part.Diffuse;
             Surface surface = part.Surface;
@@ -1512,6 +1534,14 @@ namespace TW3D.Graphics
             {
                 pass = surfaceTechniques[(int)surface, (int)SurfaceDetails.Valid(SurfaceDetail)].Passes[0];
                 SetSurfaceCell(world.Translation);
+            }
+            else if (!mud.IsClean && !part.IsTransparent && part.Lamp == Lamp.None && mudTechniques[(int)SurfaceDetails.Valid(SurfaceDetail)] is EffectTechnique muddy)
+            {
+                pass = muddy.Passes[0];
+                mudSpaceParameter.SetValue(part.Transform);
+                mudAmountParameter.SetValue(mud.Amount * (part.Paint == PaintPart.Rim ? RimMud : 1f));
+                mudAxlesParameter.SetValue(mud.Axles ?? Vector4.Zero);
+                mudBodyParameter.SetValue(mud.Axles.HasValue ? 1f : 0f);
             }
             worldParameter.SetValue(world);
             diffuseParameter.SetValue(diffuse);

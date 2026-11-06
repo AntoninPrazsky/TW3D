@@ -13,9 +13,10 @@ namespace TW3D.GamePlay
     /// button), the lighting of the 2016 version, shadows and ambient occlusion (F9, F10, Shift+F10) and the mood of the level (M)
     /// to compare them, the camera moved away from the car (the numeric keypad, Page Up and Page Down, Home), and the
     /// track alone (H: the car and everything over the level hidden, for the previews of the levels in the level
-    /// select), the car turned onto its roof (U, to try out the Game over on the roof) and the road of the blocks drawn as
-    /// a test surface (T: asphalt, earth, as it is; see SceneRenderer.TestSurface). They change only the level being
-    /// played; the Options menu sets the look for good.
+    /// select), the car turned onto its roof (U, to try out the Game over on the roof), the road of the blocks drawn as
+    /// a test surface (T: asphalt, earth, grass, as it is; see SceneRenderer.TestSurface) and the mud on the car in steps
+    /// (B: a quarter more each time, then clean again; see CarMud). They change only the level being played; the Options
+    /// menu sets the look for good.
     /// </summary>
     sealed class DevelopmentKeys
     {
@@ -43,6 +44,7 @@ namespace TW3D.GamePlay
         private readonly SceneRenderer renderer;
         private readonly ChaseCamera camera;
         private readonly Action turnOver;
+        private readonly Action muddy;
         private LevelMood mood;
 
         /// <summary>The track alone: the car, the time, the tutorial and the on-screen controls are not drawn (H).</summary>
@@ -50,8 +52,10 @@ namespace TW3D.GamePlay
 
         /// <param name="mood">The mood of the level, which M changes from.</param>
         /// <param name="turnOver">Turns the car onto its roof (U).</param>
-        public DevelopmentKeys(DebugView debugView, SceneRenderer renderer, ChaseCamera camera, LevelMood mood, Action turnOver)
+        /// <param name="muddy">Puts the next step of the mud on the car (B).</param>
+        public DevelopmentKeys(DebugView debugView, SceneRenderer renderer, ChaseCamera camera, LevelMood mood, Action turnOver, Action muddy)
         {
+            this.muddy = muddy;
             this.debugView = debugView;
             this.renderer = renderer;
             this.camera = camera;
@@ -89,6 +93,10 @@ namespace TW3D.GamePlay
             //The road of the blocks as each test surface in turn, then as it is
             if (input.KeyPressed(Keys.T))
                 renderer.TestSurface = (Surface)(((int)renderer.TestSurface + 1) % Enum.GetValues<Surface>().Length);
+
+            //The mud on the car in steps, to look at it on any level
+            if (input.KeyPressed(Keys.B))
+                muddy();
 
             //The moods of the levels, to try them on any level
             if (input.KeyPressed(Keys.M))

@@ -136,6 +136,32 @@ The asphalt is a test of the machinery; the earth and the grass draw the off-roa
 whose blocks have the shape of a dirt road (ruts, a crown, grass verges) and name it by their
 materials. The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
 
+### Mud on the car
+
+The car gets muddy on the earth (#60). `GameObjects/CarMud` keeps how much mud the wheels of
+each axle (with their holder) and the body have, 0 clean to 1; the wheels on the earth add to
+it as they throw the earth up (`DirtSpray`, which measures how fast each slides, how fast the
+car rolls and how hard a wheel lands): a little standing, more rolling fast, much more sliding
+or spinning, a splash at a hard landing, half on a transition block, the body a quarter of
+what the wheels get. Each amount grows by a part of what is still clean, so it nears 1; nothing
+washes it off during a run, and a new run (a new `Car`) and the garage start clean.
+
+`Car.Draw` adds its models with a `Graphics/Mud` (the amount, and for the body where its axles
+are in its model, where the physics holds them), and the renderer draws their opaque parts but
+the lamps by the techniques `LitMud<Detail>` and `LitCoarseShadowsMud<Detail>`
+(`content/Effects/Mud.fxh`): the same light, with the mud laid over the colour and the finish of
+the material per pixel, matt, lighter where it is thin and dried, darker where thick, with a
+little relief at the High detail; none at the Low one (the Raspberry Pi). The mud is laid in the
+model's own coordinates, not the world's, so it stays put on a turning wheel and needs nothing
+marked in the models: a wheel and a holder get it all over, the tyre more than the middle, the
+rims less; the body first around and behind its axles and on its lower parts, then further up
+as the amount grows. The cars share the layout of the physics and are about the same size, so
+the same distances (in model units) suit every car and wheel. Splashes rather than a layer:
+blotches where the mottle of the noise of the surfaces, laid on the model, reaches above an edge
+that drops as the amount grows, and specks of its cellular noise around them. The vertex shader
+passes the position in the model in the outputs the surfaces use for theirs (`Local`, `Plane`),
+so the mud needs no more of them, and the numbers stay small for half precision.
+
 ### Styles of the track
 
 A level, and any block of it, has a style (#58): the classic one of 2016 or `offroad`, a dirt

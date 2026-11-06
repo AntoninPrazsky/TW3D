@@ -23,6 +23,7 @@
     <Compile Include="..\..\src\TW3D.Game\Graphics\Surface.cs" Link="Surface.cs" />
     <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceDetail.cs" Link="SurfaceDetail.cs" />
     <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceNoise.cs" Link="SurfaceNoise.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Graphics\Mud.cs" Link="Mud.cs" />
   </ItemGroup>
 
   <ItemGroup>

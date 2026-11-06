@@ -45,7 +45,11 @@ grips as the mean of both. The numbers are provisional until test drives tune th
 back from a spinning wheel and ahead of a wheel sliding braked, more the faster it slips, a few
 from a wheel rolling fast, a spray where a wheel lands hard, with a brown dust instead of the
 white smoke of the tyres, and the skid marks are fainter (a rut dug rather than rubber); fewer
-pieces at a lower Surface detail.
+pieces at a lower Surface detail. And the car gets muddy there (#60): first the tyres and the
+wheels, then the lower part of the body around and behind the axles, then further up, the more
+the longer it drives on the earth, the faster, and the more it slides, spins and lands hard. The
+mud stays for the rest of the run; every run, and the garage, start with a clean car. It is not
+drawn at the low Surface detail.
 The choices are saved with the options, the wheels and the colours for each car; a car whose
 wheels were never chosen comes with its own.
 
@@ -62,7 +66,7 @@ by default, but on a Raspberry Pi; a switch comes with the next start of the gam
 shadows, the detail of the shadows (low, medium or high: a shadow map of 1024, 2048 or 4096 texels; high by default on
 a desktop, medium on a phone; a Raspberry Pi keeps low and does not offer the row), the detail of the surfaces of the
 blocks (low: a plain colour with lighter and darker patches; medium: their stones, pebbles and relief too; high: the same
-without the repeating of the fine pattern showing; high on a desktop, medium on a phone, low on a Raspberry Pi, which does
+without the repeating of the fine pattern showing, and the relief of the mud on the car, which medium draws flat and low not at all; high on a desktop, medium on a phone, low on a Raspberry Pi, which does
 not offer the row), ambient occlusion, the frame rate (frames per second in the top left
 corner), the tutorial and the volume of the sound (in tenths; Enter turns it up, round to
 off, left and right turn it down and up). A window was the cure when the game stuttered in
@@ -308,4 +312,5 @@ While driving:
 | F12 | Frames per second on / off (also in Options) |
 | H | The track alone: the car, the time, the tutorial and the on-screen controls hidden (for the previews of the levels) |
 | U | Turns the car onto its roof (to try out the Game over on the roof) |
-| T | The road of the blocks as a test surface: asphalt, earth, then as it is (the grey of the road of the classic blocks drawn so, #58) |
+| T | The road of the blocks as a test surface: asphalt, earth, grass, then as it is (the grey of the road of the classic blocks drawn so, #58) |
+| B | The mud on the car in steps: a quarter more each time, from all of it clean again (#60) |

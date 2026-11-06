@@ -13,6 +13,9 @@
 // the surfaces, as Lit<Surface><Detail> and LitCoarseShadows<Surface><Detail> (LitAsphaltMedium): the same light, with
 // the colour and the relief of the surface computed per pixel (Surfaces.fxh).
 //
+// A part of the car with mud on it is drawn by LitMud<Detail> and LitCoarseShadowsMud<Detail> (Medium and High: none at
+// the low detail): the same light, with the mud laid over its material per pixel (Mud.fxh).
+//
 // Technique Sky draws the sky behind everything, computed from the direction of each pixel (no
 // picture): a smooth ramp from the horizon up, a glow and a disc of the sun (or the moon), stars,
 // clouds on a plane high above (from a noise texture the renderer generates), distant hills along
@@ -160,6 +163,15 @@ sampler2D SurfaceSampler = sampler_state
 
 #include "Surfaces.fxh"
 
+// Per model part with mud on it (Mud.fxh)
+float4x4 MudSpace;          // from the coordinates of the part's mesh to the model's own
+float MudAmount;            // 0 = clean, 1 = as muddy as it gets
+float4 MudAxles;            // the body: the middles of its front and rear axle in its model (front x, y, rear x, y)
+float MudBody;              // 1 = the body of the car (the mud gathers by MudAxles), 0 = a wheel or a holder (all over)
+float3 MudColor;            // linear, the colour of the mud
+
+#include "Mud.fxh"
+
 struct VertexInput
 {
 	float4 Position : POSITION0;
@@ -192,7 +204,8 @@ float3 ShadowPosition(float4x4 lightViewProjection, float3 world)
 	return float3(shadow.x * 0.5 + 0.5, -shadow.y * 0.5 + 0.5, shadow.z);
 }
 
-VertexOutput MainVS(VertexInput input)
+// The vertex of a part drawn lit; Local and Plane for the noise laid on a block (a surface) or on a model (the mud)
+VertexOutput LitVS(VertexInput input, bool muddy)
 {
 	VertexOutput output;
 	float4 world = mul(input.Position, World);
@@ -204,9 +217,22 @@ VertexOutput MainVS(VertexInput input)
 	output.DeepShadow = ShadowPosition(DeepLightViewProjection, world.xyz + normal * DeepNormalOffset);
 	output.Screen = output.Position;
 	output.ToCar = LightOrigin - world.xyz;
-	// Read only by the techniques of the surfaces
-	SurfaceCoordinates(world.xyz, normal, output.Local, output.Plane);
+	// Read only by the techniques of the surfaces and of the mud
+	if (muddy)
+		MudCoordinates(input.Position, input.Normal, output.Local, output.Plane);
+	else
+		SurfaceCoordinates(world.xyz, normal, output.Local, output.Plane);
 	return output;
+}
+
+VertexOutput MainVS(VertexInput input)
+{
+	return LitVS(input, false);
+}
+
+VertexOutput MudVS(VertexInput input)
+{
+	return LitVS(input, true);
 }
 
 float UnpackDepth(float4 packed)
@@ -289,8 +315,8 @@ float3 Mirrored(float3 direction, float roughness)
 }
 
 // The lit colour of a pixel, with the shadows filtered smoothly or coarsely (see Sunlight), of a surface (or
-// SURFACE_NONE, the plain colour of the material) at a detail; all three are numbers written in the technique
-float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
+// SURFACE_NONE, the plain colour of the material) at a detail, muddy or not; all four are written in the technique
+float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool muddy)
 {
 	float3 normal = normalize(input.Normal);
 	float distance = length(input.ToCamera);
@@ -303,6 +329,8 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 	float3 albedo = DiffuseColor;
 	float specular = Specular;
 	float sheen = 1.0;
+	float metallic = Metallic;
+	float roughness = Roughness;
 	if (surface != SURFACE_NONE)
 	{
 		SurfaceLook look = SurfaceOf(SurfaceSampler, surface, detail, DiffuseColor, normal, input.Plane, input.Local);
@@ -311,6 +339,16 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 		specular *= look.Shine;
 		// A matte surface (earth) has little of the rim too, which lined the walls of its ruts seen edge-on
 		sheen = look.Shine;
+	}
+	if (muddy)
+	{
+		MudLook mud = MudOver(SurfaceSampler, albedo, normal, metallic, roughness, input.Plane, input.Local, detail);
+		albedo = mud.Albedo;
+		normal = mud.Normal;
+		metallic = mud.Metallic;
+		roughness = mud.Roughness;
+		specular *= mud.Shine;
+		sheen = mud.Shine;
 	}
 	float facing = saturate(dot(normal, SunDirection));
 
@@ -329,14 +367,14 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 	// the surface. Metal mirrors all the light in its own colour (blurred if rough), other materials
 	// 4 % of it and only if smooth; all of them mirror more at grazing angles. Metal has no diffuse
 	// light, its glint takes the place of the highlight.
-	float smoothness = 1.0 - Roughness;
+	float smoothness = 1.0 - roughness;
 	float3 reflected = reflect(-view, normal);
-	float3 reflectance = lerp(0.04, albedo, Metallic);
+	float3 reflectance = lerp(0.04, albedo, metallic);
 	reflectance += (1.0 - reflectance) * pow(1.0 - saturate(dot(normal, view)), 5.0);
 	float glintPower = exp2(4.0 + smoothness * 7.0);
 	float glint = pow(saturate(dot(reflected, SunDirection)), glintPower) * glintPower * 0.05 * sunlit;
-	float3 mirror = (Mirrored(reflected, Roughness) * occlusion + SunColor * glint) * reflectance * lerp(smoothness, 1.0, Metallic);
-	float diffuse = 1.0 - Metallic;
+	float3 mirror = (Mirrored(reflected, roughness) * occlusion + SunColor * glint) * reflectance * lerp(smoothness, 1.0, metallic);
+	float diffuse = 1.0 - metallic;
 	highlight *= diffuse;
 	rim *= diffuse;
 
@@ -362,12 +400,12 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail)
 
 float4 MainPS(VertexOutput input) : COLOR0
 {
-	return Shade(input, true, SURFACE_NONE, SURFACE_LOW);
+	return Shade(input, true, SURFACE_NONE, SURFACE_LOW, false);
 }
 
 float4 CoarseShadowsPS(VertexOutput input) : COLOR0
 {
-	return Shade(input, false, SURFACE_NONE, SURFACE_LOW);
+	return Shade(input, false, SURFACE_NONE, SURFACE_LOW, false);
 }
 
 // The scene lit, with smooth shadows (desktops)
@@ -392,13 +430,21 @@ technique LitCoarseShadows
 
 // The techniques of the surfaces: Lit<Surface><Detail> with the smooth shadows, LitCoarseShadows<Surface><Detail> with
 // the coarse ones (see Shade)
-#define SURFACE_TECHNIQUE(name, smooth, surface, detail) 	float4 name##PS(VertexOutput input) : COLOR0 	{ 		return Shade(input, smooth, surface, detail); 	} 	technique name 	{ 		pass P0 		{ 			VertexShader = compile VS_SHADERMODEL MainVS(); 			PixelShader = compile PS_SHADERMODEL name##PS(); 		} 	};
+#define SURFACE_TECHNIQUE(name, smooth, surface, detail) 	float4 name##PS(VertexOutput input) : COLOR0 	{ 		return Shade(input, smooth, surface, detail, false); 	} 	technique name 	{ 		pass P0 		{ 			VertexShader = compile VS_SHADERMODEL MainVS(); 			PixelShader = compile PS_SHADERMODEL name##PS(); 		} 	};
 
 #define SURFACE_TECHNIQUES(name, surface) 	SURFACE_TECHNIQUE(Lit##name##Low, true, surface, SURFACE_LOW) 	SURFACE_TECHNIQUE(Lit##name##Medium, true, surface, SURFACE_MEDIUM) 	SURFACE_TECHNIQUE(Lit##name##High, true, surface, SURFACE_HIGH) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##Low, false, surface, SURFACE_LOW) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##Medium, false, surface, SURFACE_MEDIUM) 	SURFACE_TECHNIQUE(LitCoarseShadows##name##High, false, surface, SURFACE_HIGH)
 
 SURFACE_TECHNIQUES(Asphalt, SURFACE_ASPHALT)
 SURFACE_TECHNIQUES(Earth, SURFACE_EARTH)
 SURFACE_TECHNIQUES(Grass, SURFACE_GRASS)
+
+// The techniques of the mud: Lit<Mud><Detail> and LitCoarseShadowsMud<Detail>, Medium and High
+#define MUD_TECHNIQUE(name, smooth, detail) 	float4 name##PS(VertexOutput input) : COLOR0 	{ 		return Shade(input, smooth, SURFACE_NONE, detail, true); 	} 	technique name 	{ 		pass P0 		{ 			VertexShader = compile VS_SHADERMODEL MudVS(); 			PixelShader = compile PS_SHADERMODEL name##PS(); 		} 	};
+
+MUD_TECHNIQUE(LitMudMedium, true, SURFACE_MEDIUM)
+MUD_TECHNIQUE(LitMudHigh, true, SURFACE_HIGH)
+MUD_TECHNIQUE(LitCoarseShadowsMudMedium, false, SURFACE_MEDIUM)
+MUD_TECHNIQUE(LitCoarseShadowsMudHigh, false, SURFACE_HIGH)
 
 struct DepthOutput
 {

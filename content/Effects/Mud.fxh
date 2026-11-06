@@ -1,0 +1,96 @@
+// The mud on the car (#60): a part of the car (its body, a wheel, the holder of an axle) with mud on it is drawn by the
+// technique LitMud<Detail> or LitCoarseShadowsMud<Detail> (Scene.fx), which lays the mud over the colour and the finish
+// of its material: the colour of the earth, matt, darker where it is thick, with a little relief at the high detail.
+// How much mud the part has (MudAmount, 0 clean to 1) comes from the game (GameObjects/CarMud.cs), where it lies from
+// here.
+//
+// Where it lies is worked out in the model's own coordinates (MudSpace): the mud stays where it is on a turning wheel,
+// and it is laid the same way on every car and wheel without their models marking anything. A wheel and the holder of an
+// axle get it all over; the body (MudBody 1) first around and behind its axles (MudAxles, where the physics holds them)
+// and on its lower parts, then further up as the amount grows. The cars share the layout of the physics and are about the
+// same size, so the distances are in model units. Splashes rather than a layer: blotches where the mottle of the noise of
+// the surfaces (Surfaces.fxh), laid on the model, reaches above an edge that drops as the amount grows, and specks of its
+// cellular noise thrown around them.
+//
+// The coordinates of a model stay small (a few units), so the half precision of a phone's pixel shader keeps them.
+//
+// Functions and constants only: the uniforms they read are declared by the includer (Scene.fx), before it includes this
+// file, after Surfaces.fxh.
+
+// Tiles of the noise a model unit (the blotches and the specks) and how many times as often the fine lookup repeats
+#define MUD_COARSE (1.0 / 6.0)
+#define MUD_FINE 4.0
+
+// The look of the mud at a pixel, over the material: its colour (linear), the normal and the finish
+struct MudLook
+{
+	float3 Albedo;
+	float3 Normal;
+	float Metallic;
+	float Roughness;
+	float Shine;
+};
+
+// For the vertex shader: the position of a point in the model's own coordinates, and its coordinates on the plane of its
+// face (by the normal in the model) for the coarse lookup (xy) and the fine one (zw)
+void MudCoordinates(float4 position, float3 normal, out float3 local, out float4 plane)
+{
+	local = mul(position, MudSpace).xyz;
+	float3 axes = SurfaceAxes(mul(normal, (float3x3)MudSpace));
+	float2 onPlane = (axes.x * local.xz + axes.y * local.xy + axes.z * local.zy) * MUD_COARSE;
+	plane = float4(onPlane, onPlane * MUD_FINE);
+}
+
+// How readily the mud gathers at a point of the model, 0 to 1: on a wheel most on the tyre (the wheels of the physics are
+// MUD_WHEEL units round), less towards the middle; on the body most around its axles and behind them (the car faces -x
+// of its model, the wheels throw the mud back), and on its lower parts
+#define MUD_WHEEL 0.7
+float MudExposure(float3 local)
+{
+	float wheel = lerp(0.3, 0.75, saturate(length(local.xy) / MUD_WHEEL));
+	float2 front = local.xy - MudAxles.xy;
+	float2 rear = local.xy - MudAxles.zw;
+	front.x *= front.x > 0.0 ? 0.55 : 1.0;
+	rear.x *= rear.x > 0.0 ? 0.55 : 1.0;
+	float near = saturate(1.6 - min(length(front), length(rear)) / 1.5);
+	float axles = (MudAxles.y + MudAxles.w) * 0.5;
+	float low = saturate((axles + 2.0 - local.y) / 2.4);
+	return lerp(wheel, max(low * 0.85, near), MudBody);
+}
+
+// The normal tilted by the slope of a relief laid on the model: the tilt is worked out in the model's own coordinates (the
+// noise turns with a wheel, so does its relief) and turned back into the world
+float3 MudTilt(float3 normal, float2 slope)
+{
+	float3x3 toWorld = (float3x3)World;
+	float3 own = normalize(mul(toWorld, normal));
+	return normalize(mul(SurfaceTilt(own, slope), toWorld));
+}
+
+// The mud over a material at a pixel
+MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, float roughness, float4 plane, float3 local, int detail)
+{
+	float4 coarse = tex2D(noise, plane.xy);
+	float4 fine = tex2D(noise, plane.zw);
+	// The blotches: where the exposure with the mottle reaches above the edge, which drops as the amount grows; none on
+	// a clean part
+	float reach = MudExposure(local) + (coarse.r * 0.7 + fine.r * 0.3 - 0.5) * 0.8;
+	float edge = 1.25 - MudAmount * 1.5;
+	float cover = 1.0 - SurfaceBelow(reach, edge, 0.02);
+	// The specks thrown around them, uneven
+	float specks = SurfaceBelow(coarse.a + (fine.r - 0.5) * 0.2, 0.12, 0.02) * (1.0 - SurfaceBelow(reach, edge - 0.25, 0.05));
+	cover = max(cover, specks) * saturate(MudAmount * 20.0);
+	// Thicker further in: wetter and darker; the thin edges dried lighter
+	float thick = saturate((reach - edge) * 3.0);
+
+	MudLook look;
+	float3 mud = MudColor * lerp(0.85, 1.15, fine.r) * lerp(1.3, 0.85, thick);
+	look.Albedo = lerp(albedo, mud, cover);
+	look.Normal = normal;
+	if (detail >= SURFACE_HIGH)
+		look.Normal = MudTilt(normal, SurfaceSlope(fine) * (0.25 + 0.35 * thick) * cover);
+	look.Metallic = metallic * (1.0 - cover);
+	look.Roughness = lerp(roughness, 0.95, cover);
+	look.Shine = lerp(1.0, 0.3, cover);
+	return look;
+}

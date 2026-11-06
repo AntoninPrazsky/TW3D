@@ -40,6 +40,8 @@
     <Compile Include="..\..\src\TW3D.Game\Graphics\Surface.cs" Link="Game\Surface.cs" />
     <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceDetail.cs" Link="Game\SurfaceDetail.cs" />
     <Compile Include="..\..\src\TW3D.Game\Graphics\SurfaceNoise.cs" Link="Game\SurfaceNoise.cs" />
+    <!-- How muddy the car gets on the earth of the off-road track -->
+    <Compile Include="..\..\src\TW3D.Game\GameObjects\CarMud.cs" Link="Game\CarMud.cs" />
     <!-- The settings of the game and the colours of the cars chosen in the garage (the palette) -->
     <Compile Include="..\..\src\TW3D.Game\GameSettings.cs" Link="Game\GameSettings.cs" />
     <Compile Include="..\..\src\TW3D.Game\CarColours.cs" Link="Game\CarColours.cs" />

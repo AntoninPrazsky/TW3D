@@ -84,6 +84,7 @@ namespace TW3D.GamePlay
         private SkidMarks skidMarks;
         private TyreSmoke smoke;
         private DirtSpray dirt;
+        private CarMud mud;
         //How many pieces of earth the tyres throw up (#59): fewer at a lower detail of the surfaces
         private float DirtDensity => renderer.SurfaceDetail switch { SurfaceDetail.Low => 0.4f, SurfaceDetail.Medium => 0.7f, _ => 1f };
         private ExhaustSmoke exhaust;
@@ -222,7 +223,7 @@ namespace TW3D.GamePlay
             controls = new OnScreenControls();
             controls.LoadContent(Manager.Content, Manager.Pixel);
             speedometer = new Speedometer(Manager.GraphicsDevice);
-            developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood, car.TurnOver);
+            developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood, car.TurnOver, MudStep);
             if (testLevel == null && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
@@ -230,6 +231,8 @@ namespace TW3D.GamePlay
             skidMarks = new SkidMarks(physics, level.SurfaceOf);
             smoke = new TyreSmoke();
             dirt = new DirtSpray(GameSpeed, world.Gravity.Y);
+            mud = new CarMud();
+            car.Mud = mud;
             exhaust = new ExhaustSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);
 
@@ -322,7 +325,7 @@ namespace TW3D.GamePlay
                 car.SlippingWheels(slipping, SlipSpeed);
                 skidMarks.Update(realElapsed, car, slipping);
                 smoke.Update(realElapsed, car, slipping);
-                dirt.Update(realElapsed, car, DirtDensity);
+                dirt.Update(realElapsed, car, DirtDensity, mud);
                 exhaust.Update(realElapsed, car, throttleHeld);
                 impacts.Update(realElapsed);
                 speedometer.Update(Speedometer.Kmh(car.Speed, GameSpeed), realElapsed);
@@ -425,6 +428,9 @@ namespace TW3D.GamePlay
         /// Opens the pause menu. The level stands still while the menu is on top of it
         /// (the simulation runs only while this screen has the focus).
         /// </summary>
+        /// <summary>The next step of the mud on the car (the development key B): a quarter more, from all of it clean again.</summary>
+        private void MudStep() => mud.Set(mud.Body >= 0.99f ? 0f : MathF.Floor(mud.Body * 4f + 1.01f) / 4f);
+
         private void Pause()
         {
             tutorial?.Paused();
