@@ -38,6 +38,14 @@ namespace TW3D.Editor
                 Edit(hidden, report, selectTool.Turn);
             if (ImGui.MenuItem("Mirror", "H", false, selected))
                 Edit(hidden, report, selectTool.Mirror);
+            //The style of the selected blocks: the level's, a style, or a transition between two (left to right unturned)
+            if (ImGui.BeginMenu("Style", selected))
+            {
+                foreach (string style in StyleNames.BlockStyles(level.Catalog))
+                    if (ImGui.MenuItem(StyleNames.Name(style)))
+                        Edit(hidden, report, () => selectTool.SetStyle(style));
+                ImGui.EndMenu();
+            }
             if (ImGui.MenuItem("Move to the layer behind", "Ctrl+PageUp", false, selected))
                 Edit(hidden, report, () => selectTool.MoveToLayer(-1));
             if (ImGui.MenuItem("Move to the layer in front", "Ctrl+PageDown", false, selected))

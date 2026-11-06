@@ -48,7 +48,7 @@ namespace TW3D.Editor
         private PlacedBlock strokePlaced;
         //The preview of the block to be placed, and what it was found for
         private PlacedBlock preview;
-        private (EditedLevel, int, Layer, Cell, string, bool, int, bool) previewKey;
+        private (EditedLevel, int, Layer, Cell, string, bool, int, bool, string) previewKey;
 
         /// <param name="camera">The camera, panned along with the cursor moved by the arrows.</param>
         /// <param name="report">Gets a note of what was done, or the reason of a refusal, for the status bar.</param>
@@ -80,6 +80,12 @@ namespace TW3D.Editor
         public int Shift { get; private set; }
 
         /// <summary>
+        /// The style the placed blocks get (the style switch of the Palette, see <see cref="BlockPlacement.Style"/>); null
+        /// for none of their own: they take the style of the level.
+        /// </summary>
+        public string Style { get; set; }
+
+        /// <summary>
         /// The chosen block is placed turned round (T, or a turned block picked). It stays when another block is chosen,
         /// but only a block that turns is placed turned: see <see cref="PlacesTurned"/>.
         /// </summary>
@@ -106,7 +112,7 @@ namespace TW3D.Editor
         {
             if (level == null || InStroke)
                 return null;
-            var key = (level, level.Version, layer, Cursor, Block, PlacesTurned, Shift, RoadMode);
+            var key = (level, level.Version, layer, Cursor, Block, PlacesTurned, Shift, RoadMode, Style);
             if (key == previewKey)
                 return preview;
             previewKey = key;
@@ -121,8 +127,9 @@ namespace TW3D.Editor
             if (RoadMode && layer == Layer.Middle && type.IsRoad)
                 shift = level.RoadShift(Cursor, Block, turned, Shift, false, out cell);
             PlacedBlock existing = level.BlockAt(layer, cell);
-            if (existing == null || existing.Name != Block || existing.Shift != shift || existing.Turned != turned)
-                preview = new PlacedBlock(cell, Block, shift, false, turned);
+            string style = type.HasLook(Style) ? Style : null;
+            if (existing == null || existing.Name != Block || existing.Shift != shift || existing.Turned != turned || existing.Style != style)
+                preview = new PlacedBlock(cell, Block, shift, false, turned, style);
             return preview;
         }
 
@@ -331,7 +338,9 @@ namespace TW3D.Editor
 
                 //The document records nothing when the same block with the same shift and turn is there already
                 int version = level.Version;
-                string reason = level.Place(layer, cell, Block, shift, turned);
+                //A block without a look in the chosen style takes the style of the level
+                string style = level.Catalog.FindBlock(Block)?.HasLook(Style) == true ? Style : null;
+                string reason = level.Place(layer, cell, Block, shift, turned, style);
                 if (reason != null)
                     report(reason);
                 else if (note)

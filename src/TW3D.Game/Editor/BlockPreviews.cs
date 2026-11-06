@@ -50,6 +50,8 @@ namespace TW3D.Editor
 
         private readonly GraphicsDevice device;
         private readonly ImGuiRenderer imgui;
+        private readonly LevelAssets assets;
+        private string style;
         private readonly List<Preview> previews = new List<Preview>();
         private readonly Dictionary<string, int> blockIndices = new Dictionary<string, int>();
         private readonly Dictionary<string, int> objectModelIndices = new Dictionary<string, int>();
@@ -67,6 +69,7 @@ namespace TW3D.Editor
         {
             this.device = device;
             this.imgui = imgui;
+            this.assets = assets;
             foreach (BlockType block in assets.Catalog.Blocks)
             {
                 blockIndices.Add(block.Name, previews.Count);
@@ -95,6 +98,23 @@ namespace TW3D.Editor
             if (preview.Bounds.Radius <= 0f)
                 preview.Bounds.Radius = Units.BlockModelSize / 2f;
             return preview;
+        }
+
+        /// <summary>
+        /// The style the previews of the blocks show (the style switch of the Palette, or the style of the level): the
+        /// blocks that have a look in it show their look, the others their classic model. Null for the classic one.
+        /// </summary>
+        public string Style
+        {
+            get => style;
+            set
+            {
+                if (value == style)
+                    return;
+                style = value;
+                foreach (BlockType block in assets.Catalog.Blocks)
+                    previews[blockIndices[block.Name]] = Describe(assets.BlockModel(block, value));
+            }
         }
 
         /// <summary>The id of the atlas for ImGui.Image and ImGui.ImageButton; valid after the first <see cref="Draw"/>.</summary>

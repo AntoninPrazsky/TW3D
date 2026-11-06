@@ -44,7 +44,7 @@ namespace TW3D.Editor
             Separate();
             ImGui.Text("Tool: " + ToolNames[(int)activeTool]);
             Separate();
-            ImGui.Text($"Block: {tool.ChosenName}, shift {tool.Shift}");
+            ImGui.Text($"Block: {tool.ChosenName}, shift {tool.Shift}" + (tool.Style != null ? ", style " + StyleNames.Name(tool.Style).ToLowerInvariant() : ""));
             if (tool.RoadMode)
             {
                 ImGui.SameLine();

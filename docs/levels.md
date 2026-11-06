@@ -134,7 +134,11 @@ depth relative to the layer), T turns the selected blocks round in their cells (
 ones back; blocks that do not turn stay as they are) and the selected props by a quarter,
 and H mirrors it left to right, turning every block that turns round, so that a climb becomes
 a descent (the barriers `bl2` and `bl2f`, `bl2s` and `bl2sf`, which are mirror images of each
-other, swap), and turning the props as their mirror images. Ctrl+PageUp /
+other, swap), and turning the props as their mirror images. Edit > Style gives the selected
+blocks a style of their own, as the style switch of the Palette gives it to the placed ones (*The level's* takes it away), in one step of undo; the
+blocks without a look in the style stay as they are, and the status bar says how many took
+it. A road passing from one style into another needs a block with the look of the
+transition where the styles meet. Ctrl+PageUp /
 Ctrl+PageDown (Edit > Move to the layer behind / in front) move the selection into the
 next layer behind or in front, in the same cells, the props as far in depth; that layer
 becomes the active one and the selection stays. A block of that layer in a cell they come to
@@ -149,19 +153,26 @@ Controls window.
 
 - **Palette** shows every block of the catalog as a turning 3D preview, in the groups of
   the [catalog page](catalog/catalog.html) and searchable by name; a click makes the block
-  the chosen one and the Place tool active. Decorations are greyed out while the middle
+  the chosen one and the Place tool active. Its style switch (*Style: The level's* at the
+  top) gives the placed blocks a style of their own: classic, off-road, or a transition
+  between two, left to right as the block is placed unturned (*Off-road to classic*: the
+  dirt road ends at the right edge of the block); a block without a look in it takes the
+  level's. The previews show the blocks in that style (or the level's), and the status bar
+  names it after the chosen block. Decorations are greyed out while the middle
   layer is active. Its Objects tab shows the models of the dynamic objects, and a click
   makes one the chosen object and the Object tool active; its Scenery tab does the same for
   the props of the scenery and the Scenery tool.
 - **Inspector** shows what the active tool works on: the block at the cursor cell of the
-  active layer (its name and whether it is turned, its cell, shift and whether it is the
-  finish, and the surface heights of a road block), the selected blocks (how many, and the
+  active layer (its name and whether it is turned, its style, its own or the level's, its
+  cell, shift and whether it is the finish, and the surface heights of a road block), the selected blocks (how many, and the
   cells they span) with buttons that turn, mirror and delete them, the selected object with its type, model and position,
   which can be typed (each edit one step of undo), and a button that removes it, or the
   selected prop with its position and depth to type, its turn as four buttons and a button
   that removes it (without a selection, the depth and the turn of the props to be added).
 - **Level** is everything about the level that is not a block. It shows the name of the
   level (the full path as a tooltip) and edits the mood (Day, Sunset or Night, at once), the
+  style of the track (Classic or Off-road, at once: the blocks with a look in it are drawn
+  so, the others classic; see [the level format](#level-format)), the
   position in the level select (the checkbox *In the level select*, and the number; levels
   without one come after the others, sorted by name) and the par time (the checkbox *Par
   time* and the seconds; while the level has none, the window says what the game estimates,

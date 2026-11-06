@@ -104,6 +104,7 @@ namespace TW3D.Editor
             ("PageUp / PageDown", "Shift the selected blocks up / down"),
             ("T", "Turn the selected blocks round in their cells (the turned ones back), and the selected props by a quarter"),
             ("H", "Mirror the selection left to right: the blocks are turned round (bl2 and bl2f swap), the props turn as their mirror images"),
+            ("Edit > Style", "Give the selected blocks a style: the level's, classic, off-road, or a transition between two (left to right as placed unturned); the blocks without a look in it stay as they are"),
             ("Delete", "Erase the selected blocks and props"),
             ("Ctrl+C / Ctrl+X / Ctrl+V", "Copy / cut the selection; paste it with its leftmost (lowest) cell at the cursor cell (the pasted blocks and props are selected; decorations are skipped in the middle layer)"),
             ("Ctrl+PageUp / Ctrl+PageDown", "Move the selection into the layer behind / in front, in the same cells (the props go as far in depth); that layer becomes the active one. Decorations do not go into the middle layer, and the finish stays there")

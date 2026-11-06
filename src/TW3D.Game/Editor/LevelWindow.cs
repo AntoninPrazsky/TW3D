@@ -86,6 +86,19 @@ namespace TW3D.Editor
                 ImGui.EndCombo();
             }
 
+            //The style of the track: every block with a look in it is drawn so, unless it has a style of its own
+            if (ImGui.BeginCombo("Style", StyleNames.Name(level.Style ?? Catalog.ClassicStyle)))
+            {
+                foreach (string style in StyleNames.LevelStyles(level.Catalog))
+                {
+                    if (ImGui.Selectable(StyleNames.Name(style ?? Catalog.ClassicStyle), style == level.Style))
+                        level.SetStyle(style);
+                }
+                ImGui.EndCombo();
+            }
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("The style of the track: the blocks that have a look in it are drawn so,\nthe others classic. A block can have a style of its own (Edit > Style).");
+
             bool ordered = level.Order.HasValue;
             if (ImGui.Checkbox("In the level select", ref ordered))
                 level.SetOrder(ordered ? FirstOrder : null);

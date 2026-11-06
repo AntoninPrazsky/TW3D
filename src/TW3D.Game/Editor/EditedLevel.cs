@@ -762,6 +762,39 @@ namespace TW3D.Editor
                 Record("Mood", () => mood = value, () => mood = previous);
         }
 
+        /// <summary>
+        /// Sets the style of the track (see <see cref="LevelData.Style"/>; null for the classic one); nothing is recorded
+        /// when it does not change.
+        /// </summary>
+        public void SetStyle(string value)
+        {
+            string previous = style;
+            if (value != previous)
+                Record("Style", () => style = value, () => style = previous);
+        }
+
+        /// <summary>
+        /// Sets the style of blocks of a layer as one step (null: the style of the level), of each that has a look in it
+        /// (see <see cref="BlockType.HasLook"/>); returns how many could take it. Nothing is recorded when none changes.
+        /// </summary>
+        public int StyleBlocks(Layer layer, IReadOnlyList<PlacedBlock> blocks, string value)
+        {
+            List<PlacedBlock> styled = InLayer(layer, blocks).Where(block => catalog.FindBlock(block.Name)?.HasLook(value) == true).ToList();
+            List<PlacedBlock> changed = styled.Where(block => block.Style != value).ToList();
+            if (changed.Count > 0)
+            {
+                List<string> previous = changed.Select(block => block.Style).ToList();
+                Record("Style " + StyleNames.Name(value).ToLowerInvariant(),
+                    () => changed.ForEach(block => block.Style = value),
+                    () =>
+                    {
+                        for (int i = 0; i < changed.Count; i++)
+                            changed[i].Style = previous[i];
+                    });
+            }
+            return styled.Count;
+        }
+
         /// <summary>Sets the position of the level in the level select; nothing is recorded when it does not change.</summary>
         public void SetOrder(int? value)
         {

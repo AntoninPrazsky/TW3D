@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Numerics;
 using ImGuiNET;
+using TW3D.Shared;
 
 namespace TW3D.Editor
 {
@@ -86,7 +87,8 @@ namespace TW3D.Editor
                 ImGui.Text("Road gaps: " + placeTool.Level.RoadGaps().Count);
                 return;
             }
-            ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : "") + (block.Style != null ? ", style " + block.Style : ""));
+            ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : ""));
+            ImGui.Text("Style: " + (block.Style != null ? StyleNames.Name(block.Style) : StyleNames.Name(placeTool.Level.Style ?? Catalog.ClassicStyle) + " (the level's)"));
             ImGui.Text($"Cell: {cell.X}, {cell.Y} ({layer.Name()} layer)");
             ImGui.Text($"Shift: {block.Shift}");
             ImGui.Text(block.Finish ? "Finish: yes" : "Finish: no");

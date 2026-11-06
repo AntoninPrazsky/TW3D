@@ -474,6 +474,26 @@ namespace TW3D.Editor
         }
 
         /// <summary>
+        /// Gives the selected blocks a style (Edit > Style; null: the style of the level), in one step of undo; the blocks
+        /// without a look in it stay as they are.
+        /// </summary>
+        public void SetStyle(string style)
+        {
+            if (selected.Count == 0)
+            {
+                report("No block is selected.");
+                return;
+            }
+            int styled = level.StyleBlocks(layer, selected, style);
+            int left = selected.Count - styled;
+            string name = StyleNames.Name(style).ToLowerInvariant();
+            if (styled == 0)
+                report($"None of the selected blocks has a look in the style {name}.");
+            else
+                report($"Style {name}: {styled} {(styled == 1 ? "block" : "blocks")}" + (left == 0 ? "." : $"; {left} without a look in it."));
+        }
+
+        /// <summary>
         /// Flips the selection left to right around the middle of its cells, turning the blocks that turn round (and
         /// swapping the others for their mirrored variants, bl2 and bl2f) and turning the props as their mirror images, in
         /// one step of undo (H, the Inspector).

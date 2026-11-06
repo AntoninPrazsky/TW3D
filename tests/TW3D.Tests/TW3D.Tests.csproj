@@ -46,6 +46,7 @@
     <!-- The document of the level editor: the level being edited, with undo and redo -->
     <Compile Include="..\..\src\TW3D.Game\Editor\Layer.cs" Link="Game\Layer.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\EditedLevel.cs" Link="Game\EditedLevel.cs" />
+    <Compile Include="..\..\src\TW3D.Game\Editor\StyleNames.cs" Link="Game\StyleNames.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\RoadGap.cs" Link="Game\RoadGap.cs" />
     <Compile Include="..\..\src\TW3D.Game\Editor\LevelReport.cs" Link="Game\LevelReport.cs" />
     <!-- The files of the editor: the levels folder, the remembered settings, the action waiting for "Save changes?" -->

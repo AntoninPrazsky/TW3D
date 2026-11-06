@@ -178,6 +178,21 @@ namespace TW3D.Editor
 
         private void DrawBlocks(BlockTool tool, Layer layer, int cellSize, float buttonWidth, ref int hovered)
         {
+            //The style switch: the style the placed blocks get (the level's when none), which the previews show
+            if (tool.Level != null)
+            {
+                ImGui.SetNextItemWidth(-1f);
+                if (ImGui.BeginCombo("##style", "Style: " + StyleNames.Name(tool.Style)))
+                {
+                    foreach (string style in StyleNames.BlockStyles(tool.Level.Catalog))
+                        if (ImGui.Selectable(StyleNames.Name(style), style == tool.Style))
+                            tool.Style = style;
+                    ImGui.EndCombo();
+                }
+                if (ImGui.IsItemHovered())
+                    ImGui.SetTooltip("The style the placed blocks get: the level's (none of their own), a style, or a\ntransition from one style to another, left to right as the block is placed unturned.\nA block without a look in it takes the level's.");
+                previews.Style = tool.Style ?? tool.Level.Style;
+            }
             ImGui.SetNextItemWidth(-1f);
             ImGui.InputTextWithHint("##search", "Search", ref search, SearchLength);
             bool middle = layer == Layer.Middle;
