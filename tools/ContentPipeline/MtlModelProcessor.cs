@@ -22,7 +22,8 @@ namespace TW3D.ContentPipeline
     /// and "grass…". It keeps them in the Tag of the mesh parts of the material as a float[]: metallic, roughness, lamp
     /// (0 = none, 1 = headlight, 2 = rear light, 3 = street lamp, 4 = start light, 5 = lit window), paint (0 = none,
     /// 1 = primary, 2 = secondary, 3 = rim) and surface (0 = none, 1 = asphalt, 2 = earth, 3 = grass). A material with none of them
-    /// gets no tag. It can also mirror a model and keep its triangles (the parameters Mirrored and Surface).
+    /// gets no tag. It can also mirror a model and keep its triangles (the parameters Mirrored and Surface). It turns the
+    /// normals of the vertices that face away from the faces they belong to (see <see cref="FaceNormalsOut"/>).
     /// </summary>
     [ContentProcessor(DisplayName = "Model - TW3D (metal and lamps from MTL)")]
     public class MtlModelProcessor : ModelProcessor
@@ -56,6 +57,9 @@ namespace TW3D.ContentPipeline
             convertedFinishes.Clear();
             if (Mirrored)
                 MeshHelper.TransformScene(input, Matrix.CreateScale(-1f, 1f, 1f));
+            int turned = FaceNormalsOut(input);
+            if (turned > 0)
+                context.Logger.LogMessage("{0}: turned {1} normals that faced away from their faces", input.Identity?.SourceFilename, turned);
             List<Vector3> triangles = null;
             if (Surface)
                 AddTriangles(input, triangles = new List<Vector3>());
@@ -72,6 +76,53 @@ namespace TW3D.ContentPipeline
                 }
             }
             return model;
+        }
+
+        /// <summary>
+        /// Turns the normal of each vertex that faces away from the faces it belongs to, in the meshes of a node and its
+        /// children; returns how many it turned. Some old models have faces wound outwards (they are drawn from outside)
+        /// whose normals point into the model: such a face is lit as its back is, which the matt mud on the car (and its
+        /// rim of light at grazing angles) showed as lighter patches (#60). Whether a face is wound one way or the other is
+        /// taken from most of the faces of its geometry; a vertex shared by faces of both ways follows the larger of them.
+        /// </summary>
+        private static int FaceNormalsOut(NodeContent node)
+        {
+            int turned = 0;
+            if (node is MeshContent mesh)
+            {
+                foreach (GeometryContent geometry in mesh.Geometry)
+                {
+                    if (!geometry.Vertices.Channels.Contains(VertexChannelNames.Normal()))
+                        continue;
+                    VertexChannel<Vector3> normals = geometry.Vertices.Channels.Get<Vector3>(VertexChannelNames.Normal());
+                    IList<Vector3> positions = geometry.Vertices.Positions;
+                    //For each vertex: the area of its faces its normal agrees with, less the area of those it does not
+                    float[] votes = new float[normals.Count];
+                    for (int i = 0; i + 2 < geometry.Indices.Count; i += 3)
+                    {
+                        int a = geometry.Indices[i], b = geometry.Indices[i + 1], c = geometry.Indices[i + 2];
+                        Vector3 face = Vector3.Cross(positions[b] - positions[a], positions[c] - positions[a]);
+                        float area = face.Length();
+                        foreach (int v in new[] { a, b, c })
+                            votes[v] += Vector3.Dot(face, normals[v]) >= 0f ? area : -area;
+                    }
+                    //Which way the faces of the geometry are wound against their normals, by most of them
+                    float wound = 0f;
+                    foreach (float vote in votes)
+                        wound += vote;
+                    for (int v = 0; v < votes.Length; v++)
+                    {
+                        if (votes[v] * wound < 0f)
+                        {
+                            normals[v] = -normals[v];
+                            turned++;
+                        }
+                    }
+                }
+            }
+            foreach (NodeContent child in node.Children)
+                turned += FaceNormalsOut(child);
+            return turned;
         }
 
         /// <summary>Adds the corners of the triangles of the meshes of a node and its children, where the model has them.</summary>

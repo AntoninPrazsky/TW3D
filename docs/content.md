@@ -37,6 +37,11 @@ model. The looks of the off-road style are earth (`earth`, `earthrut`, `earthban
 draws the grey road of the classic blocks as the test surfaces, and `tools/CatalogRender`
 renders a block so (`render --surface asphalt`).
 
+The processor turns the normal of a vertex that faces away from the faces it belongs to (most of
+the faces of its geometry decide which way they are wound): a few old models had faces drawn from
+outside with their normals pointing into the model, lit as their backs are, which the matt mud
+on the car showed as lighter patches.
+
 The models of the dynamic objects are built with the parameter `Surface` of the processor:
 it keeps their triangles in the model (its `Tag`), as the game cannot read the vertices back
 from the graphics card on Android. The skid marks of the tyres lie on that surface

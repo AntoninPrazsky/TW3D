@@ -344,9 +344,13 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 		// A matte surface (earth) has little of the rim too, which lined the walls of its ruts seen edge-on
 		sheen = look.Shine;
 	}
+	// The mud scatters the light it gets more evenly than the paint: less of the sun, more of the sky and the ground, so
+	// that it looks of one colour in the sun and in the shade (MUD_SUN, MUD_AMBIENT of Mud.fxh)
+	float softened = 0.0;
 	if (muddy)
 	{
 		MudLook mud = MudOver(SurfaceSampler, albedo, normal, metallic, roughness, input.Plane, input.Local, detail);
+		softened = mud.Cover;
 		albedo = mud.Albedo;
 		normal = mud.Normal;
 		metallic = mud.Metallic;
@@ -393,7 +397,8 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 		spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
 	}
 
-	float3 light = albedo * diffuse * (SunColor * sun + ambient + spot) + SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
+	float3 light = albedo * diffuse * (SunColor * sun * lerp(1.0, MUD_SUN, softened) + ambient * lerp(1.0, MUD_AMBIENT, softened) + spot)
+		+ SunColor * highlight + RimLight * rim + mirror + EmissiveColor;
 	float3 color = pow(Filmic(light * Exposure), 1.0 / 2.2);
 
 	float haze = saturate((distance - Haze.x) * Haze.y) * Haze.z;

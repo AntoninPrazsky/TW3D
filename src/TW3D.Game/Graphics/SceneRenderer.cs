@@ -244,9 +244,8 @@ namespace TW3D.Graphics
         private ShadowDetail shadowMapDetail;
         private int shadowMapSize, deepShadowMapSize;
         private Vector2 shadowCover, deepShadowCover;
-        //The marks on the track for this frame (see SetMarks) and what draws them
-        private VertexPositionColor[] marks;
-        private int markTriangles;
+        //The marks on the track for this frame (see AddMarks) and what draws them
+        private readonly List<(VertexPositionColor[] Vertices, int Triangles)> marks = new List<(VertexPositionColor[], int)>();
         private BasicEffect markEffect;
         //The smoke for this frame (see AddSmoke) and what draws it: soft puffs facing the camera
         private readonly List<(Vector3 Centre, float Radius, float Opacity, Vector3 Tint)> puffs = new List<(Vector3, float, float, Vector3)>();
@@ -543,7 +542,7 @@ namespace TW3D.Graphics
         {
             this.view = view;
             this.projection = projection;
-            markTriangles = 0;
+            marks.Clear();
             puffs.Clear();
             debris.Clear();
             eye = Matrix.Invert(view).Translation;
@@ -559,28 +558,35 @@ namespace TW3D.Graphics
         }
 
         /// <summary>
-        /// Marks lying on the track (the skid marks of the tyres): triangles of dark, half transparent vertices (colours
-        /// premultiplied by their alpha), drawn over the track and under the glass, unlit. For this frame (see Begin).
+        /// Marks lying on the track (the skid marks and the tracks of mud of the tyres): triangles of half transparent
+        /// vertices (colours premultiplied by their alpha), drawn over the track and under the glass, in a haze of the
+        /// light of the scene (as the pieces of earth are: a black mark stays black). For this frame (see Begin); each
+        /// call adds a set of them.
         /// </summary>
-        public void SetMarks(VertexPositionColor[] vertices, int triangles)
+        public void AddMarks(VertexPositionColor[] vertices, int triangles)
         {
-            marks = vertices;
-            markTriangles = triangles;
+            if (triangles > 0)
+                marks.Add((vertices, triangles));
         }
+
+        /// <summary>The light the marks and the pieces of earth take: bright by day, warm at sunset, dark at night.</summary>
+        private Vector3 HazeLight => Classic ? new Vector3(0.85f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.7f), 0.35f) * 1.3f;
 
         private void DrawMarks()
         {
-            if (markTriangles == 0)
+            if (marks.Count == 0)
                 return;
             markEffect ??= new BasicEffect(device) { VertexColorEnabled = true, LightingEnabled = false, TextureEnabled = false };
             markEffect.World = Matrix.Identity;
             markEffect.View = view;
             markEffect.Projection = projection;
+            markEffect.DiffuseColor = HazeLight;
             device.BlendState = BlendState.AlphaBlend;
             device.DepthStencilState = DepthStencilState.DepthRead;
             device.RasterizerState = RasterizerState.CullNone;
             markEffect.CurrentTechnique.Passes[0].Apply();
-            device.DrawUserPrimitives(PrimitiveType.TriangleList, marks, 0, markTriangles);
+            foreach ((VertexPositionColor[] vertices, int triangles) in marks)
+                device.DrawUserPrimitives(PrimitiveType.TriangleList, vertices, 0, triangles);
             device.BlendState = BlendState.Opaque;
             device.DepthStencilState = DepthStencilState.Default;
             device.RasterizerState = RasterizerState.CullCounterClockwise;
@@ -967,7 +973,7 @@ namespace TW3D.Graphics
                 return;
             Matrix camera = Matrix.Invert(view);
             Vector3 right = camera.Right, up = camera.Up;
-            Vector3 light = Classic ? new Vector3(0.85f) : Vector3.Lerp(Lighting.HazeColor, new Vector3(0.7f), 0.35f) * 1.3f;
+            Vector3 light = HazeLight;
             debris.Sort((a, b) => Vector3.DistanceSquared(b.Centre, eye).CompareTo(Vector3.DistanceSquared(a.Centre, eye)));
             debrisVertices.Clear();
             foreach ((Vector3 centre, float radius, Vector3 tint, float alpha) in debris)

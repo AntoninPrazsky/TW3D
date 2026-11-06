@@ -7,8 +7,9 @@ namespace TW3D.GameObjects
     /// their tyres, the holder of the axle and the body collect mud while the wheels are on the earth of the off-road track,
     /// a little standing or rolling slowly, more the faster they roll, much more sliding or spinning, and a splash at each
     /// hard landing; the treads get it twice as fast, the body a part of it, and a transition block gives half as much.
-    /// Off the earth the wheels wash clean as they roll on (the treads in a few seconds, the rest of the wheels in about
-    /// twenty), faster spinning or sliding; the body and the holders keep their mud for the rest of the run. The wheels
+    /// Off the earth the wheels wash clean as they roll on (the treads in several seconds, leaving tracks of mud behind,
+    /// see <see cref="TyreMarks.Mud"/>; the rest of the wheels in about twenty), faster spinning or sliding; the body and
+    /// the holders keep their mud for the rest of the run. The wheels
     /// report to it as they throw the earth up (<see cref="DirtSpray"/>, which measures the sliding, the rolling and the
     /// landings). A new run, and the garage, start clean. Each amount grows by a part of what is still clean and washes by a
     /// part of what is muddy, so it stays between 0 and 1. Pure arithmetic, tested without the physics.
@@ -29,7 +30,7 @@ namespace TW3D.GameObjects
         //full roll) and sliding (all of it at the full slide); the treads this many times as fast
         public const float WashRollRate = 0.05f;
         public const float WashSlideRate = 0.1f;
-        public const float TreadWash = 5f;
+        public const float TreadWash = 1.5f;
 
         //The front axle and the rear one
         private readonly float[] wheels = new float[2], treads = new float[2], holders = new float[2];

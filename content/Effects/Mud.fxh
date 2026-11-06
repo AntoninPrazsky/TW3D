@@ -21,6 +21,12 @@
 #define MUD_COARSE (1.0 / 6.0)
 #define MUD_FINE 4.0
 
+// How much of the light of the sun and of the sky and the ground the mud takes (Scene.fx): its rough crumbs scatter
+// the light more evenly than a painted face does, and dried mud looks of one colour in the sun and in the shade
+// (taken fully, the faces turned to the sun looked of a lighter mud than the rest)
+#define MUD_SUN 0.65
+#define MUD_AMBIENT 1.7
+
 // The look of the mud at a pixel, over the material: its colour (linear), the normal and the finish
 struct MudLook
 {
@@ -29,6 +35,7 @@ struct MudLook
 	float Metallic;
 	float Roughness;
 	float Shine;
+	float Cover;    // how much of the material the mud covers, 0 to 1
 };
 
 // For the vertex shader: the position of a point in the model's own coordinates, and its coordinates on the plane of its
@@ -102,5 +109,6 @@ MudLook MudOver(sampler2D noise, float3 albedo, float3 normal, float metallic, f
 	look.Metallic = metallic * (1.0 - cover);
 	look.Roughness = lerp(roughness, 0.95, cover);
 	look.Shine = lerp(1.0, 0.3, cover);
+	look.Cover = cover;
 	return look;
 }

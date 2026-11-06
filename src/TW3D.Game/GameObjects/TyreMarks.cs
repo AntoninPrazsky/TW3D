@@ -10,23 +10,33 @@ using TW3D.Shared;
 namespace TW3D.GameObjects
 {
     /// <summary>
-    /// The marks the tyres leave where they slip (sliding braked or spinning): dark strips under each slipping wheel, on
-    /// both sides of the car (each wheel of the physics is a pair of wheels, one on each side), fading away after a while.
+    /// The marks the tyres leave on what they roll over, strips under the wheels on both sides of the car (each wheel of the
+    /// physics is a pair of wheels, one on each side), fading away after a while: the dark skid marks where the tyres slip
+    /// (sliding braked or spinning, <see cref="Skid"/>), and the tracks of the mud the tyres carry off the earth of the
+    /// off-road track onto the clean road (<see cref="Mud"/>), fainter as the treads wipe clean (see <see cref="CarMud"/>).
     /// They lie on what the wheel stands on, the track or an object, and move with it. On an object they lie on the
     /// surface of its model, found across the tyre where the mark grows: they bend over its rims and end where it ends
     /// (the physics knows only its outline, a barrel is shorter than the car is wide).
     /// </summary>
-    sealed class SkidMarks
+    sealed class TyreMarks
     {
-        //How long a mark stays (seconds), fading out over the last part of it; how dark it is at first, slipping at least
-        //this fast (physics units a second; slower, it is lighter, down to a share of it)
+        //How long a mark stays (seconds), fading out over the last part of it
         private const float Life = 20f;
         private const float FadeTime = 5f;
-        private const float Darkness = 0.55f;
+        //The skid marks: how dark they are at first, slipping at least this fast (physics units a second; slower, lighter,
+        //down to a share of it), and how much fainter on the earth (a rut dug rather than rubber left)
+        private const float SkidDarkness = 0.55f;
         private const float FullSlip = 25f;
         private const float LightestShare = 0.4f;
-        //How much fainter a mark on the earth is
         private const float EarthFaint = 0.45f;
+        //The tracks of the mud: how much of the road they cover with all the mud on the treads (more than the share of the
+        //mud: a little mud still smears the road), and less than this they leave none; how much less some pieces of them
+        //cover, at random, so that they are smears rather than stripes; their colour (sRGB: the earth of the off-road
+        //blocks drying on the road, lighter and browner than the grey of the asphalt, or it would hardly show there)
+        private const float MudOpacity = 0.85f;
+        private const float LeastMud = 0.01f;
+        private const float MudPatchiness = 0.45f;
+        private static readonly Vector3 MudColour = new Vector3(0.52f, 0.39f, 0.25f);
         //How wide a mark is (scene units: a little narrower than the tyres) and how far above what it lies on, so that it
         //does not flicker with it
         private const float Width = 0.16f;
@@ -37,21 +47,17 @@ namespace TW3D.GameObjects
         private const int SurfacePoints = 9;
         private const float Above = 0.0625f;
         private const float Below = 0.0625f;
-        //A mark grows by a piece when its wheel has moved this far over the ground (physics units); a wheel further away
-        //than this (it bounced) starts a new mark, as does a wheel that stopped slipping for longer than this (seconds;
-        //shorter, it only lost the ground for a moment)
-        private const float Step = 0.5f;
+        //A wheel further away than this from the end of its mark (physics units: it bounced) starts a new mark, as does a
+        //wheel that stopped laying it for longer than this (seconds; shorter, it only lost the ground for a moment)
         private const float Gap = 5f;
         private const float Pause = 0.15f;
-        //The oldest pieces go when there are more than this many
-        private const int MaxPieces = 800;
 
         //A piece of a mark: the cross sections of the mark at its ends, on its ground
         private struct Piece
         {
             public Body Ground;
             public Vector3?[] From, To;
-            public float Darkness;
+            public float Opacity;
             public float Age;
         }
 
@@ -66,26 +72,58 @@ namespace TW3D.GameObjects
 
         private readonly PhysicsClock physics;
         private readonly Func<Body, ModelSurface> surfaceOf;
+        //The colour of the marks (sRGB), the length of a piece (physics units: a mark grows by a piece when its wheel has
+        //moved this far over the ground) and the most pieces there are (the oldest go first)
+        private readonly Vector3 colour;
+        private readonly float step;
+        private readonly int maxPieces;
+        //How much less some pieces cover, at random (0 for every piece alike)
+        private readonly float patchiness;
+        private readonly Random random = new Random(60);
         private readonly List<Piece> pieces = new List<Piece>();
-        //Where the mark of each wheel of the physics ends, null while it does not slip; how long it has not slipped
+        //Where the mark of each wheel of the physics ends, null while it lays none; how long it has laid none
         private readonly End?[] ends = new End?[Car.WheelCount];
         private readonly float[] stopped = new float[Car.WheelCount];
-        private readonly bool[] slipped = new bool[Car.WheelCount];
+        private readonly bool[] laid = new bool[Car.WheelCount];
         private readonly ModelSurface.Hit?[] hits = new ModelSurface.Hit?[SurfacePoints];
         private VertexPositionColor[] vertices = new VertexPositionColor[0];
 
         /// <param name="physics">Where the bodies are drawn, as the marks move with them.</param>
         /// <param name="surfaceOf">The surface of the model of a body the car may stand on, in the coordinates of the model; null where it lies flat on the outline of the body (the track).</param>
-        public SkidMarks(PhysicsClock physics, Func<Body, ModelSurface> surfaceOf)
+        private TyreMarks(PhysicsClock physics, Func<Body, ModelSurface> surfaceOf, Vector3 colour, float step, int maxPieces, float patchiness)
         {
             this.physics = physics;
             this.surfaceOf = surfaceOf;
+            this.colour = colour;
+            this.step = step;
+            this.maxPieces = maxPieces;
+            this.patchiness = patchiness;
         }
 
-        /// <summary>Ages the marks and lengthens those of the wheels slipping now.</summary>
+        /// <summary>The dark skid marks of the tyres slipping (fed by <see cref="SkidStrength"/>).</summary>
+        public static TyreMarks Skid(PhysicsClock physics, Func<Body, ModelSurface> surfaceOf) => new TyreMarks(physics, surfaceOf, Vector3.Zero, 0.5f, 800, 0f);
+
+        /// <summary>The tracks of the mud of the tyres on the clean road (fed by <see cref="MudStrength"/>): longer pieces, as they follow every rolling wheel, and patchy.</summary>
+        public static TyreMarks Mud(PhysicsClock physics, Func<Body, ModelSurface> surfaceOf) => new TyreMarks(physics, surfaceOf, MudColour, 1.5f, 2000, MudPatchiness);
+
+        /// <summary>How dark the skid mark of a slipping wheel is: darker the faster it slips, fainter on the earth.</summary>
+        public static float SkidStrength(WheelSlip slip) =>
+            SkidDarkness * MathHelper.Clamp(slip.Speed / FullSlip, LightestShare, 1f) * (1f - EarthFaint * DirtSpray.EarthOf(slip.Ground));
+
+        /// <summary>How much a wheel on the ground marks it with mud: none on the earth, elsewhere by the mud on its treads.</summary>
+        public static float MudStrength(WheelSlip wheel, CarMud mud)
+        {
+            if (DirtSpray.EarthOf(wheel.Ground) > 0f)
+                return 0f;
+            float tread = mud.Treads(Car.IsFrontWheel(wheel.Wheel));
+            return tread < LeastMud ? 0f : MudOpacity * MathF.Sqrt(tread);
+        }
+
+        /// <summary>Ages the marks and lengthens those of the wheels laying one now.</summary>
         /// <param name="elapsed">Real seconds since the last update.</param>
-        /// <param name="slipping">The wheels slipping (see <see cref="Car.SlippingWheels"/>).</param>
-        public void Update(float elapsed, Car car, List<WheelSlip> slipping)
+        /// <param name="wheels">The wheels on the ground that may lay a mark (see <see cref="Car.SlippingWheels"/>).</param>
+        /// <param name="strength">How strong the mark of a wheel is now, 0 to 1; 0 lays none.</param>
+        public void Update(float elapsed, Car car, List<WheelSlip> wheels, Func<WheelSlip, float> strength)
         {
             for (int i = pieces.Count - 1; i >= 0; i--)
             {
@@ -97,38 +135,38 @@ namespace TW3D.GameObjects
                     pieces[i] = piece;
             }
 
-            Array.Clear(slipped);
-            foreach (WheelSlip slip in slipping)
+            Array.Clear(laid);
+            foreach (WheelSlip wheel in wheels)
             {
-                slipped[slip.Wheel] = true;
-                Vector2 at = slip.Ground.GetLocalPoint(slip.Point);
+                float opacity = strength(wheel);
+                if (opacity <= 0f)
+                    continue;
+                laid[wheel.Wheel] = true;
+                Vector2 at = wheel.Ground.GetLocalPoint(wheel.Point);
                 End? previous = null;
-                if (ends[slip.Wheel] is End end && end.Ground == slip.Ground)
+                if (ends[wheel.Wheel] is End end && end.Ground == wheel.Ground)
                 {
                     float distance = Vector2.Distance(at, end.Point);
-                    if (distance < Step)
+                    if (distance < step)
                         continue;
                     if (distance <= Gap)
                         previous = end;
                 }
-                Vector3?[] section = Section(slip.Ground, at, slip.Ground.GetLocalVector(slip.Up), car.WheelSide(slip.Wheel));
+                Vector3?[] section = Section(wheel.Ground, at, wheel.Ground.GetLocalVector(wheel.Up), car.WheelSide(wheel.Wheel));
                 if (previous is End from)
-                {
-                    //On the earth of the off-road track a tyre digs a darker rut rather than leaving rubber: a fainter mark
-                    float darkness = Darkness * MathHelper.Clamp(slip.Speed / FullSlip, LightestShare, 1f) * (1f - EarthFaint * DirtSpray.EarthOf(slip.Ground));
-                    pieces.Add(new Piece { Ground = slip.Ground, From = from.Section, To = section, Darkness = darkness });
-                }
-                ends[slip.Wheel] = new End { Ground = slip.Ground, Point = at, Section = section };
+                    pieces.Add(new Piece { Ground = wheel.Ground, From = from.Section, To = section,
+                        Opacity = opacity * (1f - patchiness * (float)random.NextDouble()) });
+                ends[wheel.Wheel] = new End { Ground = wheel.Ground, Point = at, Section = section };
             }
             for (int wheel = 0; wheel < ends.Length; wheel++)
             {
-                stopped[wheel] = slipped[wheel] ? 0f : stopped[wheel] + elapsed;
+                stopped[wheel] = laid[wheel] ? 0f : stopped[wheel] + elapsed;
                 if (stopped[wheel] > Pause)
                     ends[wheel] = null;
             }
 
-            if (pieces.Count > MaxPieces)
-                pieces.RemoveRange(0, pieces.Count - MaxPieces);
+            if (pieces.Count > maxPieces)
+                pieces.RemoveRange(0, pieces.Count - maxPieces);
         }
 
         /// <summary>
@@ -186,7 +224,8 @@ namespace TW3D.GameObjects
             foreach (Piece piece in pieces)
             {
                 float fade = MathHelper.Clamp((Life - piece.Age) / FadeTime, 0f, 1f);
-                Color colour = Color.Black * (piece.Darkness * fade);
+                //Premultiplied by its alpha
+                Color tint = new Color(colour) * (piece.Opacity * fade);
                 //Where its ground is drawn (as its model is: see GameObject.ModelWorld)
                 Matrix ground = Matrix.CreateRotationZ(physics.Rotation(piece.Ground)) * Matrix.CreateTranslation(Local(physics.Position(piece.Ground)));
                 int points = piece.From.Length / 2;
@@ -198,15 +237,15 @@ namespace TW3D.GameObjects
                         continue;
                     Vector3 a = Vector3.Transform(fromNear, ground), b = Vector3.Transform(toNear, ground);
                     Vector3 c = Vector3.Transform(toFar, ground), d = Vector3.Transform(fromFar, ground);
-                    vertices[count++] = new VertexPositionColor(a, colour);
-                    vertices[count++] = new VertexPositionColor(b, colour);
-                    vertices[count++] = new VertexPositionColor(c, colour);
-                    vertices[count++] = new VertexPositionColor(a, colour);
-                    vertices[count++] = new VertexPositionColor(c, colour);
-                    vertices[count++] = new VertexPositionColor(d, colour);
+                    vertices[count++] = new VertexPositionColor(a, tint);
+                    vertices[count++] = new VertexPositionColor(b, tint);
+                    vertices[count++] = new VertexPositionColor(c, tint);
+                    vertices[count++] = new VertexPositionColor(a, tint);
+                    vertices[count++] = new VertexPositionColor(c, tint);
+                    vertices[count++] = new VertexPositionColor(d, tint);
                 }
             }
-            renderer.SetMarks(vertices, count / 3);
+            renderer.AddMarks(vertices, count / 3);
         }
     }
 }

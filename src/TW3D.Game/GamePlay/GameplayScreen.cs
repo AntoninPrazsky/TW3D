@@ -81,7 +81,10 @@ namespace TW3D.GamePlay
         //The marks and the smoke of the tyres, and the wheels slipping now (sliding braked or spinning faster than this
         //over what they stand on, physics units a second)
         private const float SlipSpeed = 8f;
-        private SkidMarks skidMarks;
+        private TyreMarks skidMarks, mudTracks;
+        //The wheels on the ground (for the tracks of mud) and how strongly each marks it with mud
+        private readonly List<WheelSlip> grounded = new List<WheelSlip>();
+        private Func<WheelSlip, float> mudStrength;
         private TyreSmoke smoke;
         private DirtSpray dirt;
         private CarMud mud;
@@ -228,11 +231,13 @@ namespace TW3D.GamePlay
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
             carSounds = new CarSounds(Manager.Sounds, car);
-            skidMarks = new SkidMarks(physics, level.SurfaceOf);
+            skidMarks = TyreMarks.Skid(physics, level.SurfaceOf);
+            mudTracks = TyreMarks.Mud(physics, level.SurfaceOf);
             smoke = new TyreSmoke();
             dirt = new DirtSpray(GameSpeed, world.Gravity.Y);
             mud = new CarMud();
             car.Mud = mud;
+            mudStrength = wheel => TyreMarks.MudStrength(wheel, mud);
             exhaust = new ExhaustSmoke();
             impacts = new ImpactSounds(world, Manager.Sounds);
 
@@ -323,7 +328,9 @@ namespace TW3D.GamePlay
             if (running)
             {
                 car.SlippingWheels(slipping, SlipSpeed);
-                skidMarks.Update(realElapsed, car, slipping);
+                skidMarks.Update(realElapsed, car, slipping, TyreMarks.SkidStrength);
+                car.SlippingWheels(grounded, 0f);
+                mudTracks.Update(realElapsed, car, grounded, mudStrength);
                 smoke.Update(realElapsed, car, slipping);
                 dirt.Update(realElapsed, car, DirtDensity, mud);
                 exhaust.Update(realElapsed, car, throttleHeld);
@@ -502,6 +509,7 @@ namespace TW3D.GamePlay
             if (!developmentKeys.TrackOnly)
                 car.Draw(renderer);
             level.Draw(renderer);
+            mudTracks.Draw(renderer);
             skidMarks.Draw(renderer);
             smoke.Draw(renderer);
             dirt.Draw(renderer);

@@ -50,7 +50,8 @@ pieces at a lower Surface detail. And the car gets muddy there (#60): first the 
 wheels, then the lower part of the body around and behind the axles, then further up, the more
 the longer it drives on the earth, the faster, and the more it slides, spins and lands hard. Off
 the earth the wheels wash clean as they roll on (the treads in a few seconds, the rest of the
-wheels in about twenty at full speed); the body keeps its mud for the rest of the run. Every
+wheels in about twenty at full speed), and leave tracks of mud on the road and on the objects
+until the treads are clean; the body keeps its mud for the rest of the run. Every
 run, and the garage, start with a clean car. The mud is not drawn at the low Surface detail.
 The choices are saved with the options, the wheels and the colours for each car; a car whose
 wheels were never chosen comes with its own.
@@ -131,7 +132,7 @@ The tyres screech while they slip over what they stand on, the track or an objec
 than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding (with the ABS only
 short chirps), or wheels spinning at a launch or landing from a jump; louder and higher the
 faster they slip. Where they
-slip, they leave dark skid marks (`GameObjects/SkidMarks.cs`: under the wheels on both sides
+slip, they leave dark skid marks (`GameObjects/TyreMarks.cs`: under the wheels on both sides
 of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
 fading away after 20 seconds; on an object they lie on the surface of its model, over its rims,
 and end where it ends, so they do not hang in the air past the ends of a barrel, which is shorter

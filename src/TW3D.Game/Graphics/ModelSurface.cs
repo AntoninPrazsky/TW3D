@@ -8,7 +8,7 @@ namespace TW3D.Graphics
     /// <summary>
     /// The surface of a model: where rays meet it. Made of the triangles the content pipeline keeps in the Tag of the
     /// models built with its parameter Surface (tools/ContentPipeline/MtlModelProcessor.cs), in the coordinates of the
-    /// model. The skid marks of the tyres lie on it (see <see cref="GameObjects.SkidMarks"/>).
+    /// model. The skid marks of the tyres lie on it (see <see cref="GameObjects.TyreMarks"/>).
     /// </summary>
     sealed class ModelSurface
     {
