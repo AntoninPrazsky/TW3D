@@ -31,12 +31,12 @@ namespace TW3D.GameObjects
         private const float FullSlip = 25f;
         private const float LightestShare = 0.4f;
         private const float EarthFaint = 0.45f;
-        //The tracks of the mud: how much of the road they cover with all the mud on the treads (more than the share of the
-        //mud: a little mud still smears the road), and less than this they leave none; how much less some pieces of them
+        //The tracks of the mud: how much of the road they cover with all the mud on the treads (fainter as the treads wipe
+        //clean, as much less as there is less mud on them), and less than this they leave none; how much less some pieces of them
         //cover, at random, so that they are smears rather than stripes; their colour (sRGB: the earth of the off-road
         //blocks drying on the road, lighter and browner than the grey of the asphalt, or it would hardly show there)
         private const float MudOpacity = 0.85f;
-        private const float LeastMud = 0.01f;
+        private const float LeastMud = 0.03f;
         private const float MudPatchiness = 0.45f;
         private static readonly Vector3 MudColour = new Vector3(0.52f, 0.39f, 0.25f);
         //How wide a mark is (scene units: a little narrower than the tyres) and how far above what it lies on, so that it
@@ -126,7 +126,7 @@ namespace TW3D.GameObjects
             if (DirtSpray.EarthOf(wheel.Ground) > 0f)
                 return 0f;
             float tread = mud.Treads(Car.IsFrontWheel(wheel.Wheel));
-            return tread < LeastMud ? 0f : MudOpacity * MathF.Sqrt(tread);
+            return tread < LeastMud ? 0f : MudOpacity * tread;
         }
 
         /// <summary>Ages the marks and lengthens those of the wheels laying one now.</summary>

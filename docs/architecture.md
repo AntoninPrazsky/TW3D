@@ -166,8 +166,7 @@ earth; the shader darkens wet mud and gives it a little gloss, thick mud staying
 What the treads wipe off is left on the road: `GameObjects/TyreMarks` lays the marks of the
 tyres, the dark skid marks where they slip and the tracks of the mud where a wheel with mud on
 its tread rolls off the earth, light brown smears (each piece a little more or less covering, at
-random) as strong as the square root of the mud on the treads, so they fade as the treads wipe
-clean. Both lie on what the wheel stands on, the track or the surface of an object's model, and
+random) as strong as the mud on the treads, so they fade as the treads wipe clean. Both lie on what the wheel stands on, the track or the surface of an object's model, and
 move with it; the renderer draws them in a haze of the light of the scene, so a brown track is
 dark at night. A mark grows by a piece sooner where the ground turns, so that it follows a bend,
 and starts anew where the wheel goes up or down a step or round a sharp corner, so that no piece
