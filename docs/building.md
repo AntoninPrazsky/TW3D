@@ -71,8 +71,17 @@ On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the
 at 1280×720 (until another Resolution is chosen in Options), scaled up to the screen, with
 the user interface at the full resolution over it, without multisampling and without ambient occlusion by default (Options can switch them on)
 and with a smaller shadow map (the low Shadow detail, which it keeps): its GPU drew a level at 1920×1080 with the graphics of a
-desktop in 49 ms a frame. A level then holds 60 frames per second, the garage of the menus
-about 45.
+desktop in 49 ms a frame. Frames per second by the Resolution of Options, measured in full
+screen at 1920×1080 (off screen, 2026-11-09):
+
+| Resolution | The garage | lock (day) | docks (night, with the lamps) |
+|---|---|---|---|
+| 1920 × 1080 (native) | 19 | 39 | 27 |
+| 1600 × 900 | 24 | 44 | 31 |
+| 1280 × 720 (the default) | 32 | 55 | 40 |
+| 960 × 540 | 45 | 60 | 53 |
+
+Antialiasing costs it about 18 ms a frame more at 1280 × 720 (lock 23 frames per second).
 
 ## Tests and CI
 
