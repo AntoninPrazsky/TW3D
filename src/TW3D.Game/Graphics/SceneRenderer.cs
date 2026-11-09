@@ -1459,17 +1459,21 @@ namespace TW3D.Graphics
             effect.Parameters["MirroredHorizon"].SetValue(ToLinear(lighting.HazeColor) * MirroredHorizon);
             effect.Parameters["MirroredGround"].SetValue(lighting.GroundLight * MirroredGroundLight);
             CollectStreetLights();
+            //The shader skips the lamps that are off, and all of them by one branch when none shines (by day)
+            bool lightsOn = false;
             for (int i = 0; i < LightCount; i++)
             {
                 float level = lights[i] == Lamp.None ? 0f : LampGlow(lights[i]);
                 if (lights[i] == Lamp.RearLight && !lighting.Headlights)
                     level *= RearLightDaylight;
                 lightLevels[i] = lightColours[i] * level;
+                lightsOn |= lightLevels[i] != Vector3.Zero;
             }
             effect.Parameters["LightOrigin"].SetValue(carPosition);
             effect.Parameters["LightOffset"].SetValue(lightOffsets);
             effect.Parameters["LightDirection"].SetValue(lightDirections);
             effect.Parameters["LightColor"].SetValue(lightLevels);
+            effect.Parameters["LightsOn"].SetValue(lightsOn ? 1f : 0f);
 
             effect.Parameters["ViewProjection"].SetValue(view * projection);
             effect.Parameters["CameraPosition"].SetValue(eye);
