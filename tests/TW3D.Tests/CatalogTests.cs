@@ -55,6 +55,20 @@ namespace TW3D.Tests
         }
 
         /// <summary>
+        /// Every block says what it is and belongs to a group of the Palette, and the blocks of a group stand together in the
+        /// catalog, so that the Palette, the catalog page and choosing the next block of the catalog (in the editor) agree.
+        /// </summary>
+        [Fact]
+        public void EveryBlockHasATitleAndAGroupAndTheGroupsStandTogether()
+        {
+            Assert.All(catalog.Blocks, block => Assert.False(string.IsNullOrWhiteSpace(block.Title), block.Name + " has no title"));
+            Assert.All(catalog.Blocks, block => Assert.False(string.IsNullOrWhiteSpace(block.Group), block.Name + " has no group"));
+            List<string> runs = catalog.Blocks.Select(block => block.Group)
+                .Where((group, i) => i == 0 || group != catalog.Blocks[i - 1].Group).ToList();
+            Assert.Equal(runs.Distinct().Count(), runs.Count);
+        }
+
+        /// <summary>
         /// A block that turns has no model of its own for its other direction: the level generator names it turned with
         /// an "f" after its name, which would be ambiguous. And it is a block of the track, with a collision shape.
         /// </summary>

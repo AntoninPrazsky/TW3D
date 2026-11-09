@@ -12,6 +12,18 @@ namespace TW3D.Shared
         public string Name { get; set; }
 
         /// <summary>
+        /// What the block is, in a few words ("Slope, 4 steps a cell (24°)"): the editor shows it with the name (the
+        /// Palette's tooltip and search, the Inspector) and the catalog page beside the picture.
+        /// </summary>
+        public string Title { get; set; }
+
+        /// <summary>
+        /// The family of the block ("Slopes"): the Palette of the editor shows the blocks in these groups, in the order the
+        /// groups first appear in the catalog, as the catalog page does. A block without one goes to the last group.
+        /// </summary>
+        public string Group { get; set; }
+
+        /// <summary>
         /// The block has a collision shape (generated from its model, see <see cref="CollisionShapes"/>),
         /// so it can be placed in the middle (physics) layer. Blocks without it are decoration for the back and front layers only.
         /// </summary>

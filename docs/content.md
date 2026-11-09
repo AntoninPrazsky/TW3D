@@ -328,8 +328,11 @@ as it is).
 `content/catalog.json` lists everything the levels are built from, and the cars, for both
 the game and the editor:
 
-- **blocks**: the name (model `Levels/mod/<name>`) and whether the block has a
-  collision shape (`collision`). Only blocks with a collision shape can be in the
+- **blocks**: the name (model `Levels/mod/<name>`), what the block is in a few words
+  (`title`, shown by the Palette and the Inspector of the editor and on the catalog page),
+  its `group` (the Palette and the catalog page show the blocks in these groups, in the
+  order they first appear in the catalog, so the blocks of a group stand together) and
+  whether the block has a collision shape (`collision`). Only blocks with a collision shape can be in the
   middle (physics) layer; the others are decoration for the back layers (up to three cells
   behind the road) and the front layer.
   A road block also has a `profile`, `[left, right]`: the height of the road surface

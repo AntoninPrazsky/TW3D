@@ -88,6 +88,9 @@ namespace TW3D.Editor
                 return;
             }
             ImGui.Text("Block: " + block.Name + (block.Turned ? ", turned" : ""));
+            string title = placeTool.Level.Catalog.FindBlock(block.Name)?.Title;
+            if (!string.IsNullOrEmpty(title))
+                ImGui.TextWrapped(title);
             ImGui.Text("Style: " + (block.Style != null ? StyleNames.Name(block.Style) : StyleNames.Name(placeTool.Level.Style ?? Catalog.ClassicStyle) + " (the level's)"));
             //Where the road passes into another style, the block is drawn as the transition
             string look = placeTool.Level.LookOf(layer, block);

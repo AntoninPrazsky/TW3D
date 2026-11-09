@@ -8,7 +8,7 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// The Palette window of the editor: the blocks of the catalog as the turning previews of the
-    /// <see cref="BlockPreviews"/>, in the groups (the families of the blocks) of the catalog page docs/catalog/catalog.html
+    /// <see cref="BlockPreviews"/>, in the groups of the catalog (<see cref="BlockType.Group"/>, as on the catalog page)
     /// as collapsing headers, found by a search box; a click makes one the chosen block of the <see cref="BlockTool"/>
     /// and the Place tool the active one. Decorations (blocks without a collision shape) are disabled while the middle
     /// layer is active, as the document refuses them there. A second tab shows the models of the dynamic objects by
@@ -18,28 +18,10 @@ namespace TW3D.Editor
     /// </summary>
     sealed class PaletteWindow
     {
-        //The families of the blocks in the order of the catalog page, each with its blocks in the order of the page;
-        //a block of the catalog that is in none of them goes to the last group. The page has no tu3s, which is a
-        //tunnel like the others. A block that turns has one preview: T turns the chosen block
-        private static readonly (string Group, string[] Blocks)[] Families =
-        {
-            ("A", new[] { "a1" }),
-            ("B", new[] { "b1", "b2", "b3", "b4" }),
-            ("C", new[] { "c1", "c2", "c3" }),
-            ("D", new[] { "d1", "d2", "d3" }),
-            ("S", new[] { "s1" }),
-            ("BA", new[] { "ba1", "ba2" }),
-            ("U", new[] { "u1" }),
-            ("T", new[] { "t1" }),
-            ("TU", new[] { "tu1s", "tu2s", "tu3s", "tu1v", "tu3v", "tu2v" }),
-            ("XA", new[] { "xa1", "xa2", "xa3", "xa4", "xa5", "xa6", "xa7" }),
-            ("KEA", new[] { "kea1a", "kea1b", "kea1c", "kea1d", "kea1e", "kea1f" }),
-            ("SB", new[] { "sb", "g", "sg", "st", "st2" }),
-            ("BL", new[] { "bl1", "bl2", "bl2f", "bl1s", "bl2s", "bl2sf", "za" }),
-            ("LO", new[] { "lo" })
-        };
+        //A block of the catalog without a group goes to the last group. A block that turns has one preview: T turns the
+        //chosen block
         private const string OtherGroup = "Other";
-        private const string DecorationNote = " (decoration: back or front layers only)";
+        private const string DecorationNote = "\nDecoration: back or front layers only";
         //The frame of the chosen preview: the colour of its button and of the border drawn around it
         private static readonly Vector4 ChosenButton = new Vector4(0.26f, 0.59f, 0.98f, 0.7f);
         private static readonly Vector4 ChosenBorder = new Vector4(1f, 0.85f, 0.2f, 1f);
@@ -84,25 +66,19 @@ namespace TW3D.Editor
         {
             this.previews = previews;
             this.activate = activate;
-            HashSet<string> grouped = new HashSet<string>();
-            foreach ((string name, string[] blocks) in Families)
-            {
-                Group group = new Group { Name = name };
-                foreach (string block in blocks)
-                {
-                    BlockType type = catalog.FindBlock(block);
-                    if (type == null)
-                        continue;
-                    grouped.Add(block);
-                    group.Entries.Add(BlockEntry(type));
-                }
-                if (group.Entries.Count > 0)
-                    blockGroups.Add(group);
-            }
+            //The groups of the catalog in the order they first appear in it, each block in the order of the catalog
             Group other = new Group { Name = OtherGroup };
             foreach (BlockType type in catalog.Blocks)
-                if (!grouped.Contains(type.Name))
-                    other.Entries.Add(BlockEntry(type));
+            {
+                Group group = other;
+                if (!string.IsNullOrEmpty(type.Group))
+                {
+                    group = blockGroups.Find(g => g.Name == type.Group);
+                    if (group == null)
+                        blockGroups.Add(group = new Group { Name = type.Group });
+                }
+                group.Entries.Add(BlockEntry(type));
+            }
             if (other.Entries.Count > 0)
                 blockGroups.Add(other);
 
@@ -120,7 +96,9 @@ namespace TW3D.Editor
 
         private Entry BlockEntry(BlockType type)
         {
-            return new Entry { Preview = previews.BlockIndex(type.Name), Block = type, Label = type.Name, DisabledLabel = type.Name + DecorationNote };
+            //"b2: Slope, 4 steps a cell (24°)": the tooltip, and what the search looks in
+            string label = string.IsNullOrEmpty(type.Title) ? type.Name : type.Name + ": " + type.Title;
+            return new Entry { Preview = previews.BlockIndex(type.Name), Block = type, Label = label, DisabledLabel = label + DecorationNote };
         }
 
         /// <summary>

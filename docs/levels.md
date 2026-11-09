@@ -154,8 +154,9 @@ menu shows and hides the Palette, the Inspector and the Level window, and F1 sho
 Controls window.
 
 - **Palette** shows every block of the catalog as a turning 3D preview, in the groups of
-  the [catalog page](catalog/catalog.html) and searchable by name; a click makes the block
-  the chosen one and the Place tool active. Its style switch (*Style: The level's* at the
+  the catalog (Slopes, Tunnels...; as on the [catalog page](catalog/catalog.html)), with what
+  the block is as a tooltip ("b2: Slope, 4 steps a cell (24°)"), and searchable by both; a
+  click makes the block the chosen one and the Place tool active. Its style switch (*Style: The level's* at the
   top) gives the placed blocks a style of their own: classic, off-road, or a transition
   between two, left to right as the block is placed unturned (*Off-road to classic*: the
   dirt road ends at the right edge of the block); a block without a look in it takes the
@@ -165,7 +166,7 @@ Controls window.
   makes one the chosen object and the Object tool active; its Scenery tab does the same for
   the props of the scenery and the Scenery tool.
 - **Inspector** shows what the active tool works on: the block at the cursor cell of the
-  active layer (its name and whether it is turned, its style, its own or the level's, its
+  active layer (its name, what it is and whether it is turned, its style, its own or the level's, its
   cell, shift and whether it is the finish, and the surface heights of a road block), the selected blocks (how many, and the
   cells they span) with buttons that turn, mirror and delete them, the selected object with its type, model and position,
   which can be typed (each edit one step of undo), and a button that removes it, or the

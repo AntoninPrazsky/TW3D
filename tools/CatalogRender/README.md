@@ -30,8 +30,10 @@ whose render targets would take the place of the image's), the grey of its road 
 surface (`SceneRenderer.TestSurface`, see the surfaces in `docs/architecture.md`), with the
 selector over it as usual.
 
-A new block also needs a row in `docs/catalog/catalog.html` (and the row *Turns* when it has
-`"turns": true`: a turned block has no image of its own).
+A new block also needs its entry in `docs/catalog/catalog.html`, in the section of its
+`group` and in the order of the catalog, with the rows *Block Name* and *What* (its `title`),
+the row *Turns* when it has `"turns": true` (a turned block has no image of its own) and
+*Off-road* when it has looks.
 
 ## The camera
 
