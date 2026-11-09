@@ -4,14 +4,24 @@ a grey slab of the road with yellow hazard stripes along both edges), from the o
 The outline is swept straight across the road, from z = -4.5 to 4.5. Its edges that face up are the road: the middle of
 it (|z| < 3.6) is plain grey, the edges (3.6 to 4.5) carry the stripes of the classic blocks, parallelograms 0.9 long
 slanted by 45° across the edge, yellow and grey by turns along x (a1 has them so, and the slopes as seen from above), so
-that the stripes of a new block run on from those of a flat road beside it. The other edges (the risers of the steps,
-the bottom, the ends) are plain grey, as are the faces at the sides. The materials are those of the classic blocks
-(road grey Kd 0.22744, hazard yellow), written into the .mtl as the Wings 3D exports have them.
+that the stripes of a new block run on from those of a flat road beside it. A curved road is cut finer along x (`div`
+cuts to a stripe) and its edges as finely across, so that the slanted borders of the stripes still run straight from
+corner to corner of the little cells. The other edges (the risers of the steps, the bottom, the ends) are plain grey, as
+are the faces at the sides. The materials are those of the classic blocks (road grey Kd 0.22744, hazard yellow), written
+into the .mtl as the Wings 3D exports have them.
 
-The blocks (#61, the steps for the axles): k1, k2, k3, a step down of 1, 2 and 3 shift steps (2.5, 5 and 7.5 physics
-units) in the middle of the cell, and s2, stairs of two steps of 2 shift steps (5 units), the drop of s1. Every block
-starts and ends with the slab of a flat road, one shift step thick, so that it meets a1 and s1 flush; below a step the
-block is solid down to a sloping bottom, as s1 is.
+The blocks:
+- #61, the steps for the axles: k1, k2, k3, a step down of 1, 2 and 3 shift steps (2.5, 5 and 7.5 physics units) in the
+  middle of the cell, and s2, stairs of two steps of 2 shift steps (5 units), the drop of s1. Below a step the block is
+  solid down to a sloping bottom, as s1 is.
+- #62, smoother roads: e1, e2, e3, rounded crests, the flat road rounding over into a slope as steep as b1, b2 and b3 at
+  its right edge (a parabola: it drops 1, 2 and 3 shift steps); turned, a climb rounding over into a flat top. The
+  bends e12, e23, e34: the slope of b1, b2, b3 rounding over into the next steeper one, so that a crest longer than a
+  cell is e1, e12, e23... with the curve of e1 all the way (the gentlest the grid of whole shift steps allows). b0, a
+  straight slope of one shift step a cell (6.3°), gentler than b1, with its S-curve c0, its sag curve d0 and its crest
+  e0 (a cubic: the grid makes them drop a whole shift step, so the middle of d0 and e0 is a little steeper than b0).
+  A slab one shift step thick, as the slopes are.
+Every block starts and ends with the slab of a road one shift step thick, so that it meets a1, the slopes and s1 flush.
 
     blender -b --factory-startup --python tools/blender/classic.py -- [<output folder>] [<block>...]
 
@@ -69,11 +79,44 @@ def stairs(steps, rise):
     return outline + [(-HALF, -0.5), (HALF, top - 1.0)]
 
 
+def road(height, div, left=0):
+    """A slab of road one shift step thick under the surface height(u) (how far it is down from its left edge, in shift
+    steps), u from 0 at the left edge (x = 4.5) to 1 at the right one, cut at every 1/div of a stripe. The left edge is
+    `left` shift steps below the base (the first number of the block's profile)."""
+    n = round(2 * HALF / STRIPE * div)
+    top = [(HALF - 2 * HALF * i / n, 0.5 - left - height(i / n)) for i in range(n + 1)]
+    return top + [(x, y - 1.0) for x, y in reversed(top)]
+
+
+def crest(drop):
+    """The flat road rounding over into a slope that drops 2 * drop shift steps a cell at the right edge."""
+    return road(lambda u: drop * u * u, 2)
+
+
+def curve(entry, leaving, drop, left=0):
+    """A road from a slope dropping `entry` shift steps a cell at its left edge to one dropping `leaving` at its right
+    edge, `drop` shift steps lower: the cubic that meets both slopes (a parabola when the drop is their mean)."""
+    a, b = 3 * drop - 2 * entry - leaving, entry + leaving - 2 * drop
+    return road(lambda u: entry * u + a * u * u + b * u * u * u, 2, left)
+
+
 BLOCKS = {
-    "k1": ("a step down of 2.5 units", step(1)),
-    "k2": ("a step down of 5 units", step(2)),
-    "k3": ("a step down of 7.5 units", step(3)),
-    "s2": ("stairs of two steps of 5 units", stairs(2, 2)),
+    # name: (what it is, the outline, cuts to a stripe, flat shading, the issue)
+    "k1": ("a step down of 2.5 units", step(1), 1, True, 61),
+    "k2": ("a step down of 5 units", step(2), 1, True, 61),
+    "k3": ("a step down of 7.5 units", step(3), 1, True, 61),
+    "s2": ("stairs of two steps of 5 units", stairs(2, 2), 1, True, 61),
+    "e1": ("a crest rounding over into the slope of b1", crest(1), 2, False, 62),
+    "e2": ("a crest rounding over into the slope of b2", crest(2), 2, False, 62),
+    "e3": ("a crest rounding over into the slope of b3", crest(3), 2, False, 62),
+    "b0": ("a slope of one shift step a cell", road(lambda u: u, 1), 1, True, 62),
+    "c0": ("an S-curve dropping one shift step", curve(0, 0, 1), 2, False, 62),
+    "d0": ("the slope of b0 easing into the flat road", curve(1, 0, 1), 2, False, 62),
+    "e0": ("the flat road rounding over into the slope of b0", curve(0, 1, 1), 2, False, 62),
+    # The bends between the slopes: a crest longer than a cell is e1, then e12, e23... (the curve of e1 all the way)
+    "e12": ("the slope of b1 rounding over into that of b2", curve(2, 4, 3, 1), 2, False, 62),
+    "e23": ("the slope of b2 rounding over into that of b3", curve(4, 6, 5, -1), 2, False, 62),
+    "e34": ("the slope of b3 rounding over into that of b4", curve(6, 8, 7, -3), 2, False, 62),
 }
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -87,17 +130,17 @@ def faces_up(p, q):
     return q[0] < p[0] - 1e-6 and abs(q[1] - p[1]) < (p[0] - q[0]) * 2
 
 
-def grid(p, q):
-    """The x where a road edge from p to q is cut: its ends and the multiples of a stripe from -4.5 between them."""
-    xs = {p[0], q[0]}
-    i = math.ceil((q[0] + HALF) / STRIPE - 1e-6)
-    while -HALF + i * STRIPE < p[0] - 1e-6:
-        xs.add(-HALF + i * STRIPE)
+def grid(p, q, cell):
+    """The points where a road edge from p to q is cut: its ends and the multiples of a cell from -4.5 between them."""
+    xs = {round(p[0], 6), round(q[0], 6)}
+    i = math.ceil((q[0] + HALF) / cell + 1e-6)
+    while -HALF + i * cell < p[0] - 1e-6:
+        xs.add(round(-HALF + i * cell, 6))
         i += 1
     xs = sorted(xs, reverse=True)
     for a, b in zip(xs, xs[1:]):
-        if abs(a - b - STRIPE) > 1e-6 and not (abs(a - p[0]) < 1e-6 or abs(b - q[0]) < 1e-6):
-            raise ValueError("a stripe cell inside the road is not 0.9 long")
+        if abs(a - b - cell) > 1e-6:
+            raise ValueError("a cell of the road is not a whole part of a stripe long")
     return [(x, p[1] + (q[1] - p[1]) * (x - p[0]) / (q[0] - p[0])) for x in xs]
 
 
@@ -109,8 +152,10 @@ def hazard(x, w, front):
 
 
 def build(name):
-    title, outline = BLOCKS[name]
+    title, outline, div, flat, issue = BLOCKS[name]
     n = len(outline)
+    cell = STRIPE / div
+    widths = [EDGE + (HALF - EDGE) * j / div for j in range(div + 1)]     # the rows across an edge strip (|z|)
     up = [faces_up(outline[i], outline[(i + 1) % n]) for i in range(n)]
     road = set()                         # the points of the outline at an end of the road
     for i in range(n):
@@ -135,23 +180,27 @@ def build(name):
         f = bm.faces.new([vert(*p) for p in points])
         f.material_index = MATERIALS.index(mat)
 
-    rows = [-HALF, -EDGE, EDGE, HALF]
+    def striped(tri, front):
+        cx, cw = sum(t[0] for t in tri) / 3, abs(sum(t[2] for t in tri) / 3)
+        face(tri, HAZARD if hazard(cx, cw, front) else ROAD)
+
+    rows = [-w for w in reversed(widths)] + widths
     sides = {HALF: [], -HALF: []}        # the outline at both sides, with every point the road is cut at
     for i in range(n):
         p, q = outline[i], outline[(i + 1) % n]
         if up[i]:
-            cut = grid(p, q)
+            cut = grid(p, q, cell)
             for (xa, ya), (xb, yb) in zip(cut, cut[1:]):        # xa > xb: the road runs leftwards
                 # The middle of the road
                 face([(xa, ya, -EDGE), (xb, yb, -EDGE), (xb, yb, EDGE), (xa, ya, EDGE)], ROAD)
-                # The front edge (z > 0): the cell split along the slant of the stripes, from (xb, 3.6) to (xa, 4.5)
-                for tri in (((xb, yb, EDGE), (xb, yb, HALF), (xa, ya, HALF)), ((xb, yb, EDGE), (xa, ya, HALF), (xa, ya, EDGE))):
-                    cx, cw = sum(t[0] for t in tri) / 3, sum(t[2] for t in tri) / 3
-                    face(tri, HAZARD if hazard(cx, cw, True) else ROAD)
-                # The back edge (z < 0): the slant mirrored, from (xa, -3.6) to (xb, -4.5)
-                for tri in (((xa, ya, -EDGE), (xa, ya, -HALF), (xb, yb, -HALF)), ((xa, ya, -EDGE), (xb, yb, -HALF), (xb, yb, -EDGE))):
-                    cx, cw = sum(t[0] for t in tri) / 3, -sum(t[2] for t in tri) / 3
-                    face(tri, HAZARD if hazard(cx, cw, False) else ROAD)
+                for w0, w1 in zip(widths, widths[1:]):
+                    # The front edge (z > 0): each little cell split along the slant of the stripes, (xb, w0) to (xa, w1)
+                    striped(((xb, yb, w0), (xb, yb, w1), (xa, ya, w1)), True)
+                    striped(((xb, yb, w0), (xa, ya, w1), (xa, ya, w0)), True)
+                for w0, w1 in zip(widths, widths[1:]):
+                    # The back edge (z < 0): the slant mirrored, (xa, -w0) to (xb, -w1)
+                    striped(((xa, ya, -w0), (xa, ya, -w1), (xb, yb, -w1)), False)
+                    striped(((xa, ya, -w0), (xb, yb, -w1), (xb, yb, -w0)), False)
             for side in sides:
                 sides[side] += [(x, y) for x, y in cut[:-1]]
         else:
@@ -167,9 +216,9 @@ def build(name):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(mesh)
     bm.free()
-    header = f"# Made by tools/blender/classic.py: {name}, {title}, in the classic look (#61)"
-    # Flat shading, as the faces of the classic blocks have
-    export([obj], [], name, OUT, {name + ".obj": header}, smooth_angle=1)
+    header = f"# Made by tools/blender/classic.py: {name}, {title}, in the classic look (#{issue})"
+    # Flat shading, as the faces of the classic blocks have; a curved road smooth along the curve, sharp at its edges
+    export([obj], [], name, OUT, {name + ".obj": header}, smooth_angle=1 if flat else 30)
     with open(os.path.join(OUT, name + ".mtl"), "w", encoding="utf-8", newline="\n") as f:
         f.write(header + "\n\n" + MTL)
     bpy.data.objects.remove(obj)

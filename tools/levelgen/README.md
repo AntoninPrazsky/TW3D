@@ -35,8 +35,8 @@ directly with `put()`.
 
 ## Turned blocks
 
-A block that turns (`"turns": true` in the catalog: the slopes, the stairs `s1` and `s2`, the
-steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
+A block that turns (`"turns": true` in the catalog: the slopes, the crests and bends, the stairs
+`s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
 version were: `"b2f"` is `b2` turned round, a 24° climb with the profile `[4, 0]`, and the
 level file gets `{"block":"b2","x":…,"turned":true}`. The walls turned are `"t1f"` and
 `"u1f"`. A name of the catalog is always the block itself (`"bl2f"` and `"kea1f"` are blocks of
@@ -91,6 +91,16 @@ climbs `k1f` (2.5 units) on the throttle alone, none climbs `k2f` or `s2f` (5 un
 throttle and turning the axles (↑) at the step got the Buggy over `k2f` and `s2f` and the Sand Rail and
 the Crawler over `k2f` (not every time); turning them the other way (↓), or braking while turning them,
 did not. No car got over `k3f` (7.5 units) so: it needs a player's skill, if it can be climbed at all.
+
+A car stays on the road over a crest only while it is slow enough for the curve: the gravity is 12
+physics units a second squared (game time), so below about the square root of 12 times the radius
+of the crest. The crests `e1`, `e2` and `e3` round over in one cell (a radius of about 101, 50 and
+34 units: some 35, 25 and 20 units a second), so at full throttle every car takes off over them as
+over a sharp crest. A longer crest is `e1` and then the bends (`e1`, `e12`, `e23`...; turned for the
+top of a climb: `b2f`, `e12f`, `e1f`, `a1`), with the radius of `e1` all the way, the gentlest the
+grid of whole shift steps allows: on 2026-11-09 the Crawler at full throttle stayed on the road over
+the top of a hill of `b2f` rounded so (the climb had slowed it), where it took off over one rounded by
+`e2f`; after a flat run it still flew over `e1`, `e12`, `e23` into `b3`.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 
 The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of
