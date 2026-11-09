@@ -424,7 +424,15 @@ edges, so that the stripes stay straight. And the road ends of #64, approved on 
 after a gap), for gaps of any length and short ledges, in the place of the checkered `xa6` and
 `xa7`; their profile is that of a flat road, the edge without road at the height a road would go
 on at. Every block starts with the slab of a road one shift step thick, and but for a road end
-ends with one, so that it meets the classic blocks flush:
+ends with one, so that it meets the classic blocks flush. And the bridge of #63, approved on
+2026-11-09: `br1`, a deck of road 0.4 thick on two steel trusses under its edges, for a bridge (its
+top where a flat road's is, so placed at the shift of the road it joins it) or a low ceiling hung
+over the road (placed by hand: it has no profile, so it does not count as road); `br2`, the head
+of a lattice steel pillar, placed a cell (9 shift steps) under a deck, whose cap beam carries both
+trusses; and `br3`, a piece of the column to stack under the head. The trusses stand outside the
+bands tools/CollisionGen cuts the shapes from, so the deck alone collides; the pillar is as wide
+as both bands (its posts in the band of the wheels, a thin web across the road in that of the
+body), so all of a car hits it:
 
     blender -b --factory-startup --python tools/blender/classic.py
 

@@ -1,0 +1,27 @@
+# Made by tools/blender/classic.py: br2, the head of a bridge pillar, in the classic look (#63)
+
+newmtl road
+Kd 0.22744 0.22744 0.22744
+d 1.0
+Ks 0.06094 0.06094 0.06094
+Ke 0.0 0.0 0.0
+Ns 0.3
+illum 2
+
+newmtl hazard
+Kd 1.0 0.7133333333333334 0.0
+d 1.0
+Ks 0.59374 0.59374 0.59374
+Ke 0.0 0.0 0.0
+Ns 0.8533333333333334
+illum 2
+
+newmtl steel
+Kd 0.227440 0.227440 0.227440
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Pr 0.450000
+Pm 0.600000

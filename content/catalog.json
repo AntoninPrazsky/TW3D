@@ -67,6 +67,9 @@
     { "name": "bl2s", "title": "Barrier, striped, right end", "group": "Barriers and screen", "collision": false },
     { "name": "bl2sf", "title": "Barrier, striped, left end", "group": "Barriers and screen", "collision": false },
     { "name": "za", "title": "Screen", "group": "Barriers and screen", "collision": false },
+    { "name": "br1", "title": "Bridge deck on steel trusses", "group": "Bridges", "collision": true },
+    { "name": "br2", "title": "Bridge pillar, head (a cell under a deck)", "group": "Bridges", "collision": true },
+    { "name": "br3", "title": "Bridge pillar, piece (under the head)", "group": "Bridges", "collision": true },
     { "name": "lo", "title": "Lock of the sliding trailer", "group": "Lock", "collision": true, "profile": [ 0, 0 ] }
   ],
   "objects": [

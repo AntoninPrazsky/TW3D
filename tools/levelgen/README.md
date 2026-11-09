@@ -106,6 +106,9 @@ the top of a hill of `b2f` rounded so (the climb had slowed it), where it took o
 A gap between road ends (`r1`–`r3`) on a flat road is a trap rather than a jump: on 2026-11-09 the Crawler
 at full throttle dropped its front wheels into a gap of one cell (`r2`, `r2f`) and turned over on the far
 edge, and fell into one of two cells. Jump a gap from a kicker (`d1f`, `d2f`), as the shipped levels do.
+
+A low ceiling (`br1` hung over the road, placed with `put`): every car passes under one 4 shift steps above
+the road (10 units), and every car gets stuck under one 3 steps above it (2026-11-09).
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 
 The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of

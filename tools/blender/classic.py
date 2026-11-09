@@ -24,6 +24,9 @@ The blocks:
 - #64, the road ends: r1, r2, r3, the flat road from the left edge of the cell ending 2.7, 4.5 and 6.3 model units into
   it (lengths on the grid of the stripes), with a band of hazard stripes across the end; turned, the road starting
   after a gap. Their profile is that of a flat road: the edge without road has the height a road would go on at.
+- #63, the bridge: br1, a deck of road 0.4 thick on a steel truss under each edge (a bridge, or a low ceiling hung over
+  the road); br2, the head of a lattice steel pillar, a cell under a deck, whose cap beam carries both trusses; br3, a
+  piece of the column to stack under the head. Parts that are not the road come as extras (steel, see MTL_STEEL).
 Every block starts with the slab of a road one shift step thick, and but for a road end ends with one, so that it meets
 a1, the slopes and s1 flush.
 
@@ -36,11 +39,13 @@ up and its OBJ export writes (x, y, z) as (x, z, -y): the game's (x, y, z) is bu
 import bpy, bmesh, math, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from props import ROOT, material, export
+from props import ROOT, material, export, box, polyline
 
 ROAD = material("road", (0.22744, 0.22744, 0.22744))
 HAZARD = material("hazard", (1.0, 0.71333, 0.0))
 MATERIALS = [ROAD, HAZARD]
+# The steel of the girders of a deck: the dark grey metal of the street lamp's pole
+STEEL = material("steel", (0.22744, 0.22744, 0.22744), metallic=0.6, roughness=0.45)
 # The .mtl as the classic blocks have it (Blender would write its own highlights)
 MTL = """newmtl road
 Kd 0.22744 0.22744 0.22744
@@ -57,6 +62,17 @@ Ks 0.59374 0.59374 0.59374
 Ke 0.0 0.0 0.0
 Ns 0.8533333333333334
 illum 2
+"""
+MTL_STEEL = """
+newmtl steel
+Kd 0.227440 0.227440 0.227440
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+d 1.000000
+illum 3
+Pr 0.450000
+Pm 0.600000
 """
 
 HALF = 4.5      # half a cell
@@ -109,6 +125,59 @@ def road_end(length):
     return [(HALF, 0.5), (HALF - length, 0.5), (HALF - length, -0.5), (HALF, -0.5)]
 
 
+def deck(thickness):
+    """A thin deck of road across the whole cell, its top where a flat road's is."""
+    return [(HALF, 0.5), (-HALF, 0.5), (-HALF, 0.5 - thickness), (HALF, 0.5 - thickness)]
+
+
+# The parts under the edges of a deck stand at |z| above 2.2, outside the bands tools/CollisionGen cuts the shapes of
+# the body and the wheels from, so the deck alone collides. Blender's (x, y, z) is the game's (x, -z, y).
+TRUSS_Z = 3.8       # the trusses under the edges of the deck (|z|)
+TRUSS_DEPTH = 1.3   # from the deck's bottom to the axis of the bottom chord
+DECK = 0.4          # the thickness of the deck
+COLUMN_X, COLUMN_Z = 0.45, 2.0   # half the size of a pillar along the road and across it (through both bands)
+
+
+def truss(bottom):
+    """A steel truss under each edge of a deck: chords along the cell, diagonals in a W (panels of an eighth of it)."""
+    parts = []
+    low = bottom - TRUSS_DEPTH
+    for side in (1, -1):
+        z = -TRUSS_Z * side
+        parts.append(polyline([(-HALF, z, bottom - 0.06), (HALF, z, bottom - 0.06)], 0.07, STEEL))
+        parts.append(polyline([(-HALF, z, low), (HALF, z, low)], 0.07, STEEL))
+        zigzag = [(-HALF + 1.125 * i, z, low if i % 2 else bottom - 0.06) for i in range(9)]
+        parts.append(polyline(zigzag, 0.05, STEEL))
+    return parts
+
+
+def lattice(bottom, top, panels):
+    """A steel lattice column in the middle of the road from y = bottom to top: four corner posts, a ring at the bottom
+    of each panel and a diagonal across each face of it, with a thin web across the road in its middle (edge on to the
+    camera). The posts stand in the band of the wheels and the web in that of the body, so that all of the car collides
+    with the column (tools/CollisionGen)."""
+    parts = [box((0, 0, (bottom + top) / 2), (0.06, 2 * COLUMN_Z, top - bottom), STEEL)]
+    corners = [(-COLUMN_X, -COLUMN_Z), (COLUMN_X, -COLUMN_Z), (COLUMN_X, COLUMN_Z), (-COLUMN_X, COLUMN_Z)]
+    for x, z in corners:
+        parts.append(polyline([(x, -z, bottom), (x, -z, top)], 0.06, STEEL))
+    height = (top - bottom) / panels
+    for i in range(panels):
+        y0, y1 = bottom + i * height, bottom + (i + 1) * height
+        parts.append(polyline([(x, -z, y0) for x, z in corners + corners[:1]], 0.05, STEEL))
+        for (xa, za), (xb, zb) in zip(corners, corners[1:] + corners[:1]):
+            a, b = ((xa, za), (xb, zb)) if i % 2 else ((xb, zb), (xa, za))
+            parts.append(polyline([(a[0], -a[1], y0), (b[0], -b[1], y1)], 0.04, STEEL))
+    return parts
+
+
+def pillar_head():
+    """The top of a bridge pillar, placed a cell under a deck (9 shift steps lower): the lattice column from the bottom
+    of its cell up to a cap beam that carries both trusses of the deck, whose bottom chords lie 9 - 0.1 - 1.3 above."""
+    chord = 9 + 0.5 - DECK - TRUSS_DEPTH - 0.07       # the underside of the bottom chords, in the pillar's coordinates
+    cap = 0.4
+    return lattice(-HALF, chord - cap, 13) + [box((0, 0, chord - cap / 2), (1.2, 2 * TRUSS_Z + 0.4, cap), STEEL)]
+
+
 BLOCKS = {
     # name: (what it is, the outline, cuts to a stripe, flat shading, the issue[, the x of a hazard band across the road])
     "k1": ("a step down of 2.5 units", step(1), 1, True, 61),
@@ -127,9 +196,14 @@ BLOCKS = {
     "e23": ("the slope of b2 rounding over into that of b3", curve(4, 6, 5, -1), 2, False, 62),
     "e34": ("the slope of b3 rounding over into that of b4", curve(6, 8, 7, -3), 2, False, 62),
     # The road ends at a gap, with a hazard band across the end (the owner chose it over a plain end)
-    "r1": ("the road ending 2.7 units into the cell", road_end(2.7), 1, True, 64, HALF - 2.7),
-    "r2": ("the road ending in the middle of the cell", road_end(4.5), 1, True, 64, 0.0),
-    "r3": ("the road ending 6.3 units into the cell", road_end(6.3), 1, True, 64, HALF - 6.3),
+    "r1": ("the road ending 2.7 units into the cell", road_end(2.7), 1, True, 64, {"band": HALF - 2.7}),
+    "r2": ("the road ending in the middle of the cell", road_end(4.5), 1, True, 64, {"band": 0.0}),
+    "r3": ("the road ending 6.3 units into the cell", road_end(6.3), 1, True, 64, {"band": HALF - 6.3}),
+    # The thin deck (#63): a bridge, or a low ceiling hung over the road; the owner chose the trusses of three sketches
+    "br1": ("a thin deck on steel trusses", deck(DECK), 1, True, 63, {"extras": lambda: truss(0.5 - DECK)}),
+    # Its pillar: the head a cell under a deck, and pieces of the column to stack under it
+    "br2": ("the head of a bridge pillar", None, 1, True, 63, {"extras": pillar_head}),
+    "br3": ("a piece of a bridge pillar", None, 1, True, 63, {"extras": lambda: lattice(-HALF, HALF, 10)}),
 }
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -165,8 +239,13 @@ def hazard(x, w, front):
 
 
 def build(name):
-    title, outline, div, flat, issue, *band = BLOCKS[name]
-    band = round(band[0], 6) if band else None
+    title, outline, div, flat, issue, *options = BLOCKS[name]
+    options = options[0] if options else {}
+    if outline is None:
+        parts = options["extras"]()
+        finish_block(name, title, issue, parts[0], parts[1:], flat)
+        return
+    band = round(options["band"], 6) if "band" in options else None
     # Where the road ends at a band, the last stripe across the road is cut across it too, every 0.9 (z from -3.6 to 3.6)
     across = [round(-EDGE + STRIPE * k, 6) for k in range(round(2 * EDGE / STRIPE) + 1)]
     full = set() if band is None else {band, round(band + STRIPE, 6)}
@@ -249,11 +328,17 @@ def build(name):
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     bm.to_mesh(mesh)
     bm.free()
+    finish_block(name, title, issue, obj, options["extras"]() if "extras" in options else [], flat)
+
+
+def finish_block(name, title, issue, obj, extras, flat):
+    """Joins the parts, exports the block and writes its .mtl with the materials of the classic blocks it uses."""
     header = f"# Made by tools/blender/classic.py: {name}, {title}, in the classic look (#{issue})"
     # Flat shading, as the faces of the classic blocks have; a curved road smooth along the curve, sharp at its edges
-    export([obj], [], name, OUT, {name + ".obj": header}, smooth_angle=1 if flat else 30)
+    export([obj] + extras, [], name, OUT, {name + ".obj": header}, smooth_angle=1 if flat else 30)
+    used = {line.split()[1] for line in open(os.path.join(OUT, name + ".obj"), encoding="utf-8") if line.startswith("usemtl ")}
     with open(os.path.join(OUT, name + ".mtl"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(header + "\n\n" + MTL)
+        f.write(header + "\n\n" + MTL + (MTL_STEEL if "steel" in used else ""))
     bpy.data.objects.remove(obj)
 
 
