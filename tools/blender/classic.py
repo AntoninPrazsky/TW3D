@@ -36,7 +36,8 @@ a1, the slopes and s1 flush.
     blender -b --factory-startup --python tools/blender/classic.py -- [<output folder>] [<block>...]
 
 Without a folder the blocks go to content/Levels/mod. The coordinates are those of the game (model units: a cell is 9,
-a shift step 1; +x is the left edge of a block placed unturned in a level, y up, +z towards the camera). Blender has z
+a shift step 1; +x is the left edge of a block placed unturned in a level, y up, -z towards the camera: the scene
+turns the world round). Blender has z
 up and its OBJ export writes (x, y, z) as (x, z, -y): the game's (x, y, z) is built at (x, -z, y).
 """
 import bpy, bmesh, math, os, sys
