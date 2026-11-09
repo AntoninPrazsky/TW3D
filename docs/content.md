@@ -345,8 +345,8 @@ the game and the editor:
   A block with `"turns": true` can be turned round by 180° about the vertical axis in a
   level (`"turned": true`, see [the level format](levels.md#level-format)): the game draws
   its model turned, mirrors its collision shape left to right and swaps its profile, so `b2`
-  turned is a climb, `[4, 0]`. The slopes, the crests and bends, the road ends, the stairs `s1` and
-  `s2`, the steps `k1` to `k3` and the walls `t1` and `u1` turn;
+  turned is a climb, `[4, 0]`. The slopes, the crests and bends, the road ends, the rocks, the stairs
+  `s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1` turn;
   so one model serves both directions, where the 2016 version had a mirrored model of each
   (`b2f`, `t2`...; their Wings 3D originals are still in `art/wings`). A tunnel or a
   decoration turned would show its back, so it does not turn; the barriers `bl2f` and
@@ -432,14 +432,24 @@ of a lattice steel pillar, placed a cell (9 shift steps) under a deck, whose cap
 trusses; and `br3`, a piece of the column to stack under the head. The trusses stand outside the
 bands tools/CollisionGen cuts the shapes from, so the deck alone collides; the pillar is as wide
 as both bands (its posts in the band of the wheels, a thin web across the road in that of the
-body), so all of a car hits it:
+body), so all of a car hits it. And the rough road of #65, approved on 2026-11-09: the
+washboards `w1` and `w2`, five ridges a cell 0.6 and 1.25 units high; the logs `l1` and `l2`,
+half a cylinder lying across the road 2.25 and 4.5 units high, in the classic look a speed bump
+striped along the road (the half cylinder is cut across the road as a band); and the rocks `rk1`
+(small stones), `rk2` (big ones, up to about 4 units) and `rk3`, a boulder with sheer faces about
+5.5 units high across the whole road, which needs the axles turned. The stones are made by
+`tools/blender/rocks.py` for both looks alike (the collision comes of the classic model): an
+icosphere pushed out by fractal noise and broken off by a few planes, flat shaded in two colours
+of stone, the boulder pushed out towards a cube first and broken off by upright planes, so that
+its faces stay sheer:
 
     blender -b --factory-startup --python tools/blender/classic.py
 
 The looks of the off-road style (#57, approved by the owner on 2026-11-06) are made by
 `tools/blender/offroad.py` from the classic road blocks (`a1`, the slopes `b1` to `b4`, `c1`
 to `c3`, the lips `d1` to `d3`, the gentle `b0`, `c0` and `d0`, the crests `e0` to `e3`, the bends
-`e12` to `e34`, the road ends `r1` to `r3`, the stairs `s1` and `s2` and the steps `k1` to `k3`): a cross-section of a dirt road swept
+`e12` to `e34`, the road ends `r1` to `r3`, the washboards `w1` and `w2`, the stairs `s1` and `s2` and the
+steps `k1` to `k3`): a cross-section of a dirt road swept
 along the profile of the classic block, its cut at z = 0. The two ruts lie where the wheels of
 every car run (|z| 1.42 to 2.17 model units, the wheel models are made there; the physics is
 flat, so the wheels never leave them), their bottom on the profile, which is the collision;
@@ -451,6 +461,12 @@ earth is drawn by the surface `earth` of the shader, the grass by the surface `g
 blades, darker gaps between the clumps, drier yellower patches):
 
     blender -b --factory-startup --python tools/blender/offroad.py -- content/Levels/mod earth
+
+The logs and the rocks have an off-road look of their own and no transitions: the dirt road of `a1o`
+with a trunk lying across it, half sunk into the earth (its axis on the road, so that it is the half
+cylinder of the classic block; its bark furrowed along it and only ever inside that cylinder, year
+rings at its ends, two stubs of branches beside the lines of the wheels), or with the stones of
+`rocks.py`, the same as the classic block's.
 
 Pictures of the blocks and objects are in `docs/catalog/`: open
 [`catalog.html`](catalog/catalog.html) in a browser.

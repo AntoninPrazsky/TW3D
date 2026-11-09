@@ -25,16 +25,19 @@ The second argument is what the crown between the ruts is: bare earth, or a stri
 
 Blender has z up and its OBJ export writes (x, y, z) as (x, z, -y): the game's (x, y, z) is built at (x, -z, y).
 """
-import bpy, bmesh, math, os, sys
+import bpy, bmesh, math, os, random, sys
+from mathutils import Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from props import ROOT, material, export
+import rocks
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = args[0] if args else os.path.join(ROOT, 'content', 'Levels', 'mod')
 CROWN = args[1] if len(args) > 1 else "earth"
 # The road of the classic set: the flat road, the slopes, the smooth slopes, the lips, the stairs, the steps, the crests, the bends and the road ends
-ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1", "s2", "k1", "k2", "k3", "b0", "c0", "d0", "e0", "e1", "e2", "e3", "e12", "e23", "e34", "r1", "r2", "r3"]
+ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1", "s2", "k1", "k2", "k3", "b0", "c0", "d0", "e0", "e1", "e2", "e3", "e12", "e23", "e34", "r1", "r2", "r3", "w1", "w2",
+            "l1", "l2", "rk1", "rk2", "rk3"]
 BLOCKS = [a for a in args[2:] if a not in ("o", "t", "u")] or ROAD_KIT
 # What is made of each block: the off-road block (o) and the transitions (t, u), all of them unless named
 KINDS = [a for a in args[2:] if a in ("o", "t", "u")] or ["o", "t", "u"]
@@ -46,10 +49,94 @@ BANK = material("earthbank", (0.34, 0.25, 0.17), roughness=1.0)
 GRASS = material("grass", (0.25, 0.33, 0.14), roughness=1.0)
 # The grey of the road of the classic blocks, where a transition reaches the classic style
 ROAD = material("road", (0.22744, 0.22744, 0.22744), roughness=1.0)
+# A log lying across the road: bark, and the cut wood of its ends; rocks
+BARK = material("bark", (0.20, 0.15, 0.10), roughness=1.0)
+BARK2 = material("barkgrey", (0.29, 0.25, 0.20), roughness=1.0)
+WOOD = material("wood", (0.62, 0.47, 0.30), roughness=1.0)
+RING = material("woodring", (0.47, 0.33, 0.20), roughness=1.0)
+ROCK = material("stone", (0.30, 0.28, 0.26), roughness=1.0)
+ROCK2 = material("stonedark", (0.22, 0.21, 0.20), roughness=1.0)
+# The materials of the dirt road (every one is written into the .mtl of every look), and those of what lies on it
 MATERIALS = [EARTH, RUT, BANK, GRASS, ROAD]
+ON_ROAD_MATERIALS = [BARK, BARK2, WOOD, RING, ROCK, ROCK2]
 # Earth and grass mirror nothing and shine little (Ks): Blender would write 0.5
-for m in MATERIALS:
+for m in MATERIALS + ON_ROAD_MATERIALS:
     m.node_tree.nodes["Principled BSDF"].inputs["Specular IOR Level"].default_value = 0.1
+
+# Blocks whose off-road look is the dirt road of a1 with something lying on it, no transitions (they would meet the
+# classic road with a log or rocks on them): a log half sunk into the earth (its axis on the profile, so that it is the
+# half cylinder of the classic block, a speed bump), and the rocks of tools/blender/rocks.py, the same as the classic one's
+def log(radius, segments=64, rows=24, length=4.45, seed=7):
+    """The part of a trunk above the slab of the road: a cylinder cut a little under the road (y = 0.5), so that it does
+    not show under the block, and a little shorter than the cell, so that its ends do not lie in the faces at its sides.
+    Its bark is furrowed along the trunk and patchy in two colours; the radius only ever shrinks from that of the classic
+    block (whose half cylinder is the collision), so that a wheel never sinks into the bark. Its ends show the year rings
+    inside a rim of bark, and two stubs of branches stand out of it beside the lines of the wheels."""
+    rng = random.Random(seed)
+    offset = Vector((rng.uniform(-50, 50), rng.uniform(-50, 50), rng.uniform(-50, 50)))
+    sink = 0.2 / radius                      # how far round under the road the bark goes (radians)
+    angles = [-sink + (math.pi + 2 * sink) * i / segments for i in range(segments + 1)]
+    zs = [-length + 2 * length * j / rows for j in range(rows + 1)]
+
+    def bark(a, z):
+        """How far in the bark is at the angle round the trunk and z along it (0 to about 0.09 of the radius)."""
+        wobble = noise.noise(Vector((math.cos(a), math.sin(a), z * 0.35)) * 1.5 + offset)
+        furrow = (0.5 + 0.5 * math.sin(a * 23 + 2.5 * wobble)) ** 6
+        return radius * (0.06 * furrow + 0.03 * (0.5 + 0.5 * noise.noise(Vector((a * 2.0, z * 0.6, 0.0)) + offset)))
+
+    mesh = bpy.data.meshes.new("log")
+    obj = bpy.data.objects.new("log", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    for m in (BARK, BARK2, WOOD, RING):
+        mesh.materials.append(m)
+    bm = bmesh.new()
+    grid = [[bm.verts.new(((radius - bark(a, z)) * math.cos(a), -z, 0.5 + (radius - bark(a, z)) * math.sin(a)))
+             for a in angles] for z in zs]
+    for j in range(rows):
+        for i in range(segments):
+            f = bm.faces.new((grid[j][i], grid[j][i + 1], grid[j + 1][i + 1], grid[j + 1][i]))
+            patch = noise.noise(Vector((angles[i] * 1.3, zs[j] * 0.4, 5.0)) + offset)
+            f.material_index = 1 if patch > 0.25 else 0
+        # The cut under the road
+        bm.faces.new((grid[j][0], grid[j + 1][0], grid[j + 1][-1], grid[j][-1])).material_index = 0
+    # The ends: a rim of bark, rings of the wood by turns, the core; the cut under the axis as one triangle
+    rings = [0.9, 0.74, 0.58, 0.42, 0.26, 0.12]
+    for j, z in ((0, zs[0]), (rows, zs[-1])):
+        axis = bm.verts.new((0.0, -z, 0.5))
+        loops = [grid[j]] + [[bm.verts.new((v.co.x * k, v.co.y, 0.5 + (v.co.z - 0.5) * k)) for v in grid[j]] for k in rings]
+        for n, (outer, inner) in enumerate(zip(loops, loops[1:])):
+            for i in range(segments):
+                f = bm.faces.new((outer[i], outer[i + 1], inner[i + 1], inner[i]))
+                f.material_index = 0 if n == 0 else (3 if n % 2 else 2)
+        for i in range(segments):
+            bm.faces.new((loops[-1][i], loops[-1][i + 1], axis)).material_index = 2
+        for outer, inner in zip(loops, loops[1:]):
+            bm.faces.new((outer[0], inner[0], inner[-1], outer[-1])).material_index = 0
+        bm.faces.new((loops[-1][0], axis, loops[-1][-1])).material_index = 0
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-6)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    parts = [obj]
+    # Stubs of branches, out of the upper side of the trunk beyond the lines of the wheels (|z| above 2.2)
+    for z, a in ((3.1, 1.15), (-2.7, 2.2)):
+        direction = Vector((math.cos(a), -0.35 * (1 if z > 0 else -1), math.sin(a))).normalized()
+        base = Vector((radius * 0.9 * math.cos(a), -z, 0.5 + radius * 0.9 * math.sin(a)))
+        length_stub = 0.45 * radius
+        bpy.ops.mesh.primitive_cone_add(vertices=10, radius1=0.13 * radius, radius2=0.09 * radius, depth=length_stub,
+                                        location=base + direction * (length_stub / 2),
+                                        rotation=direction.to_track_quat('Z', 'Y').to_euler())
+        stub = bpy.context.active_object
+        stub.data.materials.append(BARK)
+        stub.data.materials.append(WOOD)
+        for poly in stub.data.polygons:
+            poly.material_index = 1 if poly.normal.z > 0.9 else 0
+        parts.append(stub)
+    return parts
+
+
+ON_ROAD = {"l1": lambda: log(0.9), "l2": lambda: log(1.8), "rk1": lambda: rocks.cluster("rk1", [ROCK, ROCK2]),
+           "rk2": lambda: rocks.cluster("rk2", [ROCK, ROCK2]), "rk3": lambda: rocks.cluster("rk3", [ROCK, ROCK2])}
 
 # The cross-section across the road (|z|, model units) and how high it is above the profile: the crown, the ruts (the
 # tyres are 1.42 to 2.17 wide, the bottom a little wider), the berm pushed out beside a rut, the shoulder, the grass
@@ -212,7 +299,9 @@ def build(block, kind):
     block in a level) to the classic one at its +x end, "u": the same the other way round. Along a transition the
     cross-section sinks to the profile, the grass, the earth and the ruts end unevenly and the classic grey of the road
     takes their place, so that it meets the classic block next to it flush."""
-    path = os.path.join(CLASSIC, block + ".obj")
+    if block in ON_ROAD and kind != "o":
+        return
+    path = os.path.join(CLASSIC, ("a1" if block in ON_ROAD else block) + ".obj")
     loop = profile(path)
     if not all(same(loop, profile(path, cut)) for cut in (-3.0, -1.8, 1.8, 3.0)):
         print(f"{block}: not the same across the road, left out")
@@ -305,7 +394,8 @@ def build(block, kind):
     bm.free()
     what = "the off-road style of the block" if kind == "o" else "a transition from the off-road style to the classic one"
     header = f"# Made by tools/blender/offroad.py from {block}.obj: {what} (a prototype, #57)"
-    export([obj], [], name, OUT, {name + ".obj": header, name + ".mtl": header}, smooth_angle=50)
+    extras = ON_ROAD[block]() if block in ON_ROAD else []
+    export([obj] + extras, [], name, OUT, {name + ".obj": header, name + ".mtl": header}, smooth_angle=50)
     bpy.data.objects.remove(obj)
 
 

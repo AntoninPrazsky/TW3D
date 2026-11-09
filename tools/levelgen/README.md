@@ -36,7 +36,7 @@ directly with `put()`.
 ## Turned blocks
 
 A block that turns (`"turns": true` in the catalog: the slopes, the crests and bends, the road
-ends, the stairs `s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
+ends, the rocks, the stairs `s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
 version were: `"b2f"` is `b2` turned round, a 24° climb with the profile `[4, 0]`, and the
 level file gets `{"block":"b2","x":…,"turned":true}`. The walls turned are `"t1f"` and
 `"u1f"`. A name of the catalog is always the block itself (`"bl2f"` and `"kea1f"` are blocks of
@@ -109,6 +109,12 @@ edge, and fell into one of two cells. Jump a gap from a kicker (`d1f`, `d2f`), a
 
 A low ceiling (`br1` hung over the road, placed with `put`): every car passes under one 4 shift steps above
 the road (10 units), and every car gets stuck under one 3 steps above it (2026-11-09).
+
+Round obstacles do not stop the triple wheels: every car got over half a cylinder lying across the road up
+to 7.5 units high on the throttle alone, even from a run-up of a cell and a half (2026-11-09), where a step of
+5 units stops them. So the washboards `w1`, `w2`, the logs `l1`, `l2` (the high one throws a fast car up) and
+the rocks `rk1`, `rk2` shake the car but need nothing; the boulder `rk3` (sheer faces, about 5.5 units) stops
+every car on the throttle alone, and turning the axles at it got every car over it from a short run-up.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 
 The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of

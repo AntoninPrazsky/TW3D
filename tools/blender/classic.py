@@ -27,6 +27,9 @@ The blocks:
 - #63, the bridge: br1, a deck of road 0.4 thick on a steel truss under each edge (a bridge, or a low ceiling hung over
   the road); br2, the head of a lattice steel pillar, a cell under a deck, whose cap beam carries both trusses; br3, a
   piece of the column to stack under the head. Parts that are not the road come as extras (steel, see MTL_STEEL).
+- #65, the rough road: w1, w2, washboards of five ridges a cell; l1, l2, a log across the road, here a speed bump (half
+  a cylinder striped along the road); rk1, rk2, rk3, small stones, big ones and a boulder with sheer faces that needs the
+  axles turned (the stones of tools/blender/rocks.py, the same in the off-road look).
 Every block starts with the slab of a road one shift step thick, and but for a road end ends with one, so that it meets
 a1, the slopes and s1 flush.
 
@@ -40,12 +43,16 @@ import bpy, bmesh, math, os, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from props import ROOT, material, export, box, polyline
+import rocks
 
 ROAD = material("road", (0.22744, 0.22744, 0.22744))
 HAZARD = material("hazard", (1.0, 0.71333, 0.0))
 MATERIALS = [ROAD, HAZARD]
 # The steel of the girders of a deck: the dark grey metal of the street lamp's pole
 STEEL = material("steel", (0.22744, 0.22744, 0.22744), metallic=0.6, roughness=0.45)
+# The stone of the rocks lying on the road
+STONE = material("stone", (0.42, 0.41, 0.39), roughness=0.9)
+STONE2 = material("stonedark", (0.31, 0.30, 0.29), roughness=0.9)
 # The .mtl as the classic blocks have it (Blender would write its own highlights)
 MTL = """newmtl road
 Kd 0.22744 0.22744 0.22744
@@ -74,6 +81,28 @@ illum 3
 Pr 0.450000
 Pm 0.600000
 """
+MTL_STONE = """
+newmtl stone
+Kd 0.420000 0.410000 0.390000
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+"""
+MTL_STONE2 = """
+newmtl stonedark
+Kd 0.310000 0.300000 0.290000
+Ks 0.100000 0.100000 0.100000
+Ke 0.000000 0.000000 0.000000
+d 1.000000
+illum 2
+Pr 0.900000
+Pm 0.000000
+"""
+# The materials of parts that are not the road, written into the .mtl of a block that uses them
+MTL_PARTS = {"steel": MTL_STEEL, "stone": MTL_STONE, "stonedark": MTL_STONE2}
 
 HALF = 4.5      # half a cell
 EDGE = 3.6      # where the stripes along the edge of the road begin (|z|)
@@ -178,6 +207,14 @@ def pillar_head():
     return lattice(-HALF, chord - cap, 13) + [box((0, 0, chord - cap / 2), (1.2, 2 * TRUSS_Z + 0.4, cap), STEEL)]
 
 
+def hump(radius, segments=24):
+    """A flat road with half a cylinder of the radius lying across it in the middle of the cell (a radius on the grid of
+    the stripes, so that the flat road on both sides of it is cut as a1 is)."""
+    arc = [(radius * math.cos(math.pi * i / segments), 0.5 + radius * math.sin(math.pi * i / segments))
+           for i in range(segments + 1)]
+    return [(HALF, 0.5)] + arc + [(-HALF, 0.5), (-HALF, -0.5), (HALF, -0.5)]
+
+
 BLOCKS = {
     # name: (what it is, the outline, cuts to a stripe, flat shading, the issue[, the x of a hazard band across the road])
     "k1": ("a step down of 2.5 units", step(1), 1, True, 61),
@@ -204,6 +241,16 @@ BLOCKS = {
     # Its pillar: the head a cell under a deck, and pieces of the column to stack under it
     "br2": ("the head of a bridge pillar", None, 1, True, 63, {"extras": pillar_head}),
     "br3": ("a piece of a bridge pillar", None, 1, True, 63, {"extras": lambda: lattice(-HALF, HALF, 10)}),
+    # The rough road (#65): a washboard of ridges, a log across the road (in the classic look a speed bump striped along
+    # the road), rocks
+    "w1": ("a washboard of low ridges", road(lambda u: -0.25 * (1 - math.cos(2 * math.pi * 5 * u)) / 2, 4), 4, False, 65),
+    "w2": ("a washboard of high ridges", road(lambda u: -0.5 * (1 - math.cos(2 * math.pi * 5 * u)) / 2, 4), 4, False, 65),
+    "l1": ("a low log across the road", hump(0.9), 1, False, 65, {"arc": 0.9}),
+    "l2": ("a high log across the road", hump(1.8), 1, False, 65, {"arc": 1.8}),
+    "rk1": ("small rocks on the road", deck(1.0), 1, False, 65, {"extras": lambda: rocks.cluster("rk1", [STONE, STONE2])}),
+    "rk2": ("big rocks on the road", deck(1.0), 1, False, 65, {"extras": lambda: rocks.cluster("rk2", [STONE, STONE2])}),
+    "rk3": ("a boulder across the road, steep: the axles get a car over it", deck(1.0), 1, False, 65,
+            {"extras": lambda: rocks.cluster("rk3", [STONE, STONE2])}),
 }
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -249,6 +296,10 @@ def build(name):
     # Where the road ends at a band, the last stripe across the road is cut across it too, every 0.9 (z from -3.6 to 3.6)
     across = [round(-EDGE + STRIPE * k, 6) for k in range(round(2 * EDGE / STRIPE) + 1)]
     full = set() if band is None else {band, round(band + STRIPE, 6)}
+    arc = options.get("arc")
+    if arc is not None:
+        # A log: its half cylinder is cut across the road as a band is, and the road meets it so
+        full |= {round(arc, 6), round(-arc, 6)}
 
     def middle(x):
         """The z the middle of the road is cut at along x, ascending."""
@@ -256,7 +307,11 @@ def build(name):
     n = len(outline)
     cell = STRIPE / div
     widths = [EDGE + (HALF - EDGE) * j / div for j in range(div + 1)]     # the rows across an edge strip (|z|)
-    up = [faces_up(outline[i], outline[(i + 1) % n]) for i in range(n)]
+    def on_arc(i):
+        """The edge is a part of the half cylinder of a log (both its ends on it)."""
+        return arc is not None and all(abs(pt[0]) <= arc + 1e-6 and pt[1] >= 0.5 - 1e-6
+                                       for pt in (outline[i], outline[(i + 1) % n]))
+    up = [faces_up(outline[i], outline[(i + 1) % n]) and not on_arc(i) for i in range(n)]
     road = set()                         # the points of the outline at an end of the road
     for i in range(n):
         if up[i]:
@@ -315,6 +370,15 @@ def build(name):
                     striped(((xa, ya, -w0), (xb, yb, -w1), (xb, yb, -w0)), False)
             for side in sides:
                 sides[side] += [(x, y) for x, y in cut[:-1]]
+        elif on_arc(i):
+            # The half cylinder of a log: stripes along the road, yellow and grey by turns across it (yellow at the
+            # edges and in the middle)
+            cuts = rows_at(arc)
+            for z0, z1 in zip(cuts, cuts[1:]):
+                yellow = int(abs(z0 + z1) / 2 / STRIPE) % 2 == 0
+                face([(p[0], p[1], z0), (q[0], q[1], z0), (q[0], q[1], z1), (p[0], p[1], z1)], HAZARD if yellow else ROAD)
+            for side in sides:
+                sides[side].append(p)
         else:
             # A riser, the bottom or an end: one face across the block, through the rows of the road at its ends
             zs_p = rows_at(p[0]) if i in road else [-HALF, HALF]
@@ -334,11 +398,11 @@ def build(name):
 def finish_block(name, title, issue, obj, extras, flat):
     """Joins the parts, exports the block and writes its .mtl with the materials of the classic blocks it uses."""
     header = f"# Made by tools/blender/classic.py: {name}, {title}, in the classic look (#{issue})"
-    # Flat shading, as the faces of the classic blocks have; a curved road smooth along the curve, sharp at its edges
+    # Flat shading, as the faces of the classic blocks have; a curved road (and stones) smooth, sharp at their edges
     export([obj] + extras, [], name, OUT, {name + ".obj": header}, smooth_angle=1 if flat else 30)
     used = {line.split()[1] for line in open(os.path.join(OUT, name + ".obj"), encoding="utf-8") if line.startswith("usemtl ")}
     with open(os.path.join(OUT, name + ".mtl"), "w", encoding="utf-8", newline="\n") as f:
-        f.write(header + "\n\n" + MTL + (MTL_STEEL if "steel" in used else ""))
+        f.write(header + "\n\n" + MTL + "".join(text for part, text in MTL_PARTS.items() if part in used))
     bpy.data.objects.remove(obj)
 
 

@@ -70,6 +70,13 @@
     { "name": "br1", "title": "Bridge deck on steel trusses", "group": "Bridges", "collision": true },
     { "name": "br2", "title": "Bridge pillar, head (a cell under a deck)", "group": "Bridges", "collision": true },
     { "name": "br3", "title": "Bridge pillar, piece (under the head)", "group": "Bridges", "collision": true },
+    { "name": "w1", "title": "Washboard, low ridges", "group": "Rough road", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "w1o", "classic-offroad": "w1t", "offroad-classic": "w1u" } },
+    { "name": "w2", "title": "Washboard, high ridges", "group": "Rough road", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "w2o", "classic-offroad": "w2t", "offroad-classic": "w2u" } },
+    { "name": "l1", "title": "Log across the road, low", "group": "Rough road", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "l1o" } },
+    { "name": "l2", "title": "Log across the road, high", "group": "Rough road", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "l2o" } },
+    { "name": "rk1", "title": "Small rocks", "group": "Rough road", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "rk1o" } },
+    { "name": "rk2", "title": "Big rocks", "group": "Rough road", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "rk2o" } },
+    { "name": "rk3", "title": "Boulder: the axles get a car over it", "group": "Rough road", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "rk3o" } },
     { "name": "lo", "title": "Lock of the sliding trailer", "group": "Lock", "collision": true, "profile": [ 0, 0 ] }
   ],
   "objects": [
