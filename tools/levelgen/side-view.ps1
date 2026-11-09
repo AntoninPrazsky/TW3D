@@ -1,7 +1,7 @@
-# Draws a side view of a level: the middle (physics) layer from the collision bitmaps of its blocks,
-# dynamic objects as circles. Useful to check that a generated road is continuous.
-# The bitmaps come from the block catalog (docs/catalog/bl/cols); a turned block is drawn with its bitmap
-# mirrored left to right. Windows PowerShell (System.Drawing).
+# Draws a side view of a level: the middle (physics) layer from the collision shapes of its blocks
+# (content/collision.json, made by tools/CollisionGen), dynamic objects as circles. Useful to check that a
+# generated road is continuous. A turned block is drawn with its shape mirrored left to right.
+# Windows PowerShell (System.Drawing).
 #
 #   powershell -File tools/levelgen/side-view.ps1 -Level content/Levels/summit.json -Out summit.png
 
@@ -13,10 +13,9 @@ param(
 )
 Add-Type -AssemblyName System.Drawing
 
-$bitmaps = Join-Path $PSScriptRoot "..\..\docs\catalog\bl\cols"
-# Blocks that share the collision bitmap of another block
-$sameAs = @{ lo = "a1"; xa1 = "a1"; st2 = "st" }
-$pixel = 0.2524 * 0.25   # physics units per bitmap pixel
+$shapes = (Get-Content (Join-Path $PSScriptRoot "..\..\content\collision.json") -Raw | ConvertFrom-Json).models
+$unit = 2.5   # physics units per model unit; a model has +x at the left edge of a block placed unturned and y up
+$brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(90, 110, 160))
 
 $data = Get-Content $Level -Raw | ConvertFrom-Json
 $blocks = @($data.middle | ForEach-Object { [pscustomobject]@{ Name = $_.block; Turned = [bool]$_.turned; X = $_.x * 22.5; Y = $_.y * 22.5 + $_.shift * 2.5 } })
@@ -32,7 +31,6 @@ $image = New-Object System.Drawing.Bitmap $width, ($height * $Rows)
 $g = [System.Drawing.Graphics]::FromImage($image)
 $g.Clear([System.Drawing.Color]::White)
 $font = New-Object System.Drawing.Font "Arial", 8
-$cache = @{}
 
 for ($row = 0; $row -lt $Rows; $row++) {
     $left = $minX + $row * $rowWidth
@@ -50,16 +48,18 @@ for ($row = 0; $row -lt $Rows; $row++) {
 
     foreach ($block in $blocks) {
         if ($block.X -lt $left - 30 -or $block.X -gt $left + $rowWidth + 30) { continue }
-        $name = if ($sameAs.ContainsKey($block.Name)) { $sameAs[$block.Name] } else { $block.Name }
-        $key = if ($block.Turned) { "$name turned" } else { $name }
-        if (-not $cache.ContainsKey($key)) {
-            $cache[$key] = [System.Drawing.Image]::FromFile((Join-Path $bitmaps "$name.png"))
-            if ($block.Turned) { $cache[$key].RotateFlip([System.Drawing.RotateFlipType]::RotateNoneFlipX) }
+        $model = $shapes."Levels/mod/$($block.Name)"
+        if ($null -eq $model) { continue }
+        # A block whose body and wheels collide with different parts (the gates, the vaults): the body's
+        $polygons = @(if ($model.shape) { $model.shape } else { $model.body })   # @(): one polygon stays a list of one
+        $mirror = if ($block.Turned) { 1 } else { -1 }
+        foreach ($polygon in $polygons) {
+            $points = for ($i = 0; $i -lt $polygon.Count; $i += 2) {
+                New-Object System.Drawing.PointF ([float](10 + ($block.X + $mirror * $polygon[$i] * $unit - $left) * $Scale)),
+                    ([float]($top + 10 + ($block.Y - $polygon[$i + 1] * $unit - $minY) * $Scale))
+            }
+            $g.FillPolygon($brush, [System.Drawing.PointF[]]$points)
         }
-        $bitmap = $cache[$key]
-        $w = $bitmap.Width * $pixel * $Scale
-        $h = $bitmap.Height * $pixel * $Scale
-        $g.DrawImage($bitmap, [float](10 + ($block.X - $left) * $Scale - $w / 2), [float]($top + 10 + ($block.Y - $minY) * $Scale - $h / 2), [float]$w, [float]$h)
     }
 
     foreach ($object in $data.objects) {
@@ -74,5 +74,5 @@ $g.ResetClip()
 $image.Save($Out)
 $g.Dispose()
 $image.Dispose()
-$cache.Values | ForEach-Object { $_.Dispose() }
+$brush.Dispose()
 "Saved $Out"

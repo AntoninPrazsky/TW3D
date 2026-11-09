@@ -345,7 +345,8 @@ the game and the editor:
   A block with `"turns": true` can be turned round by 180° about the vertical axis in a
   level (`"turned": true`, see [the level format](levels.md#level-format)): the game draws
   its model turned, mirrors its collision shape left to right and swaps its profile, so `b2`
-  turned is a climb, `[4, 0]`. The slopes, the stairs `s1` and the walls `t1` and `u1` turn;
+  turned is a climb, `[4, 0]`. The slopes, the stairs `s1` and `s2`, the steps `k1` to `k3` and the
+  walls `t1` and `u1` turn;
   so one model serves both directions, where the 2016 version had a mirrored model of each
   (`b2f`, `t2`...; their Wings 3D originals are still in `art/wings`). A tunnel or a
   decoration turned would show its back, so it does not turn; the barriers `bl2f` and
@@ -402,15 +403,27 @@ sides turn their tread the same way. The arrows of a directional tread (the off-
 point to +x on top of the wheel in its model, so that they point forward, the way the wheel
 turns, on both sides of the car.
 
+The blocks added to the classic set since 2016 (#55) are made by `tools/blender/classic.py`
+in the classic look: the outline of the block seen from the side swept straight across the road,
+the road grey with the yellow hazard stripes along both edges as `a1` has them (parallelograms
+0.9 long, slanted by 45°, in the same places along x, so that they run on from a flat road), the
+risers, the bottom and the sides plain grey, and the materials of the classic blocks. So far
+these are the steps of #61, approved by the owner on 2026-11-09: `k1`, `k2` and `k3`, a flat
+road with a step down of 2.5, 5 and 7.5 units in the middle of the cell (turned, a step up),
+and `s2`, stairs of two steps of 5 units with the drop of `s1`. Each starts and ends with the
+slab of a flat road and is solid below its step down to a sloping bottom, as `s1` is:
+
+    blender -b --factory-startup --python tools/blender/classic.py
+
 The looks of the off-road style (#57, approved by the owner on 2026-11-06) are made by
 `tools/blender/offroad.py` from the classic road blocks (`a1`, the slopes `b1` to `b4`, `c1`
-to `c3`, the lips `d1` to `d3` and the stairs `s1`): a cross-section of a dirt road swept
+to `c3`, the lips `d1` to `d3`, the stairs `s1` and `s2` and the steps `k1` to `k3`): a cross-section of a dirt road swept
 along the profile of the classic block, its cut at z = 0. The two ruts lie where the wheels of
 every car run (|z| 1.42 to 2.17 model units, the wheel models are made there; the physics is
 flat, so the wheels never leave them), their bottom on the profile, which is the collision;
 the crown between them, the berms beside them, the shoulders and the grass verges are raised
 straight up, so the ruts run on from block to block. The steps of the stairs are rounded, as
-steps of earth wear. The transitions sink the cross-section to the profile along the block
+steps of earth wear (the higher steps a little more). The transitions sink the cross-section to the profile along the block
 and end the grass, the earth and the ruts unevenly into the grey of the classic road. The
 earth is drawn by the surface `earth` of the shader, the grass by the surface `grass` (short
 blades, darker gaps between the clumps, drier yellower patches):

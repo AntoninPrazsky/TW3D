@@ -35,8 +35,8 @@ directly with `put()`.
 
 ## Turned blocks
 
-A block that turns (`"turns": true` in the catalog: the slopes, the stairs `s1` and the walls
-`t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
+A block that turns (`"turns": true` in the catalog: the slopes, the stairs `s1` and `s2`, the
+steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
 version were: `"b2f"` is `b2` turned round, a 24° climb with the profile `[4, 0]`, and the
 level file gets `{"block":"b2","x":…,"turned":true}`. The walls turned are `"t1f"` and
 `"u1f"`. A name of the catalog is always the block itself (`"bl2f"` and `"kea1f"` are blocks of
@@ -86,6 +86,11 @@ above the road surface, the deeper ones higher on the screen.
 
 The car climbs 24° slopes (`b2f`, `b2` turned) even from a standstill, but not 34° ones (`b3f`) without
 a run-up, and with the throttle alone it gets over a step of 2.5 units but not one of 5 units.
+The steps of #61 (scripted drives of each car on 2026-11-09, up to the step on the throttle): every car
+climbs `k1f` (2.5 units) on the throttle alone, none climbs `k2f` or `s2f` (5 units) so. Holding the
+throttle and turning the axles (↑) at the step got the Buggy over `k2f` and `s2f` and the Sand Rail and
+the Crawler over `k2f` (not every time); turning them the other way (↓), or braking while turning them,
+did not. No car got over `k3f` (7.5 units) so: it needs a player's skill, if it can be climbed at all.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 
 The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of

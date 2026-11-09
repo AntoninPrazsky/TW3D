@@ -12,7 +12,7 @@ faces of the block at z = +-4.5 are the classic profile in the colour of a cut b
 
 The stairs (s1) have ruts too, and the edges of their steps are rounded, as steps of earth wear (the noses inwards, the
 feet filled with a little earth), the cross-section raised along the normal of the rounded profile there, so that the
-crown and the verges follow it round. Their collision stays the sharp classic one. The blocks are the road of the classic set (ROAD_KIT, until #55 settles the kit): the pits, the
+crown and the verges follow it round. Their collision stays the sharp classic one. The blocks are the road of the classic set (ROAD_KIT, settled by #55): the pits, the
 tunnels, the walls, the start and the finish and the decoration stay classic. A block whose road is not the same across
 it (cut at other z) is left out, as only a prism along z can be swept so.
 
@@ -33,8 +33,8 @@ from props import ROOT, material, export
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = args[0] if args else os.path.join(ROOT, 'content', 'Levels', 'mod')
 CROWN = args[1] if len(args) > 1 else "earth"
-# The road of the classic set: the flat road, the slopes, the smooth slopes, the lips and the stairs
-ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1"]
+# The road of the classic set: the flat road, the slopes, the smooth slopes, the lips, the stairs and the steps
+ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1", "s2", "k1", "k2", "k3"]
 BLOCKS = [a for a in args[2:] if a not in ("o", "t", "u")] or ROAD_KIT
 # What is made of each block: the off-road block (o) and the transitions (t, u), all of them unless named
 KINDS = [a for a in args[2:] if a in ("o", "t", "u")] or ["o", "t", "u"]
@@ -59,7 +59,7 @@ SECTION = [
     (1.8, 0.0), (2.22, 0.0), (2.3, 0.07), (2.4, 0.17), (2.52, 0.22), (2.7, 0.2), (3.1, 0.17), (3.35, 0.19),
     (3.5, 0.26), (3.7, 0.3), (4.05, 0.31), (4.3, 0.27), (4.42, 0.16), (4.48, 0.05), (4.5, 0.0)]
 # The blocks whose steps are rounded: the radius of the noses and of the feet of the steps
-ROUNDED = {"s1": (0.45, 0.3)}
+ROUNDED = {"s1": (0.45, 0.3), "s2": (0.6, 0.4), "k1": (0.45, 0.3), "k2": (0.6, 0.4), "k3": (0.7, 0.45)}
 
 
 def zone(w):
