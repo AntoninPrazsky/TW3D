@@ -322,7 +322,7 @@ namespace TW3D.Graphics
         private readonly Vector3[] lightColours = new Vector3[LightCount];
         private readonly Vector3[] lightLevels = new Vector3[LightCount];
         private readonly Vector2[] lightCones = new Vector2[LightCount];
-        private readonly float[] lightRanges = new float[LightCount];
+        private readonly float[] lightInverseRanges = new float[LightCount];
         //The street lamps of the frame: how far each is from the camera, where it is and its colour
         private readonly List<(float Distance, Vector3 Position, Vector3 Colour)> streetLamps = new List<(float, Vector3, Vector3)>();
 
@@ -387,10 +387,10 @@ namespace TW3D.Graphics
                 bool headlight = i < HeadlightCount, streetLight = i >= CarLightCount;
                 lightCones[i] = streetLight ? Cone(StreetLightInnerAngle, StreetLightOuterAngle)
                     : Cone(headlight ? HeadlightInnerAngle : RearLightInnerAngle, headlight ? HeadlightOuterAngle : RearLightOuterAngle);
-                lightRanges[i] = streetLight ? StreetLightRange : headlight ? HeadlightRange : RearLightRange;
+                lightInverseRanges[i] = 1f / (streetLight ? StreetLightRange : headlight ? HeadlightRange : RearLightRange);
             }
             effect.Parameters["LightCone"].SetValue(lightCones);
-            effect.Parameters["LightRange"].SetValue(lightRanges);
+            effect.Parameters["LightInverseRange"].SetValue(lightInverseRanges);
         }
 
         /// <summary>

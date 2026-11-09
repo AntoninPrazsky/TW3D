@@ -62,7 +62,7 @@ float3 LightOffset[LIGHTS];     // position of the lamp - LightOrigin
 float3 LightDirection[LIGHTS];  // unit vector
 float3 LightColor[LIGHTS];      // linear; black = off
 float2 LightCone[LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
-float LightRange[LIGHTS];
+float LightInverseRange[LIGHTS]; // 1 / the distance the lamp fades out over (a multiplication is cheaper than a division)
 
 // The sky (colours on the screen, gamma)
 float4x4 InverseViewProjection;
@@ -399,11 +399,14 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 		[branch]
 		if (dot(LightColor[i], 1.0) > 0.0)
 		{
+			// One reciprocal square root gives both the direction and the distance (a square root and two divisions did, each
+			// of them dear on a Raspberry Pi)
 			float3 toLight = input.ToCar + LightOffset[i];
-			float lightDistance = length(toLight);
-			toLight /= max(lightDistance, 0.001);
+			float squared = max(dot(toLight, toLight), 0.000001);
+			float inverse = rsqrt(squared);
+			toLight *= inverse;
 			float cone = saturate((dot(-toLight, LightDirection[i]) - LightCone[i].x) * LightCone[i].y);
-			float fade = saturate(1.0 - lightDistance / LightRange[i]);
+			float fade = saturate(1.0 - squared * inverse * LightInverseRange[i]);
 			spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
 		}
 	}
