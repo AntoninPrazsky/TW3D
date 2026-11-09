@@ -139,6 +139,15 @@ class Track {
   }
 
   /**
+   * A gap in the road: the next columns get no road block, and the road goes on at the same height after them (as
+   * after a road end: t.road("a1", "r2").gap(1).road("r2f", "a1") leaves a gap of two cells).
+   */
+  gap(columns = 1) {
+    this.x += columns;
+    return this;
+  }
+
+  /**
    * A block placed directly by its base in a layer ("middle", "back", "back2", "back3" or "front"), outside the road
    * (walls, gates, decorations); extra fields (e.g. finish) are added to it.
    */

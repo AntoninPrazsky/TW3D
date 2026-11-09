@@ -35,8 +35,8 @@ directly with `put()`.
 
 ## Turned blocks
 
-A block that turns (`"turns": true` in the catalog: the slopes, the crests and bends, the stairs
-`s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
+A block that turns (`"turns": true` in the catalog: the slopes, the crests and bends, the road
+ends, the stairs `s1` and `s2`, the steps `k1` to `k3` and the walls `t1` and `u1`) is named turned with an `f` after its name, as the mirrored models of the 2016
 version were: `"b2f"` is `b2` turned round, a 24° climb with the profile `[4, 0]`, and the
 level file gets `{"block":"b2","x":…,"turned":true}`. The walls turned are `"t1f"` and
 `"u1f"`. A name of the catalog is always the block itself (`"bl2f"` and `"kea1f"` are blocks of
@@ -49,6 +49,7 @@ const { Track } = require("./lib.js");
 const t = new Track(-3, 0);              // first column and surface height
 t.road("a1", "a1", "c2f", "c2", "a1");    // road blocks, one column each
 t.step(-1);                              // a step up by 2.5 units
+t.road("r2").gap(1).road("r2f");         // a gap of two cells between two road ends
 t.put("back", "st2", 2, -5);             // any block in any layer, by its base
 t.put("back3", "za", 4, -9);             // three cells behind the road ("back2": two)
 t.obj("Box", "box", 50, Track.top(0) - 3.3);
@@ -101,6 +102,10 @@ top of a climb: `b2f`, `e12f`, `e1f`, `a1`), with the radius of `e1` all the way
 grid of whole shift steps allows: on 2026-11-09 the Crawler at full throttle stayed on the road over
 the top of a hill of `b2f` rounded so (the climb had slowed it), where it took off over one rounded by
 `e2f`; after a flat run it still flew over `e1`, `e12`, `e23` into `b3`.
+
+A gap between road ends (`r1`–`r3`) on a flat road is a trap rather than a jump: on 2026-11-09 the Crawler
+at full throttle dropped its front wheels into a gap of one cell (`r2`, `r2f`) and turned over on the far
+edge, and fell into one of two cells. Jump a gap from a kicker (`d1f`, `d2f`), as the shipped levels do.
 After long descents it is fast and flips easily over upward kinks, jumps and walls.
 
 The pits of the road hold barrels: `ba1` one, `ba2` two (a barrel is 6 units across). A barrel standing on the rim of

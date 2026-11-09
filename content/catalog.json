@@ -4,6 +4,9 @@
   ],
   "blocks": [
     { "name": "a1", "title": "Flat road", "group": "Flat road", "collision": true, "profile": [ 0, 0 ], "looks": { "offroad": "a1o", "classic-offroad": "a1t", "offroad-classic": "a1u" } },
+    { "name": "r1", "title": "Road end, 2.7 into the cell", "group": "Road ends", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "r1o", "classic-offroad": "r1t", "offroad-classic": "r1u" } },
+    { "name": "r2", "title": "Road end, half the cell", "group": "Road ends", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "r2o", "classic-offroad": "r2t", "offroad-classic": "r2u" } },
+    { "name": "r3", "title": "Road end, 6.3 into the cell", "group": "Road ends", "collision": true, "turns": true, "profile": [ 0, 0 ], "looks": { "offroad": "r3o", "classic-offroad": "r3t", "offroad-classic": "r3u" } },
     { "name": "b0", "title": "Slope, 1 step a cell (6.3°)", "group": "Slopes", "collision": true, "turns": true, "profile": [ 0, 1 ], "looks": { "offroad": "b0o", "classic-offroad": "b0t", "offroad-classic": "b0u" } },
     { "name": "b1", "title": "Slope, 2 steps a cell (12.5°)", "group": "Slopes", "collision": true, "turns": true, "profile": [ 2, 4 ], "looks": { "offroad": "b1o", "classic-offroad": "b1t", "offroad-classic": "b1u" } },
     { "name": "b2", "title": "Slope, 4 steps a cell (24°)", "group": "Slopes", "collision": true, "turns": true, "profile": [ 0, 4 ], "looks": { "offroad": "b2o", "classic-offroad": "b2t", "offroad-classic": "b2u" } },

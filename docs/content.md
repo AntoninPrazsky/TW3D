@@ -345,8 +345,8 @@ the game and the editor:
   A block with `"turns": true` can be turned round by 180° about the vertical axis in a
   level (`"turned": true`, see [the level format](levels.md#level-format)): the game draws
   its model turned, mirrors its collision shape left to right and swaps its profile, so `b2`
-  turned is a climb, `[4, 0]`. The slopes, the crests and bends, the stairs `s1` and `s2`, the steps
-  `k1` to `k3` and the walls `t1` and `u1` turn;
+  turned is a climb, `[4, 0]`. The slopes, the crests and bends, the road ends, the stairs `s1` and
+  `s2`, the steps `k1` to `k3` and the walls `t1` and `u1` turn;
   so one model serves both directions, where the 2016 version had a mirrored model of each
   (`b2f`, `t2`...; their Wings 3D originals are still in `art/wings`). A tunnel or a
   decoration turned would show its back, so it does not turn; the barriers `bl2f` and
@@ -418,15 +418,20 @@ parabolas: they leave the flat road level and meet their slope at its angle, dro
 3 shift steps); and the bends `e12`, `e23` and `e34`, a slope rounding over into the next
 steeper one (`b1` into `b2`...), so that a crest longer than a cell is `e1`, `e12`, `e23`...
 with the curve of `e1` all the way. A curved road is cut finer along x (0.45) and across its
-edges, so that the stripes stay straight. Every block starts and ends with the slab of a road
-one shift step thick, so that it meets the classic blocks flush:
+edges, so that the stripes stay straight. And the road ends of #64, approved on 2026-11-09: `r1`,
+`r2` and `r3`, the flat road from the left edge of the cell ending 2.7, 4.5 (half the cell) and
+6.3 model units into it, with a band of hazard stripes across the end (turned, the road starting
+after a gap), for gaps of any length and short ledges, in the place of the checkered `xa6` and
+`xa7`; their profile is that of a flat road, the edge without road at the height a road would go
+on at. Every block starts with the slab of a road one shift step thick, and but for a road end
+ends with one, so that it meets the classic blocks flush:
 
     blender -b --factory-startup --python tools/blender/classic.py
 
 The looks of the off-road style (#57, approved by the owner on 2026-11-06) are made by
 `tools/blender/offroad.py` from the classic road blocks (`a1`, the slopes `b1` to `b4`, `c1`
 to `c3`, the lips `d1` to `d3`, the gentle `b0`, `c0` and `d0`, the crests `e0` to `e3`, the bends
-`e12` to `e34`, the stairs `s1` and `s2` and the steps `k1` to `k3`): a cross-section of a dirt road swept
+`e12` to `e34`, the road ends `r1` to `r3`, the stairs `s1` and `s2` and the steps `k1` to `k3`): a cross-section of a dirt road swept
 along the profile of the classic block, its cut at z = 0. The two ruts lie where the wheels of
 every car run (|z| 1.42 to 2.17 model units, the wheel models are made there; the physics is
 flat, so the wheels never leave them), their bottom on the profile, which is the collision;

@@ -21,7 +21,11 @@ The blocks:
   straight slope of one shift step a cell (6.3°), gentler than b1, with its S-curve c0, its sag curve d0 and its crest
   e0 (a cubic: the grid makes them drop a whole shift step, so the middle of d0 and e0 is a little steeper than b0).
   A slab one shift step thick, as the slopes are.
-Every block starts and ends with the slab of a road one shift step thick, so that it meets a1, the slopes and s1 flush.
+- #64, the road ends: r1, r2, r3, the flat road from the left edge of the cell ending 2.7, 4.5 and 6.3 model units into
+  it (lengths on the grid of the stripes), with a band of hazard stripes across the end; turned, the road starting
+  after a gap. Their profile is that of a flat road: the edge without road has the height a road would go on at.
+Every block starts with the slab of a road one shift step thick, and but for a road end ends with one, so that it meets
+a1, the slopes and s1 flush.
 
     blender -b --factory-startup --python tools/blender/classic.py -- [<output folder>] [<block>...]
 
@@ -100,8 +104,13 @@ def curve(entry, leaving, drop, left=0):
     return road(lambda u: entry * u + a * u * u + b * u * u * u, 2, left)
 
 
+def road_end(length):
+    """The flat road from the left edge of the cell, ending `length` model units into it (a ledge at a gap)."""
+    return [(HALF, 0.5), (HALF - length, 0.5), (HALF - length, -0.5), (HALF, -0.5)]
+
+
 BLOCKS = {
-    # name: (what it is, the outline, cuts to a stripe, flat shading, the issue)
+    # name: (what it is, the outline, cuts to a stripe, flat shading, the issue[, the x of a hazard band across the road])
     "k1": ("a step down of 2.5 units", step(1), 1, True, 61),
     "k2": ("a step down of 5 units", step(2), 1, True, 61),
     "k3": ("a step down of 7.5 units", step(3), 1, True, 61),
@@ -117,6 +126,10 @@ BLOCKS = {
     "e12": ("the slope of b1 rounding over into that of b2", curve(2, 4, 3, 1), 2, False, 62),
     "e23": ("the slope of b2 rounding over into that of b3", curve(4, 6, 5, -1), 2, False, 62),
     "e34": ("the slope of b3 rounding over into that of b4", curve(6, 8, 7, -3), 2, False, 62),
+    # The road ends at a gap, with a hazard band across the end (the owner chose it over a plain end)
+    "r1": ("the road ending 2.7 units into the cell", road_end(2.7), 1, True, 64, HALF - 2.7),
+    "r2": ("the road ending in the middle of the cell", road_end(4.5), 1, True, 64, 0.0),
+    "r3": ("the road ending 6.3 units into the cell", road_end(6.3), 1, True, 64, HALF - 6.3),
 }
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -152,7 +165,15 @@ def hazard(x, w, front):
 
 
 def build(name):
-    title, outline, div, flat, issue = BLOCKS[name]
+    title, outline, div, flat, issue, *band = BLOCKS[name]
+    band = round(band[0], 6) if band else None
+    # Where the road ends at a band, the last stripe across the road is cut across it too, every 0.9 (z from -3.6 to 3.6)
+    across = [round(-EDGE + STRIPE * k, 6) for k in range(round(2 * EDGE / STRIPE) + 1)]
+    full = set() if band is None else {band, round(band + STRIPE, 6)}
+
+    def middle(x):
+        """The z the middle of the road is cut at along x, ascending."""
+        return across if round(x, 6) in full else [-EDGE, EDGE]
     n = len(outline)
     cell = STRIPE / div
     widths = [EDGE + (HALF - EDGE) * j / div for j in range(div + 1)]     # the rows across an edge strip (|z|)
@@ -185,14 +206,26 @@ def build(name):
         face(tri, HAZARD if hazard(cx, cw, front) else ROAD)
 
     rows = [-w for w in reversed(widths)] + widths
+
+    def rows_at(x):
+        """The z a riser meets the road at: the rows of the edge strips, and the cuts across a band."""
+        return [-w for w in reversed(widths)] + middle(x)[1:-1] + widths
     sides = {HALF: [], -HALF: []}        # the outline at both sides, with every point the road is cut at
     for i in range(n):
         p, q = outline[i], outline[(i + 1) % n]
         if up[i]:
             cut = grid(p, q, cell)
             for (xa, ya), (xb, yb) in zip(cut, cut[1:]):        # xa > xb: the road runs leftwards
-                # The middle of the road
-                face([(xa, ya, -EDGE), (xb, yb, -EDGE), (xb, yb, EDGE), (xa, ya, EDGE)], ROAD)
+                if band is not None and abs(xb - band) < 1e-6:
+                    # The band across the end of the road: squares split along a slant of 45°, yellow and grey by turns
+                    for z0, z1 in zip(across, across[1:]):
+                        for tri in (((xb, yb, z0), (xa, ya, z0), (xa, ya, z1)), ((xb, yb, z0), (xa, ya, z1), (xb, yb, z1))):
+                            cx, cz = sum(t[0] for t in tri) / 3, sum(t[2] for t in tri) / 3
+                            face(tri, HAZARD if (cx - cz) % (2 * STRIPE) < STRIPE else ROAD)
+                else:
+                    # The middle of the road (with the cuts of a band on the side next to it)
+                    face([(xa, ya, -EDGE)] + [(xb, yb, z) for z in middle(xb)] + [(xa, ya, z) for z in reversed(middle(xa)[1:])],
+                         ROAD)
                 for w0, w1 in zip(widths, widths[1:]):
                     # The front edge (z > 0): each little cell split along the slant of the stripes, (xb, w0) to (xa, w1)
                     striped(((xb, yb, w0), (xb, yb, w1), (xa, ya, w1)), True)
@@ -205,8 +238,8 @@ def build(name):
                 sides[side] += [(x, y) for x, y in cut[:-1]]
         else:
             # A riser, the bottom or an end: one face across the block, through the rows of the road at its ends
-            zs_p = rows if i in road else [-HALF, HALF]
-            zs_q = rows if (i + 1) % n in road else [-HALF, HALF]
+            zs_p = rows_at(p[0]) if i in road else [-HALF, HALF]
+            zs_q = rows_at(q[0]) if (i + 1) % n in road else [-HALF, HALF]
             face([(p[0], p[1], z) for z in zs_p] + [(q[0], q[1], z) for z in reversed(zs_q)], ROAD)
             for side in sides:
                 sides[side].append(p)

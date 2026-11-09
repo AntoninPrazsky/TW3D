@@ -33,8 +33,8 @@ from props import ROOT, material, export
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 OUT = args[0] if args else os.path.join(ROOT, 'content', 'Levels', 'mod')
 CROWN = args[1] if len(args) > 1 else "earth"
-# The road of the classic set: the flat road, the slopes, the smooth slopes, the lips, the stairs, the steps, the crests and the bends
-ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1", "s2", "k1", "k2", "k3", "b0", "c0", "d0", "e0", "e1", "e2", "e3", "e12", "e23", "e34"]
+# The road of the classic set: the flat road, the slopes, the smooth slopes, the lips, the stairs, the steps, the crests, the bends and the road ends
+ROAD_KIT = ["a1", "b1", "b2", "b3", "b4", "c1", "c2", "c3", "d1", "d2", "d3", "s1", "s2", "k1", "k2", "k3", "b0", "c0", "d0", "e0", "e1", "e2", "e3", "e12", "e23", "e34", "r1", "r2", "r3"]
 BLOCKS = [a for a in args[2:] if a not in ("o", "t", "u")] or ROAD_KIT
 # What is made of each block: the off-road block (o) and the transitions (t, u), all of them unless named
 KINDS = [a for a in args[2:] if a in ("o", "t", "u")] or ["o", "t", "u"]

@@ -86,7 +86,7 @@ joins the road. It is not shown where the same block is already, nor while Left 
 A block of the road can be **turned** round by 180° about the vertical axis: its road then
 runs the other way, so `b2`, a descent, turned is a climb, and the walls `t1` and `u1` turned
 stand at the other side of their cell. The blocks that turn are the slopes (`b1`–`b4`,
-`c1`–`c3`, `d1`–`d3`, with `b0`, `c0` and `d0`), the crests `e0`–`e3` and the bends `e12`–`e34`, the stairs `s1` and `s2`, the steps `k1`–`k3` and the walls `t1` and `u1` (`"turns": true` in the
+`c1`–`c3`, `d1`–`d3`, with `b0`, `c0` and `d0`), the crests `e0`–`e3` and the bends `e12`–`e34`, the road ends `r1`–`r3`, the stairs `s1` and `s2`, the steps `k1`–`k3` and the walls `t1` and `u1` (`"turns": true` in the
 catalog); a tunnel or a decoration turned would show its back, so it does not turn. The
 status bar says "turned" after the chosen block, and the Inspector after the block at the
 cursor cell. (The 2016 version had a mirrored model of each, `b2f`, `t2`...; the level
