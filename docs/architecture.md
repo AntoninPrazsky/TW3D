@@ -69,7 +69,8 @@ its shadows (a shadow map fitted to the part of the scene the camera sees, from 
 layer to the first back layer, and a coarser one beside it in the same texture for the
 deeper back layers, drawn only while the camera sees something there; each covers the box
 around that part in the view of the sun, its size of the Shadow detail of Options, its
-edges filtered smoothly, but on phones, whose half precision keeps a coarser filter), the light of
+edges filtered smoothly, but on phones, whose half precision keeps a coarser filter, and on a
+Raspberry Pi, where the coarser one is faster), the light of
 the sky from above and of the ground from below, darkened in corners and crevices by
 ambient occlusion (`content/Effects/Occlusion.fx`, computed at half the resolution of the
 screen from the normals and depths the camera sees), highlights by the specular colour of
@@ -89,7 +90,10 @@ lamp also lights the scene as a spot light of its colour: the two headlights ahe
 beams a little apart, the rear lights red behind the car. The street lamps of the scenery
 (the lens of the material `streetlight…`) shine at night with a glow too, and the four nearest
 to the camera light the road and the props below them as spot lights pointing down, warm
-white: `Scene.fx` has eight lights, four of the car and four of the street lamps. The lit
+white: `Scene.fx` has eight lights, four of the car and four of the street lamps. The pixel
+shader skips a lamp that is off, and all of them by one branch when none shines (`LightsOn`,
+by day): computed for every pixel, they cost a Raspberry Pi 7 ms a frame on a level by day at
+1280×720 (lock went from 39 to 55 frames per second). The lit
 windows of a building (`windowlit…`, the judges' stand) shine at night evenly, without a glow,
 and light nothing. The
 start lights of the start gate count the start down in any weather (`SceneRenderer.StartLights`,

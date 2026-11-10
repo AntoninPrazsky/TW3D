@@ -322,7 +322,7 @@ namespace TW3D.Graphics
         private readonly Vector3[] lightColours = new Vector3[LightCount];
         private readonly Vector3[] lightLevels = new Vector3[LightCount];
         private readonly Vector2[] lightCones = new Vector2[LightCount];
-        private readonly float[] lightRanges = new float[LightCount];
+        private readonly float[] lightInverseRanges = new float[LightCount];
         //The street lamps of the frame: how far each is from the camera, where it is and its colour
         private readonly List<(float Distance, Vector3 Position, Vector3 Colour)> streetLamps = new List<(float, Vector3, Vector3)>();
 
@@ -387,23 +387,24 @@ namespace TW3D.Graphics
                 bool headlight = i < HeadlightCount, streetLight = i >= CarLightCount;
                 lightCones[i] = streetLight ? Cone(StreetLightInnerAngle, StreetLightOuterAngle)
                     : Cone(headlight ? HeadlightInnerAngle : RearLightInnerAngle, headlight ? HeadlightOuterAngle : RearLightOuterAngle);
-                lightRanges[i] = streetLight ? StreetLightRange : headlight ? HeadlightRange : RearLightRange;
+                lightInverseRanges[i] = 1f / (streetLight ? StreetLightRange : headlight ? HeadlightRange : RearLightRange);
             }
             effect.Parameters["LightCone"].SetValue(lightCones);
-            effect.Parameters["LightRange"].SetValue(lightRanges);
+            effect.Parameters["LightInverseRange"].SetValue(lightInverseRanges);
         }
 
         /// <summary>
         /// The shadows are filtered smoothly (technique Lit of Scene.fx): their edges move with the scene, not in the steps
         /// of the texels of the shadow map. Not on a phone, whose pixel shaders compute in half precision (MonoGame declares
         /// them mediump on OpenGL ES): a position in a texture thousands of texels wide has no fraction of a texel left there,
-        /// so a phone keeps the coarser filter that does not need it (LitCoarseShadows).
+        /// so a phone keeps the coarser filter that does not need it (LitCoarseShadows). Nor on a Raspberry Pi, where the
+        /// smooth filter cost the garage 0.6 ms a frame at 1280×720 and 1.4 ms at 1920×1080 (see <see cref="PiGraphics"/>).
         /// </summary>
         private static bool SmoothShadows =>
 #if ANDROID
             false;
 #else
-            true;
+            !PiGraphics.Active;
 #endif
 
         /// <summary>
@@ -1459,17 +1460,21 @@ namespace TW3D.Graphics
             effect.Parameters["MirroredHorizon"].SetValue(ToLinear(lighting.HazeColor) * MirroredHorizon);
             effect.Parameters["MirroredGround"].SetValue(lighting.GroundLight * MirroredGroundLight);
             CollectStreetLights();
+            //The shader skips the lamps that are off, and all of them by one branch when none shines (by day)
+            bool lightsOn = false;
             for (int i = 0; i < LightCount; i++)
             {
                 float level = lights[i] == Lamp.None ? 0f : LampGlow(lights[i]);
                 if (lights[i] == Lamp.RearLight && !lighting.Headlights)
                     level *= RearLightDaylight;
                 lightLevels[i] = lightColours[i] * level;
+                lightsOn |= lightLevels[i] != Vector3.Zero;
             }
             effect.Parameters["LightOrigin"].SetValue(carPosition);
             effect.Parameters["LightOffset"].SetValue(lightOffsets);
             effect.Parameters["LightDirection"].SetValue(lightDirections);
             effect.Parameters["LightColor"].SetValue(lightLevels);
+            effect.Parameters["LightsOn"].SetValue(lightsOn ? 1f : 0f);
 
             effect.Parameters["ViewProjection"].SetValue(view * projection);
             effect.Parameters["CameraPosition"].SetValue(eye);

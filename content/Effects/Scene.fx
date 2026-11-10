@@ -62,7 +62,8 @@ float3 LightOffset[LIGHTS];     // position of the lamp - LightOrigin
 float3 LightDirection[LIGHTS];  // unit vector
 float3 LightColor[LIGHTS];      // linear; black = off
 float2 LightCone[LIGHTS];       // cosine of the outer angle, 1 / (cosine of the inner angle - cosine of the outer one)
-float LightRange[LIGHTS];
+float LightInverseRange[LIGHTS]; // 1 / the distance the lamp fades out over (a multiplication is cheaper than a division)
+float LightsOn;                 // 1 = some lamp shines (some LightColor is not black), 0 = none does: by day
 
 // The sky (colours on the screen, gamma)
 float4x4 InverseViewProjection;
@@ -388,15 +389,31 @@ float4 Shade(VertexOutput input, bool smooth, int surface, int detail, bool mudd
 	highlight *= diffuse;
 	rim *= diffuse;
 
+	// A lamp that is off is skipped, not computed and multiplied by black: by day all of them are off (the headlights and
+	// the street lamps shine at night only, the rear lights when the car brakes), and going from four lamps to eight cost a
+	// Raspberry Pi 9 ms a frame in the garage, by day too. Whether a lamp is on is the same for every pixel, so the branches
+	// skip the work on every GPU instead of computing both sides; by day one branch skips all of them
 	float3 spot = 0.0;
-	for (int i = 0; i < LIGHTS; i++)
+	[branch]
+	if (LightsOn > 0.0)
 	{
-		float3 toLight = input.ToCar + LightOffset[i];
-		float lightDistance = length(toLight);
-		toLight /= max(lightDistance, 0.001);
-		float cone = saturate((dot(-toLight, LightDirection[i]) - LightCone[i].x) * LightCone[i].y);
-		float fade = saturate(1.0 - lightDistance / LightRange[i]);
-		spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
+		[unroll]
+		for (int i = 0; i < LIGHTS; i++)
+		{
+			[branch]
+			if (dot(LightColor[i], 1.0) > 0.0)
+			{
+				// One reciprocal square root gives both the direction and the distance (a square root and two divisions did,
+				// each of them dear on a Raspberry Pi)
+				float3 toLight = input.ToCar + LightOffset[i];
+				float squared = max(dot(toLight, toLight), 0.000001);
+				float inverse = rsqrt(squared);
+				toLight *= inverse;
+				float cone = saturate((dot(-toLight, LightDirection[i]) - LightCone[i].x) * LightCone[i].y);
+				float fade = saturate(1.0 - squared * inverse * LightInverseRange[i]);
+				spot += LightColor[i] * (saturate(dot(normal, toLight)) * cone * fade * fade);
+			}
+		}
 	}
 
 	// The light of the sky and the ground on the mud in the hue of the sun, half of it: the blue of the sky in the shade
