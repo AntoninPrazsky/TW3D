@@ -74,19 +74,19 @@ with the low Shadow detail and Surface detail until others are chosen (the Shado
 shadow maps of high lie in a texture 6144 texels wide, and its GPU has none wider than 4096) and with the coarse filter
 of the edges of the shadows, as a phone has it: its GPU drew a level at 1920×1080 with the graphics of a
 desktop in 49 ms a frame. Frames per second by the Resolution of Options, measured in full
-screen at 1920×1080 (off screen, 2026-11-09):
+screen at 1920×1080 (off screen, at the start of a level, 2026-11-10):
 
 | Resolution | The garage | lock (day) | docks (night, with the lamps) |
 |---|---|---|---|
-| 1920 × 1080 (native) | 19 | 39 | 27 |
-| 1600 × 900 | 24 | 44 | 31 |
-| 1280 × 720 (the default) | 32 | 55 | 40 |
-| 960 × 540 | 45 | 60 | 53 |
+| 1920 × 1080 (native) | 20 | 41 | 28 |
+| 1600 × 900 | 25 | 46 | 33 |
+| 1280 × 720 (the default) | 34 | 59 | 43 |
+| 960 × 540 | 48 | 62 | 56 |
 
-Antialiasing costs it about 18 ms a frame more at 1280 × 720 (lock 23 frames per second), the medium
-Shadow detail about 7 ms (lock 42), the medium and high Surface detail about 1 and 1.5 ms where the
-surfaces fill the screen (tunel-offroad 48, 46 and 45 frames per second), and the smooth filter of the
-edges of the shadows, which a desktop has, 0.6 ms in the garage (2026-11-10).
+At 1280 × 720 antialiasing costs it about 14 ms a frame more (lock 32 frames per second), the medium
+Shadow detail about 7 ms (lock 42, the garage 28), the medium and high Surface detail about 1.5 and
+2 ms where the surfaces fill the screen (tunel-offroad 50, 46 and 45 frames per second at low, medium
+and high), and the smooth filter of the edges of the shadows, which a desktop has, 0.6 ms in the garage.
 
 ## Tests and CI
 

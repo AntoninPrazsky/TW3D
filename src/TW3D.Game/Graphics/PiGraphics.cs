@@ -30,7 +30,7 @@ namespace TW3D.Graphics
 
         //The shadow map is 1024 texels until another Shadow detail is chosen (ShadowDetail.Low; medium at most, see
         //ShadowDetails.Highest): at 2048 it costs the Pi about 7 ms more at 1280×720 (2026-11-10). The surfaces are low
-        //until chosen too (medium and high cost about 1 and 1.5 ms where they fill the screen), and the edges of the
+        //until chosen too (medium and high cost about 1.5 and 2 ms where they fill the screen), and the edges of the
         //shadows have the coarse filter of a phone (SceneRenderer.SmoothShadows)
     }
 }
