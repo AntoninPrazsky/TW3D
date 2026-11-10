@@ -397,13 +397,14 @@ namespace TW3D.Graphics
         /// The shadows are filtered smoothly (technique Lit of Scene.fx): their edges move with the scene, not in the steps
         /// of the texels of the shadow map. Not on a phone, whose pixel shaders compute in half precision (MonoGame declares
         /// them mediump on OpenGL ES): a position in a texture thousands of texels wide has no fraction of a texel left there,
-        /// so a phone keeps the coarser filter that does not need it (LitCoarseShadows).
+        /// so a phone keeps the coarser filter that does not need it (LitCoarseShadows). Nor on a Raspberry Pi, where the
+        /// smooth filter cost the garage 0.6 ms a frame at 1280×720 and 1.4 ms at 1920×1080 (see <see cref="PiGraphics"/>).
         /// </summary>
         private static bool SmoothShadows =>
 #if ANDROID
             false;
 #else
-            true;
+            !PiGraphics.Active;
 #endif
 
         /// <summary>
