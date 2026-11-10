@@ -469,6 +469,7 @@ technique LitCoarseShadows
 SURFACE_TECHNIQUES(Asphalt, SURFACE_ASPHALT)
 SURFACE_TECHNIQUES(Earth, SURFACE_EARTH)
 SURFACE_TECHNIQUES(Grass, SURFACE_GRASS)
+SURFACE_TECHNIQUES(Meadow, SURFACE_MEADOW)
 
 // The techniques of the mud: Lit<Mud><Detail> and LitCoarseShadowsMud<Detail>, Medium and High
 #define MUD_TECHNIQUE(name, smooth, detail) 	float4 name##PS(VertexOutput input) : COLOR0 	{ 		return Shade(input, smooth, SURFACE_NONE, detail, true); 	} 	technique name 	{ 		pass P0 		{ 			VertexShader = compile VS_SHADERMODEL MudVS(); 			PixelShader = compile PS_SHADERMODEL name##PS(); 		} 	};

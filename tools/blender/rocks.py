@@ -28,9 +28,10 @@ BOULDERS = {
 }
 
 
-def rough(rng, subdivisions, breaks, boxy=False):
-    """A unit stone: an icosphere pushed out and in by fractal noise, broken off by `breaks` planes. A boxy one is pushed
-    out towards a cube first (sheer sides, a flat top) and broken off by upright planes only, so that its sides stay sheer."""
+def rough(rng, subdivisions, breaks, boxy=False, lumps=0.22):
+    """A unit stone: an icosphere pushed out and in by fractal noise (`lumps` of the radius), broken off by `breaks`
+    planes. A boxy one is pushed out towards a cube first (sheer sides, a flat top) and broken off by upright planes only,
+    so that its sides stay sheer."""
     bm = bmesh.new()
     bmesh.ops.create_icosphere(bm, subdivisions=subdivisions, radius=1.0)
     offset = Vector((rng.uniform(-50, 50), rng.uniform(-50, 50), rng.uniform(-50, 50)))
@@ -42,7 +43,7 @@ def rough(rng, subdivisions, breaks, boxy=False):
             bump = 1.0 + 0.1 * noise.fractal(d * 1.6 + offset, 1.0, 2.0, 4) + 0.06 * noise.noise(d * 7.0 + offset)
         else:
             # No finer detail than the mesh can carry, or the smoothing shows the triangles
-            bump = 1.0 + 0.22 * noise.fractal(d * 1.6 + offset, 1.0, 2.0, 3) + 0.03 * noise.noise(d * 3.5 + offset)
+            bump = 1.0 + lumps * noise.fractal(d * 1.6 + offset, 1.0, 2.0, 3) + 0.03 * noise.noise(d * 3.5 + offset)
         v.co = d * bump
     for _ in range(breaks):
         normal = Vector((rng.uniform(-1, 1), rng.uniform(-1, 1),
@@ -57,12 +58,12 @@ def rough(rng, subdivisions, breaks, boxy=False):
     return bm
 
 
-def rock(x, z, radius, height, seed, materials, road=0.5, subdivisions=None, breaks=3, sink=0.15, boxy=False):
+def rock(x, z, radius, height, seed, materials, road=0.5, subdivisions=None, breaks=3, sink=0.15, boxy=False, lumps=0.22):
     """One rock standing on the road (y = road) at (x, z); radius a number, or (along the road, across it)."""
     rng = random.Random(seed)
     rx, rz = radius if isinstance(radius, tuple) else (radius, radius)
     size = max(rx, rz)
-    bm = rough(rng, subdivisions or (3 if size >= 0.5 else 2), breaks, boxy)
+    bm = rough(rng, subdivisions or (3 if size >= 0.5 else 2), breaks, boxy, lumps)
     stretch = (rng.uniform(0.85, 1.15), rng.uniform(0.85, 1.15))
     for v in bm.verts:
         gx, gz, gy = v.co.x * stretch[0], -v.co.y * stretch[1], v.co.z

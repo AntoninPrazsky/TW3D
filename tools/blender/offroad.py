@@ -30,6 +30,7 @@ from mathutils import Vector, noise
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from props import ROOT, material, export
+from outline import profile
 import rocks
 
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -161,67 +162,6 @@ def zone(w):
     if w < 2.36:
         return RUT
     return EARTH
-
-
-def read_obj(path):
-    """The vertices and the faces (lists of vertex indices) of an OBJ file, in the game's coordinates."""
-    vertices, faces = [], []
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            parts = line.split()
-            if not parts:
-                continue
-            if parts[0] == "v":
-                vertices.append(tuple(float(p) for p in parts[1:4]))
-            elif parts[0] == "f":
-                faces.append([int(p.split("/")[0]) - 1 for p in parts[1:]])
-    return vertices, faces
-
-
-def profile(path, cut=1e-4):
-    """The outline of the classic block cut at z = 0 (a hair off it, as no vertex lies there), counter-clockwise in (x, y)."""
-    vertices, faces = read_obj(path)
-    segments = []
-    for face in faces:
-        points = []
-        for a, b in zip(face, face[1:] + face[:1]):
-            # The two faces of an edge go along it the other way round: cut it from its lower vertex in both, so that
-            # they get the very same point (else the two may round to different keys and the outline falls apart)
-            pa, pb = vertices[min(a, b)], vertices[max(a, b)]
-            if (pa[2] - cut) * (pb[2] - cut) < 0:
-                t = (cut - pa[2]) / (pb[2] - pa[2])
-                points.append((pa[0] + (pb[0] - pa[0]) * t, pa[1] + (pb[1] - pa[1]) * t))
-        if len(points) == 2:
-            segments.append(points)
-    # Chained into the longest closed loop
-    def key(p):
-        return (round(p[0], 4), round(p[1], 4))
-    loops, unused = [], segments[:]
-    while unused:
-        a, b = unused.pop()
-        loop = [a, b]
-        while True:
-            for i, (c, d) in enumerate(unused):
-                if key(c) == key(loop[-1]):
-                    loop.append(d)
-                elif key(d) == key(loop[-1]):
-                    loop.append(c)
-                else:
-                    continue
-                unused.pop(i)
-                break
-            else:
-                break
-        if key(loop[0]) == key(loop[-1]):
-            loop.pop()
-        loops.append(loop)
-    loop = max(loops, key=len)
-    # Without points on a straight line, counter-clockwise
-    def straight(p, q, r):
-        return abs((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])) < 1e-6
-    loop = [q for p, q, r in zip(loop[-1:] + loop[:-1], loop, loop[1:] + loop[:1]) if not straight(p, q, r)]
-    area = sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(loop, loop[1:] + loop[:1]))
-    return loop if area > 0 else loop[::-1]
 
 
 def faces_up(p, q):
