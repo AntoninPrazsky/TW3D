@@ -70,15 +70,16 @@ namespace TW3D.Tests
 
         /// <summary>
         /// A block that turns has no model of its own for its other direction: the level generator names it turned with
-        /// an "f" after its name, which would be ambiguous. And it is a block of the track, with a collision shape.
+        /// an "f" after its name, which would be ambiguous. And it is a block of the track, with a collision shape, or
+        /// decoration that looks right from behind: the ground (the same across its cell) and the backdrop of nature.
         /// </summary>
         [Fact]
-        public void EveryBlockThatTurnsHasNoFVariantAndACollisionShape()
+        public void EveryBlockThatTurnsHasNoFVariantAndIsTrackOrGround()
         {
             List<BlockType> turning = catalog.Blocks.Where(block => block.Turns).ToList();
             Assert.NotEmpty(turning);
             Assert.All(turning, block => Assert.Null(catalog.FindBlock(block.Name + "f")));
-            Assert.All(turning, block => Assert.True(block.Collision));
+            Assert.All(turning, block => Assert.True(block.Collision || block.Group is "Ground" or "Backdrop", block.Name));
         }
 
         /// <summary>

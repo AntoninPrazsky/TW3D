@@ -58,6 +58,12 @@ h2 {
 #obj{
 	background-color: PaleVioletRed;
 }
+/* A note at the top of a section (the ground: one block of each kind is shown) */
+.bl > p
+{
+	color: #E8E8E8;
+	margin: 4px;
+}
 /* The looks of a block in the styles of the track: the look and the transitions, side by side */
 td.looks > img {
 	width: 32%;

@@ -82,7 +82,8 @@ class Track {
     this.style = null;
     // The style road() gives its blocks of their own (see withStyle); null = the level's
     this.blockStyle = null;
-    // Road blocks by column: { block, base, left, right } (left/right = surface height at the edges)
+    // Road blocks by column: { block, base, left, right, style } (left/right = surface height at the edges, style the
+    // block's own, see withStyle)
     this.cells = new Map();
   }
 
@@ -110,7 +111,7 @@ class Track {
       const placed = Track.place(block, this.x, base);
       if (this.blockStyle) placed.style = this.blockStyle;
       this.middle.push(placed);
-      this.cells.set(this.x, { block, base, left: base + profile[0], right: base + profile[1] });
+      this.cells.set(this.x, { block, base, left: base + profile[0], right: base + profile[1], style: this.blockStyle });
       this.h = base + profile[1];
       this.x++;
     }
@@ -209,6 +210,54 @@ class Track {
         runs.push({ from: x, to: x, h: cell.left });
     }
     return runs;
+  }
+
+  /**
+   * Ground under the road from column `from` to `to` (#66), so that the road runs along the top of a bank and does not
+   * float in the air: in each layer, under every road block, the ground of its shape (b2g under b2, b2g turned under b2f,
+   * a1g under every flat block) and `depth` whole cells of ground (g2) under it, or as many as reach down to the height
+   * `floor` (in steps, as h; the bottom of the cell of a flat road is 5 steps under its surface). `wall` puts a retaining
+   * wall instead (b2w, its mirror image b2wf under b2f, a1w, g2w), in the front layer only unless `layers` says otherwise:
+   * it faces the camera. The ground takes the style of its road block (withStyle). A road block of another shape without
+   * ground of its own is left without.
+   */
+  fillUnder(from, to, { layers = null, depth = 1, floor = null, wall = false } = {}) {
+    layers = layers || (wall ? ["front"] : ["front", "back"]);
+    for (let x = from; x <= to; x++) {
+      const cell = this.cells.get(x);
+      if (!cell) continue;
+      const { block, turned } = resolve(cell.block);
+      let top, base;
+      if (Blocks.has(block + "g")) {
+        top = block + (wall ? "w" : "g") + (turned ? "f" : "");
+        base = cell.base;
+      } else if (cell.left === cell.right) {
+        top = wall ? "a1w" : "a1g";
+        base = cell.left;
+      } else continue;
+      const cells = floor === null ? depth : Math.max(0, Math.ceil((floor - base - 5) / 9));
+      const extra = cell.style ? { style: cell.style } : {};
+      for (const layer of layers) {
+        this.put(layer, top, x, base, extra);
+        for (let d = 1; d <= cells; d++) this.put(layer, wall ? "g2w" : "g2", x, base + 9 * d, extra);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * A backdrop along columns `from` to `to` in a layer ("back2", "back3"...), on the ground at height h: the blocks of
+   * `pattern` by turns ("bk2", "bk1"...; "bk2f" turned), a null leaving a column empty, with the top of the ground under
+   * each when `ground` names it (e.g. "a1g"), in the style `style` when it is given (e.g. "offroad": grass under the
+   * hills of a classic level).
+   */
+  backdrop(layer, from, to, h, pattern, { ground = null, style = null } = {}) {
+    for (let x = from; x <= to; x++) {
+      if (ground) this.put(layer, ground, x, h, style ? { style } : {});
+      const block = pattern[(x - from) % pattern.length];
+      if (block) this.put(layer, block, x, h);
+    }
+    return this;
   }
 
   /**

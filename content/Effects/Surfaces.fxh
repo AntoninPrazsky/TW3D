@@ -29,6 +29,7 @@
 #define SURFACE_ASPHALT 1
 #define SURFACE_EARTH 2
 #define SURFACE_GRASS 3
+#define SURFACE_MEADOW 4
 
 #define SURFACE_LOW 0
 #define SURFACE_MEDIUM 1
@@ -205,6 +206,9 @@ SurfaceLook SurfaceOf(sampler2D noise, int surface, int detail, float3 base, flo
 	float seed = SurfaceSeed(local);
 	if (surface == SURFACE_ASPHALT)
 		return SurfaceAsphalt(base, normal, coarse, fine, seed, detail);
+	// A meadow: the grass all over, without the verge of a road
+	if (surface == SURFACE_MEADOW)
+		return SurfaceGrass(base, normal, coarse, fine, seed, detail);
 
 	// The earth and the grass, each of them in its own colour and the other one in the colour of the verge, blended
 	// across the verge (none where SurfaceVerge is 0); the earth only on its faces turned up, not on the faces of the

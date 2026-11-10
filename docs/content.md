@@ -29,8 +29,9 @@ windows of a building that are lit at night are `windowlit…` (the judges' stan
 evenly, without a glow, and light nothing, so they need no objects of their own.
 
 A part can also be a **surface**, whose detail the shader draws per pixel (see
-[surfaces](architecture.md#surfaces)): a material named `asphalt…`, `earth…` or `grass…` (the names of
-`Graphics/Surface`). Its colour (`Kd`) is the base colour of the surface, which the shader varies
+[surfaces](architecture.md#surfaces)): a material named `asphalt…`, `earth…`, `grass…` or `meadow…` (the
+names of `Graphics/Surface`; `grass` is the verge of the off-road road, earth in the middle of its block,
+`meadow` grass all over, for the ground and the hills of the backdrop). Its colour (`Kd`) is the base colour of the surface, which the shader varies
 by the noise of the surfaces and lights with a relief of its own; the shape stays that of the
 model. The looks of the off-road style are earth (`earth`, `earthrut`, `earthbank`, see
 [the catalog](#catalog)); the racing style (#56) will bring asphalt. The development key T
@@ -351,7 +352,10 @@ the game and the editor:
   (`b2f`, `t2`...; their Wings 3D originals are still in `art/wings`). A tunnel or a
   decoration turned would show its back, so it does not turn; the barriers `bl2f` and
   `bl2sf` are mirror images of `bl2` and `bl2s`, not their turns, and stay blocks of their
-  own. A new block that should run both ways needs one model with `turns`.
+  own, as do the retaining walls under a turned road block (`b2wf` of `b2w`), which face the
+  camera. The ground under the road (`b2g`...), the same across its cell, turns with its road
+  block, and so do the rocks, hills and copses of the backdrop, which look right from behind.
+  A new block that should run both ways needs one model with `turns`.
 - **styles** and the **looks** of the blocks (#58): the styles of the track besides the
   classic one, `offroad` so far, and for a block the model of its look in each style, and in
   each transition between two styles, `first-second` (the first at the left edge of the block
@@ -467,6 +471,26 @@ with a trunk lying across it, half sunk into the earth (its axis on the road, so
 cylinder of the classic block; its bark furrowed along it and only ever inside that cylinder, year
 rings at its ends, two stubs of branches beside the lines of the wheels), or with the stones of
 `rocks.py`, the same as the classic block's.
+
+The ground and the backdrop of #66 (approved by the owner on 2026-11-10) are decoration for the
+layers in front of the road and behind it, made by `tools/blender/ground.py`. Under every road
+block that is not flat there is ground of its shape, cut from the outline of the classic block
+(`tools/blender/outline.py`, the outline its collision is made of): `<road>g` (`b2g` under `b2`),
+concrete from the road down to the bottom of the cell, with a dark seam a little under its top
+and a joint at each end of the cell, and its off-road look `<road>go`, earth with grass on top
+along the top of the grass verge of the off-road look (cut from `<road>o`); `a1g` is the ground
+under every flat block. In the classic style the front layer may have a retaining wall instead,
+`<road>w`, concrete panels at the side of the cell towards the road with a cap and a band of
+hazard stripes along the top, and `<road>wf`, its mirror image under the road block turned.
+`g2`, `g2o` and `g2w` are whole cells of each, to stack under them. The backdrop stands on the
+ground at the height of a flat road in the deeper back layers, the same in every style: `bk1` a
+crag of the stones of `rocks.py` with scree, grass and a small spruce, `bk2` a grassy hill with
+bushes, stones and spruces, `bk3` an industrial hall (cladding, a roller door, a door with a
+lamp, windows lit at night, a stack) and `bk4` a copse of spruces and a broadleaf tree. The
+level generator lays the ground under a road with `fillUnder` and the backdrop with `backdrop`
+(see `tools/levelgen/README.md`):
+
+    blender -b --factory-startup --python tools/blender/ground.py
 
 Pictures of the blocks and objects are in `docs/catalog/`: open
 [`catalog.html`](catalog/catalog.html) in a browser.

@@ -33,7 +33,9 @@ selector over it as usual.
 A new block also needs its entry in `docs/catalog/catalog.html`, in the section of its
 `group` and in the order of the catalog, with the rows *Block Name* and *What* (its `title`),
 the row *Turns* when it has `"turns": true` (a turned block has no image of its own) and
-*Off-road* when it has looks.
+*Off-road* when it has looks. The ground and the retaining walls under the road (#66) are shown
+by those of a flat road and of one road block of each kind (`b2`, `c2`, `d2`, `e2`, `s1`, `k2`),
+and `check` passes over the others.
 
 ## The camera
 

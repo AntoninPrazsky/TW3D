@@ -134,7 +134,8 @@ nothing branches in the pixel shader (Shader Model 3.0 refuses a derivative in a
 
 The asphalt is a test of the machinery; the earth and the grass draw the off-road style of the track (#57),
 whose blocks have the shape of a dirt road (ruts, a crown, grass verges) and name it by their
-materials. The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
+materials. The meadow is the grass without the verge (grass all over its face), for the ground and the
+hills of the backdrop (#66). The racing style (#56) adds its surfaces (a kerb, grass) as further techniques.
 
 The earth of the shoulder and the grass of the verge of an off-road block meet along the edge of
 their faces, 3.35 model units from the middle of the road (`tools/blender/offroad.py`), but are not

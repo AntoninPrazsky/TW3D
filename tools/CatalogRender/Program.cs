@@ -149,6 +149,12 @@ namespace TW3D.CatalogRender
             foreach (BlockType block in catalog.Blocks)
             {
                 string file = Path.Combine(CatalogImages, block.Name + ".png");
+                if (!File.Exists(file) && block.Group is "Ground" or "Retaining walls")
+                {
+                    //The page shows the ground and the walls of a flat road and of one road block of each kind
+                    Console.WriteLine($"{block.Name,-6}  -     shown by an example of its kind");
+                    continue;
+                }
                 if (!File.Exists(file))
                 {
                     Console.WriteLine($"{block.Name,-6} no image");

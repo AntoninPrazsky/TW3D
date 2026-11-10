@@ -56,7 +56,8 @@ namespace TW3D.Tests
 
         /// <summary>
         /// A look is drawn with its own model but collides as its block (the physics takes the shape of the block's model),
-        /// so the look must not be a block of its own nor have a shape of its own that could be taken by mistake.
+        /// so the look must not be a block of its own nor have a shape of its own that could be taken by mistake. A decoration
+        /// with looks (the ground of #66) has no shape at all.
         /// </summary>
         [Fact]
         public void ALookSharesTheCollisionOfItsBlock()
@@ -64,7 +65,10 @@ namespace TW3D.Tests
             CollisionShapes shapes = Repository.LoadCollisionShapes();
             Assert.All(Looks(), look =>
             {
-                Assert.NotNull(shapes.Find(look.Block.ModelAsset));
+                if (look.Block.Collision)
+                    Assert.NotNull(shapes.Find(look.Block.ModelAsset));
+                else
+                    Assert.Null(shapes.Find(look.Block.ModelAsset));
                 Assert.Null(shapes.Find(look.Block.LookAsset(look.Style)));
                 Assert.Null(catalog.FindBlock(look.Model));
             });

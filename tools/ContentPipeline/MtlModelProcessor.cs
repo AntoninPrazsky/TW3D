@@ -189,7 +189,8 @@ namespace TW3D.ContentPipeline
                     : name.StartsWith("rim", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
                 float surface = name.StartsWith("asphalt", StringComparison.OrdinalIgnoreCase) ? 1f
                     : name.StartsWith("earth", StringComparison.OrdinalIgnoreCase) ? 2f
-                    : name.StartsWith("grass", StringComparison.OrdinalIgnoreCase) ? 3f : 0f;
+                    : name.StartsWith("grass", StringComparison.OrdinalIgnoreCase) ? 3f
+                    : name.StartsWith("meadow", StringComparison.OrdinalIgnoreCase) ? 4f : 0f;
                 //Neither metallic nor rough, as the materials without them are drawn
                 if (metallic != null || roughness != null || lamp != 0f || paint != 0f || surface != 0f)
                     finishes[name] = new[] { metallic ?? 0f, roughness ?? 1f, lamp, paint, surface };

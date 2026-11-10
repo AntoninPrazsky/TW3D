@@ -41,7 +41,8 @@ namespace TW3D.Shared
         /// <summary>
         /// The block may be turned round by 180° about the vertical axis (<see cref="BlockPlacement.Turned"/>): its road
         /// then runs the other way, and it looks the same from behind. A tunnel or a decoration turned would show its
-        /// back, so it does not turn.
+        /// back, so it does not turn; the ground under a slope (the same across its cell, turned with its road block) and
+        /// the hills and trees of the backdrop do.
         /// </summary>
         public bool Turns { get; set; }
 

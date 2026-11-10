@@ -72,7 +72,13 @@ The layers are `"middle"` (the road, with physics), `"back"`, `"back2"` and `"ba
 two and three cells behind the road; the level file keeps them in one list with the `depth` of
 the blocks) and `"front"` (one cell in front of it).
 
-Decoration helpers (back and front layers, no physics): `kerbs` (kerbs with end pieces along
+Decoration helpers (back and front layers, no physics): `fillUnder(from, to, { layers, depth, floor,
+wall })` (ground under the road blocks of the columns, the shape of each: `b2g` under `b2`, `b2g` turned under `b2f`,
+`a1g` under every flat block, and `depth` whole cells of `g2` under it or as many as reach the height `floor`, in the
+front and the first back layer by default, in the style of its road block; `wall: true` puts the retaining wall
+`b2w`, `b2wf`, `a1w`, `g2w` instead, in the front layer), `backdrop(layer, from, to, h, pattern, { ground, style })`
+(the blocks of the pattern by turns along a deeper layer on the ground at height h: rocks `bk1`, hills `bk2`, halls
+`bk3`, copses `bk4`, the natural ones turned as `bk2f`; `ground: "a1g", style: "offroad"` stands them on grass), `kerbs` (kerbs with end pieces along
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),
 and `stairs` (a footpath beside `b2f` climbs); `checkered`, `copyRoad` and `stairs` take any
 of the back layers too, and `bothSides` uses `copyRoad` or `stairs` in the back and the front
