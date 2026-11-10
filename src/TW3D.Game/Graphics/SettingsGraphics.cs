@@ -8,8 +8,8 @@ namespace TW3D.Graphics
         {
             renderer.Classic = settings.Classic;
             renderer.Shadows = settings.Shadows;
-            renderer.ShadowDetail = ShadowDetails.CanChoose ? ShadowDetails.Valid(settings.ShadowDetail) : ShadowDetails.Default;
-            renderer.SurfaceDetail = SurfaceDetails.CanChoose ? SurfaceDetails.Valid(settings.SurfaceDetail) : SurfaceDetails.Default;
+            renderer.ShadowDetail = ShadowDetails.Valid(settings.ShadowDetail);
+            renderer.SurfaceDetail = SurfaceDetails.Valid(settings.SurfaceDetail);
             renderer.AmbientOcclusion = settings.AmbientOcclusion;
             renderer.Resolution = settings.Resolution;
         }

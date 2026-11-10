@@ -130,11 +130,10 @@ namespace TW3D.Tests
         }
 
         [Fact]
-        public void TheDefaultIsHighOnADesktopAndLowOnAPiWhichKeepsIt()
+        public void TheDefaultIsHighOnADesktopAndLowOnAPi()
         {
             //The CI runs the tests on Windows and on Linux on ARM64, which the game takes for a Raspberry Pi
             Assert.Equal(PiGraphics.Active ? SurfaceDetail.Low : SurfaceDetail.High, SurfaceDetails.Default);
-            Assert.Equal(!PiGraphics.Active, SurfaceDetails.CanChoose);
         }
 
         [Fact]

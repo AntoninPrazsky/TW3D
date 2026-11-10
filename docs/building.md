@@ -69,8 +69,10 @@ CI fails without them and attaches the code it compiled to the run (the artifact
 
 On a Raspberry Pi (any Linux on ARM64, `Graphics/PiGraphics`) the game draws the 3D scene
 at 1280×720 (until another Resolution is chosen in Options), scaled up to the screen, with
-the user interface at the full resolution over it, without multisampling and without ambient occlusion by default (Options can switch them on)
-and with a smaller shadow map (the low Shadow detail, which it keeps): its GPU drew a level at 1920×1080 with the graphics of a
+the user interface at the full resolution over it, without multisampling and without ambient occlusion by default (Options can switch them on),
+with the low Shadow detail and Surface detail until others are chosen (the Shadow detail goes up to medium there: the
+shadow maps of high lie in a texture 6144 texels wide, and its GPU has none wider than 4096) and with the coarse filter
+of the edges of the shadows, as a phone has it: its GPU drew a level at 1920×1080 with the graphics of a
 desktop in 49 ms a frame. Frames per second by the Resolution of Options, measured in full
 screen at 1920×1080 (off screen, 2026-11-09):
 
@@ -81,7 +83,10 @@ screen at 1920×1080 (off screen, 2026-11-09):
 | 1280 × 720 (the default) | 32 | 55 | 40 |
 | 960 × 540 | 45 | 60 | 53 |
 
-Antialiasing costs it about 18 ms a frame more at 1280 × 720 (lock 23 frames per second).
+Antialiasing costs it about 18 ms a frame more at 1280 × 720 (lock 23 frames per second), the medium
+Shadow detail about 7 ms (lock 42), the medium and high Surface detail about 1 and 1.5 ms where the
+surfaces fill the screen (tunel-offroad 48, 46 and 45 frames per second), and the smooth filter of the
+edges of the shadows, which a desktop has, 0.6 ms in the garage (2026-11-10).
 
 ## Tests and CI
 

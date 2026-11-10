@@ -75,26 +75,24 @@ namespace TW3D.Screens
                 IsSwitch = true
             });
             //The size of the shadow map: Enter steps it up, round to low, left and right step it down and up. A Raspberry Pi
-            //keeps the low one, its GPU has too little for more
-            if (ShadowDetails.CanChoose)
-                AddItem(new MenuItem
-                {
-                    Text = () => "Shadow detail: " + ShadowDetails.Name(settings.ShadowDetail),
-                    Activate = () => Change(() => settings.ShadowDetail = ShadowDetails.Next(settings.ShadowDetail)),
-                    Adjust = step => Change(() => settings.ShadowDetail = ShadowDetails.Step(settings.ShadowDetail, step)),
-                    IsEnabled = () => !settings.Classic && settings.Shadows,
-                    IsSwitch = true
-                });
-            //The detail of the surfaces of the blocks, stepped as the shadow detail is. A Raspberry Pi keeps the low one
-            if (SurfaceDetails.CanChoose)
-                AddItem(new MenuItem
-                {
-                    Text = () => "Surface detail: " + SurfaceDetails.Name(settings.SurfaceDetail),
-                    Activate = () => Change(() => settings.SurfaceDetail = SurfaceDetails.Next(settings.SurfaceDetail)),
-                    Adjust = step => Change(() => settings.SurfaceDetail = SurfaceDetails.Step(settings.SurfaceDetail, step)),
-                    IsEnabled = () => !settings.Classic,
-                    IsSwitch = true
-                });
+            //stops at medium (ShadowDetails.Highest)
+            AddItem(new MenuItem
+            {
+                Text = () => "Shadow detail: " + ShadowDetails.Name(settings.ShadowDetail),
+                Activate = () => Change(() => settings.ShadowDetail = ShadowDetails.Next(settings.ShadowDetail)),
+                Adjust = step => Change(() => settings.ShadowDetail = ShadowDetails.Step(settings.ShadowDetail, step)),
+                IsEnabled = () => !settings.Classic && settings.Shadows,
+                IsSwitch = true
+            });
+            //The detail of the surfaces of the blocks, stepped as the shadow detail is
+            AddItem(new MenuItem
+            {
+                Text = () => "Surface detail: " + SurfaceDetails.Name(settings.SurfaceDetail),
+                Activate = () => Change(() => settings.SurfaceDetail = SurfaceDetails.Next(settings.SurfaceDetail)),
+                Adjust = step => Change(() => settings.SurfaceDetail = SurfaceDetails.Step(settings.SurfaceDetail, step)),
+                IsEnabled = () => !settings.Classic,
+                IsSwitch = true
+            });
             AddItem(new MenuItem
             {
                 Text = () => "Ambient occlusion: " + (settings.AmbientOcclusion ? "On" : "Off"),
