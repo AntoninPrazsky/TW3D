@@ -1749,13 +1749,11 @@ namespace TW3D.Graphics
             //The start lights by their columns (the lamps one above the other are a column, lit together): from the one
             //furthest along +z of the model, the leftmost seen by a driver driving along +x of the physics (towards -x of
             //the scene)
-            var columns = lamps.Where(lamp => IsSignal(lamp.Part.Lamp))
-                .GroupBy(lamp => MathF.Round(lamp.Bounds.Center.Z, 2))
-                .OrderByDescending(column => column.Key)
-                .ToList();
-            for (int column = 0; column < columns.Count; column++)
-                foreach (var lamp in columns[column])
-                    lamp.Part.Column = column;
+            var signals = lamps.Where(lamp => IsSignal(lamp.Part.Lamp)).ToList();
+            int[] columns = StartLightColumns.Assign(signals.Select(lamp => lamp.Bounds.Center.Z).ToList(),
+                signals.Select(lamp => lamp.Bounds.Radius).ToList());
+            for (int lamp = 0; lamp < signals.Count; lamp++)
+                signals[lamp].Part.Column = columns[lamp];
             data = new ModelData
             {
                 Parts = parts.ToArray(),
