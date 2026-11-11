@@ -91,13 +91,30 @@ above the road surface, the deeper ones higher on the screen.
 
 ## Playability
 
-The car climbs 24° slopes (`b2f`, `b2` turned) even from a standstill, but not 34° ones (`b3f`) without
-a run-up, and with the throttle alone it gets over a step of 2.5 units but not one of 5 units.
-The steps of #61 (scripted drives of each car on 2026-11-09, up to the step on the throttle): every car
+The car climbs 24° slopes (`b2f`, `b2` turned) from a standstill on the flat at their foot, but not 34°
+ones (`b3f`) without a run-up, and with the throttle alone it gets over a step of 2.5 units but not one of
+5 units. The steps of #61 (scripted drives of each car on 2026-11-09, up to the step on the throttle): every car
 climbs `k1f` (2.5 units) on the throttle alone, none climbs `k2f` or `s2f` (5 units) so. Holding the
 throttle and turning the axles (↑) at the step got the Buggy over `k2f` and `s2f` and the Sand Rail and
 the Crawler over `k2f` (not every time); turning them the other way (↓), or braking while turning them,
 did not. No car got over `k3f` (7.5 units) so: it needs a player's skill, if it can be climbed at all.
+
+After a run-up of about 80 units (three and a half cells) the Buggy climbs 34° and 42° (`b4f`) with every
+tyre on the classic slab and on the earth, except 42° on the racing slicks on the earth (below). A car that stops
+*on* a slope of 24° or steeper, though, does not get going uphill again (scripted drives of the Buggy on
+2026-11-11, #57, on the slab and on the earth, with every tyre): the motor's torque is too little for the
+rear wheels, which carry most of the car's weight on the slope, and the front ones spin. Letting go of the
+brake before the throttle makes it worse: the throttle starts a burnout, in which the tyres grip little,
+and the car slides back down. So do not make the player stop on a climb (an obstacle, a step or a gate on
+it), and give a climb a flat stretch at its foot to start from.
+
+On the earth of the off-road style the tyres grip less than on the slab (#57; the crawler wheels nearly as
+on the slab, the off-road ones a good deal less, the racing slicks least). The car accelerates nearly as on
+the slab, but brakes 1.1 (crawler), 1.3 (off-road) and 1.7 (racing) times as far. Braked on a slope, the
+slicks slip back on 34° and steeper (5 units in three seconds on 34°, 12 on 42°) and the off-road wheels a
+little on 42° (5 units), and the Buggy on slicks does not get up 42° after the run-up of 80 units (the
+faster Sand Rail does). A level of the off-road style that the Sand Rail (racing wheels of its own) should
+finish wants its steepest climbs after a longer run-up and no stops on slopes of 34° or more.
 
 A car stays on the road over a crest only while it is slow enough for the curve: the gravity is 12
 physics units a second squared (game time), so below about the square root of 12 times the radius
