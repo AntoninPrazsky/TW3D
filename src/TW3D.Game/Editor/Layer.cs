@@ -5,7 +5,8 @@ namespace TW3D.Editor
 {
     /// <summary>
     /// The layers of a level from the back to the front, a cell apart: the three back layers, the middle layer (the
-    /// road) and the front layer (see <see cref="LevelData.BackLayers"/>). The editor edits one at a time.
+    /// road) and the three front layers (see <see cref="LevelData.BackLayers"/> and <see cref="LevelData.FrontLayers"/>).
+    /// The editor edits one at a time.
     /// </summary>
     enum Layer
     {
@@ -13,7 +14,9 @@ namespace TW3D.Editor
         Back2,
         Back,
         Middle,
-        Front
+        Front,
+        Front2,
+        Front3
     }
 
     /// <summary>What the layers are: their depths, their names and the back layers of the level file.</summary>
@@ -25,11 +28,14 @@ namespace TW3D.Editor
         /// <summary>How many layers there are.</summary>
         public static int Count => All.Length;
 
-        /// <summary>How many cells in front of the road the layer is: -3 to -1 for the back layers, 0 for the middle, 1 for the front.</summary>
+        /// <summary>How many cells in front of the road the layer is: -3 to -1 for the back layers, 0 for the middle, 1 to 3 for the front layers.</summary>
         public static int Cells(this Layer layer) => (int)layer - (int)Layer.Middle;
 
         /// <summary>The layer is one of the back layers.</summary>
         public static bool IsBack(this Layer layer) => layer < Layer.Middle;
+
+        /// <summary>The layer is one of the front layers.</summary>
+        public static bool IsFront(this Layer layer) => layer > Layer.Middle;
 
         /// <summary>How many cells behind the road a back layer is, as the level file keeps it (<see cref="BlockPlacement.Depth"/>).</summary>
         public static int BackDepth(this Layer layer) => -layer.Cells();
@@ -37,17 +43,22 @@ namespace TW3D.Editor
         /// <summary>The back layer a given number of cells behind the road (1 to <see cref="LevelData.BackLayers"/>; nearer and further ones give the nearest back layer there is).</summary>
         public static Layer OfBackDepth(int depth) => (Layer)((int)Layer.Middle - Math.Clamp(depth, 1, LevelData.BackLayers));
 
+        /// <summary>The front layer a given number of cells in front of the road (1 to <see cref="LevelData.FrontLayers"/>; nearer and further ones give the nearest front layer there is).</summary>
+        public static Layer OfFrontDepth(int depth) => (Layer)((int)Layer.Middle + Math.Clamp(depth, 1, LevelData.FrontLayers));
+
         /// <summary>The layer a given number of cells in front of the road, the nearest one there is beyond the first and the last.</summary>
         public static Layer OfCells(int cells) => (Layer)Math.Clamp((int)Layer.Middle + cells, 0, All.Length - 1);
 
-        /// <summary>The name of the layer in the texts of the editor: "back", "back 2", "back 3", "middle", "front".</summary>
+        /// <summary>The name of the layer in the texts of the editor: "back", "back 2", "back 3", "middle", "front", "front 2", "front 3".</summary>
         public static string Name(this Layer layer) => layer switch
         {
             Layer.Back3 => "back 3",
             Layer.Back2 => "back 2",
             Layer.Back => "back",
             Layer.Middle => "middle",
-            _ => "front"
+            Layer.Front => "front",
+            Layer.Front2 => "front 2",
+            _ => "front 3"
         };
 
         /// <summary>The name with a capital letter, for the menus: "Back 2".</summary>

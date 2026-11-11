@@ -72,7 +72,8 @@ physics units (the road of a flat block at height `h` is at `h * 2.5 - 1.25`), a
 
 The layers are `"middle"` (the road, with physics), `"back"`, `"back2"` and `"back3"` (one,
 two and three cells behind the road; the level file keeps them in one list with the `depth` of
-the blocks) and `"front"` (one cell in front of it).
+the blocks) and `"front"`, `"front2"` and `"front3"` (one, two and three cells in front of it,
+kept in one list the same way; the camera sees the two farther ones only when it turns, at the start).
 
 Decoration helpers (back and front layers, no physics): `fillUnder(from, to, { layers, depth, floor,
 wall })` (ground under the road blocks of the columns, the shape of each: `b2g` under `b2`, `b2g` turned under `b2f`,
@@ -83,8 +84,9 @@ front and the first back layer by default, in the style of its road block; `wall
 `bk3`, copses `bk4`, the natural ones turned as `bk2f`; `ground: "a1g", style: "offroad"` stands them on grass), `kerbs` (kerbs with end pieces along
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),
 and `stairs` (a footpath beside `b2f` climbs); `checkered`, `copyRoad` and `stairs` take any
-of the back layers too, and `bothSides` uses `copyRoad` or `stairs` in the back and the front
-layer. Barriers and railings stand on the back edge of the road, so dynamic objects go through
+of the back and the front layers too, and `bothSides` uses `copyRoad` or `stairs` in the back and the front
+layer. `fillUnder` puts the ground a step lower under a block already lying on the road surface in
+the layer (a checkered slab of the start or the finish: put it first), so that their faces do not fight. Barriers and railings stand on the back edge of the road, so dynamic objects go through
 them; keep them away from places the objects can get to.
 
 The camera looks from the front and from above, so the front layer is close to it: blocks there

@@ -49,8 +49,8 @@ namespace TW3D.GameObjects
     /// </summary>
     class Level : GameObject
     {
-        //Distance between the layers: the front layer and the first back layer are one cell from the middle (physics)
-        //layer, the deeper back layers a cell further each
+        //Distance between the layers: the first front and back layers are one cell from the middle (physics) layer, the
+        //deeper ones a cell further each
         private const float LayerDepth = Units.GridCell;
 
         //How much the blocks of the track bounce (restitution: 0 not at all, 1 fully). A contact bounces as much as the
@@ -126,7 +126,7 @@ namespace TW3D.GameObjects
             foreach (BlockPlacement placement in data.Back)
                 back.Add(CreateBlock(placement, data.StyleOf(placement), assets, -placement.Depth * LayerDepth, false));
             foreach (BlockPlacement placement in data.Front)
-                front.Add(CreateBlock(placement, data.StyleOf(placement), assets, LayerDepth, false));
+                front.Add(CreateBlock(placement, data.StyleOf(placement), assets, placement.Depth * LayerDepth, false));
             foreach (ObjectPlacement placement in data.Objects)
                 objects.Add(new TrackProp(world, screenManager, camera, physics, new Vector2(placement.X, placement.Y),
                     assets.Catalog.FindObject(placement.Type), placement.Model, assets));

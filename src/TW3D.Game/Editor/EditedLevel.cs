@@ -219,8 +219,8 @@ namespace TW3D.Editor
         private const int StepsPerCell = 9;
 
         private readonly Catalog catalog;
-        //The layers but the middle one in the order their problems are listed: the back layers from the road, the front
-        private static readonly Layer[] OuterLayers = { Layer.Back, Layer.Back2, Layer.Back3, Layer.Front };
+        //The layers but the middle one in the order their problems are listed: the back layers from the road, the front ones
+        private static readonly Layer[] OuterLayers = { Layer.Back, Layer.Back2, Layer.Back3, Layer.Front, Layer.Front2, Layer.Front3 };
 
         //The blocks of each layer, indexed by the Layer enum, in the order of the file
         private readonly List<PlacedBlock>[] layers = new List<PlacedBlock>[Layers.Count];
@@ -265,7 +265,9 @@ namespace TW3D.Editor
             foreach (BlockPlacement placement in data.Back)
                 layers[(int)Layers.OfBackDepth(placement.Depth)].Add(Convert(placement));
             layers[(int)Layer.Middle].AddRange(data.Middle.Select(Convert));
-            layers[(int)Layer.Front].AddRange(data.Front.Select(Convert));
+            //So are the front layers
+            foreach (BlockPlacement placement in data.Front)
+                layers[(int)Layers.OfFrontDepth(placement.Depth)].Add(Convert(placement));
             objects.AddRange(data.Objects.Select(placement => new PlacedObject(placement.Type, placement.Model, placement.X, placement.Y)));
             if (data.Scenery != null)
                 scenery.AddRange(data.Scenery.Select(placement => new PlacedScenery(placement.Model, placement.X, placement.Y, placement.Z, placement.Turn)));
@@ -520,7 +522,12 @@ namespace TW3D.Editor
                 data.Back.AddRange(layers[(int)layer].Select(block => Convert(block, depth)));
             }
             data.Middle.AddRange(layers[(int)Layer.Middle].Select(block => Convert(block, 1)));
-            data.Front.AddRange(layers[(int)Layer.Front].Select(block => Convert(block, 1)));
+            //The front layers from the nearest to the farthest, each block with its depth
+            for (Layer layer = Layer.Front; layer <= Layer.Front3; layer++)
+            {
+                int depth = layer.Cells();
+                data.Front.AddRange(layers[(int)layer].Select(block => Convert(block, depth)));
+            }
             data.Objects.AddRange(objects.Select(obj => new ObjectPlacement { Type = obj.Type, Model = obj.Model, X = obj.X, Y = obj.Y }));
             data.Scenery.AddRange(scenery.Select(prop => new SceneryPlacement { Model = prop.Model, X = prop.X, Y = prop.Y, Z = prop.Z, Turn = prop.Turn }));
             return data;

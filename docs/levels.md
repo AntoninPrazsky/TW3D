@@ -40,14 +40,16 @@ the editor (F5).
 The scene is seen by a free camera: the middle button pans along the track, the wheel zooms
 towards the cursor, Alt + the left button orbits around the point under the cursor,
 W/S/A/D and Q/E fly, the numeric keypad turns, and Home frames the whole level. A level has
-five layers a cell apart: the middle layer, the road the car drives on, the three back layers
+seven layers a cell apart: the middle layer, the road the car drives on, the three back layers
 of decorations behind it (back, back 2 and back 3, one, two and three cells behind the road)
-and the front layer of decorations in front of it (only one: the camera of the game is 40
-physics units in front of the road, so a second front layer would be behind it). The layer
-being edited is changed by Tab (Left Shift + Tab the other way), Right Shift goes a layer
-further back as soon as it is pressed (from the middle or the front layer to the back layer,
-then back 2, back 3 and the middle layer again) and Right Ctrl toggles the front layer when
-tapped alone. The View menu hides each of the back layers, the front layer, the objects and
+and the three front layers of decorations in front of it (front, front 2 and front 3, one, two
+and three cells in front of the road, as deep as the back at the owner's wish; the camera of
+the game is 40 physics units in front of the road, so it sees front 2 and front 3 only when it
+turns, at the start). The layer being edited is changed by Tab (Left Shift + Tab the other way),
+Right Shift goes a layer further back as soon as it is pressed (from the middle or a front layer
+to the back layer, then back 2, back 3 and the middle layer again) and Right Ctrl a layer
+further front when tapped alone (from the middle or a back layer to the front layer, then front
+2, front 3 and the middle layer again). The View menu hides each of the back and the front layers, the objects and
 the scenery (they are not drawn and cannot be edited while hidden: the status bar says "The
 back 2 layer is hidden." when a key, a click or a command of the Edit menu would change
 them), the grid around the cursor cell and the red bars of the road gaps;
@@ -322,8 +324,8 @@ Levels are JSON files with one block or object per line:
   single steps of 2.5, 5 and 7.5 units and the stairs `s2`.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers. The back
   layers are one list: `depth` (1 when left out, as in every level made before 2026-11) is
-  how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one
-  depth only, a cell in front of the road.
+  how many cells behind the road a block of `back` stands, 1 to 3; so are the front layers,
+  `depth` 1 to 3 cells in front of the road.
 - Blocks: `x`, `y` on the level grid (one cell = 22.5 physics units), `shift`
   moves the block vertically in steps of 2.5 physics units. `"turned": true` (written
   only when it is) turns a block that turns round by 180° about the vertical axis, in its

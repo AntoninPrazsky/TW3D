@@ -2,7 +2,9 @@
 // and helpers for decorations in the back and front layers.
 //
 // Layers: "middle" (the road, with physics), "back", "back2" and "back3" (one, two and three cells
-// behind the road) and "front" (one cell in front of it; the camera is too near for more).
+// behind the road) and "front", "front2" and "front3" (one, two and three cells in front of it; the
+// camera of the game is 40 physics units in front of the road, so it sees front2 and front3 only
+// when it turns, at the start).
 //
 // Units: heights are in shift steps (2.5 physics units), y grows downwards, one grid cell is
 // 22.5 physics units = 9 shift steps. A block's "base" is 9 * y + shift, i.e. its vertical
@@ -58,7 +60,7 @@ function resolve(name) {
 const FlatBlocks = new Set(["a1", "xa1", "sb"]);
 
 // The layers a block can be put in, from the back to the front
-const Layers = ["back3", "back2", "back", "middle", "front"];
+const Layers = ["back3", "back2", "back", "middle", "front", "front2", "front3"];
 
 class Track {
   /** Starts the road at grid column x with the surface at height h. */
@@ -70,6 +72,8 @@ class Track {
     this.back2 = [];
     this.back3 = [];
     this.front = [];
+    this.front2 = [];
+    this.front3 = [];
     this.objects = [];
     // Props beside the track, without physics (written only when there are some)
     this.scenery = [];
@@ -151,13 +155,19 @@ class Track {
   }
 
   /**
-   * A block placed directly by its base in a layer ("middle", "back", "back2", "back3" or "front"), outside the road
+   * A block placed directly by its base in a layer ("middle", "back", "back2", "back3", "front", "front2" or "front3"), outside the road
    * (walls, gates, decorations); extra fields (e.g. finish) are added to it.
    */
   put(layer, block, x, base, extra = {}) {
     Track.layer(layer);
     this[layer].push({ ...Track.place(block, x, base), ...extra });
     return this;
+  }
+
+  /** A layer has a block in column x placed at the base (by its cell and shift). */
+  occupied(layer, x, base) {
+    Track.layer(layer);
+    return this[layer].some(b => b.x === x && 9 * b.y + b.shift === base);
   }
 
   /** Removes the blocks of the given name (a turned one by its "f" name) in column x of a layer. */
@@ -221,7 +231,8 @@ class Track {
    * `floor` (in steps, as h; the bottom of the cell of a flat road is 5 steps under its surface). `wall` puts a retaining
    * wall instead (b2w, its mirror image b2wf under b2f, a1w, g2w), in the front layer only unless `layers` says otherwise:
    * it faces the camera. The ground takes the style of its road block (withStyle). A road block of another shape without
-   * ground of its own is left without.
+   * ground of its own is left without. Under a block already in the layer at the surface (a checkered slab: put it
+   * first) the ground goes a step lower, so that their faces do not fight.
    */
   fillUnder(from, to, { layers = null, depth = 1, floor = null, wall = false } = {}) {
     layers = layers || (wall ? ["front"] : ["front", "back"]);
@@ -240,8 +251,11 @@ class Track {
       const cells = floor === null ? depth : Math.max(0, Math.ceil((floor - base - 5) / 9));
       const extra = cell.style ? { style: cell.style } : {};
       for (const layer of layers) {
-        this.put(layer, top, x, base, extra);
-        for (let d = 1; d <= cells; d++) this.put(layer, wall ? "g2w" : "g2", x, base + 9 * d, extra);
+        // Under a block already lying on the road surface in the layer (a checkered slab of the start or the finish,
+        // put there first) the ground goes a step lower, under the slab: in the same place their faces would fight
+        const under = this.occupied(layer, x, base) ? 1 : 0;
+        this.put(layer, top, x, base + under, extra);
+        for (let d = 1; d <= cells; d++) this.put(layer, wall ? "g2w" : "g2", x, base + under + 9 * d, extra);
       }
     }
     return this;
@@ -337,6 +351,7 @@ class Track {
    */
   json(order) {
     const back = this.back.concat(this.back2.map(b => ({ ...b, depth: 2 })), this.back3.map(b => ({ ...b, depth: 3 })));
+    const front = this.front.concat(this.front2.map(b => ({ ...b, depth: 2 })), this.front3.map(b => ({ ...b, depth: 3 })));
     const list = (name, items, last) => `  "${name}": [`
       + (items.length ? "\n" + items.map(i => "    " + JSON.stringify(i)).join(",\n") + "\n  ]" : "]")
       + (last ? "\n" : ",\n");
@@ -345,7 +360,7 @@ class Track {
       + (this.par != null ? `  "par": ${this.par},\n` : "")
       + (this.style ? `  "style": "${this.style}",\n` : "")
       + (this.debug ? `  "debug": true,\n` : "")
-      + list("middle", this.middle) + list("back", back) + list("front", this.front)
+      + list("middle", this.middle) + list("back", back) + list("front", front)
       + list("objects", this.objects, this.scenery.length === 0)
       + (this.scenery.length ? list("scenery", this.scenery, true) : "") + "}\n";
   }

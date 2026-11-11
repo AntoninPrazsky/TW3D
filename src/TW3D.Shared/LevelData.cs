@@ -38,8 +38,9 @@ namespace TW3D.Shared
         public string Style { get; set; }
 
         /// <summary>
-        /// How many cells behind the road a block of the back layer stands: 1 (the default) to
-        /// <see cref="LevelData.BackLayers"/>. The blocks of the middle and the front layer have 1.
+        /// How many cells behind the road a block of the back layer stands, or in front of it a block of the front layer: 1
+        /// (the default) to <see cref="LevelData.BackLayers"/> or <see cref="LevelData.FrontLayers"/>. The blocks of the
+        /// middle layer have 1.
         /// </summary>
         [JsonIgnore]
         public int Depth { get; set; } = 1;
@@ -103,9 +104,9 @@ namespace TW3D.Shared
 
     /// <summary>
     /// A level: track blocks in layers, dynamic objects and scenery. The middle layer is the road; behind it are up to
-    /// <see cref="BackLayers"/> back layers (one list, by the <see cref="BlockPlacement.Depth"/> of the blocks), in front
-    /// of it one front layer. Only the middle layer takes part in the physics simulation; the back and front layers are
-    /// decoration, and so is the scenery.
+    /// <see cref="BackLayers"/> back layers and in front of it up to <see cref="FrontLayers"/> front layers (one list each,
+    /// by the <see cref="BlockPlacement.Depth"/> of the blocks). Only the middle layer takes part in the physics
+    /// simulation; the back and front layers are decoration, and so is the scenery.
     /// </summary>
     public sealed class LevelData
     {
@@ -115,11 +116,15 @@ namespace TW3D.Shared
         /// </summary>
         public const int CurrentFormat = 2;
 
-        /// <summary>
-        /// How many layers there are behind the road, a cell apart. In front of it there is only one: the camera is
-        /// 40 physics units in front of the road, so a second front layer would be behind it.
-        /// </summary>
+        /// <summary>How many layers there are behind the road, a cell apart.</summary>
         public const int BackLayers = 3;
+
+        /// <summary>
+        /// How many layers there are in front of the road, a cell apart as behind it. The camera of the game is 40 physics
+        /// units in front of the road, so the second and the third are behind it as it follows the car: they show when it
+        /// turns (at the start), as the owner wanted the front as deep as the back.
+        /// </summary>
+        public const int FrontLayers = 3;
 
         /// <summary>Version of the file format.</summary>
         public int Format { get; set; } = CurrentFormat;
@@ -197,8 +202,10 @@ namespace TW3D.Shared
             CheckLayer(Front, "front", false);
             foreach (BlockPlacement placement in Back.Where(block => block.Depth < 1 || block.Depth > BackLayers))
                 problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] of the back layer has depth {placement.Depth}; the back layers are 1 to {BackLayers} cells behind the road.");
-            foreach (BlockPlacement placement in Middle.Concat(Front).Where(block => block.Depth != 1))
-                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has depth {placement.Depth}, but only the blocks of the back layer can stand deeper.");
+            foreach (BlockPlacement placement in Front.Where(block => block.Depth < 1 || block.Depth > FrontLayers))
+                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] of the front layer has depth {placement.Depth}; the front layers are 1 to {FrontLayers} cells in front of the road.");
+            foreach (BlockPlacement placement in Middle.Where(block => block.Depth != 1))
+                problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] has depth {placement.Depth}, but only the blocks of the back and the front layers can stand deeper.");
             foreach (BlockPlacement placement in Back.Concat(Front).Where(block => block.Finish))
                 problems.Add($"Block \"{placement.Block}\" at [{placement.X}, {placement.Y}] is a finish, but only a block of the middle layer can be.");
             if (Middle.Count(block => block.Finish) > 1)

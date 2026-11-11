@@ -63,7 +63,7 @@ namespace TW3D.Editor
         }
 
         /// <summary>The View menu: the lighting, what is drawn, the tool and the layer, framing the level, the windows.</summary>
-        /// <param name="view">The level drawn, whose back layers, front layer, objects and scenery can be hidden.</param>
+        /// <param name="view">The level drawn, whose back and front layers, objects and scenery can be hidden.</param>
         /// <param name="markers">The markers drawn over it, whose grid and gap bars can be hidden.</param>
         /// <param name="setTool">Makes a tool the active one.</param>
         /// <param name="frameLevel">Points the camera at the whole level.</param>

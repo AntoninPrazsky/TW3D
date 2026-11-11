@@ -489,9 +489,10 @@ namespace TW3D.Tests
         public void SceneryBelongsToTheLayerItStandsIn()
         {
             EditedLevel level = Fresh();
-            foreach (float z in new[] { -100f, -40f, -30f, -11.3f, -11.25f, 0f, 11.25f, 11.3f, 40f })
+            foreach (float z in new[] { -100f, -40f, -30f, -11.3f, -11.25f, 0f, 11.25f, 11.3f, 30f, 40f, 100f })
                 Assert.Null(level.AddScenery("cone", 0f, -1.25f, z, 0));
-            Assert.Equal(new[] { Layer.Back3, Layer.Back2, Layer.Back, Layer.Back, Layer.Middle, Layer.Middle, Layer.Middle, Layer.Front, Layer.Front },
+            Assert.Equal(new[] { Layer.Back3, Layer.Back2, Layer.Back, Layer.Back, Layer.Middle, Layer.Middle, Layer.Middle, Layer.Front, Layer.Front,
+                    Layer.Front2, Layer.Front3 },
                 level.Scenery.Select(prop => prop.Layer));
         }
 

@@ -335,7 +335,7 @@ the game and the editor:
   order they first appear in the catalog, so the blocks of a group stand together) and
   whether the block has a collision shape (`collision`). Only blocks with a collision shape can be in the
   middle (physics) layer; the others are decoration for the back layers (up to three cells
-  behind the road) and the front layer.
+  behind the road) and the front layers (up to three cells in front of it).
   A road block also has a `profile`, `[left, right]`: the height of the road surface
   at the left and the right edge of the block relative to its base, in shift steps
   (2.5 physics units; heights grow downward, as physics y does). For example `b2`, a

@@ -7,8 +7,9 @@ using Xunit;
 namespace TW3D.Tests
 {
     /// <summary>
-    /// The layers behind the road (issue #40): the depth of the back blocks in the level file, what the game checks of
-    /// it, and the editor's layers, which load and save them, count them and move a selection between the layers.
+    /// The layers behind the road (issue #40) and in front of it: the depth of the back and the front blocks in the level
+    /// file, what the game checks of it, and the editor's layers, which load and save them, count them and move a
+    /// selection between the layers.
     /// </summary>
     public class BackLayerTests
     {
@@ -32,14 +33,19 @@ namespace TW3D.Tests
         [Fact]
         public void TheLayersRunFromTheBackToTheFront()
         {
-            Assert.Equal(new[] { Layer.Back3, Layer.Back2, Layer.Back, Layer.Middle, Layer.Front }, Layers.All);
-            Assert.Equal(new[] { -3, -2, -1, 0, 1 }, Layers.All.Select(layer => layer.Cells()));
-            Assert.Equal(new[] { "back 3", "back 2", "back", "middle", "front" }, Layers.All.Select(layer => layer.Name()));
+            Assert.Equal(new[] { Layer.Back3, Layer.Back2, Layer.Back, Layer.Middle, Layer.Front, Layer.Front2, Layer.Front3 }, Layers.All);
+            Assert.Equal(new[] { -3, -2, -1, 0, 1, 2, 3 }, Layers.All.Select(layer => layer.Cells()));
+            Assert.Equal(new[] { "back 3", "back 2", "back", "middle", "front", "front 2", "front 3" }, Layers.All.Select(layer => layer.Name()));
             Assert.Equal("Back 2", Layer.Back2.Title());
+            Assert.Equal("Front 3", Layer.Front3.Title());
             Assert.Equal(LevelData.BackLayers, Layers.All.Count(layer => layer.IsBack()));
+            Assert.Equal(LevelData.FrontLayers, Layers.All.Count(layer => layer.IsFront()));
             Assert.Equal(new[] { Layer.Back, Layer.Back2, Layer.Back3 }, new[] { 1, 2, 3 }.Select(Layers.OfBackDepth));
             Assert.Equal(Layer.Back3, Layers.OfBackDepth(7));
             Assert.Equal(Layer.Back, Layers.OfBackDepth(0));
+            Assert.Equal(new[] { Layer.Front, Layer.Front2, Layer.Front3 }, new[] { 1, 2, 3 }.Select(Layers.OfFrontDepth));
+            Assert.Equal(Layer.Front3, Layers.OfFrontDepth(7));
+            Assert.Equal(Layer.Front, Layers.OfFrontDepth(0));
         }
 
         [Fact]
@@ -87,20 +93,49 @@ namespace TW3D.Tests
             data.Middle.Add(new BlockPlacement { Block = Road, X = 0, Y = 0, Finish = true });
             data.Back.Add(new BlockPlacement { Block = Decoration, X = 1, Y = 0, Depth = LevelData.BackLayers + 1 });
             data.Back.Add(new BlockPlacement { Block = Decoration, X = 2, Y = 0, Depth = 0 });
-            data.Front.Add(new BlockPlacement { Block = Decoration, X = 3, Y = 0, Depth = 2 });
+            data.Front.Add(new BlockPlacement { Block = Decoration, X = 3, Y = 0, Depth = LevelData.FrontLayers + 1 });
+            data.Front.Add(new BlockPlacement { Block = Decoration, X = 4, Y = 0, Depth = 2 });
+            data.Middle.Add(new BlockPlacement { Block = Road, X = 5, Y = 0, Depth = 2 });
             List<string> problems = data.Validate(Catalog);
-            Assert.Equal(3, problems.Count);
+            Assert.Equal(4, problems.Count);
             Assert.Contains(problems, problem => problem.Contains("[1, 0]") && problem.Contains("depth 4"));
             Assert.Contains(problems, problem => problem.Contains("[2, 0]") && problem.Contains("depth 0"));
-            Assert.Contains(problems, problem => problem.Contains("[3, 0]") && problem.Contains("only the blocks of the back layer"));
+            Assert.Contains(problems, problem => problem.Contains("[3, 0]") && problem.Contains("the front layers are 1 to 3"));
+            Assert.Contains(problems, problem => problem.Contains("[5, 0]") && problem.Contains("only the blocks of the back and the front layers"));
         }
 
         [Fact]
         public void ThePropsBelongToTheLayersByDepth()
         {
-            Assert.Equal(new[] { -3, -3, -2, -2, -1, -1, 0, 0, 0, 1, 1 },
-                new[] { -100f, -60f, -56.25f, -40f, -33.75f, -11.3f, -11.25f, 0f, 11.25f, 11.3f, 40f }.Select(PlacedScenery.LayerCells)
-                    .Select(cells => Layers.OfCells(cells).Cells()));
+            Assert.Equal(new[] { -3, -3, -2, -2, -1, -1, 0, 0, 0, 1, 1, 2, 2, 3, 3 },
+                new[] { -100f, -60f, -56.25f, -40f, -33.75f, -11.3f, -11.25f, 0f, 11.25f, 11.3f, 33.75f, 40f, 56.25f, 60f, 100f }
+                    .Select(PlacedScenery.LayerCells).Select(cells => Layers.OfCells(cells).Cells()));
+        }
+
+        /// <summary>The front layers are kept as the back layers: one list in the file, the depth written for the farther ones.</summary>
+        [Fact]
+        public void TheFrontLayersAreReadAndWrittenByDepth()
+        {
+            EditedLevel level = WithBackLayers();
+            Assert.Null(level.Place(Layer.Front, new Cell(3, 0), Decoration, 0));
+            Assert.Null(level.Place(Layer.Front2, new Cell(3, 0), Road, 1));
+            Assert.Null(level.Place(Layer.Front3, new Cell(3, 0), Decoration, 2));
+            string json = Json(level);
+            Assert.Contains("\"front\": [\n    {\"block\":\"kea1a\",\"x\":3,\"y\":0,\"shift\":0},\n"
+                + "    {\"block\":\"a1\",\"x\":3,\"y\":0,\"shift\":1,\"depth\":2},\n"
+                + "    {\"block\":\"kea1a\",\"x\":3,\"y\":0,\"shift\":2,\"depth\":3}\n  ]", json);
+
+            LevelData data = LevelFile.Parse(json);
+            Assert.Equal(new[] { 1, 2, 3 }, data.Front.Select(block => block.Depth));
+            Assert.Empty(data.Validate(Catalog));
+            EditedLevel read = new EditedLevel(Catalog, data, null);
+            Assert.Equal(new[] { (Road, 1) }, read.Blocks(Layer.Front2).Select(block => (block.Name, block.Shift)));
+            Assert.Equal(new[] { (Decoration, 2) }, read.Blocks(Layer.Front3).Select(block => (block.Name, block.Shift)));
+            Assert.Equal(json, Json(read));
+
+            LevelReport report = new LevelReport();
+            report.Update(read);
+            Assert.Equal("Blocks: 2 middle, 1 back, 1 back 2, 1 back 3, 1 front, 1 front 2, 1 front 3", report.BlocksText);
         }
 
         [Fact]

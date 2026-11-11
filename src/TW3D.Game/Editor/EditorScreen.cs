@@ -398,14 +398,15 @@ namespace TW3D.Editor
                 if (input.KeyPressed(Keys.Home))
                     FrameLevel();
                 //The layer being edited: Tab cycles from the back to the front (Left Shift + Tab the other way), Right
-                //Shift goes a layer further back (from the deepest to the middle) and Right Ctrl toggles the front layer,
-                //as Right Shift and Right Ctrl toggled the back and the front layer in the editor of 2016
+                //Shift goes a layer further back (from the deepest to the middle) and Right Ctrl a layer further front (from
+                //the nearest to the camera to the middle), as Right Shift and Right Ctrl toggled the back and the front
+                //layer in the editor of 2016
                 if (input.KeyPressed(Keys.Tab))
                     layer = (Layer)(((int)layer + (input.IsKeyDown(Keys.LeftShift) ? Layers.Count - 1 : 1)) % Layers.Count);
                 if (input.KeyPressed(Keys.RightShift))
                     layer = layer == Layer.Back3 ? Layer.Middle : layer.IsBack() ? layer - 1 : Layer.Back;
                 if (RightControlTapped(input))
-                    layer = layer == Layer.Front ? Layer.Middle : Layer.Front;
+                    layer = layer == Layer.Front3 ? Layer.Middle : layer.IsFront() ? layer + 1 : Layer.Front;
                 for (int i = 0; i < EditorToolKeys.ByTool.Length; i++)
                     if (!control && input.KeyPressed(EditorToolKeys.ByTool[i]))
                         SetTool((EditorTool)i);

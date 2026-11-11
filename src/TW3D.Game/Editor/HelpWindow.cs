@@ -61,9 +61,9 @@ namespace TW3D.Editor
         private static readonly (string Keys, string Action)[] ToolKeyRows =
         {
             ("B / O / V / P", "The Place tool (blocks) / the Object tool (dynamic objects) / the Select tool (many blocks) / the Scenery tool (props beside the track); View > Tool lists them and the status bar names the active one"),
-            ("Tab / Left Shift + Tab", "The next / previous layer: back 3, back 2, back, middle, front (the back layers are one, two and three cells behind the road)"),
+            ("Tab / Left Shift + Tab", "The next / previous layer: back 3, back 2, back, middle, front, front 2, front 3 (one, two and three cells behind and in front of the road)"),
             ("Right Shift", "A layer further back as soon as it is pressed: from the middle or the front layer the back layer, then back 2, back 3 and the middle layer again"),
-            ("Right Ctrl", "Toggles the front layer when it is tapped alone (let go with nothing else done while it was held)"),
+            ("Right Ctrl", "A layer further front when it is tapped alone (let go with nothing else done while it was held): from the middle or a back layer the front layer, then front 2, front 3 and the middle layer again"),
             ("R", "Road mode on / off, in any tool: road blocks join the road next to them; red bars mark gaps"),
             ("M", "The mood of the level, in any tool: day, sunset, night")
         };
@@ -144,13 +144,13 @@ namespace TW3D.Editor
             ("Inspector", "What the active tool works on: the block at the cursor cell, the selected blocks and props, the selected object with its position to type, or the selected prop with its position, depth and turn (without one, the depth and the turn of the props to be added). View > Inspector"),
             ("Level", "The mood, the position in the level select and the par time to edit, the counts, the problems of the level and the gaps of the road: click one to go there. View > Level"),
             ("Controls", "This window: Help > Controls or F1"),
-            ("View menu", "Also hides each of the back layers and the front layer (which cannot be edited while hidden), the objects, the scenery, the grid and the gap markers")
+            ("View menu", "Also hides each of the back and the front layers (which cannot be edited while hidden), the objects, the scenery, the grid and the gap markers")
         };
 
         private static readonly (string Heading, string Text)[] Guide =
         {
             ("Start", "The car starts at the cell [0, 0], and a new level has its start block there. Build the track to the right of it. The status bar shows the cell under the cursor, the active layer and tool and the chosen block."),
-            ("Choose blocks", "Choose a block in the Palette: it is shown see-through at the cursor cell, where a click or Space places it. The middle layer is the road the car drives on and the blocks that collide; decorations go to the three back layers (one, two and three cells behind the road: back, back 2 and back 3) and to the front layer (in front of it; the camera is too near for more): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active. The Select tool moves a selection into another layer with Ctrl+PageUp and Ctrl+PageDown."),
+            ("Choose blocks", "Choose a block in the Palette: it is shown see-through at the cursor cell, where a click or Space places it. The middle layer is the road the car drives on and the blocks that collide; decorations go to the three back layers (one, two and three cells behind the road: back, back 2 and back 3) and to the three front layers (in front of it: front, front 2 and front 3; the game's camera is 40 physics units in front of the road, so front 2 and front 3 show only when it turns, at the start): Tab, Right Shift and Right Ctrl switch the layer, and the Palette greys out the decorations while the middle layer is active. The Select tool moves a selection into another layer with Ctrl+PageUp and Ctrl+PageDown."),
             ("Paint a road", "Switch road mode on (R, or Level > Road mode) and paint the road with the left button: every road block joins the one next to it at the right height. A slope descends to the right: T turns the chosen block round, so that it climbs (the stairs and the walls t1 and u1 turn too). Where two road blocks do not meet, a red bar marks the gap (the Level window lists the gaps and a click goes to one). A gap may be left on purpose. Blocks can be shifted up and down with PageUp, PageDown and Ctrl + the wheel, and a mistake is taken back with Ctrl+Z."),
             ("Put the finish", "Put the cursor on a block of the middle layer and press F: that block is the finish, where the run ends. A level without a finish has no end, and the Level window says so."),
             ("Add objects", "Boxes, bars, ramps and the other dynamic objects are added with the Object tool (O): choose one in the Objects tab of the Palette and click where it is to be, or press Space to drop it onto the block at the cursor cell. Drag an object to move it."),
