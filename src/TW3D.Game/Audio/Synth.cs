@@ -217,12 +217,22 @@ namespace TW3D.Audio
         }
 
         /// <summary>A second-order low-pass (Butterworth): what is above the cutoff is rolled off.</summary>
-        public static void LowPass(float[] signal, float cutoffHz)
+        /// <param name="loop">The sound is a loop: the filter runs on from its end into its start, so it has no seam.</param>
+        public static void LowPass(float[] signal, float cutoffHz, bool loop = false)
         {
             double w = 2.0 * Math.PI * cutoffHz / SampleRate, cos = Math.Cos(w), alpha = Math.Sin(w) / (2.0 * 0.70710678);
             double a0 = 1.0 + alpha;
             double b0 = (1.0 - cos) / 2.0 / a0;
-            Filter(signal, b0, (1.0 - cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, false);
+            Filter(signal, b0, (1.0 - cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, loop);
+        }
+
+        /// <summary>A second-order high-pass (Butterworth): what is below the cutoff is rolled off.</summary>
+        public static void HighPass(float[] signal, float cutoffHz)
+        {
+            double w = 2.0 * Math.PI * cutoffHz / SampleRate, cos = Math.Cos(w), alpha = Math.Sin(w) / (2.0 * 0.70710678);
+            double a0 = 1.0 + alpha;
+            double b0 = (1.0 + cos) / 2.0 / a0;
+            Filter(signal, b0, -(1.0 + cos) / a0, b0, -2.0 * cos / a0, (1.0 - alpha) / a0, false);
         }
 
         /// <summary>

@@ -47,7 +47,16 @@ namespace TW3D.Audio
         /// <summary>The tyres of the car landing or hitting something: a soft thud of rubber.</summary>
         ImpactTyres,
         /// <summary>The body of the car hitting the track or an object: a harder knock of its frame.</summary>
-        ImpactBody
+        ImpactBody,
+        /// <summary>
+        /// The earth churning under the tyres sliding or spinning on the earth of the off-road style (a loop), in place of
+        /// their screech.
+        /// </summary>
+        Mud,
+        /// <summary>A clod of the earth the tyres throw up, as many as they throw.</summary>
+        MudClod,
+        /// <summary>A wheel landing in the earth.</summary>
+        MudSplat
     }
 
     /// <summary>
@@ -92,11 +101,14 @@ namespace TW3D.Audio
             Sound.ImpactPlastic => 0.7f,
             Sound.ImpactTyres => 0.8f,
             Sound.ImpactBody => 0.7f,
+            Sound.Mud => 0.42f,
+            Sound.MudClod => 0.5f,
+            Sound.MudSplat => 0.7f,
             _ => 0.5f
         };
 
         /// <summary>The sound loops (played on and on, its pitch and volume changed as it plays).</summary>
-        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid;
+        public static bool IsLoop(Sound sound) => sound is Sound.EngineIdle or Sound.EngineLoad or Sound.AxleMotor or Sound.Skid or Sound.Mud;
 
         /// <summary>
         /// How many takes of a sound are baked, each struck at another spot (the modes of its body as loud as there) and a
@@ -108,6 +120,8 @@ namespace TW3D.Audio
             //The creak is never pitched in the game: only its takes make it vary
             Sound.Suspension => 8,
             Sound.ImpactTyres or Sound.ImpactBody or Sound.ImpactMetal or Sound.ImpactPlastic => 4,
+            Sound.MudClod => 8,
+            Sound.MudSplat => 4,
             _ => 1
         };
 
@@ -120,6 +134,8 @@ namespace TW3D.Audio
             Sound.GarageSwitch or Sound.AxleLock => 0.03f,
             Sound.Brake => 0.05f,
             Sound.ImpactMetal or Sound.ImpactWood or Sound.ImpactPlastic or Sound.ImpactTyres or Sound.ImpactBody => 0.08f,
+            Sound.MudClod => 0.15f,
+            Sound.MudSplat => 0.08f,
             _ => 0f
         };
 
@@ -153,6 +169,9 @@ namespace TW3D.Audio
                 Sound.ImpactPlastic => ImpactPlastic(variant),
                 Sound.ImpactTyres => ImpactTyres(variant),
                 Sound.ImpactBody => ImpactBody(variant),
+                Sound.Mud => MudChurn(),
+                Sound.MudClod => MudClod(variant),
+                Sound.MudSplat => MudSplat(variant),
                 _ => throw new ArgumentOutOfRangeException(nameof(sound))
             };
             Synth.Normalize(signal, 0.9f);
@@ -616,6 +635,124 @@ namespace TW3D.Audio
             Synth.FadeOut(signal, 0.05f);
             return signal;
         }
+
+        //The loop of the earth churning lasts this long (seconds): its gurgles would be heard to repeat every second
+        private const float MudLoopLength = 3f;
+        //The sizes of the takes of a clod, 0 small to 1 big
+        private static readonly float[] ClodSizes = { 0.2f, 0.9f, 0.5f, 0.1f, 0.7f, 0.35f, 1f, 0.6f };
+
+        /// <summary>
+        /// The earth churning under the tread (#57): low band noise, rolled off above it, gurgling (its loudness wandering
+        /// at random over the loop), and a little of the fine spray above it. A loop of three seconds.
+        /// </summary>
+        private static float[] MudChurn()
+        {
+            int length = (int)(MudLoopLength * Synth.SampleRate);
+            float[] churn = Synth.LoopNoise(length, 300f, 0.8f, 7);
+            float[] low = Synth.LoopNoise(length, 300f * 0.45f, 1f, 8);
+            for (int i = 0; i < length; i++)
+                churn[i] = churn[i] * 0.7f + low[i] * 0.5f;
+            Synth.LowPass(churn, 300f * 2.2f, loop: true);
+            Synth.LowPass(churn, 300f * 2.2f, loop: true);
+            Synth.Modulate(churn, Wobble(9, 14f, 0.25f));
+            Synth.Normalize(churn, 1f);
+            float[] spray = Synth.LoopNoise(length, 1600f, 0.9f, 8);
+            Synth.LowPass(spray, 1600f * 1.6f, loop: true);
+            Synth.Modulate(spray, Wobble(9, 45f, 0.1f));
+            Synth.Normalize(spray, 1f);
+            for (int i = 0; i < length; i++)
+                churn[i] = churn[i] * 0.7f + spray[i] * 0.12f;
+            return churn;
+        }
+
+        /// <summary>A loudness wandering at random over the loop of the earth: knots at a rate, eased between, round the loop.</summary>
+        /// <param name="floor">The softest it gets, 0..1.</param>
+        private static Func<float, float> Wobble(int seed, float rate, float floor)
+        {
+            int count = (int)(rate * MudLoopLength);
+            float[] knots = new float[count];
+            for (int i = 0; i < count; i++)
+                knots[i] = (Synth.Noise(i, seed) + 1f) / 2f;
+            return t =>
+            {
+                float at = t / MudLoopLength * count;
+                int a = (int)at % count, b = (a + 1) % count;
+                float ease = (1f - MathF.Cos(MathF.PI * (at - (int)at))) / 2f;
+                float value = knots[a] * (1f - ease) + knots[b] * ease;
+                return floor + (1f - floor) * value * value;
+            };
+        }
+
+        /// <summary>A clod of the earth thrown up: by turns a wet plop and a thud on the car, small and big.</summary>
+        private static float[] MudClod(int variant)
+        {
+            float size = ClodSizes[variant];
+            return variant % 2 == 0 ? Plop(700 + variant, size) : Thud(700 + variant, size);
+        }
+
+        /// <summary>
+        /// A wet plop: a burst of noise in a band gliding down (the mud closing behind the clod), a little noise above it,
+        /// and a soft low thump; a bigger clod lower and longer.
+        /// </summary>
+        private static float[] Plop(int seed, float size)
+        {
+            float length = 0.06f + 0.08f * size;
+            float[] signal = Synth.Buffer(length + 0.02f);
+            float high = 720f - 250f * size, low = 320f - 90f * size;
+            Synth.AddNoise(signal, 0f, length, 1f, 0.004f, 28f - 12f * size, high, low, 2.4f, seed);
+            Synth.AddNoise(signal, 0.002f, length * 0.6f, 0.3f, 0.004f, 45f, high * 1.3f, high, 1.2f, seed + 50);
+            Synth.AddTone(signal, 0f, 0.05f + 0.04f * size, 120f - 30f * size, 70f, 0.12f + 0.12f * size, 0.005f, 40f, 1f);
+            Synth.LowPass(signal, 1800f);
+            return signal;
+        }
+
+        /// <summary>
+        /// A clod of earth hitting the arch or the body: a short soft contact (2 to 3.5 ms) ringing many close modes that
+        /// die away at once (a thud of earth, not a tone of a drum), and a crumbling of noise; a bigger clod lower.
+        /// </summary>
+        private static float[] Thud(int seed, float size)
+        {
+            float length = 0.09f + 0.06f * size;
+            float[] force = Synth.Buffer(length), signal = Synth.Buffer(length);
+            Synth.AddContact(force, 0.001f, 0.002f + 0.0015f * size, 1f);
+            Mode[] modes = new Mode[24];
+            for (int i = 0; i < modes.Length; i++)
+            {
+                float u = (Synth.Noise(i, seed) + 1f) / 2f;
+                modes[i] = new Mode((520f - 120f * size) * MathF.Pow(4f, u), 120f + 100f * u, 0.3f);
+            }
+            Synth.AddResonance(signal, force, modes);
+            //The push of the contact itself comes through the resonators as a low thump, which small speakers lose
+            Synth.HighPass(signal, 350f);
+            Synth.Normalize(signal, 1f);
+            Synth.AddNoise(signal, 0.002f, length * 0.8f, 0.35f, 0.004f, 35f, 1000f - 300f * size, 500f, 1f, seed + 70);
+            Synth.LowPass(signal, 2000f);
+            return signal;
+        }
+
+        /// <summary>A wheel landing in the earth: a big plop with a slap of the earth and a low thump, and clods falling back after it.</summary>
+        private static float[] MudSplat(int variant)
+        {
+            int seed = 800 + variant;
+            float[] signal = Synth.Buffer(0.6f);
+            void Add(float[] clod, float at, float volume)
+            {
+                int first = (int)(at * Synth.SampleRate);
+                for (int i = 0; i < clod.Length && first + i < signal.Length; i++)
+                    signal[first + i] += clod[i] * volume;
+            }
+            Add(Plop(seed, 1f), 0f, 1f);
+            Synth.AddNoise(signal, 0f, 0.25f, 0.6f, 0.006f, 14f, 650f, 300f, 0.9f, seed + 5);
+            Synth.AddTone(signal, 0f, 0.15f, 110f, 70f, 0.25f, 0.004f, 20f, 1f, 0.3f);
+            for (int k = 0; k < 6; k++)
+            {
+                float u = (Synth.Noise(k, seed + 9) + 1f) / 2f;
+                Add(Plop(seed + 20 + k, 0.2f + 0.5f * u), 0.12f + 0.06f * k + 0.04f * u, 0.25f + 0.25f * u);
+            }
+            Synth.LowPass(signal, 2000f);
+            return signal;
+        }
+
 
         /// <summary>A whoosh: noise in a band rising from low to middle, swelling and fading.</summary>
         private static float[] Whoosh()

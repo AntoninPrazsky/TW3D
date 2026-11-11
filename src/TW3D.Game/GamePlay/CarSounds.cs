@@ -11,8 +11,9 @@ namespace TW3D.GamePlay
     /// The sounds of the car while it is driven: the engine (two loops in step, idling and under the throttle, pitched by
     /// how fast the wheels turn, so spinning wheels rev it), the motor of the axles while they turn, the lock of the axles,
     /// the brake grabbing the wheels of a moving car, the tyres screeching while they slip (sliding braked or spinning)
-    /// and the shock absorbers of each axle creaking at each fast stroke of its spring (see <see cref="SpringCreak"/>).
-    /// The loops pause with the game.
+    /// on the track or an object, the earth they throw up instead on the earth of the off-road style (#57), and the shock
+    /// absorbers of each axle creaking at each fast stroke of its spring (see <see cref="SpringCreak"/>). The loops pause
+    /// with the game.
     /// </summary>
     sealed class CarSounds : IDisposable
     {
@@ -33,8 +34,18 @@ namespace TW3D.GamePlay
         private const float BrakeMinSpeed = 8f;
         private const float BrakeFullSpeed = 40f;
         //The tyres screech while they slip over the ground (see Car.SlippingWheels), at their loudest and highest from
-        //this speed of slipping (physics units a second)
+        //this speed of slipping (physics units a second); a wheel on a transition into the earth as fast as half its
+        //slipping, one on the earth not at all
         private const float SkidFullSpeed = 40f;
+        //On the earth the tyres throw it up instead (DirtSpray): the earth churns as loud as they slide on it and a little
+        //higher the harder (octaves), clods spatter at a rate of the sliding and of the rolling (a real second, as the
+        //clods are thrown), each a take of its own a little louder or softer, and a wheel landing in the earth splats,
+        //no other for a moment (seconds)
+        private const float ChurnLowPitch = -0.1f;
+        private const float ChurnHighPitch = 0.1f;
+        private const float ClodsSliding = 24f;
+        private const float ClodsRolling = 5f;
+        private const float SplatQuiet = 0.15f;
         //The axles unlocked sound higher and softer than locked
         private const float UnlockPitch = 0.4f;
         private const float UnlockVolume = 0.5f;
@@ -42,7 +53,8 @@ namespace TW3D.GamePlay
         private readonly GameSounds sounds;
         private readonly Car car;
         //Null without an audio device
-        private readonly SoundEffectInstance idle, load, axles, skid;
+        private readonly SoundEffectInstance idle, load, axles, skid, churn;
+        private readonly Random random = new Random();
         private readonly SpringCreak rearSpring = new SpringCreak(), frontSpring = new SpringCreak();
         //How long no axle may creak, while one creak plays (seconds): two at once sang like a voice
         private float creakQuiet;
@@ -50,6 +62,7 @@ namespace TW3D.GamePlay
         private float throttle;
         private float axlesLevel;
         private float skidLevel;
+        private float churnLevel, owedClods, splatQuiet;
         private bool braked, locked;
 
         public CarSounds(GameSounds sounds, Car car)
@@ -60,13 +73,16 @@ namespace TW3D.GamePlay
             load = sounds.Loop(Sound.EngineLoad);
             axles = sounds.Loop(Sound.AxleMotor);
             skid = sounds.Loop(Sound.Skid);
+            churn = sounds.Loop(Sound.Mud);
         }
 
         /// <param name="elapsed">Real seconds since the last update.</param>
         /// <param name="running">The game runs; when it is paused, the loops pause.</param>
         /// <param name="throttleHeld">How far the throttle is held, 0..1.</param>
         /// <param name="slipping">The wheels slipping on the ground (null while the game does not run).</param>
-        public void Update(float elapsed, bool running, float throttleHeld, bool brake, bool lockAxles, bool axlesTurning, List<WheelSlip> slipping)
+        /// <param name="earth">The earth the tyres throw up, updated for this frame (null while the game does not run).</param>
+        public void Update(float elapsed, bool running, float throttleHeld, bool brake, bool lockAxles, bool axlesTurning, List<WheelSlip> slipping,
+            DirtSpray earth)
         {
             if (!running)
             {
@@ -93,10 +109,23 @@ namespace TW3D.GamePlay
 
             float slip = 0f;
             foreach (WheelSlip wheel in slipping)
-                slip = Math.Max(slip, wheel.Speed);
+                slip = Math.Max(slip, wheel.Speed * (1f - DirtSpray.EarthOf(wheel.Ground)));
             float skidShare = MathHelper.Clamp(slip / SkidFullSpeed, 0f, 1f);
             skidLevel = MathHelper.Lerp(skidLevel, slip > 0f ? MathHelper.Lerp(0.3f, 1f, skidShare) : 0f, fade);
             Set(skid, Sound.Skid, skidLevel, MathHelper.Lerp(-0.2f, 0.2f, skidShare));
+
+            float sliding = earth?.Sliding ?? 0f;
+            churnLevel = MathHelper.Lerp(churnLevel, sliding, fade);
+            Set(churn, Sound.Mud, churnLevel, MathHelper.Lerp(ChurnLowPitch, ChurnHighPitch, sliding));
+            owedClods += (ClodsSliding * sliding + ClodsRolling * (earth?.Rolling ?? 0f)) * elapsed;
+            for (; owedClods >= 1f; owedClods -= 1f)
+                sounds.Play(Sound.MudClod, 0f, MathHelper.Lerp(0.35f, 1f, random.NextSingle()) * MathHelper.Lerp(0.5f, 1f, sliding));
+            splatQuiet -= elapsed;
+            if (earth != null && earth.Landing > 0f && splatQuiet <= 0f)
+            {
+                sounds.Play(Sound.MudSplat, 0f, earth.Landing);
+                splatQuiet = SplatQuiet;
+            }
 
             creakQuiet -= elapsed;
             Creak(rearSpring, car.SpringSpeed(false), elapsed);
@@ -126,7 +155,7 @@ namespace TW3D.GamePlay
             }
         }
 
-        private SoundEffectInstance[] Loops => new[] { idle, load, axles, skid };
+        private SoundEffectInstance[] Loops => new[] { idle, load, axles, skid, churn };
 
         /// <summary>Sets a loop's volume (a share of the sound's own) and pitch, and starts or resumes it.</summary>
         private static void Set(SoundEffectInstance loop, Sound sound, float level, float loopPitch)

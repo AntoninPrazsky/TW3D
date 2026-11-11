@@ -144,10 +144,13 @@ namespace TW3D.Tests
         /// The car hitting something thuds or crunches, it does not ring like an instrument: little of what it has above
         /// 150 Hz lies in its three strongest bands 20 Hz wide (the first landing, four fading tones, had 76 % there, the
         /// first metal barrel 91 %; noise has next to none; the tyres the owner chose have about 36 %, the body about 22 %).
+        /// Nor do the clods of earth the tyres throw up and a wheel landing in the earth.
         /// </summary>
         [Theory]
         [InlineData(Sound.ImpactTyres, 0.45)]
         [InlineData(Sound.ImpactBody, 0.35)]
+        [InlineData(Sound.MudClod, 0.35)]
+        [InlineData(Sound.MudSplat, 0.35)]
         public void TheCarDoesNotRing(Sound sound, double most)
         {
             for (int variant = 0; variant < SoundBakes.Variants(sound); variant++)

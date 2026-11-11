@@ -84,6 +84,19 @@ namespace TW3D.GameObjects
             this.gravity = gravity * Units.PhysicsToScene * gameSpeed * gameSpeed;
         }
 
+        /// <summary>
+        /// How hard the tyres slid on the earth at the last update, 0 to 1: of the wheel sliding hardest, by the measure the
+        /// clods are thrown by (from MinSlide to FullSlide), times how much of its ground is earth. The sound of the earth
+        /// thrown up follows it (see CarSounds).
+        /// </summary>
+        public float Sliding { get; private set; }
+
+        /// <summary>How fast the wheels rolled on the earth at the last update, 0 to 1 (the share of RollSpeed squared, as the crumbs are thrown).</summary>
+        public float Rolling { get; private set; }
+
+        /// <summary>How hard a wheel landed on the earth at the last update, 0 to 1 (from LandSpeed to LandFull); 0 without a landing.</summary>
+        public float Landing { get; private set; }
+
         /// <summary>How much of the ground a body is earth: 1 a block of the off-road style, half a transition into it, else 0.</summary>
         public static float EarthOf(Body ground)
         {
@@ -117,6 +130,7 @@ namespace TW3D.GameObjects
 
             car.SlippingWheels(grounded, 0f);
             bool[] standing = new bool[Car.WheelCount];
+            Sliding = Rolling = Landing = 0f;
             foreach (WheelSlip wheel in grounded)
             {
                 standing[wheel.Wheel] = true;
@@ -130,6 +144,9 @@ namespace TW3D.GameObjects
                 mud?.Wheel(Car.IsFrontWheel(wheel.Wheel), onEarth, roll, slide, landing, elapsed);
                 if (onEarth <= 0f)
                     continue;
+                Sliding = Math.Max(Sliding, onEarth * slide);
+                Rolling = Math.Max(Rolling, onEarth * roll * roll);
+                Landing = Math.Max(Landing, onEarth * landing);
                 float earth = onEarth * density;
                 Vector3 at = new Vector3(-wheel.Point * Units.PhysicsToScene, 0f);
                 Vector3 up = new Vector3(-wheel.Up, 0f);

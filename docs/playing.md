@@ -133,7 +133,13 @@ engine does not leave only its squeak to be heard; the owner then had the whole 
 The tyres screech while they slip over what they stand on, the track or an object, faster
 than 8 physics units a second (`Car.SlippingWheels`): braked wheels sliding (with the ABS only
 short chirps), or wheels spinning at a launch or landing from a jump; louder and higher the
-faster they slip. Where they
+faster they slip. On the earth of the off-road style they throw it up instead (#57; a wheel on
+a transition screeches as if it slipped half as fast): the earth churns under them (a loop of
+three seconds, low noise gurgling) as loud as they slide on it, by the measure the clods fly
+by (`DirtSpray.Sliding`); clods spatter, a wet plop and a thud on the car by turns, up to 24 a
+second at the hardest slide and a few from wheels rolling fast, each one of eight takes a
+little higher or lower and louder or softer; and a wheel landing hard in the earth splats. The
+owner chose this one of four candidates by ear. Where they
 slip, they leave dark skid marks (`GameObjects/TyreMarks.cs`: under the wheels on both sides
 of the car, darker the faster they slip, lying on what the wheel stood on and moving with it,
 fading away after 20 seconds; on an object they lie on the surface of its model, over its rims,

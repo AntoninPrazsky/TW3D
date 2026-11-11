@@ -340,7 +340,8 @@ namespace TW3D.GamePlay
             }
             //A car fallen off the level is gone: it is not heard any more (one lost on its roof still is)
             bool fallenOff = race.Loss == RaceLoss.Fell;
-            carSounds.Update(realElapsed, running && !fallenOff, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null);
+            carSounds.Update(realElapsed, running && !fallenOff, throttleHeld, car.brake, car.holderRotLockChnage, car.holderRotation, running ? slipping : null,
+                running ? dirt : null);
 
             //The camera follows the car in game time too, so it keeps up with it, and stands still when the game is
             //paused. It does not follow the car below the level: a car falling off it drops out of sight, and is left
