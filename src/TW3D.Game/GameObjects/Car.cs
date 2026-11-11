@@ -157,9 +157,10 @@ namespace TW3D.GameObjects
         //ratio. Aether works both out for the mass of the joint, which the holder of the axle (15) makes small, not for
         //the body that rests on the spring (the half of 150 to 240 on each axle), so the body feels about 0.35 to 0.45 of
         //the ratio. At 0.7 it rebounded off the axles after a landing until the whole car left the road again; at 2.5
-        //it squashes the springs and settles within a second, without a hop (#68)
+        //it settled without rising above its rest at all, which looked too dead; at 1.7 the body comes back up a little
+        //past its rest once and settles within a second, without the wheels leaving the road (#68)
         private const float SuspensionFrequency = 4f;
-        private const float SuspensionDamping = 2.5f;
+        private const float SuspensionDamping = 1.7f;
         
         /// <summary>A car of the catalog with its wheels: one kind on the front axle, one on the rear one.</summary>
         public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, CarType Type,

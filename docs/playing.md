@@ -125,8 +125,8 @@ axles creaking together sang like a voice). A stroke is a spring moving one way 
 physics units a second (a flat road, a car at rest or pushing against a step move them at
 most about 1); it creaks once it has passed its fastest, the louder the faster it was, at its
 loudest from 14 (humps move the springs 1 to 3.5, steps of the stairs and landings 4 to 22,
-measured before the damping of the suspension was raised in #68, which made the strokes of
-landings and of the stairs about half as fast), and that axle not again for 0.3 s. Even a soft creak plays at 0.6 of its volume, so that the
+measured before the damping of the suspension was raised in #68 from 0.7 to 1.7, which made
+the strokes of landings and of the stairs roughly half as fast), and that axle not again for 0.3 s. Even a soft creak plays at 0.6 of its volume, so that the
 engine does not leave only its squeak to be heard; the owner then had the whole creak halved
 (0.225), so even at its loudest it stays well under the engine under the throttle.
 
