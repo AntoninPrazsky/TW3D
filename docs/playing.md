@@ -36,12 +36,18 @@ the wheels in their grip and weight (the off-road wheels grip better, the racing
 lighter; the rock crawler wheels, the Crawler's own, with a deep tread and an orange hubcap,
 grip and weigh as the off-road ones). The grip depends on the surface too (#58): a bar for the
 classic slab (*Grip classic*) and one for the earth of the off-road style (*Grip off-road*).
-On the slab the off-road and the rock crawler wheels grip as they always did; on the earth
-they grip better still, the rock crawler wheels best (the tall knobby tyre on loose ground),
-while the racing slicks slide (about half the grip of the crawler there, not hopeless). The
+On the slab the off-road and the rock crawler wheels grip as they always did. The earth is
+looser for every wheel (#57): the rock crawler wheels, tall and knobby, grip it nearly as the
+slab, the off-road wheels a good deal less, and the racing slicks slide (under half the grip of
+the crawler there, but not hopeless). On the earth the car accelerates nearly as on the slab
+(the motor limits it more than the grip), but it brakes longer: from 50 physics units a second
+the Buggy stops in about 1.1 times its distance on the slab on the crawler wheels, 1.3 times on
+the off-road ones and 1.7 times on the slicks; braked on a slope of 34° the slicks slide down,
+on 42° the off-road wheels slip a little too, and the slicks do not get the Buggy up a climb of
+42° from a short run-up (the lighter and faster Sand Rail gets up). The
 level select marks the levels of the off-road style (*OFF-ROAD* at the top left of the
 image), so that the wheels can be chosen for them; a transition between the two surfaces
-grips as the mean of both. The numbers are provisional until test drives tune them (#57). On the earth the tyres throw it up (#59): clods and crumbs leave the
+grips as the mean of both. On the earth the tyres throw it up (#59): clods and crumbs leave the
 tread as it turns up from the ground and fly on the way the wheel turns, a rooster tail behind a
 spinning wheel, pushed ahead of a wheel sliding braked, more the faster it slips, a few
 from a wheel rolling fast, a spray where a wheel lands hard, with a brown dust instead of the

@@ -46,9 +46,10 @@ namespace TW3D.Tests
             Assert.True(crawler > offroad);
             Assert.True(offroad > racing * 1.5f);
             Assert.True(racing > crawler * 0.45f);
-            //On the earth the off-road wheels grip better than on the slab, the racing wheel worse
-            Assert.True(offroad > Catalog.ContactGrip(Wheel("Off-road"), Catalog.ClassicStyle));
+            //The earth is looser than the slab for every wheel (#57), the crawler least: it grips nearly as on the slab
+            Assert.True(offroad < Catalog.ContactGrip(Wheel("Off-road"), Catalog.ClassicStyle));
             Assert.True(racing < Catalog.ContactGrip(Wheel("Racing"), Catalog.ClassicStyle));
+            Assert.True(crawler > 0.85f * Catalog.ContactGrip(Wheel("Rock crawler"), Catalog.ClassicStyle));
         }
 
         [Fact]

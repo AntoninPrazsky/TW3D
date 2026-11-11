@@ -385,13 +385,14 @@ the game and the editor:
   wheels, one on each side of the car), and its `grip` on the surface of each style, a factor
   of the friction of the contact (1 for a style it does not name, and on the classic slab).
   A style has the friction of its surface (`"styles": [ { "name": "offroad", "title":
-  "Off-road", "friction": 0.9 } ]`; the classic slab's is 1). The physics gives a block the
+  "Off-road", "friction": 0.5 } ]`; the classic slab's is 1). The physics gives a block the
   friction of the surface of its look (a transition the mean of both) and mixes it with the
   friction of the tyre as Aether.Physics2D does (the square root of their product), and the car
   scales the contact by the grip of the tyre on that surface (`Car.Grip`); the bars Grip of the
-  garage show the same (`Catalog.ContactGrip`). On the earth (0.9): the off-road wheel ×1.1,
-  the rock crawler ×1.2, the racing wheel ×0.75, so about 1.14, 1.25 and 0.62 against 1.10,
-  1.10 and 0.87 on the slab (provisional, #57 tunes them by test drives).
+  garage show the same (`Catalog.ContactGrip`). On the earth (0.5, looser than the slab): the
+  off-road wheel ×1, the rock crawler ×1.25, the racing wheel ×0.75, so about 0.77, 0.97 and
+  0.46 against 1.10, 1.10 and 0.87 on the slab (#57, from scripted test drives; see
+  [Playing](playing.md)).
 
 The masses are relative to each other, not kilograms. The Buggy is about 3.8 m long and 1.9 m
 wide (a model unit is about 0.44 m), so its body of 200 stands for some 550 kg of a real buggy
