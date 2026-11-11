@@ -52,6 +52,11 @@ namespace TW3D.GameObjects
         //layer, the deeper back layers a cell further each
         private const float LayerDepth = Units.GridCell;
 
+        //How much the blocks of the track bounce (restitution: 0 not at all, 1 fully). A contact bounces as much as the
+        //more bouncy of its two bodies, and the bodies of the car do not bounce, so the car bounces off the track this
+        //much: a little. Fully (1, as since 2016) made the wheels spring off the road at every landing (#68)
+        private const float TrackRestitution = 0.1f;
+
         private readonly List<TrackBlock> middle = new List<TrackBlock>();
         private readonly List<TrackBlock> back = new List<TrackBlock>();
         private readonly List<TrackBlock> front = new List<TrackBlock>();
@@ -149,7 +154,7 @@ namespace TW3D.GameObjects
             {
                 block.Body = CreateModelBody(type.ModelAsset, BodyType.Static, CollisionCategories.Track, placement.Turned);
                 block.Body.Position = block.Position;
-                block.Body.SetRestitution(1f);
+                block.Body.SetRestitution(TrackRestitution);
                 //The friction of the surface of its look, which the tyres grip as their wheels do on it (Car.Grip)
                 block.Body.SetFriction(assets.Catalog.SurfaceFriction(style));
                 block.Body.Tag = new TrackLook(style);

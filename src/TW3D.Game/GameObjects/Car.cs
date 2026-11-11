@@ -152,6 +152,14 @@ namespace TW3D.GameObjects
         private const float AxleSettleSpeed = 1.5f;
         //How long the axles are still to be stopped by their motor (seconds of the physics)
         private float axleStopping;
+
+        //The suspension: a spring between the body and each axle, along the body's up, of this frequency (Hz) and damping
+        //ratio. Aether works both out for the mass of the joint, which the holder of the axle (15) makes small, not for
+        //the body that rests on the spring (the half of 150 to 240 on each axle), so the body feels about 0.35 to 0.45 of
+        //the ratio. At 0.7 it rebounded off the axles after a landing until the whole car left the road again; at 2.5
+        //it squashes the springs and settles within a second, without a hop (#68)
+        private const float SuspensionFrequency = 4f;
+        private const float SuspensionDamping = 2.5f;
         
         /// <summary>A car of the catalog with its wheels: one kind on the front axle, one on the rear one.</summary>
         public Car(World World, ScreenManager ScreenManager, ChaseCamera Camera, PhysicsClock Physics, Vector2 Position, CarType Type,
@@ -247,8 +255,8 @@ namespace TW3D.GameObjects
             springB.MotorSpeed = 0f;
             springB.MaxMotorTorque = 10500f;
             springB.MotorEnabled = true;
-            springB.Frequency = 4f;
-            springB.DampingRatio = 0.7f;
+            springB.Frequency = SuspensionFrequency;
+            springB.DampingRatio = SuspensionDamping;
 
             world.Add(springB);
 
@@ -320,8 +328,8 @@ namespace TW3D.GameObjects
             springF.MotorSpeed = 0f;
             springF.MaxMotorTorque = 10500f;
             springF.MotorEnabled = true;
-            springF.Frequency = 4f;
-            springF.DampingRatio = 0.7f;
+            springF.Frequency = SuspensionFrequency;
+            springF.DampingRatio = SuspensionDamping;
 
             world.Add(springF);
             

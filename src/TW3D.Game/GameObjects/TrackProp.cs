@@ -58,9 +58,9 @@ namespace TW3D.GameObjects
             Body.Mass = type.Mass;
             Body.SetRestitution(type.Restitution);
 
-            //A contact bounces as much as the more bouncy of its two bodies. The track bounces fully (the car
-            //bounces on it), so an object resting on it would hop for ever and never fall asleep: the contacts
-            //of an object bounce at most as much as the object itself.
+            //A contact bounces as much as the more bouncy of its two bodies, and the track bounces a little (see
+            //Level.TrackRestitution): the contacts of an object bounce at most as much as the object itself, so that
+            //an object that does not bounce at all (the trailer, a container) does not hop on the track either.
             float restitution = type.Restitution;
             Body.OnCollision += (sender, other, contact) =>
             {
