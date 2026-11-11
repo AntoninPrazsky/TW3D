@@ -1,4 +1,7 @@
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Text;
 using TW3D.Shared;
 using Xunit;
 
@@ -10,6 +13,28 @@ namespace TW3D.Tests
     public class LevelFileTests
     {
         private const string Middle = "\"middle\":[{\"block\":\"b2\",\"x\":1,\"y\":0,\"shift\":-4,\"turned\":true}]";
+
+        /// <summary>A debug level says so in its file (only it), and the level select lists it after all the others.</summary>
+        [Fact]
+        public void ADebugLevelSaysSoAndComesLast()
+        {
+            string debug = LevelFile.ToJson(new LevelData { Order = 1, Debug = true });
+            Assert.Contains("  \"order\": 1,\n  \"debug\": true,\n", debug);
+            Assert.True(LevelFile.Parse(debug).Debug);
+            Assert.DoesNotContain("debug", LevelFile.ToJson(new LevelData()));
+            Assert.False(LevelFile.Parse(LevelFile.ToJson(new LevelData())).Debug);
+
+            Dictionary<string, string> files = new Dictionary<string, string>
+            {
+                ["b.json"] = debug,
+                ["a.json"] = LevelFile.ToJson(new LevelData { Order = 5 }),
+                ["c.json"] = LevelFile.ToJson(new LevelData())
+            };
+            List<LevelFile.Listing> levels = LevelFile.SortListings(files.Keys, name => new MemoryStream(Encoding.UTF8.GetBytes(files[name])));
+            Assert.Equal(new[] { "a", "c", "b" }, levels.Select(level => level.Name));
+            Assert.Equal(new[] { false, false, true }, levels.Select(level => level.Debug));
+            Assert.Equal(new[] { "a", "c", "b" }, LevelFile.SortLevels(files.Keys, name => new MemoryStream(Encoding.UTF8.GetBytes(files[name]))));
+        }
 
         [Fact]
         public void ReadsATurnedBlock()

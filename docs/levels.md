@@ -180,7 +180,8 @@ Controls window.
   style of the track (Classic or Off-road, at once: the blocks with a look in it are drawn
   so, the others classic; see [the level format](#level-format)), the
   position in the level select (the checkbox *In the level select*, and the number; levels
-  without one come after the others, sorted by name) and the par time (the checkbox *Par
+  without one come after the others, sorted by name), whether it is a debug level (the
+  checkbox *Debug level*, see [the level format](#level-format)) and the par time (the checkbox *Par
   time* and the seconds; while the level has none, the window says what the game estimates,
   "estimated: 10.0 s"). Each edit is one step of undo, saved with the level. It counts the
   blocks of each layer, the objects and the props of the scenery and gives the cells the
@@ -266,6 +267,7 @@ Levels are JSON files with one block or object per line:
   "order": 1,
   "mood": "sunset",
   "style": "offroad",
+  "debug": true,
   "middle": [
     {"block":"a1","x":0,"y":0,"shift":0},
     {"block":"b2","x":1,"y":0,"shift":-4,"turned":true},
@@ -310,6 +312,14 @@ Levels are JSON files with one block or object per line:
   the other side), so a level of the off-road style is just `"style": "offroad"`. A style
   only changes how a block looks: its collision is that of the classic block, so a level
   plays the same in every style.
+- `debug` (optional, written only when it is set): a level for development and testing.
+  The level select shows the debug levels after all the others, from a row of their own under
+  the title *DEBUG LEVELS* (for now to every player), sorted among themselves by `order` and
+  name; the next level after one is the next debug level, and a debug level has no tutorial.
+  It needs no preview image: the level select draws its name instead. The debug levels of
+  `tools/levelgen/debug.js` (`test-*`) are the test tracks of #57 and #68: a flat road and
+  climbs of 24°, 34° and 42° on the slab and on the earth, a drop onto a road with humps, and
+  single steps of 2.5, 5 and 7.5 units and the stairs `s2`.
 - `middle`: blocks of the physics layer, `back` and `front`: decoration layers. The back
   layers are one list: `depth` (1 when left out, as in every level made before 2026-11) is
   how many cells behind the road a block of `back` stands, 1 to 3. The front layer has one

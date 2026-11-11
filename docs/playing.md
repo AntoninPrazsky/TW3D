@@ -3,7 +3,8 @@
 The user interface is designed for desktop monitors at 1920×1080 and scaled
 uniformly to the screen, so it fits any aspect ratio (16:9, 21:9, 4:3, …).
 It keeps a margin of 48 px (at 1080p) from the screen edges; the level select
-uses as many columns as fit the screen.
+uses as many columns as fit the screen. After the levels it lists the levels for development
+and testing under *DEBUG LEVELS* (see [the level format](levels.md#level-format)).
 
 ## Menus
 

@@ -77,6 +77,8 @@ class Track {
     this.mood = "day";
     // The par time in seconds (the time a good run takes); null = estimated by the game
     this.par = null;
+    // A level for development and testing, under DEBUG LEVELS in the level select (written only when true)
+    this.debug = false;
     // The style of the track (#58): null = classic, "offroad" = a dirt road; the game finds the transitions where the
     // road meets a block without a look in it (the start, the tunnels) or a block of another style
     this.style = null;
@@ -342,6 +344,7 @@ class Track {
       + (this.mood !== "day" ? `  "mood": "${this.mood}",\n` : "")
       + (this.par != null ? `  "par": ${this.par},\n` : "")
       + (this.style ? `  "style": "${this.style}",\n` : "")
+      + (this.debug ? `  "debug": true,\n` : "")
       + list("middle", this.middle) + list("back", back) + list("front", this.front)
       + list("objects", this.objects, this.scenery.length === 0)
       + (this.scenery.length ? list("scenery", this.scenery, true) : "") + "}\n";

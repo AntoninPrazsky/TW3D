@@ -394,7 +394,8 @@
 /build:Common/stick.png
 
 # Preview images of the levels in the level select, 700 x 394: the track alone (H while driving
-# in a Debug build). A new level: a PNG of the same size and a /build line.
+# in a Debug build). A new level: a PNG of the same size and a /build line (a debug level may go
+# without: the level select draws its name instead).
 /build:Levels/levimgs/training1.png
 /build:Levels/levimgs/training2.png
 /build:Levels/levimgs/training3.png
@@ -403,11 +404,3 @@
 /build:Levels/levimgs/tunel.png
 /build:Levels/levimgs/summit.png
 /build:Levels/levimgs/docks.png
-/build:Levels/levimgs/training1-offroad.png
-/build:Levels/levimgs/training2-offroad.png
-/build:Levels/levimgs/training3-offroad.png
-/build:Levels/levimgs/startblock-offroad.png
-/build:Levels/levimgs/lock-offroad.png
-/build:Levels/levimgs/tunel-offroad.png
-/build:Levels/levimgs/summit-offroad.png
-/build:Levels/levimgs/docks-offroad.png

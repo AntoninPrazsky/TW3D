@@ -35,16 +35,31 @@ namespace TW3D.Tests
             Assert.Equal(text, LevelFile.ToJson(LevelFile.Parse(text)));
         }
 
-        /// <summary>The level select shows a picture for it: a precompiled preview of 2016, or a PNG the content pipeline builds.</summary>
+        /// <summary>
+        /// The level select shows a picture for it: a precompiled preview of 2016, or a PNG the content pipeline builds. A
+        /// debug level may go without: the level select draws its name.
+        /// </summary>
         [Theory]
         [MemberData(nameof(ShippedLevels))]
         public void HasAPreview(string level)
         {
+            if (LevelFile.Load(Repository.LevelPath(level)).Debug)
+                return;
             string previews = Path.Combine(Repository.Levels, "levimgs");
             bool precompiled = File.Exists(Path.Combine(previews, level + ".xnb"));
             bool built = File.Exists(Path.Combine(previews, level + ".png"))
                 && Repository.BuiltContent().Contains("Levels/levimgs/" + level + ".png");
             Assert.True(precompiled || built, $"No preview of {level}: content/Levels/levimgs/{level}.png with a /build line in Content.mgcb");
+        }
+
+        /// <summary>The debug levels come after all the others, and each has a finish (see <see cref="HasAFinish"/>).</summary>
+        [Fact]
+        public void TheDebugLevelsComeLast()
+        {
+            List<LevelFile.Listing> levels = LevelFile.FindListings(Repository.Levels);
+            Assert.Contains(levels, level => level.Debug);
+            int firstDebug = levels.FindIndex(level => level.Debug);
+            Assert.All(levels.Skip(firstDebug), level => Assert.True(level.Debug, $"{level.Name} is among the debug levels"));
         }
 
         [Fact]

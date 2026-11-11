@@ -72,6 +72,9 @@ namespace TW3D.GameObjects
         /// <summary>The time a good run of the level takes, in seconds (see <see cref="RaceScore"/>).</summary>
         public float Par { get; }
 
+        /// <summary>A level for development and testing (see <see cref="LevelData.Debug"/>): it teaches nothing.</summary>
+        public bool Debug { get; }
+
         /// <summary>The level has a finish block, so a run of it can end (see <see cref="IsAtFinish"/>).</summary>
         public bool HasFinish => finishArea.HasValue;
 
@@ -103,6 +106,7 @@ namespace TW3D.GameObjects
                 throw new InvalidDataException("Level \"" + name + "\" is not valid:\n" + string.Join("\n", problems));
 
             Mood = data.Mood;
+            Debug = data.Debug;
             Par = RaceScore.Par(data);
             BlockPlacement finish = data.FinishBlock;
             if (finish != null)

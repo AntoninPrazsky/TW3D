@@ -19,6 +19,7 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 | `summit.js` | The *summit* level |
 | `docks.js` | The *docks* level: every kind of block, object and prop, and the three back layers; a sliding ramp to brake on and climb from by turning the axles, pits for barrels, a ramp over the roofs of containers, a hump to brake for, stairs, and a jump across the harbour that needs full speed |
 | `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, long stairs |
+| `debug.js` | The debug levels `test-*` (DEBUG LEVELS in the level select): a flat road and climbs of 24°, 34° and 42° on the slab and on the earth, a drop onto a road with humps, single steps and the stairs `s2`, for measuring the car |
 | `side-view.ps1` | Side view of a level's road as an image (Windows PowerShell), to check that it is continuous |
 
 ## Heights
@@ -58,6 +59,7 @@ for (const run of t.flatRuns()) t.kerbs(run.from, run.to, run.h);
 t.mood = "sunset";                       // the light: "day" (default), "sunset" or "night"
 t.par = 20;                              // the par time in seconds (default: estimated by the game)
 t.style = "offroad";                     // the style of the track (default: classic)
+t.debug = true;                          // a debug level, under DEBUG LEVELS in the level select
 t.withStyle("classic", () => t.road("a1", "a1"));  // a part of the road in a style of its own
 t.save("content/Levels/example.json");
 ```

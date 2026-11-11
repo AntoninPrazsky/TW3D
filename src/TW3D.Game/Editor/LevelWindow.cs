@@ -119,6 +119,12 @@ namespace TW3D.Editor
                 ImGui.Unindent();
             }
 
+            bool debug = level.Debug;
+            if (ImGui.Checkbox("Debug level", ref debug))
+                level.SetDebug(debug);
+            if (ImGui.IsItemHovered())
+                ImGui.SetTooltip("A level for development and testing: the level select shows it\nunder DEBUG LEVELS, after the others, and it has no tutorial.");
+
             bool hasPar = level.Par.HasValue;
             //A level given a par time starts from what the game would take
             if (ImGui.Checkbox("Par time", ref hasPar))

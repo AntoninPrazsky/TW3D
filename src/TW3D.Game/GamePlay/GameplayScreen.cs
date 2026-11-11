@@ -101,7 +101,7 @@ namespace TW3D.GamePlay
         //The results over the level at the finish; null until they come
         private ResultsScreen results;
 
-        /// <param name="levels">All levels in the order of the level select (for the next one after the finish).</param>
+        /// <param name="levels">The levels of the level's section of the level select (the levels, or the debug levels), in its order: for the next one after the finish.</param>
         public GameplayScreen(string levelName, GameSettings settings, GameRecords records, IReadOnlyList<string> levels)
         {
             this.levelName = levelName;
@@ -227,7 +227,8 @@ namespace TW3D.GamePlay
             controls.LoadContent(Manager.Content, Manager.Pixel);
             speedometer = new Speedometer(Manager.GraphicsDevice);
             developmentKeys = new DevelopmentKeys(debugView, renderer, camera, level.Mood, car.TurnOver, MudStep);
-            if (testLevel == null && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
+            //A debug level teaches nothing: it is not one of the levels the lessons are given in
+            if (testLevel == null && !level.Debug && (settings.Tutorial || Tutorial.Lever != TutorialLever.None))
                 tutorial = new Tutorial(IndexOf(levelName), records.Lessons, records.AddLesson);
             drag = new CarDrag(world, car, camera);
             carSounds = new CarSounds(Manager.Sounds, car);

@@ -608,6 +608,22 @@ namespace TW3D.Tests
         }
 
         [Fact]
+        public void TheEditorKeepsADebugLevelAndSwitchesIt()
+        {
+            EditedLevel level = new EditedLevel(Catalog, new LevelData { Debug = true }, null);
+            Assert.True(level.Debug);
+            Assert.True(level.ToData().Debug);
+            int version = level.Version;
+            level.SetDebug(true);
+            Assert.Equal(version, level.Version);
+            level.SetDebug(false);
+            Assert.Equal("Debug level", level.UndoName);
+            Assert.False(level.ToData().Debug);
+            level.Undo();
+            Assert.True(level.Debug);
+        }
+
+        [Fact]
         public void SettingTheSameMoodOrderOrParRecordsNothing()
         {
             EditedLevel level = Fresh();

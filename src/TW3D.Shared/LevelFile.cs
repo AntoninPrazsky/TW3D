@@ -15,6 +15,7 @@ namespace TW3D.Shared
     ///   "format": 2,
     ///   "order": 1,
     ///   "mood": "sunset",
+    ///   "debug": true,
     ///   "middle": [
     ///     {"block":"a1","x":0,"y":0,"shift":0},
     ///     {"block":"b2","x":1,"y":0,"shift":-4,"turned":true},
@@ -32,10 +33,14 @@ namespace TW3D.Shared
     ///   ]
     /// }
     /// </code>
-    /// The scenery is written only when the level has some, and a block's "turned" only when it is.
+    /// The scenery is written only when the level has some, a block's "turned" only when it is, and "debug" only for
+    /// a level for development and testing (see <see cref="LevelData.Debug"/>).
     /// </summary>
     public static class LevelFile
     {
+        /// <summary>A level of the level select: its name, and whether it is one for development and testing.</summary>
+        public readonly record struct Listing(string Name, bool Debug);
+
         public const string Extension = ".json";
 
         public static LevelData Load(string path)
@@ -72,15 +77,19 @@ namespace TW3D.Shared
 
         /// <summary>
         /// Names of the levels (*.json files) in the directory, in the order for the level select:
-        /// by <see cref="LevelData.Order"/>, then the levels without it by name. Files that are not
-        /// valid levels are left out. A missing directory gives an empty list.
+        /// by <see cref="LevelData.Order"/>, then the levels without it by name, the levels for development and testing
+        /// after all the others (see <see cref="FindListings"/>). Files that are not valid levels are left out. A missing
+        /// directory gives an empty list.
         /// </summary>
-        public static List<string> FindLevels(string directory)
+        public static List<string> FindLevels(string directory) => FindListings(directory).Select(level => level.Name).ToList();
+
+        /// <summary>The levels of the directory in the order of <see cref="FindLevels"/>, each saying whether it is a debug level.</summary>
+        public static List<Listing> FindListings(string directory)
         {
             if (!Directory.Exists(directory))
-                return new List<string>();
+                return new List<Listing>();
 
-            return SortLevels(Directory.GetFiles(directory, "*" + Extension).Select(Path.GetFileName),
+            return SortListings(Directory.GetFiles(directory, "*" + Extension).Select(Path.GetFileName),
                 fileName => File.OpenRead(Path.Combine(directory, fileName)));
         }
 
@@ -91,26 +100,34 @@ namespace TW3D.Shared
         /// <param name="fileNames">File names of the levels, with the extension; other files are ignored.</param>
         /// <param name="open">Opens a level file by its name.</param>
         public static List<string> SortLevels(IEnumerable<string> fileNames, Func<string, Stream> open)
+            => SortListings(fileNames, open).Select(level => level.Name).ToList();
+
+        /// <summary>The levels in the order of <see cref="SortLevels"/>, each saying whether it is a debug level.</summary>
+        public static List<Listing> SortListings(IEnumerable<string> fileNames, Func<string, Stream> open)
         {
-            List<(string Name, int? Order)> levels = new List<(string, int?)>();
+            List<(string Name, int? Order, bool Debug)> levels = new List<(string, int?, bool)>();
             foreach (string fileName in fileNames.Where(name => name.EndsWith(Extension, StringComparison.OrdinalIgnoreCase)))
             {
                 try
                 {
                     using (Stream stream = open(fileName))
-                        levels.Add((Path.GetFileNameWithoutExtension(fileName), Load(stream).Order));
+                    {
+                        LevelData level = Load(stream);
+                        levels.Add((Path.GetFileNameWithoutExtension(fileName), level.Order, level.Debug));
+                    }
                 }
                 catch (Exception e) when (e is IOException || e is InvalidDataException || e is JsonException)
                 {
-                    Debug.WriteLine("Level " + fileName + " left out: " + e.Message);
+                    System.Diagnostics.Debug.WriteLine("Level " + fileName + " left out: " + e.Message);
                 }
             }
 
             return levels
-                .OrderBy(level => level.Order.HasValue ? 0 : 1)
+                .OrderBy(level => level.Debug ? 1 : 0)
+                .ThenBy(level => level.Order.HasValue ? 0 : 1)
                 .ThenBy(level => level.Order ?? 0)
                 .ThenBy(level => level.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(level => level.Name)
+                .Select(level => new Listing(level.Name, level.Debug))
                 .ToList();
         }
 
@@ -133,6 +150,8 @@ namespace TW3D.Shared
                 json.Append("  \"par\": ").Append(JsonSerializer.Serialize(level.Par.Value, JsonOptions.Default)).Append(",\n");
             if (level.Style != null)
                 json.Append("  \"style\": ").Append(JsonSerializer.Serialize(level.Style, JsonOptions.Default)).Append(",\n");
+            if (level.Debug)
+                json.Append("  \"debug\": true,\n");
             bool scenery = level.Scenery != null && level.Scenery.Count > 0;
             AppendList(json, "middle", level.Middle, false);
             AppendList(json, "back", level.Back, false);

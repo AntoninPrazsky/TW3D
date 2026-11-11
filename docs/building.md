@@ -85,7 +85,7 @@ screen at 1920×1080 (off screen, at the start of a level, 2026-11-10):
 
 At 1280 × 720 antialiasing costs it about 14 ms a frame more (lock 32 frames per second), the medium
 Shadow detail about 7 ms (lock 42, the garage 28), the medium and high Surface detail about 1.5 and
-2 ms where the surfaces fill the screen (tunel-offroad 50, 46 and 45 frames per second at low, medium
+2 ms where the surfaces fill the screen (an off-road copy of tunel, since removed: 50, 46 and 45 frames per second at low, medium
 and high), and the smooth filter of the edges of the shadows, which a desktop has, 0.6 ms in the garage.
 
 ## Tests and CI

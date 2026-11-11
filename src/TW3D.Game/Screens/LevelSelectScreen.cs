@@ -11,7 +11,8 @@ namespace TW3D.Screens
 {
     /// <summary>
     /// A grid of level preview images below the title. As many columns as fit the screen are used;
-    /// when the levels do not fit vertically, the list scrolls and a scroll bar appears on its left.
+    /// when the levels do not fit vertically, the list scrolls and a scroll bar appears on its left. The levels for
+    /// development and testing come last, from a row of their own under the title DEBUG LEVELS.
     /// Main menu, on the left of the title, returns to the main menu (as Esc, the gamepad Back button and the back
     /// gesture of a phone do): a touch screen has no other way back. It is named after where it leads, because the
     /// level select also appears again after a run, when Back would suggest a return into the level.
@@ -38,6 +39,9 @@ namespace TW3D.Screens
         private const string BackText = "MAIN MENU";
         private const float BackScale = 0.8f;
         private const float BackPadding = 20f;
+        //The title of the section of the debug levels and its font scale
+        private const string DebugTitle = "DEBUG LEVELS";
+        private const float DebugTitleScale = 0.6f;
 
         private static readonly RasterizerState ScissorRasterizer = new RasterizerState { CullMode = CullMode.None, ScissorTestEnable = true };
 
@@ -46,6 +50,8 @@ namespace TW3D.Screens
         private readonly Action<string> startLevel;
         private readonly Func<string, (int Stars, float Time)?> results;
         private readonly Func<string, string> surfaces;
+        //The levels before the debug levels (all of them when there are none)
+        private readonly int regular;
         private readonly List<Texture2D> images = new List<Texture2D>();
 
         private Texture2D arrowTexture;
@@ -79,14 +85,16 @@ namespace TW3D.Screens
 
         /// <param name="results">The stars and the best time of a level, shown over its image; null if it was not finished.</param>
         /// <param name="surfaces">The surface of the track of a level that is not classic ("Off-road"), shown over its image; null for a classic one.</param>
+        /// <param name="firstDebug">Where the debug levels start among the levels (they come last); all levels or more for none.</param>
         public LevelSelectScreen(string title, IEnumerable<string> levels, Action<string> startLevel, Func<string, (int Stars, float Time)?> results = null,
-            Func<string, string> surfaces = null)
+            Func<string, string> surfaces = null, int firstDebug = int.MaxValue)
         {
             this.title = title;
             this.levels = new List<string>(levels);
             this.startLevel = startLevel;
             this.results = results;
             this.surfaces = surfaces;
+            regular = Math.Clamp(firstDebug, 0, this.levels.Count);
             FadeInTime = TimeSpan.FromSeconds(0.7);
             FadeOutTime = TimeSpan.FromSeconds(0.5);
         }
@@ -153,13 +161,34 @@ namespace TW3D.Screens
             ScrollTo(scroll);
         }
 
-        private float ContentHeight
+        private float ContentHeight => Rows == 0 ? 0f : RowTop(Rows - 1) + imageSize.Y;
+
+        //The rows of the levels before the debug levels, and of all levels
+        private int RegularRows => (regular + columns - 1) / columns;
+        private int Rows => RegularRows + (levels.Count - regular + columns - 1) / columns;
+
+        /// <summary>How high the title of the debug levels is with the gap under it (screen pixels); 0 without them.</summary>
+        private float DebugTitleHeight => regular < levels.Count ? Manager.Fonts.Menu.MeasureString(DebugTitle).Y * DebugTitleScale * uiScale + gap : 0f;
+
+        /// <summary>The top of a row from the top of the list, before scrolling (screen pixels): the debug rows below their title.</summary>
+        private float RowTop(int row) => row * (imageSize.Y + gap) + (row >= RegularRows ? DebugTitleHeight : 0f);
+
+        /// <summary>The row and the column of a level: the debug levels start on a row of their own.</summary>
+        private (int Row, int Column) Slot(int index)
         {
-            get
-            {
-                int rows = (levels.Count + columns - 1) / columns;
-                return rows * imageSize.Y + Math.Max(0, rows - 1) * gap;
-            }
+            if (index < regular)
+                return (index / columns, index % columns);
+            return (RegularRows + (index - regular) / columns, (index - regular) % columns);
+        }
+
+        /// <summary>The level in a row at a column, or the last of a shorter row; -1 for a row that is not there.</summary>
+        private int LevelIn(int row, int column)
+        {
+            if (row < 0 || row >= Rows)
+                return -1;
+            int first = row < RegularRows ? row * columns : regular + (row - RegularRows) * columns;
+            int end = row < RegularRows ? regular : levels.Count;
+            return Math.Min(first + column, Math.Min(first + columns, end) - 1);
         }
 
         /// <summary>Maximum scroll position in reference pixels.</summary>
@@ -172,10 +201,9 @@ namespace TW3D.Screens
 
         private Rectangle LevelBounds(int index)
         {
-            int column = index % columns;
-            int row = index / columns;
+            (int row, int column) = Slot(index);
             float x = gridLeft + column * (imageSize.X + gap);
-            float y = listTop + row * (imageSize.Y + gap) - scroll * uiScale;
+            float y = listTop + RowTop(row) - scroll * uiScale;
             return new Rectangle((int)x, (int)y, (int)imageSize.X, (int)imageSize.Y);
         }
 
@@ -293,12 +321,22 @@ namespace TW3D.Screens
             int move = 0;
             if (input.LeftPressed) move = -1;
             if (input.RightPressed) move = 1;
-            if (input.UpPressed) move = -columns;
-            if (input.DownPressed) move = columns;
-            if (move == 0 || levels.Count == 0)
+            int rowMove = input.UpPressed ? -1 : input.DownPressed ? 1 : 0;
+            if (move == 0 && rowMove == 0 || levels.Count == 0)
                 return;
 
-            Focus(focusedLevel < 0 ? 0 : MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1));
+            if (focusedLevel < 0)
+                Focus(0);
+            else if (move != 0)
+                Focus(MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1));
+            else
+            {
+                //Up and down go to the level above or below, in the same column or the last of a shorter row
+                (int row, int column) = Slot(focusedLevel);
+                int level = LevelIn(row + rowMove, column);
+                if (level >= 0)
+                    Focus(level);
+            }
 
             //Scroll so that the focused level is fully visible
             Rectangle bounds = LevelBounds(focusedLevel);
@@ -321,6 +359,12 @@ namespace TW3D.Screens
             Manager.GraphicsDevice.ScissorRectangle = new Rectangle(0, (int)listTop, viewport.Width, (int)Math.Ceiling(listBottom - listTop));
 
             batch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, null, null, ScissorRasterizer);
+            if (regular < levels.Count)
+            {
+                float titleTop = listTop + RowTop(RegularRows) - DebugTitleHeight - scroll * uiScale;
+                Manager.DrawShadowedText(Manager.Fonts.Menu, DebugTitle, new Vector2(gridLeft + slide, titleTop), Color.White * alpha, Color.Black * alpha,
+                    DebugTitleScale * uiScale);
+            }
             for (int i = 0; i < levels.Count; i++)
             {
                 Rectangle bounds = LevelBounds(i);

@@ -146,6 +146,12 @@ namespace TW3D.Shared
         /// </summary>
         public string Style { get; set; }
 
+        /// <summary>
+        /// A level for development and testing: the level select shows it under DEBUG LEVELS, after the others, and it
+        /// teaches nothing (no tutorial). Written only when it is set.
+        /// </summary>
+        public bool Debug { get; set; }
+
         /// <summary>The style a placed block is drawn in: its own, or the style of the level.</summary>
         public string StyleOf(BlockPlacement placement) => placement.Style ?? Style;
 

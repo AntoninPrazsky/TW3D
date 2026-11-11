@@ -229,6 +229,7 @@ namespace TW3D.Editor
         private LevelMood mood;
         private string style;
         private int? order;
+        private bool debug;
         private float? par;
 
         //The steps done so far: the first position of them are done, the rest are undone and can be redone
@@ -256,6 +257,7 @@ namespace TW3D.Editor
             mood = data.Mood;
             style = data.Style;
             order = data.Order;
+            debug = data.Debug;
             par = data.Par;
             foreach (Layer layer in Layers.All)
                 layers[(int)layer] = new List<PlacedBlock>();
@@ -312,6 +314,9 @@ namespace TW3D.Editor
 
         /// <summary>The position of the level in the level select; null for a level without one.</summary>
         public int? Order => order;
+
+        /// <summary>A level for development and testing, under DEBUG LEVELS in the level select (see <see cref="LevelData.Debug"/>).</summary>
+        public bool Debug => debug;
 
         /// <summary>The time a good run takes, in seconds; null when the game is to estimate it.</summary>
         public float? Par => par;
@@ -503,6 +508,7 @@ namespace TW3D.Editor
             {
                 Format = LevelData.CurrentFormat,
                 Order = order,
+                Debug = debug,
                 Mood = mood,
                 Par = par,
                 Style = style
@@ -825,6 +831,14 @@ namespace TW3D.Editor
             int? previous = order;
             if (value != previous)
                 Record("Order", () => order = value, () => order = previous);
+        }
+
+        /// <summary>Makes the level one for development and testing, or a level of the game; nothing is recorded when it does not change.</summary>
+        public void SetDebug(bool value)
+        {
+            bool previous = debug;
+            if (value != previous)
+                Record("Debug level", () => debug = value, () => debug = previous);
         }
 
         /// <summary>Sets the par time of the level; nothing is recorded when it does not change.</summary>

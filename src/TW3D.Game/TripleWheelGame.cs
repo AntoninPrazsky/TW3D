@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -49,8 +50,10 @@ namespace TW3D
         //The 3D garage behind the menus
         private BackgroundScreen background;
         private readonly GameRecords records = GameRecords.Load();
-        //The levels of the last level select, in its order; the par times of the levels shown there
+        //The levels of the last level select, in its order, and its debug levels (after the others); the par times of
+        //the levels shown there
         private List<string> levels = new List<string>();
+        private readonly HashSet<string> debugLevels = new HashSet<string>();
         private readonly Dictionary<string, float> pars = new Dictionary<string, float>();
         //The surfaces of the tracks of the levels, as the level select names them (see LevelSurface)
         private readonly Dictionary<string, string> surfaces = new Dictionary<string, string>();
@@ -273,30 +276,36 @@ namespace TW3D
         }
 
         /// <summary>
-        /// Every level file in Content/Levels (next to the game) appears in the level select.
-        /// The folder is read each time the level select opens.
+        /// Every level file in Content/Levels (next to the game) appears in the level select, the debug levels after the
+        /// others. The folder is read each time the level select opens.
         /// </summary>
-        private List<string> FindLevels()
+        private List<LevelFile.Listing> FindLevels()
         {
 #if ANDROID
             //On Android the content is packed in the app, Android lists its files
             string folder = Content.RootDirectory + "/Levels";
             string[] files = Android.App.Application.Context.Assets.List(folder) ?? Array.Empty<string>();
-            return LevelFile.SortLevels(files, fileName => TitleContainer.OpenStream(folder + "/" + fileName));
+            return LevelFile.SortListings(files, fileName => TitleContainer.OpenStream(folder + "/" + fileName));
 #else
-            return LevelFile.FindLevels(Path.Combine(AppContext.BaseDirectory, Content.RootDirectory, "Levels"));
+            return LevelFile.FindListings(Path.Combine(AppContext.BaseDirectory, Content.RootDirectory, "Levels"));
 #endif
         }
 
         private void OpenLevelSelect()
         {
-            levels = FindLevels();
-            screens.Add(new LevelSelectScreen("Level Select", levels, StartLevel, LevelResult, LevelSurface));
+            List<LevelFile.Listing> found = FindLevels();
+            levels = found.Select(level => level.Name).ToList();
+            debugLevels.Clear();
+            debugLevels.UnionWith(found.Where(level => level.Debug).Select(level => level.Name));
+            screens.Add(new LevelSelectScreen("Level Select", levels, StartLevel, LevelResult, LevelSurface,
+                levels.Count - debugLevels.Count));
         }
 
+        /// <summary>Starts a level; the one after it is the next of its own section of the level select.</summary>
         private void StartLevel(string level)
         {
-            screens.Add(new GameplayScreen(level, settings, records, levels));
+            bool debug = debugLevels.Contains(level);
+            screens.Add(new GameplayScreen(level, settings, records, levels.Where(other => debugLevels.Contains(other) == debug).ToList()));
         }
 
         /// <summary>
