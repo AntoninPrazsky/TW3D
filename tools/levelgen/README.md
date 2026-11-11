@@ -18,6 +18,11 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 | `lib.js` | `Track`: the road builder and helpers for decorations |
 | `summit.js` | The *summit* level |
 | `docks.js` | The *docks* level: every kind of block, object and prop, and the three back layers; a sliding ramp to brake on and climb from by turning the axles, pits for barrels, a ramp over the roofs of containers, a hump to brake for, stairs, and a jump across the harbour that needs full speed |
+| `valley.js` | The *valley* level, the first of the off-road style: a meadow track, washboards, logs, rocks, mud, a jump over a creek and steps down |
+| `creek.js` | The *creek* level, off-road and classic by turns: a meadow track and a dip, a bridge over a creek on steel pillars, a long gentle concrete road where the wheels wash clean, a jump back into the mud |
+| `swamp.js` | The *swamp* level, at night: a dirt track between lit concrete islands, stairs up, the sliding ramp of the brake lesson, a jump onto the second island and steps down it |
+| `quarry.js` | The *quarry* level, at sunset: a concrete haul road, the earth floor of the quarry, a tunnel, stairs up out of it with a boulder at their top, and a jump onto the finish |
+| `ridge.js` | The *ridge* level: two earth climbs up the side of a ridge, the concrete road along its top, a viaduct over a saddle, steps down and a jump onto the finish |
 | `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, the brake on a sliding ramp (#19) |
 | `debug.js` | The debug levels `test-*` (DEBUG LEVELS in the level select): a flat road and climbs of 24°, 34° and 42° on the slab and on the earth, a drop onto a road with humps, single steps and the stairs `s2`, for measuring the car |
 | `side-view.ps1` | Side view of a level's road as an image (Windows PowerShell), to check that it is continuous |
@@ -89,7 +94,12 @@ layer. `fillUnder` puts the ground a step lower and classic under a block alread
 surface in the layer (a checkered slab of the start or the finish: put it first), so that their faces do
 not fight (nor the slab and the raised verge of the off-road meadow); its `style` gives the ground a style
 of its own and `lower` puts it that many steps under the road (valley.js: the meadow in front2 and front3,
-a cell under the concrete, so that the retaining walls rise above it). Barriers and railings stand on the back edge of the road, so dynamic objects go through
+a cell under the concrete, so that the retaining walls rise above it). `countryside(from, to, { floor, hills })` dresses a level of the off-road
+style in one call (put the checkered areas first): under each road column of the classic style the concrete behind
+it and a retaining wall in front of it, with the meadow two and three cells in front a cell lower; under the other
+columns earth and meadow in the front, back and back2 layers and the meadow in front2 and front3; and the blocks of
+`hills` by turns in back3 on the meadow at the height of the road. Columns without a road (gaps, bridges) are left
+open: a level puts the banks of a creek or a saddle under its bridge itself (creek.js, ridge.js). Barriers and railings stand on the back edge of the road, so dynamic objects go through
 them; keep them away from places the objects can get to.
 
 The camera looks from the front and from above, so the front layer is close to it: blocks there

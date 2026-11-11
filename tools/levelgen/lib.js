@@ -265,6 +265,35 @@ class Track {
   }
 
   /**
+   * The countryside of a level of the off-road style around the road from column `from` to `to`: ground under the road
+   * down to the height `floor` in the front and the first back layer (earth and meadow; under a road of the classic style
+   * concrete behind it and a retaining wall in front of it), the meadow two cells behind it, and two and three cells in
+   * front of it (a cell lower in front of a classic road, so that its wall shows), and the blocks of `hills` by turns
+   * three cells behind it, on the meadow at the height of the road beside them. Columns without a road (gaps, bridges)
+   * are left open, ravines. Put checkered areas first (see fillUnder).
+   */
+  countryside(from, to, { floor, hills = ["bk4", "bk2", null, "bk2f", "bk1", null, "bk4f", "bk2", null] } = {}) {
+    for (let x = from; x <= to; x++) {
+      const cell = this.cells.get(x);
+      if (!cell) continue;
+      if (cell.style === "classic")
+        this.fillUnder(x, x, { floor, layers: ["back", "back2"] }).fillUnder(x, x, { floor, wall: true })
+          .fillUnder(x, x, { floor, layers: ["front2", "front3"], style: "offroad", lower: 9 });
+      else
+        this.fillUnder(x, x, { floor, layers: ["front", "back", "back2", "front2", "front3"] });
+    }
+    let h = null;
+    for (let x = from; x <= to; x++) {
+      const surface = this.surface(x);
+      if (surface !== undefined) h = Math.ceil(surface);
+      if (h === null) continue;
+      const block = hills[((x % hills.length) + hills.length) % hills.length];
+      this.backdrop("back3", x, x, h, [block], { ground: "a1g", style: "offroad" });
+    }
+    return this;
+  }
+
+  /**
    * A backdrop along columns `from` to `to` in a layer ("back2", "back3"...), on the ground at height h: the blocks of
    * `pattern` by turns ("bk2", "bk1"...; "bk2f" turned), a null leaving a column empty, with the top of the ground under
    * each when `ground` names it (e.g. "a1g"), in the style `style` when it is given (e.g. "offroad": grass under the
