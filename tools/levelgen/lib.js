@@ -231,10 +231,11 @@ class Track {
    * `floor` (in steps, as h; the bottom of the cell of a flat road is 5 steps under its surface). `wall` puts a retaining
    * wall instead (b2w, its mirror image b2wf under b2f, a1w, g2w), in the front layer only unless `layers` says otherwise:
    * it faces the camera. The ground takes the style of its road block (withStyle). A road block of another shape without
-   * ground of its own is left without. Under a block already in the layer at the surface (a checkered slab: put it
-   * first) the ground goes a step lower, so that their faces do not fight.
+   * ground of its own is left without. `style` gives the ground a style of its own (the meadow in front of concrete),
+   * `lower` puts it that many steps under the road. Under a block already in the layer at the surface (a checkered slab:
+   * put it first) the ground goes a step lower and is classic, so that their faces do not fight.
    */
-  fillUnder(from, to, { layers = null, depth = 1, floor = null, wall = false } = {}) {
+  fillUnder(from, to, { layers = null, depth = 1, floor = null, wall = false, style = null, lower = 0 } = {}) {
     layers = layers || (wall ? ["front"] : ["front", "back"]);
     for (let x = from; x <= to; x++) {
       const cell = this.cells.get(x);
@@ -248,14 +249,16 @@ class Track {
         top = wall ? "a1w" : "a1g";
         base = cell.left;
       } else continue;
-      const cells = floor === null ? depth : Math.max(0, Math.ceil((floor - base - 5) / 9));
-      const extra = cell.style ? { style: cell.style } : {};
+      const cells = floor === null ? depth : Math.max(0, Math.ceil((floor - base - lower - 5) / 9));
+      const own = style || cell.style;
       for (const layer of layers) {
         // Under a block already lying on the road surface in the layer (a checkered slab of the start or the finish,
-        // put there first) the ground goes a step lower, under the slab: in the same place their faces would fight
+        // put there first) the ground goes a step lower, under the slab, and is classic: in the same place their faces
+        // would fight, and so would the slab and the meadow of the off-road ground, whose verge stands above the road
         const under = this.occupied(layer, x, base) ? 1 : 0;
-        this.put(layer, top, x, base + under, extra);
-        for (let d = 1; d <= cells; d++) this.put(layer, wall ? "g2w" : "g2", x, base + under + 9 * d, extra);
+        const extra = under ? { style: "classic" } : own ? { style: own } : {};
+        this.put(layer, top, x, base + lower + under, extra);
+        for (let d = 1; d <= cells; d++) this.put(layer, wall ? "g2w" : "g2", x, base + lower + under + 9 * d, extra);
       }
     }
     return this;

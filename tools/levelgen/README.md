@@ -85,8 +85,11 @@ front and the first back layer by default, in the style of its road block; `wall
 a flat run), `barrier`, `railing`, `checkered`, `copyRoad` (a wider road or copies elsewhere),
 and `stairs` (a footpath beside `b2f` climbs); `checkered`, `copyRoad` and `stairs` take any
 of the back and the front layers too, and `bothSides` uses `copyRoad` or `stairs` in the back and the front
-layer. `fillUnder` puts the ground a step lower under a block already lying on the road surface in
-the layer (a checkered slab of the start or the finish: put it first), so that their faces do not fight. Barriers and railings stand on the back edge of the road, so dynamic objects go through
+layer. `fillUnder` puts the ground a step lower and classic under a block already lying on the road
+surface in the layer (a checkered slab of the start or the finish: put it first), so that their faces do
+not fight (nor the slab and the raised verge of the off-road meadow); its `style` gives the ground a style
+of its own and `lower` puts it that many steps under the road (valley.js: the meadow in front2 and front3,
+a cell under the concrete, so that the retaining walls rise above it). Barriers and railings stand on the back edge of the road, so dynamic objects go through
 them; keep them away from places the objects can get to.
 
 The camera looks from the front and from above, so the front layer is close to it: blocks there

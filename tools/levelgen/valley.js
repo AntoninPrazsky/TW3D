@@ -128,6 +128,15 @@ t.fillUnder(bridge + BridgeCells, lip2, { floor, layers: ["back"] }).fillUnder(b
 t.fillUnder(mud2, clean2 - 1, { floor });
 t.fillUnder(clean2, wall, { floor, layers: ["back"] }).fillUnder(clean2, wall, { floor, wall: true });
 
+// In front of the road, two and three cells (the camera sees them as it turns at the start): the meadow following the
+// road, a cell lower in front of the concrete, so that its retaining walls rise above it (not under the bridge, where
+// the ravine is)
+const ahead = ["front2", "front3"];
+t.fillUnder(-3, run1 + 7, { floor, layers: ahead }).fillUnder(lip1, lip1, { floor, layers: ahead });
+t.fillUnder(clean1, lip2, { floor, layers: ahead, style: "offroad", lower: 9 });
+t.fillUnder(mud2, clean2 - 1, { floor, layers: ahead });
+t.fillUnder(clean2, wall, { floor, layers: ahead, style: "offroad", lower: 9 });
+
 for (const layer of ["back", "front"]) {
   t.put(layer, "u1", wall, finishH - 4);
   for (let i = 1; i <= 3; i++) t.put(layer, "t1", wall, finishH - 4 - 9 * i);
@@ -157,4 +166,4 @@ for (const x of [mud1 + 1, mud1 + 6, dip + 4, mud2 + 2, hill + 6, hill2 + 6]) {
 
 const output = process.argv[2] || path.join(__dirname, "..", "..", "content", "Levels", "valley.json");
 t.save(output, 9);
-console.log(`${output}: ${t.middle.length} road blocks, ${t.back.length + t.back2.length + t.back3.length + t.front.length} decorations, ${t.scenery.length} props; mud from ${mud1}, dip ${dip}, lip ${lip1} (h ${lip1H}), concrete ${clean1}, bridge ${bridge}, lip ${lip2} (h ${lip2H}), mud ${mud2}, hill ${hill}, hill ${hill2}, concrete ${clean2}, finish ${finish}`);
+console.log(`${output}: ${t.middle.length} road blocks, ${t.back.length + t.back2.length + t.back3.length + t.front.length + t.front2.length + t.front3.length} decorations, ${t.scenery.length} props; mud from ${mud1}, dip ${dip}, lip ${lip1} (h ${lip1H}), concrete ${clean1}, bridge ${bridge}, lip ${lip2} (h ${lip2H}), mud ${mud2}, hill ${hill}, hill ${hill2}, concrete ${clean2}, finish ${finish}`);
