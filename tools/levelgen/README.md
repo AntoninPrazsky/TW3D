@@ -18,7 +18,7 @@ Rebuild the game afterwards, so the level gets copied to the build output.
 | `lib.js` | `Track`: the road builder and helpers for decorations |
 | `summit.js` | The *summit* level |
 | `docks.js` | The *docks* level: every kind of block, object and prop, and the three back layers; a sliding ramp to brake on and climb from by turning the axles, pits for barrels, a ramp over the roofs of containers, a hump to brake for, stairs, and a jump across the harbour that needs full speed |
-| `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, long stairs |
+| `training1.js`, `training2.js`, `training3.js` | The training levels, the first three of the level select: driving over humps and a small jump, stairs, the brake on a sliding ramp (#19) |
 | `debug.js` | The debug levels `test-*` (DEBUG LEVELS in the level select): a flat road and climbs of 24°, 34° and 42° on the slab and on the earth, a drop onto a road with humps, single steps and the stairs `s2`, for measuring the car |
 | `side-view.ps1` | Side view of a level's road as an image (Windows PowerShell), to check that it is continuous |
 
@@ -148,4 +148,9 @@ speed the car flies over the pits anyway. The ramp object (`rm`, 26 units long a
 the road at a ledge, overhanging it, throws a fast car over the containers (`co`, `co2`, 13.8 high) standing in a yard
 12.5 units below. The sliding ramp (`mov1`, a trailer) needs the lock block `lo` 7.5 units up and a run-up as in the
 lock level: the car runs onto its bed and brakes, the trailer slides into the lock, and the car climbs onto the road
-above by turning the axles. `docks.js` has the distances of the lock level for both.
+above by turning the axles. `docks.js` has the distances of the lock level for both. The trailer has to slide some 36
+units (it stands 3.16 cells before the lock block there) for the lock to catch it, which takes a fast car braking as soon
+as it is on the trailer: a car braking on its ramp, or not at all, hits the front of the trailer and pushes it only part
+of the way, and falls into the gap before the lock. `training3.js` (the lesson of the brake) stands it 3 cells before the
+lock, 3.6 units nearer: scripted drives of the three cars braking on the trailer got to the finish 12 times of 18 (the
+others mostly failed to climb off it), none of 8 without the brake; at 2.9 cells one got there without braking.

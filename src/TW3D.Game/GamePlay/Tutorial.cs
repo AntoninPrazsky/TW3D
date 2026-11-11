@@ -29,11 +29,15 @@ namespace TW3D.GamePlay
     /// <summary>How the car moves in a frame, as far as the hints of the tutorial need it.</summary>
     public readonly struct CarMotion
     {
-        public CarMotion(float speed, float distance, bool onWheels)
+        /// <param name="rampAhead">How far ahead the nearest sliding ramp is (see <see cref="RampAhead"/>); null without one.</param>
+        /// <param name="onRamp">The car stands on a sliding ramp.</param>
+        public CarMotion(float speed, float distance, bool onWheels, float? rampAhead = null, bool onRamp = false)
         {
             Speed = speed;
             Distance = distance;
             OnWheels = onWheels;
+            RampAhead = rampAhead;
+            OnRamp = onRamp;
         }
 
         /// <summary>The speed of the car forward (physics units a second).</summary>
@@ -47,12 +51,23 @@ namespace TW3D.GamePlay
         /// nose or its tail). In the air or turned over, turning the axles climbs nothing.
         /// </summary>
         public bool OnWheels { get; }
+
+        /// <summary>
+        /// How far ahead of the car the back end of the nearest sliding ramp (the trailer, an object of the type Mov) is,
+        /// physics units forward; 0 once the car is on it or past its back end; null on a level without one ahead.
+        /// </summary>
+        public float? RampAhead { get; }
+
+        /// <summary>The car stands on a sliding ramp (a wheel touches it).</summary>
+        public bool OnRamp { get; }
     }
 
     /// <summary>One step of a lesson: what its card says, and what the player has to hold, and how long, to do it.</summary>
     public sealed class LessonStep
     {
-        public LessonStep(CarControl control, string caption, string detail, Func<DriveActions, bool> held, float holdTime, bool continuous)
+        /// <param name="where">Where the hold counts (the brake on the sliding ramp); null: anywhere.</param>
+        public LessonStep(CarControl control, string caption, string detail, Func<DriveActions, bool> held, float holdTime, bool continuous,
+            Func<CarMotion, bool> where = null)
         {
             Control = control;
             Caption = caption;
@@ -60,6 +75,7 @@ namespace TW3D.GamePlay
             Held = held;
             HoldTime = holdTime;
             Continuous = continuous;
+            Where = where;
         }
 
         public CarControl Control { get; }
@@ -77,6 +93,9 @@ namespace TW3D.GamePlay
 
         /// <summary>The hold has to be unbroken; otherwise the seconds add up.</summary>
         public bool Continuous { get; }
+
+        /// <summary>Where the hold counts; null: anywhere.</summary>
+        public Func<CarMotion, bool> Where { get; }
     }
 
     /// <summary>
@@ -85,7 +104,13 @@ namespace TW3D.GamePlay
     /// </summary>
     public sealed class Lesson
     {
-        private Lesson(string key, int fromLevel, string caption, string praise, LessonStep[] steps, bool isHint = false)
+        //The praise stays this long (seconds); longer for a lesson done at a place of the level, where the player watches
+        //the road rather than the card (the owner did not notice the praise of the brake on the sliding ramp)
+        private const float ShortPraise = 1.1f;
+        private const float LongPraise = 2.5f;
+
+        private Lesson(string key, int fromLevel, string caption, string praise, LessonStep[] steps, bool isHint = false,
+            Func<CarMotion, bool> when = null)
         {
             Key = key;
             FromLevel = fromLevel;
@@ -93,12 +118,23 @@ namespace TW3D.GamePlay
             Praise = praise;
             Steps = steps;
             IsHint = isHint;
+            When = when;
+            PraiseTime = when != null ? LongPraise : ShortPraise;
         }
 
         /// <summary>An action of one or two steps; the praise joins the card when it is done.</summary>
         public static Lesson Action(string key, int fromLevel, string praise, params LessonStep[] steps)
         {
             return new Lesson(key, fromLevel, null, praise, steps);
+        }
+
+        /// <summary>
+        /// An action that comes only at a place of the level (the brake as the car comes to a sliding ramp); until then it
+        /// waits, and the lessons after it come before it.
+        /// </summary>
+        public static Lesson ActionAt(string key, int fromLevel, string praise, Func<CarMotion, bool> when, params LessonStep[] steps)
+        {
+            return new Lesson(key, fromLevel, null, praise, steps, when: when);
         }
 
         /// <summary>A hint: an action of one step, shown whenever it is due, on any level.</summary>
@@ -124,12 +160,18 @@ namespace TW3D.GamePlay
 
         public string Praise { get; }
 
+        /// <summary>How long the praise stays once the action is done (seconds).</summary>
+        public float PraiseTime { get; }
+
         public IReadOnlyList<LessonStep> Steps { get; }
 
         public bool IsNotice => Steps.Count == 0;
 
         /// <summary>Shown when it is due, not taught once (see <see cref="Tutorial.StuckHint"/> and <see cref="Tutorial.RestartHint"/>).</summary>
         public bool IsHint { get; }
+
+        /// <summary>Where the lesson comes (see <see cref="ActionAt"/>); null: as soon as its turn comes.</summary>
+        public Func<CarMotion, bool> When { get; }
     }
 
     /// <summary>The tutorial's levers for development (see Program).</summary>
@@ -162,7 +204,6 @@ namespace TW3D.GamePlay
         private const float CardGap = 0.6f;
         //An instruction stands at least this long, whatever the player does; the praise this long after the action
         private const float MinReadTime = 1.2f;
-        private const float PraiseTime = 1.1f;
         //An action not done goes after this long, unrecorded; a notice stays this long
         private const float ActionTimeout = 22f;
         private const float NoticeTime = 7f;
@@ -180,11 +221,16 @@ namespace TW3D.GamePlay
         //there: the restart hint comes there instead of the stuck hint
         private const float TriedTime = 0.6f;
         private const float ProgressDistance = 10f;
+        //The card of the brake comes when a sliding ramp is this far ahead (physics units: a few cells, some two seconds
+        //at the speed the ramp needs), and braking on the ramp this long (seconds) does it
+        private const float BrakeCardDistance = 90f;
+        private const float BrakeHold = 0.4f;
 
         /// <summary>
         /// The lessons, in the order they are taught. The first levels are training levels: driving (training1), stairs
-        /// (training2) and long stairs (training3, no lesson of its own: the stuck hint helps there). The brake has no
-        /// lesson yet: no level needs it so far.
+        /// (training2) and the brake (training3, #19): the car brakes on a sliding ramp, which slides on with it into a
+        /// lock, and climbs off it by turning the axles (the stuck hint tells that). The card of the brake comes as the
+        /// car nears the ramp, and only braking on the ramp does it.
         /// </summary>
         public static readonly IReadOnlyList<Lesson> Lessons = new[]
         {
@@ -193,6 +239,8 @@ namespace TW3D.GamePlay
             Lesson.Notice("par", 0, "Beat the par time for three stars"),
             Lesson.Action("axles", 1, "Good!",
                 new LessonStep(CarControl.Axles, "Hold to turn the axles", null, a => a.Axles, 0.6f, false)),
+            Lesson.ActionAt("brake", 2, "Great!", m => m.RampAhead <= BrakeCardDistance,
+                new LessonStep(CarControl.Brake, "Brake on the ramp", "Hold it while the ramp slides", a => a.Brake, BrakeHold, false, m => m.OnRamp)),
             Lesson.Action("lock", 3, "Perfect!",
                 new LessonStep(CarControl.Lock, "Hold to lock the axles", null, a => a.LockAxles, 0.35f, true)),
         };
@@ -217,7 +265,8 @@ namespace TW3D.GamePlay
         /// <summary>Set once at the start by the command line (see Program).</summary>
         public static TutorialLever Lever { get; set; }
 
-        private readonly Queue<Lesson> queue = new Queue<Lesson>();
+        //The lessons still to come, in their order
+        private readonly List<Lesson> queue = new List<Lesson>();
         private readonly Action<string> taught;
 
         //Seconds until the next card, while there is none
@@ -248,12 +297,12 @@ namespace TW3D.GamePlay
                     _ => lesson.FromLevel == level || lesson.FromLevel < level && !taughtLessons.Contains(lesson.Key)
                 };
                 if (due)
-                    queue.Enqueue(lesson);
+                    queue.Add(lesson);
             }
             if (Lever == TutorialLever.Demo)
             {
-                queue.Enqueue(StuckHint);
-                queue.Enqueue(RestartHint);
+                queue.Add(StuckHint);
+                queue.Add(RestartHint);
             }
         }
 
@@ -315,8 +364,16 @@ namespace TW3D.GamePlay
                     stuck = 0f;
                     Show(triedAt.HasValue && triedFor >= TriedTime ? RestartHint : StuckHint);
                 }
-                else if (wait <= 0f && queue.Count > 0)
-                    Show(queue.Dequeue());
+                else if (wait <= 0f)
+                {
+                    //The first lesson whose place it is (in the demo every lesson comes in turn, wherever the car is)
+                    int next = queue.FindIndex(lesson => Lever == TutorialLever.Demo || lesson.When == null || lesson.When(car));
+                    if (next >= 0)
+                    {
+                        Show(queue[next]);
+                        queue.RemoveAt(next);
+                    }
+                }
                 return;
             }
 
@@ -352,12 +409,12 @@ namespace TW3D.GamePlay
             if (PraiseAge.HasValue)
             {
                 //The instruction stands its time, the praise its own; the card goes when both have run
-                if (Age >= MinReadTime && PraiseAge >= PraiseTime)
+                if (Age >= MinReadTime && PraiseAge >= Lesson.PraiseTime)
                     Leave();
                 return;
             }
 
-            Practise(elapsed, actions);
+            Practise(elapsed, actions, car);
             if (!PraiseAge.HasValue && Age >= (Lesson.IsHint ? HintTime : ActionTimeout))
                 Leave();
         }
@@ -389,10 +446,10 @@ namespace TW3D.GamePlay
         }
 
         /// <summary>Follows what the player does for the step shown.</summary>
-        private void Practise(float elapsed, DriveActions actions)
+        private void Practise(float elapsed, DriveActions actions, CarMotion car)
         {
             LessonStep step = CurrentStep;
-            bool holding = Lever == TutorialLever.Demo ? StepAge >= DemoStepTime : step.Held(actions);
+            bool holding = Lever == TutorialLever.Demo ? StepAge >= DemoStepTime : step.Held(actions) && (step.Where == null || step.Where(car));
             if (holding)
                 held += elapsed;
             else if (step.Continuous)

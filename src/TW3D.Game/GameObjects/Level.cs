@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using nkast.Aether.Physics2D.Collision;
 using nkast.Aether.Physics2D.Dynamics;
 using TW3D.GamePlay;
 using TW3D.Graphics;
@@ -210,6 +211,37 @@ namespace TW3D.GameObjects
                 count++;
             }
             return count == 0 ? null : new Vector2(sum.X, sum.Y) / count;
+        }
+
+        /// <summary>The type of the dynamic objects that are sliding ramps: the trailer, which the car brakes on (#19).</summary>
+        public const string SlidingRamp = "Mov";
+
+        /// <summary>
+        /// How far ahead of a point (physics x) the back end of the nearest sliding ramp is: 0 when the point is over one;
+        /// null when there is none ahead (a ramp the point has passed is left behind).
+        /// </summary>
+        public float? SlidingRampAhead(float x)
+        {
+            float? nearest = null;
+            foreach (TrackProp obj in objects)
+            {
+                if (obj.Body?.Tag is not ObjectType { Type: SlidingRamp })
+                    continue;
+                float back = float.MaxValue, front = float.MinValue;
+                foreach (Fixture fixture in obj.Body.FixtureList)
+                    for (int child = 0; child < fixture.Shape.ChildCount; child++)
+                    {
+                        fixture.GetAABB(out AABB box, child);
+                        back = Math.Min(back, box.LowerBound.X);
+                        front = Math.Max(front, box.UpperBound.X);
+                    }
+                if (x > front)
+                    continue;
+                float ahead = Math.Max(0f, back - x);
+                if (!nearest.HasValue || ahead < nearest.Value)
+                    nearest = ahead;
+            }
+            return nearest;
         }
 
         /// <summary>The point (the middle of the car, in physics units) is in the cell of the finish block.</summary>

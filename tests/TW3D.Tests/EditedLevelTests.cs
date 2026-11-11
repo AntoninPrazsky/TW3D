@@ -1360,7 +1360,6 @@ namespace TW3D.Tests
 
         [Theory]
         [InlineData("training2")]
-        [InlineData("training3")]
         [InlineData("summit")]
         public void TheLevelsOfTheGeneratorHaveNoRoadGaps(string name)
         {
@@ -1379,6 +1378,17 @@ namespace TW3D.Tests
             Assert.Equal(new Cell(13, 0), gap.A.Cell);
             Assert.Equal(new Cell(14, 0), gap.B.Cell);
             Assert.Equal(2, gap.Steps);
+        }
+
+        [Fact]
+        public void TheOnlyGapOfTheThirdTrainingLevelIsTheLock()
+        {
+            //training3.js steps the road up 3 at the lock block, where the front of the sliding ramp meets the road (#19)
+            EditedLevel level = Load("training3");
+            RoadGap gap = Assert.Single(level.RoadGaps());
+            Assert.Equal(new Cell(9, 0), gap.A.Cell);
+            Assert.Equal(new Cell(10, 0), gap.B.Cell);
+            Assert.Equal(3, gap.Steps);
         }
 
         [Fact]

@@ -20,6 +20,7 @@ namespace TW3D.Tests
         private static readonly DriveActions Nothing = new DriveActions(false, false, false, false);
         private static readonly DriveActions Throttle = new DriveActions(true, false, false, false);
         private static readonly DriveActions ThrottleAndAxles = new DriveActions(true, true, false, false);
+        private static readonly DriveActions Brake = new DriveActions(false, false, true, false);
 
         //The lessons the tutorial saved as taught
         private readonly List<string> taught = new List<string>();
@@ -43,12 +44,15 @@ namespace TW3D.Tests
         }
 
         /// <param name="onWheels">The car stands on its wheels (not in the air, not turned over).</param>
-        private void Run(Tutorial tutorial, float seconds, DriveActions actions, float carSpeed = Moving, bool racing = true, bool onWheels = true)
+        /// <param name="rampAhead">How far ahead a sliding ramp is; null for none.</param>
+        /// <param name="onRamp">The car stands on the sliding ramp.</param>
+        private void Run(Tutorial tutorial, float seconds, DriveActions actions, float carSpeed = Moving, bool racing = true, bool onWheels = true,
+            float? rampAhead = null, bool onRamp = false)
         {
             for (float time = 0f; time < seconds; time += Frame)
             {
                 distance += carSpeed * Frame;
-                tutorial.Update(Frame, racing, actions, new CarMotion(carSpeed, distance, onWheels));
+                tutorial.Update(Frame, racing, actions, new CarMotion(carSpeed, distance, onWheels, rampAhead, onRamp));
             }
         }
 
@@ -98,10 +102,42 @@ namespace TW3D.Tests
         [InlineData("drive", "training1")]
         [InlineData("par", "training1")]
         [InlineData("axles", "training2")]
+        [InlineData("brake", "training3")]
         [InlineData("lock", "startblock")]
         public void TheLessonsAreOnTheLevelsMeantForThem(string lesson, string level)
         {
             Assert.Equal(level, Repository.LevelNames()[Tutorial.Lessons.Single(l => l.Key == lesson).FromLevel]);
+        }
+
+        /// <summary>The card of the brake waits for a sliding ramp ahead, and only braking on the ramp does it (#19).</summary>
+        [Fact]
+        public void TheBrakeCardComesAtTheRampAndOnlyBrakingOnItCounts()
+        {
+            Tutorial tutorial = Start(2, "drive", "par", "axles");
+            Run(tutorial, 4f, Throttle, rampAhead: 200f);
+            Assert.Null(tutorial.Lesson);
+            Run(tutorial, 0.5f, Throttle, rampAhead: 80f);
+            Assert.Equal("brake", tutorial.Lesson?.Key);
+
+            Run(tutorial, 1f, Brake, rampAhead: 30f);
+            Assert.Null(tutorial.PraiseAge);
+            Run(tutorial, 0.5f, Brake, rampAhead: 0f, onRamp: true);
+            Assert.NotNull(tutorial.PraiseAge);
+            Assert.Equal(new[] { "brake" }, taught);
+
+            //The player watches the road there: the praise stays longer than that of a lesson at the start
+            Run(tutorial, 2f, Brake, rampAhead: 0f, onRamp: true);
+            Assert.Equal("brake", tutorial.Lesson?.Key);
+            Assert.Equal(0f, tutorial.Leaving);
+            Run(tutorial, 1f, Brake, rampAhead: 0f, onRamp: true);
+            Assert.True(tutorial.Leaving > 0f || tutorial.Lesson == null);
+        }
+
+        /// <summary>A brake lesson not taught follows the player, waiting for a ramp, but lets the lessons after it come.</summary>
+        [Fact]
+        public void TheBrakeLessonWaitingForARampLetsTheLockLessonCome()
+        {
+            Assert.Equal(new[] { "lock" }, Cards(Start(3, "drive", "par", "axles"), 40f));
         }
 
         [Fact]
@@ -156,7 +192,8 @@ namespace TW3D.Tests
             Assert.Empty(taught);
         }
 
-        //The third level: no lessons of its own, and those before it taught, so only the stuck hint can come
+        //The third level: its own lesson, the brake, waits for a sliding ramp, which these runs have none of, and those
+        //before it are taught, so only the stuck hint can come
 
         [Fact]
         public void TheStuckHintComesAfterThreeSecondsOfTheThrottleWithNoProgress()

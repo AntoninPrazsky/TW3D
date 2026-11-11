@@ -283,7 +283,8 @@ namespace TW3D.GamePlay
             throttleHeld = Math.Abs(drive.Stick.X) > ThrottleThreshold ? Math.Min(1f, Math.Abs(drive.Stick.X)) : 0f;
             tutorial?.Update(elapsed, race.State == RaceState.Racing,
                 new DriveActions(drive.Stick.X > ThrottleThreshold, car.holderRotation, car.brake, car.holderRotLockChnage),
-                new CarMotion(car.car.LinearVelocity.X, car.car.Position.X, car.OnWheels));
+                new CarMotion(car.car.LinearVelocity.X, car.car.Position.X, car.OnWheels, level.SlidingRampAhead(car.car.Position.X),
+                    grounded.Exists(wheel => wheel.Ground?.Tag is ObjectType { Type: Level.SlidingRamp })));
 
             //A run in which the car was dragged by hand does not count
             if (drag.Update(input, controls, Manager.Viewport) && race.State != RaceState.Finished)

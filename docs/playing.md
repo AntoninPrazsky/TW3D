@@ -256,11 +256,20 @@ Options → Tutorial turns them off.
 | `drive` | 1 (training1: driving) | → *Hold to drive* |
 | `par` | 1 | *Beat the par time for three stars* |
 | `axles` | 2 (training2: stairs) | ↑ ↓ *Hold to turn the axles* |
+| `brake` | 3 (training3: the sliding ramp) | Space *Brake on the ramp*, *Hold it while the ramp slides* |
 | `lock` | 4 | Left Ctrl *Hold to lock the axles* |
 
-The third training level (training3: long stairs) has no lesson of its own. The brake has
-no lesson yet: no level needs it so far. A card can have two steps (the second one comes
-when the first is done), which a lesson of braking while turning the axles would use.
+The third training level (training3, #19) teaches the brake: after a straight the car runs
+up the ramp of a loose trailer (the sliding ramp, `mov1`) onto its bed and brakes, the
+trailer slides on with the car on it until the lock block catches its front, and the car
+climbs off the trailer onto the road above by turning the axles with the throttle held (the
+stuck hint tells it). The car has to be fast and brake as soon as it is on the trailer: a car
+that does not brake hits the front of the trailer, pushes it only part of the way and falls
+into the gap before the lock, and so does one that brakes too early, on the ramp. The card of
+the brake comes when a sliding ramp is about four cells ahead (whenever its turn comes, as in
+the docks for a player who has not learnt it), and only braking on the ramp does it; until a
+ramp comes, it lets the lessons after it by. A card can have two steps (the second one comes
+when the first is done).
 
 A car stuck in front of an obstacle gets a hint: when the throttle has been held for 3
 seconds while the car stood on its wheels and made no progress, ↑ ↓ *Turn the axles to
