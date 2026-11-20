@@ -76,6 +76,8 @@ namespace TW3D.Screens
         //Scroll position in reference pixels, so it does not depend on the screen size
         private float scroll;
         private int focusedLevel = -1;
+        //The list was scrolled by the pointer in the last frame (the wheel, the slider, its arrows or a drag), not by the keys
+        private bool scrolledByPointer;
 
         private enum Drag { None, PressedOnLevel, List, Slider, ArrowUp, ArrowDown }
         private Drag drag;
@@ -231,8 +233,11 @@ namespace TW3D.Screens
             float elapsed = (float)gameTime.ElapsedGameTime.TotalSeconds;
             Vector2 pointer = input.PointerPosition;
 
+            //The pointer and the keys share one focus, and the one that was used last drives it: the pointer takes it while it
+            //moves, is pressed, or scrolls the list under itself (the level that slides under it is the one it points at). A
+            //pointer that only rests over a level leaves the focus to the keys, which scroll the list under it as well.
             int hovered = LevelAt(pointer);
-            if (hovered >= 0 || input.MouseMoved)
+            if (input.MouseMoved || hovered >= 0 && (input.Pointers.Count > 0 || scrolledByPointer))
                 Focus(hovered);
 
             if (input.PointerPressed && back.Contains(pointer))
@@ -270,6 +275,8 @@ namespace TW3D.Screens
                     break;
                 case Drag.List: ScrollTo(pressScroll - (pointer.Y - pressPosition.Y) / uiScale); break;
             }
+            //Noted before a release ends the drag: the frame after it still follows the pointer to the level it ended on
+            scrolledByPointer = drag is Drag.List or Drag.Slider or Drag.ArrowUp or Drag.ArrowDown;
 
             if (input.PointerReleased)
             {
@@ -282,13 +289,16 @@ namespace TW3D.Screens
 
             float page = (listBottom - listTop) / uiScale;
             if (input.WheelDelta != 0)
+            {
                 ScrollTo(scroll - input.WheelDelta / 120f * WheelScrollStep);
+                scrolledByPointer = true;
+            }
             if (input.KeyPressed(Keys.PageUp))
                 ScrollTo(scroll - page);
             if (input.KeyPressed(Keys.PageDown))
                 ScrollTo(scroll + page);
 
-            HandleKeyboardFocus(input);
+            HandleKeyboardFocus(input, hovered);
 
             if (input.ConfirmPressed && focusedLevel >= 0)
                 Start(focusedLevel);
@@ -316,7 +326,8 @@ namespace TW3D.Screens
             Close();
         }
 
-        private void HandleKeyboardFocus(InputState input)
+        /// <param name="hovered">The level under the pointer; a key pressed while no level has the focus gives it to that level, or to the first one.</param>
+        private void HandleKeyboardFocus(InputState input, int hovered)
         {
             int move = 0;
             if (input.LeftPressed) move = -1;
@@ -326,7 +337,7 @@ namespace TW3D.Screens
                 return;
 
             if (focusedLevel < 0)
-                Focus(0);
+                Focus(Math.Max(hovered, 0));
             else if (move != 0)
                 Focus(MathHelper.Clamp(focusedLevel + move, 0, levels.Count - 1));
             else
